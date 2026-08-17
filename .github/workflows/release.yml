@@ -42,14 +42,14 @@ jobs:
           ./gradlew assembleRelease assembleDebug --stacktrace
 
       - name: Upload Unsigned Release APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cassettecat-release-unsigned
           path: app/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: warn
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cassettecat-debug-apk
           path: app/app/build/outputs/apk/debug/app-debug.apk
