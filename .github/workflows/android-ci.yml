@@ -1,0 +1,51 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/android-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/android-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Test Android App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        working-directory: ./app
+        run: chmod +x gradlew
+
+      - name: Build Debug APK & Run Unit Tests
+        working-directory: ./app
+        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cassettecat-debug-apk
+          path: app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
