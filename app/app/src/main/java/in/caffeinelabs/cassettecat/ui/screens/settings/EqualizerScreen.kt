@@ -281,6 +281,32 @@ fun EqualizerScreen(
                             )
                         }
                     }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Text(
+                        "LOUDNESS & DYNAMICS",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                    )
+
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        PreampGainSlider(
+                            label = "Preamp Gain",
+                            gainMb = levels.preampGainMb,
+                            enabled = isEnabled,
+                            onValueChange = { viewModel.setPreampGainMb(it) }
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        ToggleRow(
+                            title = "Loudness Normalization",
+                            subtitle = "Balance output volume across diverse audio sources",
+                            checked = levels.loudnessNormalization,
+                            onCheckedChange = { if (isEnabled) viewModel.setLoudnessNormalization(it) },
+                            iconRes = R.drawable.lucide_ic_volume_2
+                        )
+                    }
                 }
             }
         }
@@ -496,6 +522,36 @@ private fun EffectControlSlider(
             value = strength.toFloat(),
             onValueChange = { onValueChange(it.toInt()) },
             valueRange = 0f..1000f,
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun PreampGainSlider(
+    label: String,
+    gainMb: Int,
+    enabled: Boolean,
+    onValueChange: (Int) -> Unit
+) {
+    val gainDb = gainMb / 100f
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                String.format(Locale.US, "%+.1f dB", gainDb),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = if (gainMb > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Slider(
+            value = gainMb.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            valueRange = 0f..1200f,
             enabled = enabled
         )
     }

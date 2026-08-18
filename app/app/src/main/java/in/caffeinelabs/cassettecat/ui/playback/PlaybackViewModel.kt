@@ -186,6 +186,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 levels.bandLevelsMb.forEachIndexed { band, levelMb -> EqualizerController.setBandLevel(band, levelMb) }
                 EqualizerController.setBassBoostStrength(levels.bassBoostStrength)
                 EqualizerController.setVirtualizerStrength(levels.virtualizerStrength)
+                EqualizerController.setPreampGainMb(levels.preampGainMb)
+                EqualizerController.setLoudnessNormalization(levels.loudnessNormalization, levels.preampGainMb)
             }
         }
     }
@@ -214,12 +216,52 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _sleepTimerEndMs = MutableStateFlow<Long?>(null)
     val sleepTimerEndMs: StateFlow<Long?> = _sleepTimerEndMs.asStateFlow()
 
-    fun startSleepTimer(durationMs: Long) {
+    private val _sleepTimerFadeOut = MutableStateFlow(true)
+    val sleepTimerFadeOut: StateFlow<Boolean> = _sleepTimerFadeOut.asStateFlow()
+
+    private val _sleepTimerFinishTrack = MutableStateFlow(false)
+    val sleepTimerFinishTrack: StateFlow<Boolean> = _sleepTimerFinishTrack.asStateFlow()
+
+    fun setSleepTimerFadeOut(enabled: Boolean) {
+        _sleepTimerFadeOut.value = enabled
+    }
+
+    fun setSleepTimerFinishTrack(enabled: Boolean) {
+        _sleepTimerFinishTrack.value = enabled
+    }
+
+    fun startSleepTimer(
+        durationMs: Long,
+        finishTrack: Boolean = _sleepTimerFinishTrack.value,
+        fadeOut: Boolean = _sleepTimerFadeOut.value
+    ) {
         sleepTimerJob?.cancel()
-        _sleepTimerEndMs.value = SystemClock.elapsedRealtime() + durationMs
+        val effectiveDurationMs = if (durationMs == -1L) {
+            (playbackState.value.durationMs - _positionMs.value).coerceAtLeast(1_000L)
+        } else {
+            durationMs
+        }
+        _sleepTimerEndMs.value = SystemClock.elapsedRealtime() + effectiveDurationMs
         sleepTimerJob = viewModelScope.launch {
-            delay(durationMs)
-            if (playbackState.value.isPlaying) togglePlayPause()
+            val fadeMs = if (fadeOut) 30_000L.coerceAtMost(effectiveDurationMs / 2) else 0L
+            val preFadeMs = (effectiveDurationMs - fadeMs).coerceAtLeast(0L)
+            if (preFadeMs > 0) {
+                delay(preFadeMs)
+            }
+            if (fadeOut && fadeMs > 0) {
+                val initialVol = repository.getVolume()
+                val steps = 20
+                val stepDelay = fadeMs / steps
+                for (i in 1..steps) {
+                    delay(stepDelay)
+                    val factor = 1f - (i.toFloat() / steps.toFloat())
+                    repository.setVolume(initialVol * factor)
+                }
+                if (playbackState.value.isPlaying) togglePlayPause()
+                repository.setVolume(initialVol)
+            } else {
+                if (playbackState.value.isPlaying) togglePlayPause()
+            }
             _sleepTimerEndMs.value = null
         }
     }

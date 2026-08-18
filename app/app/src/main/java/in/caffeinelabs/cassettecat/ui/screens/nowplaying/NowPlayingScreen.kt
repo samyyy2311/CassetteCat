@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
@@ -87,6 +88,10 @@ fun NowPlayingContent(
         ScreenshotCaptureEvents.events.collect {
             if (latestSong != null) sheetState.showScreenshotSuggestion = true
         }
+    }
+
+    val hasLyrics = remember(syncedLyrics, state.currentLyrics, fallbackLyrics) {
+        !syncedLyrics.isNullOrEmpty() || !state.currentLyrics.isNullOrBlank() || !fallbackLyrics.isNullOrBlank()
     }
 
     BackHandler(enabled = activeView != NowPlayingView.PLAYER) { onActiveViewChange(NowPlayingView.PLAYER) }
@@ -154,10 +159,17 @@ fun NowPlayingContent(
         }
     }
 
+    val cornerRadius = lerp(28.dp, 0.dp, fraction)
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .then(
+                if (fraction < 0.99f) {
+                    Modifier.clip(RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
+                } else {
+                    Modifier
+                }
+            )
             .graphicsLayer { translationY = headerDragOffsetPx }
             .background(MaterialTheme.colorScheme.surface)
     ) {
@@ -290,7 +302,10 @@ fun NowPlayingContent(
         sheetState = sheetState,
         onNavigateToArtist = onNavigateToArtist,
         onNavigateToAlbum = onNavigateToAlbum,
-        onNavigateToPlaylist = onNavigateToPlaylist
+        onNavigateToPlaylist = onNavigateToPlaylist,
+        syncedLyrics = syncedLyrics,
+        fallbackLyrics = fallbackLyrics,
+        currentPositionMs = positionMs
     )
 }
 

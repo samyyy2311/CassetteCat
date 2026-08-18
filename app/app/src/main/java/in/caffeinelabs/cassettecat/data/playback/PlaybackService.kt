@@ -1,11 +1,12 @@
 package `in`.caffeinelabs.cassettecat.data.playback
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
-import android.app.PendingIntent
-import `in`.caffeinelabs.cassettecat.MainActivity
+import android.os.Bundle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -18,24 +19,33 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
+import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.download.DownloadCache
 import `in`.caffeinelabs.cassettecat.data.download.StreamCacheKeyFactory
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
-// MediaSessionService auto-promotes to foreground and posts the notification via its
-// built-in DefaultMediaNotificationProvider, no manual startForeground() needed. The
-// default MediaSession.Callback already forwards play/pause/seek/skip, no custom callback needed.
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var favoritesRepository: FavoritesRepository
+    private var currentFavoriteIds: Set<String> = emptySet()
 
     override fun onCreate() {
         super.onCreate()
-        // Reads through the same disk cache SongDownloadService writes completed downloads
-        // to, keyed by StreamCacheKeyFactory so a downloaded song plays from disk even
-        // though its stream URL differs from the one that was used to download it. Local
-        // content:// playback is routed around the cache entirely (see StreamOnlyCacheDataSource)
-        // so it doesn't fill the downloads cache with redundant copies of files already on
-        // disk, competing with real downloads for its size-capped budget.
+        favoritesRepository = FavoritesRepository(this)
+
         val directFactory = DefaultDataSource.Factory(this)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(DownloadCache.get(this))
@@ -44,6 +54,7 @@ class PlaybackService : MediaSessionService() {
         val routedFactory = DataSource.Factory {
             StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
         }
+
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(routedFactory))
             .setAudioAttributes(
@@ -55,11 +66,37 @@ class PlaybackService : MediaSessionService() {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+
         player.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                mediaSession?.setCustomLayout(listOf(shuffleCommandButton(shuffleModeEnabled)))
+                updateNotificationLayout(player)
+            }
+
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                updateNotificationLayout(player)
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                syncWidgetState(player)
+                updateNotificationLayout(player)
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                syncWidgetState(player)
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                syncWidgetState(player)
             }
         })
+
+        serviceScope.launch {
+            favoritesRepository.favoriteIds.collect { ids ->
+                currentFavoriteIds = ids
+                mediaSession?.player?.let { p -> updateNotificationLayout(p) }
+            }
+        }
+
         val sessionActivity = PendingIntent.getActivity(
             this,
             0,
@@ -68,11 +105,13 @@ class PlaybackService : MediaSessionService() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
         mediaSession = MediaSession.Builder(this, player)
-            // The media notification/card delegates its body tap to this explicit activity.
             .setSessionActivity(sessionActivity)
-            .setCustomLayout(listOf(shuffleCommandButton(player.shuffleModeEnabled)))
+            .setCallback(CustomMediaSessionCallback())
+            .setCustomLayout(buildCustomLayout(player, false))
             .build()
+
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider.Builder(this)
                 .setChannelName(R.string.app_name)
@@ -83,14 +122,135 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // CassetteCat follows the user's explicit Recents dismissal: do not retain a hidden
-        // foreground player/notification after its task has been cleared.
         mediaSession?.player?.stop()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+        if (action != null) {
+            val player = mediaSession?.player
+            when (action) {
+                ACTION_WIDGET_PLAY_PAUSE -> {
+                    if (player != null) {
+                        if (player.isPlaying) player.pause() else player.play()
+                    }
+                }
+                ACTION_WIDGET_NEXT -> player?.seekToNextMediaItem()
+                ACTION_WIDGET_PREV -> player?.seekToPreviousMediaItem()
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun updateNotificationLayout(player: Player) {
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
+        mediaSession?.setCustomLayout(buildCustomLayout(player, isFav))
+    }
+
+    private fun buildCustomLayout(player: Player, isFavorite: Boolean): List<CommandButton> {
+        val favoriteIconRes = if (isFavorite) {
+            R.drawable.ic_notification_heart_filled
+        } else {
+            R.drawable.ic_notification_heart_outline
+        }
+        val favoriteButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+            .setCustomIconResId(favoriteIconRes)
+            .setSessionCommand(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
+            .setDisplayName(if (isFavorite) "Unfavorite" else "Favorite")
+            .build()
+
+        val shuffleButton = CommandButton.Builder(
+            if (player.shuffleModeEnabled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF
+        )
+            .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
+            .setDisplayName(if (player.shuffleModeEnabled) "Shuffle on" else "Shuffle off")
+            .build()
+
+        val repeatIcon = when (player.repeatMode) {
+            Player.REPEAT_MODE_ONE -> CommandButton.ICON_REPEAT_ONE
+            Player.REPEAT_MODE_ALL -> CommandButton.ICON_REPEAT_ALL
+            else -> CommandButton.ICON_REPEAT_OFF
+        }
+        val repeatButton = CommandButton.Builder(repeatIcon)
+            .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE)
+            .setDisplayName(
+                when (player.repeatMode) {
+                    Player.REPEAT_MODE_ONE -> "Repeat one"
+                    Player.REPEAT_MODE_ALL -> "Repeat all"
+                    else -> "Repeat off"
+                }
+            )
+            .build()
+
+        return listOf(favoriteButton, shuffleButton, repeatButton)
+    }
+
+    private inner class CustomMediaSessionCallback : MediaSession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                .add(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
+                .build()
+            val currentMediaId = session.player.currentMediaItem?.mediaId
+            val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                .setAvailableSessionCommands(availableSessionCommands)
+                .setCustomLayout(buildCustomLayout(session.player, isFav))
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == ACTION_CUSTOM_FAVORITE) {
+                val currentMediaId = session.player.currentMediaItem?.mediaId
+                if (currentMediaId != null) {
+                    val isFav = currentMediaId in currentFavoriteIds
+                    serviceScope.launch {
+                        favoritesRepository.setFavorite(currentMediaId, !isFav)
+                    }
+                }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            return super.onCustomCommand(session, controller, customCommand, args)
+        }
+    }
+
+    private fun syncWidgetState(player: Player) {
+        val metadata = player.mediaMetadata
+        val title = metadata.title?.toString()
+        val artist = metadata.artist?.toString()
+        val isPlaying = player.isPlaying
+        val artBitmap = metadata.artworkData?.let { data ->
+            runCatching {
+                val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                val decoded = android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size, options)
+                if (decoded != null) {
+                    android.graphics.Bitmap.createScaledBitmap(decoded, 120, 120, true)
+                } else null
+            }.getOrNull()
+        }
+        runCatching {
+            CassetteWidgetProvider.updateAllWidgets(
+                context = this,
+                title = title,
+                artist = artist,
+                isPlaying = isPlaying,
+                artBitmap = artBitmap
+            )
+        }
+    }
+
     override fun onDestroy() {
+        serviceScope.cancel()
         mediaSession?.run {
             player.release()
             release()
@@ -98,16 +258,15 @@ class PlaybackService : MediaSessionService() {
         }
         super.onDestroy()
     }
+
+    companion object {
+        const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
+        const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"
+        const val ACTION_WIDGET_NEXT = "in.caffeinelabs.cassettecat.action.WIDGET_NEXT"
+        const val ACTION_WIDGET_PREV = "in.caffeinelabs.cassettecat.action.WIDGET_PREV"
+    }
 }
 
-private fun shuffleCommandButton(enabled: Boolean): CommandButton =
-    CommandButton.Builder(if (enabled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
-        .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
-        .setDisplayName("Shuffle")
-        .build()
-
-// Dispatches http(s) requests through the cache, everything else (local content:// URIs)
-// straight through, so local playback never writes into the downloads cache.
 private class StreamOnlyCacheDataSource(
     private val cached: DataSource,
     private val direct: DataSource

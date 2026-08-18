@@ -12,8 +12,8 @@ import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
+import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
-import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 
 internal class NowPlayingSheetState {
     var showMenu by mutableStateOf(false)
@@ -43,7 +43,10 @@ internal fun NowPlayingScreenSheetsHost(
     sheetState: NowPlayingSheetState,
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: (String) -> Unit,
-    onNavigateToPlaylist: (String) -> Unit
+    onNavigateToPlaylist: (String) -> Unit,
+    syncedLyrics: List<LyricLine>? = null,
+    fallbackLyrics: String? = null,
+    currentPositionMs: Long = 0L
 ) {
     if (sheetState.showMenu) {
         song?.let { currentSong ->
@@ -52,7 +55,7 @@ internal fun NowPlayingScreenSheetsHost(
                 isFavorite = isFavorite,
                 sleepTimerEndMs = sleepTimerEndMs,
                 onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
-                onShare = { shareSongs(context, listOf(currentSong)) },
+                onShare = { sheetState.showScreenshotSuggestion = true },
                 onAddToQueue = { playbackViewModel.addToUpNext(listOf(currentSong)) },
                 onDownload = { downloadRepository.download(currentSong) },
                 onOpenCredits = { sheetState.showCredits = true },
@@ -147,16 +150,11 @@ internal fun NowPlayingScreenSheetsHost(
     }
     if (sheetState.showScreenshotSuggestion) {
         song?.let { currentSong ->
-            ScreenshotSuggestionSheet(
+            ScreenshotShareSheet(
                 song = currentSong,
-                onShare = {
-                    sheetState.showScreenshotSuggestion = false
-                    shareSongs(context, listOf(currentSong))
-                },
-                onViewCredits = {
-                    sheetState.showScreenshotSuggestion = false
-                    sheetState.showCredits = true
-                },
+                syncedLyrics = syncedLyrics,
+                fallbackLyrics = fallbackLyrics,
+                currentPositionMs = currentPositionMs,
                 onDismiss = { sheetState.showScreenshotSuggestion = false }
             )
         }

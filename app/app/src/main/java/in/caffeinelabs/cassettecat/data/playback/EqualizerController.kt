@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +13,7 @@ object EqualizerController {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
 
     private val _isAvailable = MutableStateFlow(false)
     val isAvailable: StateFlow<Boolean> = _isAvailable.asStateFlow()
@@ -21,6 +23,9 @@ object EqualizerController {
 
     private val _isVirtualizerSupported = MutableStateFlow(false)
     val isVirtualizerSupported: StateFlow<Boolean> = _isVirtualizerSupported.asStateFlow()
+
+    private val _isLoudnessEnhancerSupported = MutableStateFlow(false)
+    val isLoudnessEnhancerSupported: StateFlow<Boolean> = _isLoudnessEnhancerSupported.asStateFlow()
 
     val levelRangeMb: IntRange
         get() = equalizer?.bandLevelRange?.let { it[0].toInt()..it[1].toInt() } ?: 0..0
@@ -50,10 +55,17 @@ object EqualizerController {
                     _isVirtualizerSupported.value = strengthSupported
                 }
             }.getOrNull()
+
+            loudnessEnhancer = runCatching {
+                LoudnessEnhancer(audioSessionId).apply {
+                    _isLoudnessEnhancerSupported.value = true
+                }
+            }.getOrNull()
         }.onFailure {
             _isAvailable.value = false
             _isBassBoostSupported.value = false
             _isVirtualizerSupported.value = false
+            _isLoudnessEnhancerSupported.value = false
         }
     }
 
@@ -68,6 +80,7 @@ object EqualizerController {
             equalizer?.enabled = enabled
             bassBoost?.enabled = enabled
             virtualizer?.enabled = enabled
+            loudnessEnhancer?.enabled = enabled
         }
     }
 
@@ -93,6 +106,25 @@ object EqualizerController {
         }
     }
 
+    fun setPreampGainMb(gainMb: Int) {
+        loudnessEnhancer?.let { le ->
+            runCatching {
+                le.enabled = gainMb > 0
+                le.setTargetGain(gainMb.coerceIn(0, 2000))
+            }
+        }
+    }
+
+    fun setLoudnessNormalization(enabled: Boolean, gainMb: Int = 0) {
+        loudnessEnhancer?.let { le ->
+            runCatching {
+                le.enabled = enabled || gainMb > 0
+                val target = if (gainMb > 0) gainMb else if (enabled) 600 else 0
+                le.setTargetGain(target)
+            }
+        }
+    }
+
     // A preset changes every band at once; the caller needs the resulting levels to persist them.
     fun applyPreset(index: Int): List<Int>? = equalizer?.let { eq ->
         runCatching {
@@ -105,11 +137,14 @@ object EqualizerController {
         runCatching { equalizer?.release() }
         runCatching { bassBoost?.release() }
         runCatching { virtualizer?.release() }
+        runCatching { loudnessEnhancer?.release() }
         equalizer = null
         bassBoost = null
         virtualizer = null
+        loudnessEnhancer = null
         _isAvailable.value = false
         _isBassBoostSupported.value = false
         _isVirtualizerSupported.value = false
+        _isLoudnessEnhancerSupported.value = false
     }
 }

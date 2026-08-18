@@ -56,6 +56,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setOfflineBlackoutMode(enabled: Boolean) {
+        viewModelScope.launch { serviceSettingsRepository.setOfflineBlackoutMode(enabled) }
+    }
+
     fun setServiceEnabled(service: ExternalService, enabled: Boolean) {
         viewModelScope.launch { serviceSettingsRepository.setEnabled(service, enabled) }
     }

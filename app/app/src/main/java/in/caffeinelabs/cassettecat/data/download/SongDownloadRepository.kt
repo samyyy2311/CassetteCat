@@ -45,20 +45,28 @@ class SongDownloadRepository private constructor(private val context: Context) {
     }
 
     fun download(song: Song) {
-        val wifiOnly = runBlocking { AppPreferencesRepository(context).preferences.first().wifiOnlyDownloads }
-        val requirements = Requirements(
-            if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK
-        )
-        DownloadService.sendSetRequirements(context, SongDownloadService::class.java, requirements, false)
-        val request = DownloadRequest.Builder(song.id, song.contentUri)
-            .setCustomCacheKey(song.id)
-            .setData(song.title.toByteArray())
-            .build()
-        DownloadService.sendAddDownload(context, SongDownloadService::class.java, request, false)
+        val current = _downloads.value[song.id]
+        if (current != null && (current.state == Download.STATE_COMPLETED || current.state == Download.STATE_DOWNLOADING || current.state == Download.STATE_QUEUED)) {
+            return
+        }
+        runCatching {
+            val wifiOnly = runBlocking { AppPreferencesRepository(context).preferences.first().wifiOnlyDownloads }
+            val requirements = Requirements(
+                if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK
+            )
+            DownloadService.sendSetRequirements(context, SongDownloadService::class.java, requirements, false)
+            val request = DownloadRequest.Builder(song.id, song.contentUri)
+                .setCustomCacheKey(song.id)
+                .setData(song.title.toByteArray())
+                .build()
+            DownloadService.sendAddDownload(context, SongDownloadService::class.java, request, false)
+        }
     }
 
     fun remove(songId: String) {
-        DownloadService.sendRemoveDownload(context, SongDownloadService::class.java, songId, false)
+        runCatching {
+            DownloadService.sendRemoveDownload(context, SongDownloadService::class.java, songId, false)
+        }
     }
 
     private fun refreshFromIndex() {

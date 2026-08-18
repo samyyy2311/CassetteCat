@@ -74,7 +74,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 24.dp, bottom = listBottomPadding + 24.dp)
+            .padding(top = 24.dp)
     ) {
         val enabledServices = externalServices.count { uiState.services.isEnabled(it) }
 
@@ -143,6 +143,15 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
         SettingsSection(title = "Servers & services") {
+            ToggleRow(
+                title = "Offline Blackout Mode",
+                subtitle = if (uiState.services.offlineBlackoutMode) "All network services and streaming disabled" else "Disable all network calls, streaming, and metadata lookups",
+                checked = uiState.services.offlineBlackoutMode,
+                onCheckedChange = { viewModel.setOfflineBlackoutMode(it) },
+                iconRes = R.drawable.lucide_ic_radio,
+                iconTint = if (uiState.services.offlineBlackoutMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary
+            )
+            SettingsDivider()
             ServerRow(
                 title = "Subsonic",
                 subtitle = "Navidrome, gonic, and other Subsonic-API servers",
@@ -250,7 +259,7 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(Modifier.height(listBottomPadding))
+        Spacer(Modifier.height(listBottomPadding + 24.dp))
     }
 }
 
@@ -278,7 +287,10 @@ fun ServiceToggleRow(
     iconTint: Color = MaterialTheme.colorScheme.secondary
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .tapScale { onToggle(!enabled) }
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (iconRes != null) {
@@ -298,6 +310,7 @@ fun ServiceToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(Modifier.width(16.dp))
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,

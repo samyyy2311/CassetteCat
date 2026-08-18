@@ -34,22 +34,22 @@ class AlbumArtLoader(private val context: Context) {
         return bitmap
     }
 
-    private fun decode(song: Song): Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        runCatching {
-            // Covers are rendered at most roughly full-screen. Asking MediaStore for the
-            // original-sized bitmap turns a small scrolling row into a multi-megabyte decode
-            // and GPU upload, which is visible as dropped frames on high-refresh displays.
-            context.contentResolver.loadThumbnail(song.contentUri, ARTWORK_REQUEST_SIZE, null)
-        }.getOrNull()
-    } else {
-        runCatching {
+    private fun decode(song: Song): Bitmap? {
+        val embedded = runCatching {
             MediaMetadataRetriever().use { retriever ->
                 retriever.setDataSource(context, song.contentUri)
                 retriever.embeddedPicture?.let { bytes ->
-                    decodeSampledBitmap(bytes)
+                    decodeSampledBitmap(bytes, maxDimension = 1440)
                 }
             }
         }.getOrNull()
+        if (embedded != null) return embedded
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching {
+                context.contentResolver.loadThumbnail(song.contentUri, ARTWORK_REQUEST_SIZE, null)
+            }.getOrNull()
+        } else null
     }
 }
 

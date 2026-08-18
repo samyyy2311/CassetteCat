@@ -21,7 +21,9 @@ data class EqualizerLevels(
     val enabled: Boolean = true,
     val bassBoostStrength: Int = 0,
     val virtualizerStrength: Int = 0,
-    val selectedPresetIndex: Int = -1
+    val selectedPresetIndex: Int = -1,
+    val preampGainMb: Int = 0,
+    val loudnessNormalization: Boolean = false
 )
 
 class EqualizerSettingsRepository(private val context: Context) {
@@ -59,6 +61,22 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(virtualizerStrength = strength)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setPreampGainMb(gainMb: Int) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(preampGainMb = gainMb)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setLoudnessNormalization(enabled: Boolean) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(loudnessNormalization = enabled)
             prefs[EQUALIZER_STATE] = json.encodeToString(updated)
         }
     }

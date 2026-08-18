@@ -131,7 +131,9 @@ CassetteCat is powered by open data, open-source libraries, and community infras
 - **[AndroidX Media3](https://developer.android.com/media/media3)**: Audio streaming, foreground service, and cache architecture.
 - **[Jetpack Compose & Material 3](https://developer.android.com/jetpack/compose)**: Declarative Android UI toolkit.
 - **[Lucide Icons](https://lucide.dev)**: Clean open-source iconography (ISC License).
+- **[Simple Icons](https://simpleicons.org)**: Authentic open-source brand iconography (CC0 1.0).
 - **[IBM Plex](https://github.com/IBM/plex)**: Typefaces designed by Mike Abbink and Bold Monday for IBM (OFL 1.1).
+- **[Space Grotesk](https://github.com/floriankarsten/space-grotesk)**: Display typography by Florian Karsten (OFL 1.1).
 - **[OkHttp](https://square.github.io/okhttp/)**: High-performance HTTP client.
 
 ---

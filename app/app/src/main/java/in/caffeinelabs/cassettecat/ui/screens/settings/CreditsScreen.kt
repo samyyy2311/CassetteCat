@@ -95,7 +95,8 @@ fun CreditsScreen(
             NavigationRow(
                 title = "Cover Art Archive",
                 subtitle = "Archival CD and vinyl cover scans (Internet Archive & MusicBrainz)",
-                iconRes = R.drawable.lucide_ic_disc_3,
+                iconRes = AppR.drawable.ic_logo_archive,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://coverartarchive.org") }
             )
             SettingsDivider()
@@ -137,7 +138,8 @@ fun CreditsScreen(
             NavigationRow(
                 title = "Android AudioFX",
                 subtitle = "Parametric equalizer, bass boost, and virtualizer DSP",
-                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                iconRes = AppR.drawable.ic_logo_android,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://developer.android.com/reference/android/media/audiofx/AudioEffect") }
             )
             SettingsDivider()
@@ -152,7 +154,8 @@ fun CreditsScreen(
             NavigationRow(
                 title = "Jetpack DataStore",
                 subtitle = "Local-first atomic persistence and data stores",
-                iconRes = R.drawable.lucide_ic_database,
+                iconRes = AppR.drawable.ic_logo_android,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://developer.android.com/topic/libraries/architecture/datastore") }
             )
             SettingsDivider()
@@ -177,11 +180,26 @@ fun CreditsScreen(
             )
             SettingsDivider()
             NavigationRow(
+                title = "Simple Icons",
+                subtitle = "Authentic brand SVG icons (simpleicons.org, CC0 1.0)",
+                iconRes = AppR.drawable.ic_logo_simpleicons,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://simpleicons.org") }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = "IBM Plex (Sans & Mono)",
                 subtitle = "Designed by Mike Abbink and Bold Monday for IBM (OFL 1.1)",
                 iconRes = AppR.drawable.ic_logo_ibm,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/IBM/plex") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Space Grotesk",
+                subtitle = "Proportional monospace display typeface by Florian Karsten (OFL 1.1)",
+                iconRes = R.drawable.lucide_ic_type,
+                onClick = { openUrl("https://github.com/floriankarsten/space-grotesk") }
             )
             SettingsDivider()
             NavigationRow(
@@ -199,7 +217,7 @@ fun CreditsScreen(
             NavigationRow(
                 title = "GNU General Public License v3.0",
                 subtitle = "View source code and contribute on GitHub",
-                iconRes = AppR.drawable.ic_logo_github,
+                iconRes = AppR.drawable.ic_logo_gpl,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/samyyy2311/CassetteCat") }
             )

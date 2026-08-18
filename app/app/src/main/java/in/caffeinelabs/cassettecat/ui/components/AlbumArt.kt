@@ -37,6 +37,21 @@ private object AlbumArtLoaders {
         }
 }
 
+suspend fun prefetchAlbumArt(context: Context, song: Song?) {
+    song ?: return
+    when (song.source) {
+        MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
+        MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+    }
+}
+
+suspend fun loadSongArtwork(context: Context, song: Song): Bitmap? {
+    return when (song.source) {
+        MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
+        MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+    }
+}
+
 @Composable
 fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
     val context = LocalContext.current

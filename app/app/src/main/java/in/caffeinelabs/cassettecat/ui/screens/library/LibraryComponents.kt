@@ -510,6 +510,7 @@ internal fun PlaylistGrid(
     onClick: (String) -> Unit,
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
+    onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -524,6 +525,12 @@ internal fun PlaylistGrid(
                 songs = likedSongs,
                 onClick = onOpenLikedSongs,
                 onPlay = { if (likedSongs.isNotEmpty()) onPlay(likedSongs) }
+            )
+        }
+        items(SmartPlaylistType.entries.toTypedArray(), key = { "smart-${it.id}" }) { type ->
+            SmartPlaylistCard(
+                type = type,
+                onClick = { onOpenSmartPlaylist(type) }
             )
         }
         items(playlists, key = { it.id }) { playlist ->
@@ -541,6 +548,39 @@ internal fun PlaylistGrid(
 }
 
 @Composable
+internal fun SmartPlaylistCard(
+    type: SmartPlaylistType,
+    onClick: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().tapScale(onClick)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(type.iconRes),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(52.dp)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(type.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            type.description,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
 internal fun PlaylistList(
     playlists: List<Playlist>,
     allSongs: List<Song>,
@@ -550,6 +590,7 @@ internal fun PlaylistList(
     onClick: (String) -> Unit,
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
+    onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -566,6 +607,21 @@ internal fun PlaylistList(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_heart),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        items(SmartPlaylistType.entries.toTypedArray(), key = { "smart-${it.id}" }) { type ->
+            CollectionListRow(
+                title = type.title,
+                subtitle = type.description,
+                onClick = { onOpenSmartPlaylist(type) },
+                onPlay = { onOpenSmartPlaylist(type) }
+            ) {
+                Icon(
+                    painter = painterResource(type.iconRes),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(28.dp)

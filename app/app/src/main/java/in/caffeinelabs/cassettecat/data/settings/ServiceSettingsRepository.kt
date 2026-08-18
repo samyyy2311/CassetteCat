@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 
 private val Context.serviceSettingsDataStore by preferencesDataStore(name = "service_settings")
 
+private val OFFLINE_BLACKOUT_MODE = booleanPreferencesKey("offline_blackout_mode")
 private val DEEZER_ENABLED = booleanPreferencesKey("deezer_enabled")
 private val AUDIODB_ENABLED = booleanPreferencesKey("audiodb_enabled")
 private val LRCLIB_ENABLED = booleanPreferencesKey("lrclib_enabled")
@@ -28,6 +29,7 @@ enum class ExternalService(val label: String, val description: String) {
 
 @Serializable
 data class ServiceSettings(
+    val offlineBlackoutMode: Boolean = false,
     val deezerEnabled: Boolean = true,
     val audioDbEnabled: Boolean = true,
     val lrcLibEnabled: Boolean = true,
@@ -35,7 +37,7 @@ data class ServiceSettings(
     val wikipediaEnabled: Boolean = true,
     val githubUpdatesEnabled: Boolean = true
 ) {
-    fun isEnabled(service: ExternalService): Boolean = when (service) {
+    fun isEnabled(service: ExternalService): Boolean = if (offlineBlackoutMode) false else when (service) {
         ExternalService.DEEZER -> deezerEnabled
         ExternalService.AUDIODB -> audioDbEnabled
         ExternalService.LRCLIB -> lrcLibEnabled
@@ -45,10 +47,10 @@ data class ServiceSettings(
     }
 }
 
-// All default on, matching how every one of these ships enabled in the reference app.
 class ServiceSettingsRepository(private val context: Context) {
     val settings: Flow<ServiceSettings> = context.serviceSettingsDataStore.data.map { prefs ->
         ServiceSettings(
+            offlineBlackoutMode = prefs[OFFLINE_BLACKOUT_MODE] ?: false,
             deezerEnabled = prefs[DEEZER_ENABLED] ?: true,
             audioDbEnabled = prefs[AUDIODB_ENABLED] ?: true,
             lrcLibEnabled = prefs[LRCLIB_ENABLED] ?: true,
@@ -56,6 +58,12 @@ class ServiceSettingsRepository(private val context: Context) {
             wikipediaEnabled = prefs[WIKIPEDIA_ENABLED] ?: true,
             githubUpdatesEnabled = prefs[GITHUB_UPDATES_ENABLED] ?: true
         )
+    }
+
+    suspend fun setOfflineBlackoutMode(enabled: Boolean) {
+        context.serviceSettingsDataStore.edit { prefs ->
+            prefs[OFFLINE_BLACKOUT_MODE] = enabled
+        }
     }
 
     suspend fun setEnabled(service: ExternalService, enabled: Boolean) {

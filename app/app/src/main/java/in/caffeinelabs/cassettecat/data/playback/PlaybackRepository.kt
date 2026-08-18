@@ -145,6 +145,14 @@ class PlaybackRepository(private val context: Context) {
         controller?.seekTo(positionMs)
     }
 
+    fun setVolume(volume: Float) {
+        controller?.volume = volume.coerceIn(0f, 1f)
+    }
+
+    fun getVolume(): Float {
+        return controller?.volume ?: 1f
+    }
+
     // Real toggle, not ExoPlayer's shuffleModeEnabled (fixed order reused across
     // re-enabling, and MediaController can't reach setShuffleOrder() to force a fresh one):
     // on shuffles the upcoming queue for real, off restores playQueue()'s original order.

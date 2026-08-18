@@ -33,11 +33,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
+import `in`.caffeinelabs.cassettecat.ui.components.prefetchAlbumArt
 
 private const val CAROUSEL_SNAP_MS = 380
 
@@ -53,6 +56,11 @@ internal fun AlbumArtCarousel(
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
+    LaunchedEffect(previousSong?.id, nextSong?.id) {
+        launch { prefetchAlbumArt(context, previousSong) }
+        launch { prefetchAlbumArt(context, nextSong) }
+    }
     key(currentSong.id, previousSong?.id, nextSong?.id) {
         val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id) {
             buildList {
@@ -162,7 +170,7 @@ internal fun NowPlayingBackdrop(song: Song) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF141416))
+            .background(Color(0xFF0E0D10))
     ) {
         AlbumArt(
             song = song,
@@ -170,9 +178,9 @@ internal fun NowPlayingBackdrop(song: Song) {
                 .fillMaxSize()
                 .blur(72.dp)
                 .graphicsLayer {
-                    alpha = 0.92f
-                    scaleX = 1.45f
-                    scaleY = 1.45f
+                    alpha = 0.68f
+                    scaleX = 2.2f
+                    scaleY = 2.2f
                     translationX = (drift - 0.5f) * horizontalDrift
                     translationY = (0.5f - drift) * verticalDrift
                 }
@@ -183,9 +191,9 @@ internal fun NowPlayingBackdrop(song: Song) {
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.Black.copy(alpha = 0.22f),
-                            Color.Black.copy(alpha = 0.42f),
-                            Color.Black.copy(alpha = 0.68f)
+                            Color.Black.copy(alpha = 0.38f),
+                            Color.Black.copy(alpha = 0.62f),
+                            Color.Black.copy(alpha = 0.86f)
                         )
                     )
                 )

@@ -127,12 +127,14 @@ fun ToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(Modifier.width(16.dp))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                checkedTrackColor = MaterialTheme.colorScheme.tertiaryContainer
+                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
+                checkedBorderColor = MaterialTheme.colorScheme.tertiary
             )
         )
     }
@@ -199,7 +201,8 @@ fun ServerRow(
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 if (config.connected) "Connected as ${config.username}" else subtitle,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         if (config.connected) {

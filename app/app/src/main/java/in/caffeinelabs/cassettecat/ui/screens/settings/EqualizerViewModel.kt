@@ -63,11 +63,23 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repository.setBandLevels(gains, presetIndex = -1) }
     }
 
+    fun setPreampGainMb(gainMb: Int) {
+        EqualizerController.setPreampGainMb(gainMb)
+        viewModelScope.launch { repository.setPreampGainMb(gainMb) }
+    }
+
+    fun setLoudnessNormalization(enabled: Boolean) {
+        EqualizerController.setLoudnessNormalization(enabled, levels.value.preampGainMb)
+        viewModelScope.launch { repository.setLoudnessNormalization(enabled) }
+    }
+
     fun reset() {
         val flat = List(numberOfBands) { 0 }
         flat.forEachIndexed { band, level -> EqualizerController.setBandLevel(band, level) }
         EqualizerController.setBassBoostStrength(0)
         EqualizerController.setVirtualizerStrength(0)
+        EqualizerController.setPreampGainMb(0)
+        EqualizerController.setLoudnessNormalization(false, 0)
         viewModelScope.launch {
             repository.saveSettings(
                 EqualizerLevels(
@@ -75,7 +87,9 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
                     enabled = true,
                     bassBoostStrength = 0,
                     virtualizerStrength = 0,
-                    selectedPresetIndex = -1
+                    selectedPresetIndex = -1,
+                    preampGainMb = 0,
+                    loudnessNormalization = false
                 )
             )
         }

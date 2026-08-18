@@ -19,7 +19,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
-private val sleepDurations = listOf(15L, 30L, 45L, 60L)
+private val sleepDurations = listOf(5L, 10L, 15L, 30L, 45L, 60L)
 
 @Composable
 fun PlaybackPreferencesScreen(
@@ -28,6 +28,8 @@ fun PlaybackPreferencesScreen(
     modifier: Modifier = Modifier
 ) {
     val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsState()
+    val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsState()
+    val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsState()
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -48,6 +50,11 @@ fun PlaybackPreferencesScreen(
         )
 
         SettingsSection(title = "Set a timer") {
+            SleepTimerRow(
+                label = "End of current song",
+                onClick = hapticClick { playbackViewModel.startSleepTimer(-1L) }
+            )
+            SettingsDivider(startPadding = 24.dp)
             sleepDurations.forEachIndexed { index, minutes ->
                 SleepTimerRow(
                     label = "$minutes minutes",
@@ -55,6 +62,24 @@ fun PlaybackPreferencesScreen(
                 )
                 if (index != sleepDurations.lastIndex) SettingsDivider(startPadding = 24.dp)
             }
+        }
+
+        SettingsSection(title = "Behavior") {
+            ToggleRow(
+                title = "Gentle volume fade out",
+                subtitle = "Smoothly lower volume over the last 30 seconds",
+                checked = fadeOut,
+                onCheckedChange = { playbackViewModel.setSleepTimerFadeOut(it) },
+                iconRes = R.drawable.lucide_ic_volume_2
+            )
+            SettingsDivider(startPadding = 24.dp)
+            ToggleRow(
+                title = "Wait for song to finish",
+                subtitle = "Avoid cutting off in the middle of a track",
+                checked = finishTrack,
+                onCheckedChange = { playbackViewModel.setSleepTimerFinishTrack(it) },
+                iconRes = R.drawable.lucide_ic_disc_3
+            )
         }
 
         if (sleepTimerEndMs != null) {

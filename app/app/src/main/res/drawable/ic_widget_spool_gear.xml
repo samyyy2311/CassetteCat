@@ -1,0 +1,39 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- Spool Outer Tape Reel -->
+    <path
+        android:fillColor="#1C1A18"
+        android:pathData="M22,2A20,20,0,1,1,2,22A20,20,0,0,1,22,2" />
+    <path
+        android:strokeColor="#4A453F"
+        android:strokeWidth="1.5"
+        android:pathData="M22,5A17,17,0,1,1,5,22A17,17,0,0,1,22,5" />
+    <!-- Inner Silver Hub -->
+    <path
+        android:fillColor="#C4C4C0"
+        android:pathData="M22,11A11,11,0,1,1,11,22A11,11,0,0,1,22,11" />
+    <!-- Center Hole -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M22,16A6,6,0,1,1,16,22A6,6,0,0,1,22,16" />
+    <!-- 6 Teeth Spokes -->
+    <!-- Tooth 1 & 4 (Top & Bottom) -->
+    <path
+        android:fillColor="#C4C4C0"
+        android:pathData="M20.5,14h3v16h-3z" />
+    <!-- Tooth 2 & 5 (Diagonal 60 deg) -->
+    <path
+        android:fillColor="#C4C4C0"
+        android:pathData="M15.1,17.1l2.6,-1.5l8,13.8l-2.6,1.5z" />
+    <!-- Tooth 3 & 6 (Diagonal 120 deg) -->
+    <path
+        android:fillColor="#C4C4C0"
+        android:pathData="M26.3,15.6l2.6,1.5l-8,13.8l-2.6,-1.5z" />
+    <!-- Center Axle Ring -->
+    <path
+        android:fillColor="#C23B30"
+        android:pathData="M22,18A4,4,0,1,1,18,22A4,4,0,0,1,22,18" />
+</vector>

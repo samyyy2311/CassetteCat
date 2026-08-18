@@ -3,9 +3,14 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
@@ -13,8 +18,12 @@ import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepo
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface LibraryUiState {
@@ -76,6 +85,14 @@ private data class LabeledSource(val label: String, val repository: LibraryRepos
 class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val serverRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
+    private val serviceSettingsRepository = ServiceSettingsRepository(app)
+    private val downloadSettingsRepository = DownloadSettingsRepository(app)
+    private val songDownloadRepository = SongDownloadRepository.getInstance(app)
+    private val favoritesRepository = FavoritesRepository(app)
+
+    val isOfflineMode: StateFlow<Boolean> = serviceSettingsRepository.settings
+        .map { it.offlineBlackoutMode }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // each repository no-ops if its source isn't configured
     private val sources = listOf(
@@ -98,21 +115,31 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
     init {
-        refresh()
+        viewModelScope.launch {
+            isOfflineMode.collect {
+                refresh()
+            }
+        }
     }
 
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = LibraryUiState.Loading
 
+            val activeSources = if (isOfflineMode.value) {
+                sources.filter { it.label == "Local" }
+            } else {
+                sources
+            }
+
             // per-source, so one dead server doesn't blank out the others
             val results = coroutineScope {
-                sources.map { source -> async { source.label to runCatching { source.repository.getSongs() } } }
+                activeSources.map { source -> async { source.label to runCatching { source.repository.getSongs() } } }
                     .map { it.await() }
             }
 
             loadedSongs = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
-            loadedWarnings = results.mapNotNull { (label, result) ->
+            loadedWarnings = if (isOfflineMode.value) emptyList() else results.mapNotNull { (label, result) ->
                 result.exceptionOrNull()?.let { "$label: couldn't connect" }
             }
             publishLoadedSongs()

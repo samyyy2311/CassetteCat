@@ -65,6 +65,7 @@ fun LibraryScreen(
     onNavigateToLikedSongs: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp,
+    onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     viewModel: LibraryViewModel = viewModel(),
     playlistViewModel: PlaylistViewModel = viewModel()
 ) {
@@ -100,6 +101,7 @@ fun LibraryScreen(
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var songFilter by rememberSaveable { mutableStateOf(SongFilter.ALL) }
     var showPlaylistPicker by remember { mutableStateOf(false) }
+    var editingSong by remember { mutableStateOf<Song?>(null) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     val context = LocalContext.current
@@ -205,6 +207,17 @@ fun LibraryScreen(
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f).padding(start = 8.dp)
                     )
+                    val singleLocalSong = if (selectedIds.size == 1) {
+                        loadedState?.songs?.find { it.id == selectedIds.first() && it.source == MusicSource.Local }
+                    } else null
+
+                    if (singleLocalSong != null) {
+                        PressDepthIconButton(
+                            iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                            contentDescription = "Edit metadata",
+                            onClick = { editingSong = singleLocalSong }
+                        )
+                    }
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_list_plus,
                         contentDescription = "Add to playlist",
@@ -229,7 +242,7 @@ fun LibraryScreen(
                                 LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().size
                                 LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().size
                                 LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().size
-                                LibraryViewMode.PLAYLISTS -> playlists.size + 1
+                                LibraryViewMode.PLAYLISTS -> playlists.size + 1 + SmartPlaylistType.entries.size
                             }
                             val noun = when (viewMode) {
                                 LibraryViewMode.SONGS -> "song"
@@ -238,10 +251,12 @@ fun LibraryScreen(
                                 LibraryViewMode.GENRES -> "genre"
                                 LibraryViewMode.PLAYLISTS -> "collection"
                             }
+                            val baseCountText = if (count == 1) "1 $noun" else "$count ${noun}s"
+                            val isOffline by viewModel.isOfflineMode.collectAsState()
                             Text(
-                                if (count == 1) "1 $noun" else "$count ${noun}s",
+                                if (isOffline) "$baseCountText . Offline" else baseCountText,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isOffline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -303,7 +318,8 @@ fun LibraryScreen(
                             listBottomPadding = listBottomPadding,
                             onClick = onNavigateToPlaylist,
                             onPlay = ::playGroup,
-                            onOpenLikedSongs = onNavigateToLikedSongs
+                            onOpenLikedSongs = onNavigateToLikedSongs,
+                            onOpenSmartPlaylist = onNavigateToSmartPlaylist
                         )
                     } else {
                         PlaylistList(
@@ -315,7 +331,8 @@ fun LibraryScreen(
                             listBottomPadding = listBottomPadding,
                             onClick = onNavigateToPlaylist,
                             onPlay = ::playGroup,
-                            onOpenLikedSongs = onNavigateToLikedSongs
+                            onOpenLikedSongs = onNavigateToLikedSongs,
+                            onOpenSmartPlaylist = onNavigateToSmartPlaylist
                         )
                     }
 
@@ -528,6 +545,17 @@ fun LibraryScreen(
             text = { Text("Imported \"${summary.name}\": ${summary.matched} of ${summary.total} songs matched.") },
             confirmButton = {
                 TextButton(onClick = { importSummary = null }) { Text("OK") }
+            }
+        )
+    }
+
+    editingSong?.let { songToEdit ->
+        TagEditorSheet(
+            song = songToEdit,
+            onDismiss = { editingSong = null },
+            onSaved = {
+                viewModel.refresh()
+                selectedIds = emptySet()
             }
         )
     }

@@ -15,6 +15,13 @@
     <!-- Android 14+: lets the player offer a contextual share suggestion after a screenshot. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
 
+    <!-- Package visibility for direct app icons and share targets (WhatsApp, Instagram) -->
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <package android:name="com.instagram.android" />
+    </queries>
+
     <!-- Cleartext allowed app-wide: Subsonic/Jellyfin servers are user-supplied, self-hosted,
     usually plain HTTP on a home LAN, with no fixed domain to scope a network-security-config to. -->
     <application
@@ -64,6 +71,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".ui.widget.CassetteWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PLAY_PAUSE" />
+                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_NEXT" />
+                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PREV" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cassette_widget_info" />
+        </receiver>
 
     </application>
 

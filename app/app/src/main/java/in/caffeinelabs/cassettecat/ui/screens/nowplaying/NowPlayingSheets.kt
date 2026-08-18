@@ -608,6 +608,12 @@ internal fun SleepTimerPickerSheet(
                     onClick = onCancel
                 )
             }
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_disc_3,
+                label = "End of current song",
+                accented = false,
+                onClick = { onSelect(-1L) }
+            )
             SLEEP_TIMER_OPTIONS_MIN.forEach { minutes ->
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_moon,

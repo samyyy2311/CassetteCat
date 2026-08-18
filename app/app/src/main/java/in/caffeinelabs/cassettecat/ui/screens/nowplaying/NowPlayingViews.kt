@@ -18,7 +18,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
+import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 
@@ -166,41 +169,43 @@ internal fun NowPlayingQueueView(
                 animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
                 label = "queueControlsSlide"
             )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .graphicsLayer {
-                        alpha = queueControlsAlpha
-                        translationY = queueControlsSlideY
+            if (chromeVisible || queueControlsAlpha > 0.001f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .graphicsLayer {
+                            alpha = queueControlsAlpha
+                            translationY = queueControlsSlideY
+                        }
+                        .then(
+                            if (chromeVisible) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { }
+                                )
+                            } else Modifier
+                        )
+                ) {
+                    Column(Modifier.fillMaxWidth()) {
+                        PlaybackControlsRow(
+                            positionMs = positionMs,
+                            durationMs = state.durationMs,
+                            onSeek = { playbackViewModel.seekTo(it) },
+                            isShuffleEnabled = state.isShuffleEnabled,
+                            onToggleShuffle = { playbackViewModel.toggleShuffle() },
+                            onSkipPrevious = onSkipPrevious,
+                            isPlaying = state.isPlaying,
+                            onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                            onSkipNext = onSkipNext,
+                            repeatMode = state.repeatMode,
+                            onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
+                        )
+                        Spacer(Modifier.height(64.dp))
+                        LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
                     }
-                    .then(
-                        if (chromeVisible) {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { }
-                            )
-                        } else Modifier
-                    )
-            ) {
-                Column(Modifier.fillMaxWidth()) {
-                    PlaybackControlsRow(
-                        positionMs = positionMs,
-                        durationMs = state.durationMs,
-                        onSeek = { playbackViewModel.seekTo(it) },
-                        isShuffleEnabled = state.isShuffleEnabled,
-                        onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                        onSkipPrevious = onSkipPrevious,
-                        isPlaying = state.isPlaying,
-                        onTogglePlayPause = { playbackViewModel.togglePlayPause() },
-                        onSkipNext = onSkipNext,
-                        repeatMode = state.repeatMode,
-                        onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
-                    )
-                    Spacer(Modifier.height(64.dp))
-                    LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
                 }
             }
         }
@@ -235,6 +240,11 @@ internal fun NowPlayingLyricsView(
     onScrollDelta: (Float) -> Unit
 ) {
     val density = LocalDensity.current
+    var syncOffsetMs by remember(song.id, syncedLyrics) { mutableStateOf(0L) }
+    var selectionMode by remember(song.id) { mutableStateOf(false) }
+    var selectedIndices by remember(song.id) { mutableStateOf(setOf<Int>()) }
+    var showShareSheet by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TitleRow(
             song = song,
@@ -256,68 +266,153 @@ internal fun NowPlayingLyricsView(
                 syncedLyrics = syncedLyrics,
                 positionMs = positionMs,
                 durationMs = state.durationMs,
+                syncOffsetMs = syncOffsetMs,
                 artist = song.artist,
                 lyricsProvider = lyricsProvider,
                 isLoading = isLoadingLyrics,
                 isPlaying = state.isPlaying,
                 scrollState = lyricsScrollState,
                 listState = lyricsListState,
-                controlsVisible = chromeVisible,
+                controlsVisible = chromeVisible && !selectionMode,
+                selectionMode = selectionMode,
+                selectedIndices = selectedIndices,
+                onToggleLineSelection = { idx ->
+                    selectedIndices = if (selectedIndices.contains(idx)) {
+                        val remaining = selectedIndices - idx
+                        if (remaining.isEmpty()) {
+                            selectionMode = false
+                            emptySet()
+                        } else {
+                            remaining
+                        }
+                    } else {
+                        if (selectedIndices.size < 5) {
+                            selectedIndices + idx
+                        } else {
+                            setOf(idx)
+                        }
+                    }
+                },
+                onStartSelection = { idx ->
+                    selectionMode = true
+                    selectedIndices = setOf(idx)
+                },
                 onSeekToLine = {
                     playbackViewModel.seekTo(it)
                     onUserSeekOrInteraction(true)
                 },
-                onInteraction = { onUserSeekOrInteraction(false) },
+                onInteraction = {
+                    if (selectionMode) {
+                        selectionMode = false
+                        selectedIndices = emptySet()
+                    } else {
+                        onUserSeekOrInteraction(false)
+                    }
+                },
                 onScrollDelta = onScrollDelta,
+                onReturnToPlayer = { onActiveViewChange(NowPlayingView.PLAYER) },
                 modifier = Modifier.fillMaxSize()
             )
-            val lyricsControlsAlpha by animateFloatAsState(
-                targetValue = if (chromeVisible) 1f else 0f,
-                animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
-                label = "lyricsControlsAlpha"
-            )
-            val lyricsControlsSlideY by animateFloatAsState(
-                targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
-                animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
-                label = "lyricsControlsSlide"
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .graphicsLayer {
-                        alpha = lyricsControlsAlpha
-                        translationY = lyricsControlsSlideY
-                    }
-                    .then(
-                        if (chromeVisible) {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { }
+
+            if (selectionMode) {
+                FloatingLyricSelectionBar(
+                    selectedCount = selectedIndices.size,
+                    onCancel = {
+                        selectionMode = false
+                        selectedIndices = emptySet()
+                    },
+                    onShare = {
+                        if (selectedIndices.isNotEmpty()) {
+                            showShareSheet = true
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp)
+                )
+            } else {
+                val lyricsControlsAlpha by animateFloatAsState(
+                    targetValue = if (chromeVisible) 1f else 0f,
+                    animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                    label = "lyricsControlsAlpha"
+                )
+                val lyricsControlsSlideY by animateFloatAsState(
+                    targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
+                    animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                    label = "lyricsControlsSlide"
+                )
+                if (chromeVisible || lyricsControlsAlpha > 0.001f) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .graphicsLayer {
+                                alpha = lyricsControlsAlpha
+                                translationY = lyricsControlsSlideY
+                            }
+                            .then(
+                                if (chromeVisible) {
+                                    Modifier.clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = { }
+                                    )
+                                } else Modifier
                             )
-                        } else Modifier
-                    )
-            ) {
-                Column(Modifier.fillMaxWidth()) {
-                    PlaybackControlsRow(
-                        positionMs = positionMs,
-                        durationMs = state.durationMs,
-                        onSeek = { playbackViewModel.seekTo(it) },
-                        isShuffleEnabled = state.isShuffleEnabled,
-                        onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                        onSkipPrevious = onSkipPrevious,
-                        isPlaying = state.isPlaying,
-                        onTogglePlayPause = { playbackViewModel.togglePlayPause() },
-                        onSkipNext = onSkipNext,
-                        repeatMode = state.repeatMode,
-                        onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
-                    )
-                    Spacer(Modifier.height(64.dp))
-                    LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+                            if (!syncedLyrics.isNullOrEmpty()) {
+                                LyricsSyncOffsetPill(
+                                    syncOffsetMs = syncOffsetMs,
+                                    onAdjust = { deltaMs -> syncOffsetMs += deltaMs },
+                                    onReset = { syncOffsetMs = 0L },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(bottom = 12.dp)
+                                )
+                            }
+                            PlaybackControlsRow(
+                                positionMs = positionMs,
+                                durationMs = state.durationMs,
+                                onSeek = { playbackViewModel.seekTo(it) },
+                                isShuffleEnabled = state.isShuffleEnabled,
+                                onToggleShuffle = { playbackViewModel.toggleShuffle() },
+                                onSkipPrevious = onSkipPrevious,
+                                isPlaying = state.isPlaying,
+                                onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                                onSkipNext = onSkipNext,
+                                repeatMode = state.repeatMode,
+                                onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
+                            )
+                            Spacer(Modifier.height(64.dp))
+                            LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+                        }
+                    }
                 }
             }
         }
+    }
+
+    if (showShareSheet) {
+        val lines = remember(selectedIndices, syncedLyrics, syncOffsetMs, state.currentLyrics, fallbackLyrics) {
+            if (!syncedLyrics.isNullOrEmpty()) {
+                val effective = adjustLyricsSync(syncedLyrics, syncOffsetMs)
+                selectedIndices.sorted().mapNotNull { idx -> effective.getOrNull(idx)?.text }
+            } else {
+                val plainLines = (state.currentLyrics ?: fallbackLyrics)?.lines()?.filter { it.isNotBlank() } ?: emptyList()
+                selectedIndices.sorted().mapNotNull { idx -> plainLines.getOrNull(idx) }
+            }
+        }
+        LyricShareSheet(
+            song = song,
+            selectedLines = lines,
+            onDismiss = {
+                showShareSheet = false
+                selectionMode = false
+                selectedIndices = emptySet()
+            }
+        )
     }
 }

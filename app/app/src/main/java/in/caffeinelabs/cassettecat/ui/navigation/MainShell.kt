@@ -34,8 +34,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -57,6 +59,8 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.SmartPlaylistScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.library.SmartPlaylistType
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingContent
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingView
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
@@ -91,6 +95,8 @@ object MainRoute {
     fun genreDetail(genre: String) = "main/library/genre/${Uri.encode(genre)}"
     const val PLAYLIST_DETAIL = "main/library/playlist/{playlistId}"
     fun playlistDetail(playlistId: String) = "main/library/playlist/${Uri.encode(playlistId)}"
+    const val SMART_PLAYLIST_DETAIL = "main/library/smart_playlist/{type}"
+    fun smartPlaylistDetail(type: String) = "main/library/smart_playlist/$type"
     const val LIKED_SONGS = "main/library/liked"
     const val STATS = "main/stats"
     const val MANAGE_SCAN_FOLDERS = "main/settings/scan_folders"
@@ -196,8 +202,11 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                 modifier = Modifier.fillMaxSize(),
                 scaffoldState = scaffoldState,
                 sheetPeekHeight = peekHeight,
-                sheetShape = RoundedCornerShape(topStart = SHEET_CORNER_RADIUS, topEnd = SHEET_CORNER_RADIUS),
-                sheetContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = fraction),
+                sheetShape = RoundedCornerShape(
+                    topStart = lerp(SHEET_CORNER_RADIUS, 0.dp, fraction),
+                    topEnd = lerp(SHEET_CORNER_RADIUS, 0.dp, fraction)
+                ),
+                sheetContainerColor = MaterialTheme.colorScheme.surface,
                 sheetTonalElevation = 0.dp,
                 sheetDragHandle = null,
                 sheetSwipeEnabled = showChrome && hasSong && nowPlayingView == NowPlayingView.PLAYER,
@@ -221,17 +230,22 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     Box(Modifier.fillMaxWidth().height(scaffoldHeight)) {
                         // both layers start from the sheet's top; peek shows just the mini-player slice
                         if (hasSong) {
-                            Box(Modifier.fillMaxWidth().alpha(1f - fraction)) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer { alpha = 1f - fraction }
+                            ) {
                                 MiniPlayerRow(
                                     playbackViewModel = playbackViewModel,
                                     onExpand = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                                     onThumbnailBoundsChange = { collapsedArtRect.value = it }
                                 )
                             }
-                        }
-                        val playerAlpha = fraction
-                        if (hasSong && playerAlpha > 0f) {
-                            Box(Modifier.fillMaxSize().alpha(playerAlpha)) {
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { alpha = fraction }
+                            ) {
                                 fun navigateFromNowPlaying(route: String) {
                                     nowPlayingView = NowPlayingView.PLAYER
                                     scope.launch { scaffoldState.bottomSheetState.partialExpand() }
@@ -285,6 +299,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             onNavigateToGenre = { genre -> navController.navigate(MainRoute.genreDetail(genre)) },
                             onNavigateToPlaylist = { playlistId -> navController.navigate(MainRoute.playlistDetail(playlistId)) },
                             onNavigateToLikedSongs = { navController.navigate(MainRoute.LIKED_SONGS) },
+                            onNavigateToSmartPlaylist = { type -> navController.navigate(MainRoute.smartPlaylistDetail(type.id)) },
                             // nav bar is an overlay, not a space-reserving sibling
                             listBottomPadding = contentPadding.calculateBottomPadding(),
                             viewModel = libraryViewModel,
@@ -352,6 +367,21 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     }
                     composable(MainRoute.LIKED_SONGS) {
                         LikedSongsScreen(
+                            libraryViewModel = libraryViewModel,
+                            playbackViewModel = playbackViewModel,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(
+                        MainRoute.SMART_PLAYLIST_DETAIL,
+                        arguments = listOf(navArgument("type") { type = NavType.StringType })
+                    ) { entry ->
+                        val typeId = entry.arguments?.getString("type").orEmpty()
+                        val type = SmartPlaylistType.fromId(typeId)
+                        SmartPlaylistScreen(
+                            playlistType = type,
                             libraryViewModel = libraryViewModel,
                             playbackViewModel = playbackViewModel,
                             onBack = { navController.popBackStack() },

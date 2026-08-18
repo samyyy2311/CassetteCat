@@ -130,7 +130,13 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .tapScale {
+                    val next = !appPreferences.wifiOnlyDownloads
+                    scope.launch { appPreferencesRepository.setWifiOnlyDownloads(next) }
+                }
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -141,10 +147,44 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(Modifier.width(16.dp))
             Switch(
                 checked = appPreferences.wifiOnlyDownloads,
                 onCheckedChange = { enabled ->
                     scope.launch { appPreferencesRepository.setWifiOnlyDownloads(enabled) }
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                    checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
+                    checkedBorderColor = MaterialTheme.colorScheme.tertiary
+                )
+            )
+        }
+
+        val autoDownloadFavorites by downloadSettingsRepository.autoDownloadFavorites.collectAsState(initial = false)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .tapScale {
+                    val next = !autoDownloadFavorites
+                    scope.launch { downloadSettingsRepository.setAutoDownloadFavorites(next) }
+                }
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Auto-download Favorites", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Automatically download newly favorited streaming songs.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Switch(
+                checked = autoDownloadFavorites,
+                onCheckedChange = { enabled ->
+                    scope.launch { downloadSettingsRepository.setAutoDownloadFavorites(enabled) }
                 },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.tertiary,
