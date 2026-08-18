@@ -3,7 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Official Simple Icons Logo (simpleicons.org) -->
     <path
-        android:fillColor="#111111"
-        android:pathData="M12,0C5.373,0 0,5.373 0,12s5.373,12 12,12 12,-5.373 12,-12S18.627,0 12,0zM12,3.273a8.727,8.727 0 1,1 0,17.454 8.727,8.727 0 0,1 0,-17.454zM9.818,7.637v8.727l6.546,-4.364 -6.546,-4.363z"/>
+        android:fillColor="#F5F0EC"
+        android:pathData="M18,6a6,6 0,1 0,-6 6a6,6 0,0 1,5.35 9h1.5A7.5,7.5 0,0 0,12 10.5A4.5,4.5 0,1 1,16.5 6zM12,3a3,3 0,0 0,0 6a1,1 0,0 0,0 -6m0,1.5a1.5,1.5 0,0 1,0 3a1,1 0,0 1,0 -3M7.5,15v1.5H9v6H4.5V24h15v-1.5H15v-6h1.5V15zm3,1.5h3v6h-3zm-6,1.5a7.5,7.5 0,0 0,0.7 3h1.5a6,6 0,0 1,-0.7 -3z" />
 </vector>

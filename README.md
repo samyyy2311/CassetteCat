@@ -1,82 +1,61 @@
 # CassetteCat
 
-A music player and DIY hardware companion project from CaffeineLabs, focused on physical device aesthetics, local media ownership, and self-hosted streaming.
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="CassetteCat Logo" />
+</p>
 
-CassetteCat consists of two interconnected parts:
-- **[app/](app/)**: A native Android music player and hardware companion built from scratch using Jetpack Compose and AndroidX Media3.
-- **[firmware/](firmware/)** and **[hardware/](hardware/)**: A companion DIY hardware audio player based on the ESP32-S3, PCM5102 I2S DAC, and ST7735R display.
+<p align="center">
+  <strong>A privacy-first Android music player for local media ownership and self-hosted streaming.</strong>
+</p>
 
-CassetteCat is not a physical tape player. The cassette identity is an aesthetic homage to standalone media players and hardware ownership.
+<p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.1.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.1.0" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
+  <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose" /></a>
+</p>
 
 ---
 
-## Android App Features
+## Download
 
-### Library & Streaming
-- **Local Audio**: Scans audio using `MediaStore.Audio` with configurable folder whitelists and blacklists via the Storage Access Framework.
-- **Subsonic Streaming**: Connects to Subsonic-compatible servers (Navidrome, Airsonic, Gonic, LMS) using token authentication.
-- **Jellyfin Streaming**: Direct music playback and library integration from self-hosted Jellyfin instances.
-- **Unified Aggregation**: Parallel background fetching across all configured sources with isolated error handling.
+<p align="center">
+  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><img src="https://img.shields.io/badge/GitHub%20Releases-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub Releases" /></a>
+  <a href="https://github.com/ImranR98/Obtainium"><img src="https://img.shields.io/badge/Obtainium-4A154B?style=flat-square&logo=git&logoColor=white" alt="Obtainium" /></a>
+</p>
 
-### Interface & Design
-- **Owned Device Theme**: Industrial dark-mode palette (neutral metals, deep black surfaces, and Signal Red `#C23B30` indicator accents).
-- **Tactile Controls**: Custom `TransportButton` and `PressDepthIconButton` components featuring mechanical press-depth offsets and subtle haptic feedback.
-- **Typography**: IBM Plex Sans for general UI and IBM Plex Mono for technical readouts and duration displays.
-- **Mechanical Motion**: Linear 220ms sliding transitions without bounce or spring overshoot.
+---
+
+## Features
 
 ### Audio & Playback
-- **AndroidX Media3**: Foreground playback engine using ExoPlayer, supporting system media notifications and lock screen controls.
-- **Now Playing Sheet**: Draggable bottom sheet with a horizontal track-switching pager and album art carousel.
-- **Lyrics**: Support for embedded ID3 and Vorbis synchronized and plain lyrics.
-- **Listening Log**: Device-styled play statistics tracking top tracks, artists, and albums with local artwork caching.
-- **Playlists & Search**: Local playlist creation and instant client-side library filtering by title, artist, or album.
+- **Media3 Playback**: Background audio playback with lock screen controls and system media notifications.
+- **Hardware Equalizer & DSP**: System graphic EQ, bass boost, virtualizer, and loudness enhancer. Includes calibrated headphone presets powered by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
+- **Synchronized Lyrics**: Real-time karaoke-style lyrics via [LRCLIB](https://lrclib.net) and embedded ID3 tags.
+- **Sleep Timer**: Built-in sleep timer to automatically pause playback.
+
+### Library & Streaming
+- **Local Audio**: Scans device audio with configurable folder whitelists and blacklists.
+- **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token authentication.
+- **Jellyfin**: Direct streaming and music library browsing from your Jellyfin server.
+- **Offline Cache**: Download and cache streaming songs for offline playback.
+- **Scrobbling**: Track your listening on [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
+- **Listening Log**: Local playback statistics tracking your top tracks, artists, and albums.
+
+### Design & UI
+- **Tactile Dark Theme**: Sleek industrial dark interface with mechanical button animations and haptic feedback.
+- **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and synchronized lyric excerpts.
+- **Home Screen Widget**: Control playback and see current song artwork directly from your home screen.
+
+### Privacy
+- Local-first architecture: no analytics, no third-party tracking, zero Google Play Services dependencies.
+- Streaming server credentials encrypted with AES-256 via the hardware-backed `AndroidKeyStore`.
+- Fully F-Droid compatible and open source under GPL-3.0.
 
 ---
 
-## Hardware Companion (In Progress)
-
-The hardware companion is an open-source pocket player designed to sync with the Android app over Wi-Fi (SoftAP and station mode):
-
-- **Microcontroller**: ESP32-S3 (16MB Flash, 8MB PSRAM)
-- **DAC**: Adafruit PCM5102 I2S 32-bit DAC
-- **Display**: 1.8" 128x160 TFT LCD (ST7735R) with onboard microSD slot
-- **Power**: LiPo battery with TP4056 USB-C charger and MT3608 boost regulator
-- **Input**: 8-key capacitive touch button matrix
-- **Sync**: Wi-Fi bulk file transfer and ESP-IDF OTA updates from the Android app
-
----
-
-## Repository Structure & Documentation
-
-```
-CassetteCat/
-├── .github/        GitHub Actions CI workflows and issue templates
-├── app/            Native Android application source code
-│   ├── app/        Application module (Compose, Media3, DataStore)
-│   └── gradle/     Version catalog and build configuration
-├── firmware/       ESP32-S3 firmware source code
-├── hardware/       PCB schematics, board layouts, and CAD models
-└── docs/           Architecture specifications and development notes
-```
-
-For in-depth guides, see:
-- [System Architecture](docs/architecture.md)
-- [Android Development Guide](docs/android.md)
-- [Hardware Specification](docs/hardware.md)
-- [Firmware Architecture](docs/firmware.md)
-- [Troubleshooting & FAQs](docs/troubleshooting.md)
-
-
----
-
-## Building the Android App
-
-### Requirements
-- Android Studio Ladybug (2024.2.1) or newer
-- JDK 17
-- Android SDK 37 (minSdk 26)
-
-### Command Line Build
+## Building
 
 ```bash
 cd app
@@ -84,61 +63,56 @@ cd app
 ./gradlew testDebugUnitTest
 ```
 
-The output APK will be placed at:
-```
-app/app/build/outputs/apk/debug/app-debug.apk
-```
+Output: `app/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-## Contributing & Development Philosophy
+## Documentation
 
-Please review [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
-Core principles:
-- **Code Economy**: Write the minimum code required to solve problems cleanly. Avoid speculative abstractions.
-- **F-Droid Compatibility**: No proprietary tracking or closed Google Play Services dependencies.
-- **Clean Implementation**: All application code is written from scratch.
+- [System Architecture](docs/architecture.md)
+- [Android Development Guide](docs/android.md)
+- [Troubleshooting & FAQs](docs/troubleshooting.md)
 
 ---
 
-## Support & Sponsor
+## Contributing
 
-If you enjoy CassetteCat and want to support ongoing development:
-
-- **[Ko-fi](https://ko-fi.com/samyyy2311)**
-- **[Buy Me a Coffee](https://buymeacoffee.com/samyyy2311)**
-
-> 20% of all sponsorship proceeds are donated directly to [LRCLIB](https://lrclib.net) to support free, open-source synchronized lyrics infrastructure.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ---
 
-## Credits & Attribution
+## Support
 
-CassetteCat is powered by open data, open-source libraries, and community infrastructure:
+<p align="center">
+  <a href="https://ko-fi.com/samyyy2311"><img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=flat-square&logo=kofi&logoColor=white" alt="Ko-fi" /></a>
+  <a href="https://buymeacoffee.com/samyyy2311"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee" /></a>
+</p>
+
+---
+
+## Credits
 
 ### Services & Data
-- **[LRCLIB](https://lrclib.net)**: Real-time synchronized and plain lyrics.
-- **[Cover Art Archive](https://coverartarchive.org)**: High-resolution archival CD and vinyl cover scans.
-- **[Wikipedia & Wikimedia](https://wikipedia.org)**: Artist biographies and album backgrounds (CC BY-SA 4.0).
-- **[MusicBrainz](https://musicbrainz.org)**: Open music encyclopedia and metadata references.
-- **[ListenBrainz](https://listenbrainz.org)**: Open listening data and scrobbling infrastructure.
-- **[Libre.fm](https://libre.fm)**: Free software music scrobbling network.
-- **[Deezer](https://deezer.com)** & **[TheAudioDB](https://theaudiodb.com)**: Metadata and artist imagery references.
+- <a href="https://lrclib.net"><img src="https://img.shields.io/badge/LRCLIB-38BDF8?style=flat-square" alt="LRCLIB" /></a> Synchronized and plain lyrics.
+- <a href="https://coverartarchive.org"><img src="https://img.shields.io/badge/Cover%20Art%20Archive-20656C?style=flat-square" alt="Cover Art Archive" /></a> Album artwork from MetaBrainz and the Internet Archive.
+- <a href="https://musicbrainz.org"><img src="https://img.shields.io/badge/MusicBrainz-EB743B?style=flat-square&logo=musicbrainz&logoColor=white" alt="MusicBrainz" /></a> Music metadata and encyclopedia.
+- <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a> Open scrobbling.
+- <a href="https://libre.fm"><img src="https://img.shields.io/badge/Libre.fm-990000?style=flat-square&logo=gnu&logoColor=white" alt="Libre.fm" /></a> Free software scrobbling (GNU FM).
+- <a href="https://wikipedia.org"><img src="https://img.shields.io/badge/Wikipedia-000000?style=flat-square&logo=wikipedia&logoColor=white" alt="Wikipedia" /></a> Artist biographies (CC BY-SA 4.0).
+- <a href="https://deezer.com"><img src="https://img.shields.io/badge/Deezer-FEAA2D?style=flat-square&logo=deezer&logoColor=white" alt="Deezer" /></a> <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-242424?style=flat-square" alt="TheAudioDB" /></a> Artist imagery and metadata.
 
 ### Libraries & Design
-- **[AutoEq](https://github.com/jaakkopasanen/AutoEq)**: Calibrated headphone frequency response profiles.
-- **[AndroidX Media3](https://developer.android.com/media/media3)**: Audio streaming, foreground service, and cache architecture.
-- **[Jetpack Compose & Material 3](https://developer.android.com/jetpack/compose)**: Declarative Android UI toolkit.
-- **[Lucide Icons](https://lucide.dev)**: Clean open-source iconography (ISC License).
-- **[Simple Icons](https://simpleicons.org)**: Authentic open-source brand iconography (CC0 1.0).
-- **[IBM Plex](https://github.com/IBM/plex)**: Typefaces designed by Mike Abbink and Bold Monday for IBM (OFL 1.1).
-- **[Space Grotesk](https://github.com/floriankarsten/space-grotesk)**: Display typography by Florian Karsten (OFL 1.1).
-- **[OkHttp](https://square.github.io/okhttp/)**: High-performance HTTP client.
+- <a href="https://github.com/jaakkopasanen/AutoEq"><img src="https://img.shields.io/badge/AutoEq-1C1917?style=flat-square" alt="AutoEq" /></a> Headphone EQ profiles by Jaakko Pasanen.
+- <a href="https://developer.android.com/media/media3"><img src="https://img.shields.io/badge/Media3-3DDC84?style=flat-square&logo=android&logoColor=white" alt="AndroidX Media3" /></a> Playback engine and caching.
+- <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" /></a> UI toolkit.
+- <a href="https://lucide.dev"><img src="https://img.shields.io/badge/Lucide-F56565?style=flat-square&logo=lucide&logoColor=white" alt="Lucide" /></a> App logo and icons (ISC).
+- <a href="https://simpleicons.org"><img src="https://img.shields.io/badge/Simple%20Icons-111111?style=flat-square&logo=simpleicons&logoColor=white" alt="Simple Icons" /></a> Brand icons (CC0 1.0).
+- <a href="https://github.com/square/okhttp"><img src="https://img.shields.io/badge/OkHttp-006AFF?style=flat-square&logo=square&logoColor=white" alt="OkHttp" /></a> HTTP client.
+- <a href="https://github.com/IBM/plex"><img src="https://img.shields.io/badge/IBM%20Plex-0F62FE?style=flat-square&logo=ibm&logoColor=white" alt="IBM Plex" /></a> Typefaces (OFL 1.1).
+- <a href="https://github.com/floriankarsten/space-grotesk"><img src="https://img.shields.io/badge/Space%20Grotesk-242424?style=flat-square" alt="Space Grotesk" /></a> Display font by Florian Karsten (OFL 1.1).
 
 ---
 
 ## License
 
-- **Software (`app/` and `firmware/`)**: [GPL-3.0](LICENSE)
-- **Hardware (`hardware/`)**: [CERN-OHL-S-2.0](hardware/LICENSE)
+CassetteCat is licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).

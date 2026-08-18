@@ -51,9 +51,13 @@ fun CreditsScreen(
             Text("Credits & Attribution", style = MaterialTheme.typography.headlineSmall)
         }
 
+        val appVersion = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull() ?: "1.1.0"
+
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                "CassetteCat v1.0.0",
+                "CassetteCat v$appVersion",
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.tertiary
             )
@@ -123,7 +127,8 @@ fun CreditsScreen(
             NavigationRow(
                 title = "AutoEq",
                 subtitle = "Calibrated headphone equalizer response curves by Jaakko Pasanen",
-                iconRes = R.drawable.lucide_ic_headphones,
+                iconRes = AppR.drawable.ic_logo_autoeq,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/jaakkopasanen/AutoEq") }
             )
             SettingsDivider()
@@ -164,7 +169,7 @@ fun CreditsScreen(
                 subtitle = "High-performance HTTP client for lyrics and hardware sync",
                 iconRes = AppR.drawable.ic_logo_okhttp,
                 iconTint = Color.Unspecified,
-                onClick = { openUrl("https://square.github.io/okhttp/") }
+                onClick = { openUrl("https://github.com/square/okhttp") }
             )
         }
 
@@ -173,7 +178,7 @@ fun CreditsScreen(
         SettingsSection(title = "DESIGN & TYPOGRAPHY") {
             NavigationRow(
                 title = "Lucide Icons",
-                subtitle = "Clean, open-source iconography (lucide.dev, ISC License)",
+                subtitle = "App logo & open-source iconography (lucide.dev, ISC License)",
                 iconRes = AppR.drawable.ic_logo_lucide,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://lucide.dev") }

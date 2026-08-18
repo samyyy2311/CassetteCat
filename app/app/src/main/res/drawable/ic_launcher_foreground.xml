@@ -3,13 +3,42 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M29,39 H79 A8,8 0 0 1 87,47 V71 A8,8 0 0 1 79,79 H29 A8,8 0 0 1 21,71 V47 A8,8 0 0 1 29,39 Z" />
-    <path
-        android:fillColor="#212121"
-        android:pathData="M40,59 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
-    <path
-        android:fillColor="#212121"
-        android:pathData="M68,59 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+    <group
+        android:translateX="42"
+        android:translateY="42"
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="2.1"
+        android:scaleY="2.1">
+        <path
+            android:pathData="M4,4h16a2,2 0 0 1 2,2v12a2,2 0 0 1 -2,2h-16a2,2 0 0 1 -2,-2v-12a2,2 0 0 1 2,-2z"
+            android:strokeWidth="1.8"
+            android:strokeColor="#F5F0EC"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M8,10m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"
+            android:strokeWidth="1.8"
+            android:strokeColor="#F5F0EC"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M8,12h8"
+            android:strokeWidth="1.8"
+            android:strokeColor="#F5F0EC"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M16,10m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"
+            android:strokeWidth="1.8"
+            android:strokeColor="#F5F0EC"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M6,20l0.7,-2.9A1.4,1.4 0 0,1 8.1,16h7.8a1.4,1.4 0 0,1 1.4,1.1L18,20"
+            android:strokeWidth="1.8"
+            android:strokeColor="#F5F0EC"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
 </vector>
