@@ -1,6 +1,7 @@
 @file:Suppress("DEPRECATION")
 package `in`.caffeinelabs.cassettecat.data.playback
 
+import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
@@ -41,26 +42,40 @@ object EqualizerController {
         runCatching {
             release()
 
-            equalizer = Equalizer(0, audioSessionId).apply { enabled = true }
-            _isAvailable.value = true
+            val availableTypes = runCatching {
+                AudioEffect.queryEffects()?.map { it.type }?.toSet()
+            }.getOrNull() ?: emptySet()
 
-            bassBoost = runCatching {
-                BassBoost(0, audioSessionId).apply {
-                    _isBassBoostSupported.value = strengthSupported
-                }
-            }.getOrNull()
+            if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_EQUALIZER)) {
+                equalizer = runCatching {
+                    Equalizer(0, audioSessionId).apply { enabled = true }
+                }.getOrNull()
+            }
+            _isAvailable.value = equalizer != null
 
-            virtualizer = runCatching {
-                Virtualizer(0, audioSessionId).apply {
-                    _isVirtualizerSupported.value = strengthSupported
-                }
-            }.getOrNull()
+            if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_BASS_BOOST)) {
+                bassBoost = runCatching {
+                    BassBoost(0, audioSessionId).apply {
+                        _isBassBoostSupported.value = strengthSupported
+                    }
+                }.getOrNull()
+            }
 
-            loudnessEnhancer = runCatching {
-                LoudnessEnhancer(audioSessionId).apply {
-                    _isLoudnessEnhancerSupported.value = true
-                }
-            }.getOrNull()
+            if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_VIRTUALIZER)) {
+                virtualizer = runCatching {
+                    Virtualizer(0, audioSessionId).apply {
+                        _isVirtualizerSupported.value = strengthSupported
+                    }
+                }.getOrNull()
+            }
+
+            if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_LOUDNESS_ENHANCER)) {
+                loudnessEnhancer = runCatching {
+                    LoudnessEnhancer(audioSessionId).apply {
+                        _isLoudnessEnhancerSupported.value = true
+                    }
+                }.getOrNull()
+            }
         }.onFailure {
             _isAvailable.value = false
             _isBassBoostSupported.value = false

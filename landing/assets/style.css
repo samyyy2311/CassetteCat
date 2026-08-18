@@ -204,9 +204,9 @@ img { max-width: 100%; display: block; }
 /* ── Home page (index.html) ── */
 * { box-sizing: border-box; }
 a { color: inherit; text-decoration: none; }
-a:hover { color: #F5F0EC; }
-.cc-nav-links a { color: #A8A29A; }
-.cc-nav-links a:hover { color: #F5F0EC; }
+a:hover { color: var(--text); }
+.cc-nav-links a { color: var(--text-2); }
+.cc-nav-links a:hover { color: var(--text); }
 .cc-bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .cc-bento > .wide { grid-column: span 2; }
 .cc-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 48px; align-items: start; }

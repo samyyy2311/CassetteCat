@@ -102,7 +102,7 @@ fun AboutLegalScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(AppR.mipmap.ic_launcher_round),
+                            painter = painterResource(AppR.drawable.ic_launcher_foreground),
                             contentDescription = null,
                             modifier = Modifier.size(36.dp)
                         )
