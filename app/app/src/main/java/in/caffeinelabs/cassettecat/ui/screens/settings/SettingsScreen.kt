@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,6 +56,7 @@ fun SettingsScreen(
     onNavigateToSleepTimer: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     onNavigateToPairing: () -> Unit = {},
+    onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
     onNavigateToScrobbling: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -81,7 +81,8 @@ fun SettingsScreen(
         SettingsHeader()
         Spacer(Modifier.height(16.dp))
 
-        SettingsSection(title = "Audio") {
+        // 1. Audio & Playback
+        SettingsSection(title = "Audio & Playback") {
             NavigationRow(
                 title = "Sleep timer",
                 subtitle = "Stop playback after a set time",
@@ -99,22 +100,13 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "Hardware") {
-            NavigationRow(
-                title = "CassetteCat Player",
-                subtitle = "Pair, sync music, and check hardware telemetry",
-                iconRes = R.drawable.lucide_ic_cassette_tape,
-                iconTint = Color(0xFFE5A93C),
-                onClick = onNavigateToPairing
-            )
-        }
+        Spacer(Modifier.height(20.dp))
 
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "Library") {
+        // 2. Library & Hardware
+        SettingsSection(title = "Library & Hardware") {
             NavigationRow(
                 title = "Listening Record",
-                subtitle = "Monthly time, favourite artists, and repeats",
+                subtitle = "Monthly stats, artists, and repeats",
                 iconRes = R.drawable.lucide_ic_disc_3,
                 iconTint = Color(0xFFC23B30),
                 onClick = onNavigateToStats
@@ -139,13 +131,23 @@ fun SettingsScreen(
                 iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToDownloads
             )
+            SettingsDivider()
+            NavigationRow(
+                title = "CassetteCat Player",
+                subtitle = "Pair, sync music, and hardware telemetry",
+                iconRes = R.drawable.lucide_ic_cassette_tape,
+                iconTint = Color(0xFFF4F4F5),
+                onClick = onNavigateToPairing
+            )
         }
 
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "Servers & services") {
+        Spacer(Modifier.height(20.dp))
+
+        // 3. Streaming & Services
+        SettingsSection(title = "Streaming & Services") {
             ToggleRow(
                 title = "Offline Blackout Mode",
-                subtitle = if (uiState.services.offlineBlackoutMode) "All network services and streaming disabled" else "Disable all network calls, streaming, and metadata lookups",
+                subtitle = if (uiState.services.offlineBlackoutMode) "All network services and streaming disabled" else "Disable all network calls, streaming, and lookups",
                 checked = uiState.services.offlineBlackoutMode,
                 onCheckedChange = { viewModel.setOfflineBlackoutMode(it) },
                 iconRes = R.drawable.lucide_ic_radio,
@@ -154,7 +156,7 @@ fun SettingsScreen(
             SettingsDivider()
             ServerRow(
                 title = "Subsonic",
-                subtitle = "Navidrome, gonic, and other Subsonic-API servers",
+                subtitle = "Navidrome, gonic, and other Subsonic servers",
                 config = uiState.subsonic,
                 iconRes = AppR.drawable.ic_logo_subsonic,
                 iconTint = Color.Unspecified,
@@ -174,7 +176,7 @@ fun SettingsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "External Services",
-                subtitle = "$enabledServices of ${externalServices.size} enabled",
+                subtitle = "$enabledServices of ${externalServices.size} enabled (Lyrics, Metadata)",
                 iconRes = R.drawable.lucide_ic_globe,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onManageExternalServices
@@ -189,10 +191,12 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "Data") {
+        Spacer(Modifier.height(20.dp))
+
+        // 4. Data & App Updates
+        SettingsSection(title = "Data & Updates") {
             NavigationRow(
-                title = "Privacy",
+                title = "Privacy & Security",
                 subtitle = "Listening data and saved server credentials",
                 iconRes = R.drawable.lucide_ic_shield,
                 iconTint = Color(0xFF10B981),
@@ -201,15 +205,12 @@ fun SettingsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "Backup & Restore",
-                subtitle = "Keep your library, playlists, and preferences safe",
+                subtitle = "Keep library, playlists, and settings safe",
                 iconRes = R.drawable.lucide_ic_archive_restore,
                 iconTint = Color(0xFF60A5FA),
                 onClick = onNavigateToBackupRestore
             )
-        }
-
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "Updates") {
+            SettingsDivider()
             ServiceToggleRow(
                 service = ExternalService.GITHUB_UPDATES,
                 enabled = uiState.services.githubUpdatesEnabled,
@@ -217,23 +218,36 @@ fun SettingsScreen(
                 iconRes = AppR.drawable.ic_logo_github,
                 iconTint = Color.Unspecified
             )
-            SettingsDivider(startPadding = 24.dp)
-            UpdateCheckRow(
-                result = updateCheckResult,
-                checkEnabled = uiState.services.githubUpdatesEnabled,
-                onCheck = { viewModel.checkForUpdate() }
-            )
+            if (uiState.services.githubUpdatesEnabled) {
+                SettingsDivider(startPadding = 24.dp)
+                UpdateCheckRow(
+                    result = updateCheckResult,
+                    checkEnabled = true,
+                    onCheck = { viewModel.checkForUpdate() }
+                )
+            }
         }
 
-        Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "About & Support") {
-            Text(
-                "20% of all sponsorship proceeds are donated directly to LRCLIB to support free, open-source lyrics infrastructure.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+        Spacer(Modifier.height(20.dp))
+
+        // 5. Support & About (Clean, consistent styling)
+        SettingsSection(title = "Support & About") {
+            NavigationRow(
+                title = "About & Legal",
+                subtitle = "Audio DSP, data sources, privacy & permissions",
+                iconRes = R.drawable.lucide_ic_file_text,
+                iconTint = Color(0xFF38BDF8),
+                onClick = onNavigateToAboutLegal
             )
-            Spacer(Modifier.height(4.dp))
+            SettingsDivider()
+            NavigationRow(
+                title = "Credits & Attribution",
+                subtitle = "Contributors, open source libraries, and fonts",
+                iconRes = R.drawable.lucide_ic_heart,
+                iconTint = Color(0xFFC23B30),
+                onClick = onNavigateToCredits
+            )
+            SettingsDivider()
             NavigationRow(
                 title = "Ko-fi",
                 subtitle = "Support development on Ko-fi",
@@ -249,13 +263,12 @@ fun SettingsScreen(
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://buymeacoffee.com/samyyy2311") }
             )
-            SettingsDivider()
-            NavigationRow(
-                title = "Credits & Attribution",
-                subtitle = "Services, libraries, and open source licenses",
-                iconRes = R.drawable.lucide_ic_heart,
-                iconTint = Color(0xFFC23B30),
-                onClick = onNavigateToCredits
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "20% of sponsorship proceeds fund free lyrics infrastructure on LRCLIB.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
             )
         }
 
@@ -275,8 +288,6 @@ private fun SettingsHeader() {
         )
     }
 }
-
-
 
 @Composable
 fun ServiceToggleRow(
@@ -374,5 +385,3 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
         }
     }
 }
-
-

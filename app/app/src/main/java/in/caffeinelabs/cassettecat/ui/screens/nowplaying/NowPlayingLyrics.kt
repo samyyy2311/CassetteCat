@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -196,18 +197,22 @@ internal fun LyricsView(
 
             val effectivePositionMs = positionMs + 90L
 
-            val activeDisplayIndex = remember(effectivePositionMs, displayItems) {
-                displayItems.indexOfLast { item ->
-                    when (item) {
-                        is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
-                        is LyricDisplayItem.Gap  -> item.fromMs <= effectivePositionMs
-                    }
-                }.coerceAtLeast(0)
+            val activeDisplayIndex by remember(displayItems, effectivePositionMs) {
+                derivedStateOf {
+                    displayItems.indexOfLast { item ->
+                        when (item) {
+                            is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
+                            is LyricDisplayItem.Gap  -> item.fromMs <= effectivePositionMs
+                        }
+                    }.coerceAtLeast(0)
+                }
             }
             val currentActiveItem = displayItems.getOrNull(activeDisplayIndex)
 
-            val activeLineIndex = remember(effectivePositionMs, effectiveSyncedLyrics) {
-                effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }.coerceAtLeast(0)
+            val activeLineIndex by remember(effectiveSyncedLyrics, effectivePositionMs) {
+                derivedStateOf {
+                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }.coerceAtLeast(0)
+                }
             }
 
             val density = LocalDensity.current
@@ -272,6 +277,18 @@ internal fun LyricsView(
                 label = "lyricsFadeEnd"
             )
 
+            val gradientBrush = remember(fadeStart, fadeEnd) {
+                Brush.verticalGradient(
+                    0.0f to Color.Transparent,
+                    0.04f to Color.Black.copy(alpha = 0.35f),
+                    0.09f to Color.Black,
+                    fadeStart to Color.Black,
+                    ((fadeStart + fadeEnd) / 2f) to Color.Black.copy(alpha = 0.35f),
+                    fadeEnd to Color.Transparent,
+                    1.0f to Color.Transparent
+                )
+            }
+
             LazyColumn(
                 state = listState,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -287,115 +304,32 @@ internal fun LyricsView(
                     .drawWithContent {
                         drawContent()
                         drawRect(
-                            brush = Brush.verticalGradient(
-                                0.0f to Color.Transparent,
-                                0.04f to Color.Black.copy(alpha = 0.35f),
-                                0.09f to Color.Black,
-                                fadeStart to Color.Black,
-                                ((fadeStart + fadeEnd) / 2f) to Color.Black.copy(alpha = 0.35f),
-                                fadeEnd to Color.Transparent,
-                                1.0f to Color.Transparent
-                            ),
+                            brush = gradientBrush,
                             blendMode = BlendMode.DstIn
                         )
                     }
             ) {
                 itemsIndexed(
                     items = displayItems,
-                    key = { _, it -> when (it) {
-                        is LyricDisplayItem.Line -> it.lyricLine.timestampMs
-                        is LyricDisplayItem.Gap  -> "gap_${it.fromMs}"
+                    key = { idx, it -> when (it) {
+                        is LyricDisplayItem.Line -> "line_${it.lyricLine.timestampMs}_${idx}"
+                        is LyricDisplayItem.Gap  -> "gap_${it.fromMs}_${idx}"
                     }}
                 ) { displayIdx, item ->
                     when (item) {
                         is LyricDisplayItem.Gap -> {
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
-                            val dotsAlpha by animateFloatAsState(
-                                targetValue = if (isInGap) 1.0f else 0.22f,
-                                animationSpec = spring(dampingRatio = 0.85f, stiffness = 300f),
-                                label = "gapDotsAlpha"
-                            )
-                            val infiniteTransition = rememberInfiniteTransition(label = "dots")
-                            val dot1Scale by infiniteTransition.animateFloat(
-                                initialValue = 0.85f, targetValue = 1.35f,
-                                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot1Scale"
-                            )
-                            val dot1Alpha by infiniteTransition.animateFloat(
-                                initialValue = 0.35f, targetValue = 1.0f,
-                                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot1Alpha"
-                            )
-                            val dot2Scale by infiniteTransition.animateFloat(
-                                initialValue = 0.85f, targetValue = 1.35f,
-                                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot2Scale"
-                            )
-                            val dot2Alpha by infiniteTransition.animateFloat(
-                                initialValue = 0.35f, targetValue = 1.0f,
-                                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot2Alpha"
-                            )
-                            val dot3Scale by infiniteTransition.animateFloat(
-                                initialValue = 0.85f, targetValue = 1.35f,
-                                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot3Scale"
-                            )
-                            val dot3Alpha by infiniteTransition.animateFloat(
-                                initialValue = 0.35f, targetValue = 1.0f,
-                                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                                label = "dot3Alpha"
-                            )
-                            val onSurface = MaterialTheme.colorScheme.onSurface
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Start,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        userIsDragging = false
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onSeekToLine(item.fromMs)
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(displayIdx, 0)
-                                        }
+                            GapItemView(
+                                isInGap = isInGap,
+                                onClick = {
+                                    userIsDragging = false
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onSeekToLine(item.fromMs)
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(displayIdx, 0)
                                     }
-                                    .graphicsLayer { alpha = dotsAlpha }
-                                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .graphicsLayer {
-                                            scaleX = if (isInGap) dot1Scale else 1f
-                                             scaleY = if (isInGap) dot1Scale else 1f
-                                            alpha = if (isInGap) dot1Alpha else 0.3f
-                                        }
-                                        .background(onSurface, CircleShape)
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .graphicsLayer {
-                                            scaleX = if (isInGap) dot2Scale else 1f
-                                            scaleY = if (isInGap) dot2Scale else 1f
-                                            alpha = if (isInGap) dot2Alpha else 0.3f
-                                        }
-                                        .background(onSurface, CircleShape)
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .graphicsLayer {
-                                            scaleX = if (isInGap) dot3Scale else 1f
-                                            scaleY = if (isInGap) dot3Scale else 1f
-                                            alpha = if (isInGap) dot3Alpha else 0.3f
-                                        }
-                                        .background(onSurface, CircleShape)
-                                )
-                            }
+                                }
+                            )
                         }
 
                         is LyricDisplayItem.Line -> {
@@ -578,6 +512,117 @@ internal fun LyricsView(
 }
 
 @Composable
+private fun GapItemView(
+    isInGap: Boolean,
+    onClick: () -> Unit
+) {
+    val dotsAlpha by animateFloatAsState(
+        targetValue = if (isInGap) 1.0f else 0.22f,
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = 300f),
+        label = "gapDotsAlpha"
+    )
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .graphicsLayer { alpha = dotsAlpha }
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        if (isInGap) {
+            val infiniteTransition = rememberInfiniteTransition(label = "dots")
+            val dot1Scale by infiniteTransition.animateFloat(
+                initialValue = 0.85f, targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot1Scale"
+            )
+            val dot1Alpha by infiniteTransition.animateFloat(
+                initialValue = 0.35f, targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot1Alpha"
+            )
+            val dot2Scale by infiniteTransition.animateFloat(
+                initialValue = 0.85f, targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot2Scale"
+            )
+            val dot2Alpha by infiniteTransition.animateFloat(
+                initialValue = 0.35f, targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot2Alpha"
+            )
+            val dot3Scale by infiniteTransition.animateFloat(
+                initialValue = 0.85f, targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot3Scale"
+            )
+            val dot3Alpha by infiniteTransition.animateFloat(
+                initialValue = 0.35f, targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "dot3Alpha"
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer {
+                        scaleX = dot1Scale
+                        scaleY = dot1Scale
+                        alpha = dot1Alpha
+                    }
+                    .background(onSurface, CircleShape)
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer {
+                        scaleX = dot2Scale
+                        scaleY = dot2Scale
+                        alpha = dot2Alpha
+                    }
+                    .background(onSurface, CircleShape)
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer {
+                        scaleX = dot3Scale
+                        scaleY = dot3Scale
+                        alpha = dot3Alpha
+                    }
+                    .background(onSurface, CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer { alpha = 0.3f }
+                    .background(onSurface, CircleShape)
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer { alpha = 0.3f }
+                    .background(onSurface, CircleShape)
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer { alpha = 0.3f }
+                    .background(onSurface, CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
 private fun ActiveLyricLine(
     item: LyricDisplayItem.Line,
     positionMs: Long,
@@ -597,10 +642,11 @@ private fun ActiveLyricLine(
         }
     }
 
-    val effectivePositionMs = positionMs + 90L
     val progressAnim = remember { Animatable(0f) }
+    val seekBucket = remember(positionMs) { positionMs / 800L }
 
-    LaunchedEffect(line.timestampMs, item.vocalDurationMs, positionMs, isPlaying) {
+    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying, seekBucket) {
+        val effectivePositionMs = positionMs + 90L
         val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
         val currentElapsed = (effectivePositionMs - line.timestampMs).coerceIn(0L, safeDuration)
         val initialProgress = (currentElapsed.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)

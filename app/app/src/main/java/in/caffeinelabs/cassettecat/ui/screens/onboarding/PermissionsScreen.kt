@@ -65,6 +65,14 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
                 description = "Keep playback controls available outside the app."
             )
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Spacer(Modifier.height(20.dp))
+            PermissionCard(
+                iconRes = R.drawable.lucide_ic_radio,
+                title = "Nearby devices",
+                description = "Connect and sync with the CassetteCat companion player."
+            )
+        }
 
         // Top-anchored, not centered: a short device-menu-style list, not a hero moment.
         Spacer(Modifier.weight(1f))

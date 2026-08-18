@@ -222,6 +222,26 @@ class PlaybackService : MediaSessionService() {
             }
             return super.onCustomCommand(session, controller, customCommand, args)
         }
+
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val player = mediaSession.player
+            val currentItem = player.currentMediaItem
+            return if (currentItem != null) {
+                Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(
+                        listOf(currentItem),
+                        player.currentMediaItemIndex,
+                        player.currentPosition
+                    )
+                )
+            } else {
+                super.onPlaybackResumption(mediaSession, controller)
+            }
+        }
     }
 
     private fun syncWidgetState(player: Player) {

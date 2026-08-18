@@ -18,6 +18,23 @@
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/01_home.png" width="23%" alt="Home Screen" />
+  <img src="assets/screenshots/06_now_playing.png" width="23%" alt="Now Playing" />
+  <img src="assets/screenshots/03_library.png" width="23%" alt="Library" />
+  <img src="assets/screenshots/09_share_card.png" width="23%" alt="Share Card" />
+</p>
+<p align="center">
+  <img src="assets/screenshots/02_search.png" width="23%" alt="Search" />
+  <img src="assets/screenshots/04_artists.png" width="23%" alt="Artists" />
+  <img src="assets/screenshots/08_queue.png" width="23%" alt="Up Next Queue" />
+  <img src="assets/screenshots/05_settings.png" width="23%" alt="Settings" />
+</p>
+
+---
+
 ## Download
 
 <p align="center">
@@ -72,6 +89,7 @@ Output: `app/app/build/outputs/apk/debug/app-debug.apk`
 - [System Architecture](docs/architecture.md)
 - [Android Development Guide](docs/android.md)
 - [Troubleshooting & FAQs](docs/troubleshooting.md)
+- [Privacy Policy](PRIVACY_POLICY.md)
 
 ---
 

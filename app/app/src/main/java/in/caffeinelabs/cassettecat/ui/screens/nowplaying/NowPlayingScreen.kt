@@ -83,10 +83,14 @@ fun NowPlayingContent(
     val context = LocalContext.current
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val latestSong by rememberUpdatedState(song)
+    val isNowPlayingExpanded = fraction > 0.6f
+    val latestExpanded by rememberUpdatedState(isNowPlayingExpanded)
 
     LaunchedEffect(Unit) {
         ScreenshotCaptureEvents.events.collect {
-            if (latestSong != null) sheetState.showScreenshotSuggestion = true
+            if (latestSong != null && latestExpanded) {
+                sheetState.showScreenshotSuggestion = true
+            }
         }
     }
 

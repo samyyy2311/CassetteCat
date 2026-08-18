@@ -130,7 +130,18 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun togglePlayPause() {
-        controller?.let { if (it.isPlaying) it.pause() else it.play() }
+        controller?.let { c ->
+            if (c.isPlaying) {
+                c.pause()
+            } else {
+                if (c.playbackState == Player.STATE_IDLE) {
+                    c.prepare()
+                } else if (c.playbackState == Player.STATE_ENDED) {
+                    c.seekTo(0, 0L)
+                }
+                c.play()
+            }
+        }
     }
 
     fun skipNext() {

@@ -65,6 +65,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingContent
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingView
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.search.SearchScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.AboutLegalScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.BackupRestoreScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
@@ -107,6 +108,7 @@ object MainRoute {
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
+    const val ABOUT_LEGAL = "main/settings/about_legal"
     const val CREDITS = "main/settings/credits"
     const val SCROBBLING = "main/settings/scrobbling"
 }
@@ -410,6 +412,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             onNavigateToSleepTimer = { navController.navigate(MainRoute.SLEEP_TIMER) },
                             onNavigateToPrivacy = { navController.navigate(MainRoute.PRIVACY) },
                             onNavigateToPairing = { navController.navigate(MainRoute.COMPANION_DEVICE) },
+                            onNavigateToAboutLegal = { navController.navigate(MainRoute.ABOUT_LEGAL) },
                             onNavigateToCredits = { navController.navigate(MainRoute.CREDITS) },
                             onNavigateToScrobbling = { navController.navigate(MainRoute.SCROBBLING) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -417,6 +420,12 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     }
                     composable(MainRoute.SCROBBLING) {
                         ScrobbleSettingsScreen(
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.ABOUT_LEGAL) {
+                        AboutLegalScreen(
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
