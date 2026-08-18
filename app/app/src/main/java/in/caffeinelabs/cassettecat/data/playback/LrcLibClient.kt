@@ -9,6 +9,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
 
 private val json = Json { ignoreUnknownKeys = true }
@@ -115,6 +117,81 @@ class LrcLibClient(private val cacheDir: File? = null) {
         }
     }
 
+    suspend fun publishLyrics(
+        trackName: String,
+        artistName: String,
+        albumName: String,
+        durationSeconds: Int,
+        plainLyrics: String?,
+        syncedLyrics: String?
+    ): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val challengeUrl = "https://lrclib.net/api/request-challenge"
+            val challengeBody = sharedHttpClient.newCall(
+                Request.Builder().url(challengeUrl).header("User-Agent", "CassetteCat/0.1.0").build()
+            ).execute().use { if (!it.isSuccessful) null else it.body.string() } ?: return@withContext false
+
+            val challenge = json.decodeFromString<LrcLibChallenge>(challengeBody)
+            val token = solveChallenge(challenge.prefix, challenge.target)
+
+            val publishUrl = "https://lrclib.net/api/publish"
+            val payload = json.encodeToString(
+                LrcLibPublishPayload(
+                    trackName = trackName,
+                    artistName = artistName,
+                    albumName = albumName,
+                    duration = durationSeconds,
+                    plainLyrics = plainLyrics,
+                    syncedLyrics = syncedLyrics
+                )
+            )
+
+            val request = Request.Builder()
+                .url(publishUrl)
+                .header("User-Agent", "CassetteCat/0.1.0")
+                .header("X-Publish-Token", "${challenge.prefix}:$token")
+                .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
+
+    private fun solveChallenge(prefix: String, target: String): String {
+        var nonce = 0L
+        val targetBytes = target.hexToByteArray()
+        val md = MessageDigest.getInstance("SHA-256")
+        while (true) {
+            val nonceStr = nonce.toString()
+            val input = (prefix + nonceStr).toByteArray()
+            val hash = md.digest(input)
+            if (isHashValid(hash, targetBytes)) {
+                return nonceStr
+            }
+            nonce++
+            if (nonce > 5_000_000) break
+        }
+        return nonce.toString()
+    }
+
+    private fun isHashValid(hash: ByteArray, target: ByteArray): Boolean {
+        for (i in 0 until minOf(hash.size, target.size)) {
+            val h = hash[i].toInt() and 0xFF
+            val t = target[i].toInt() and 0xFF
+            if (h < t) return true
+            if (h > t) return false
+        }
+        return true
+    }
+
+    private fun String.hexToByteArray(): ByteArray {
+        val result = ByteArray(length / 2)
+        for (i in result.indices) {
+            result[i] = substring(i * 2, i * 2 + 2).toInt(16).toByte()
+        }
+        return result
+    }
+
     private fun LrcLibResponse.toResult(): LyricsLookupResult? {
         val synced = syncedLyrics?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
         val plain = plainLyrics?.trim()?.ifEmpty { null }
@@ -123,6 +200,24 @@ class LrcLibClient(private val cacheDir: File? = null) {
 
     private fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")
 }
+
+@Serializable
+private data class LrcLibChallenge(val prefix: String, val target: String)
+
+@Serializable
+private data class LrcLibPublishPayload(
+    val trackName: String,
+    val artistName: String,
+    val albumName: String,
+    val duration: Int,
+    val plainLyrics: String?,
+    val syncedLyrics: String?
+)
+
+fun adjustLyricsSync(syncedLyrics: List<LyricLine>, offsetMs: Long): List<LyricLine> =
+    syncedLyrics.map { line ->
+        line.copy(timestampMs = maxOf(0L, line.timestampMs + offsetMs))
+    }
 
 fun parseLrc(lrc: String): List<LyricLine> =
     lrc.lineSequence()

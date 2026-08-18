@@ -28,6 +28,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private const val SERVICE_TYPE = "_cassettecat-room._tcp."
+private const val MAX_WIRE_LINE_LENGTH = 65536
 
 @Serializable
 data class RoomTrack(
@@ -235,6 +236,7 @@ class LocalListeningRoomRepository(context: Context) {
     private fun readGuestMessages(socket: Socket) {
         BufferedReader(InputStreamReader(socket.getInputStream())).useLines { lines ->
             lines.forEach { line ->
+                if (line.length > MAX_WIRE_LINE_LENGTH) return@forEach
                 val message = runCatching { json.decodeFromString<WireMessage>(line) }.getOrNull() ?: return@forEach
                 if (message.type == "snapshot") message.snapshot?.let(_snapshots::tryEmit)
             }

@@ -14,12 +14,14 @@ private val DEEZER_ENABLED = booleanPreferencesKey("deezer_enabled")
 private val AUDIODB_ENABLED = booleanPreferencesKey("audiodb_enabled")
 private val LRCLIB_ENABLED = booleanPreferencesKey("lrclib_enabled")
 private val WIKIPEDIA_ENABLED = booleanPreferencesKey("wikipedia_enabled")
+private val COVER_ART_ARCHIVE_ENABLED = booleanPreferencesKey("cover_art_archive_enabled")
 private val GITHUB_UPDATES_ENABLED = booleanPreferencesKey("github_updates_enabled")
 
 enum class ExternalService(val label: String, val description: String) {
     DEEZER("Deezer", "Artist images and album artwork"),
     AUDIODB("TheAudioDB", "Fallback for artist images"),
     LRCLIB("LrcLib", "Synced lyrics when a track has none embedded"),
+    COVER_ART_ARCHIVE("Cover Art Archive", "Archival CD and vinyl artwork from MusicBrainz"),
     WIKIPEDIA("Wikipedia", "About descriptions for artists and albums"),
     GITHUB_UPDATES("GitHub", "Check for newer app releases")
 }
@@ -29,6 +31,7 @@ data class ServiceSettings(
     val deezerEnabled: Boolean = true,
     val audioDbEnabled: Boolean = true,
     val lrcLibEnabled: Boolean = true,
+    val coverArtArchiveEnabled: Boolean = true,
     val wikipediaEnabled: Boolean = true,
     val githubUpdatesEnabled: Boolean = true
 ) {
@@ -36,6 +39,7 @@ data class ServiceSettings(
         ExternalService.DEEZER -> deezerEnabled
         ExternalService.AUDIODB -> audioDbEnabled
         ExternalService.LRCLIB -> lrcLibEnabled
+        ExternalService.COVER_ART_ARCHIVE -> coverArtArchiveEnabled
         ExternalService.WIKIPEDIA -> wikipediaEnabled
         ExternalService.GITHUB_UPDATES -> githubUpdatesEnabled
     }
@@ -48,6 +52,7 @@ class ServiceSettingsRepository(private val context: Context) {
             deezerEnabled = prefs[DEEZER_ENABLED] ?: true,
             audioDbEnabled = prefs[AUDIODB_ENABLED] ?: true,
             lrcLibEnabled = prefs[LRCLIB_ENABLED] ?: true,
+            coverArtArchiveEnabled = prefs[COVER_ART_ARCHIVE_ENABLED] ?: true,
             wikipediaEnabled = prefs[WIKIPEDIA_ENABLED] ?: true,
             githubUpdatesEnabled = prefs[GITHUB_UPDATES_ENABLED] ?: true
         )
@@ -63,6 +68,7 @@ class ServiceSettingsRepository(private val context: Context) {
         ExternalService.DEEZER -> DEEZER_ENABLED
         ExternalService.AUDIODB -> AUDIODB_ENABLED
         ExternalService.LRCLIB -> LRCLIB_ENABLED
+        ExternalService.COVER_ART_ARCHIVE -> COVER_ART_ARCHIVE_ENABLED
         ExternalService.WIKIPEDIA -> WIKIPEDIA_ENABLED
         ExternalService.GITHUB_UPDATES -> GITHUB_UPDATES_ENABLED
     }

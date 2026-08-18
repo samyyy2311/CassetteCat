@@ -3,6 +3,8 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfile
+import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfiles
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerController
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerLevels
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerSettingsRepository
@@ -52,6 +54,13 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
     fun applyPreset(index: Int) {
         val newLevels = EqualizerController.applyPreset(index) ?: return
         viewModelScope.launch { repository.setBandLevels(newLevels, presetIndex = index) }
+    }
+
+    fun applyAutoEq(profile: AutoEqProfile) {
+        val freqs = List(numberOfBands) { centerFreqHz(it) }
+        val gains = AutoEqProfiles.calculateBandGains(profile, freqs, levelRangeMb)
+        gains.forEachIndexed { band, level -> EqualizerController.setBandLevel(band, level) }
+        viewModelScope.launch { repository.setBandLevels(gains, presetIndex = -1) }
     }
 
     fun reset() {

@@ -85,13 +85,20 @@ fun HomeScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(top = 28.dp)) {
-        Text(
-            "Home",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-        Spacer(Modifier.height(4.dp))
+    Column(modifier = modifier.fillMaxSize().padding(top = 24.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                "Home",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                "Quick picks, recently played, and your favorites",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(16.dp))
 
         if (libraryState is LibraryUiState.Loading) {
             HomeSkeletonContent(listBottomPadding = listBottomPadding)

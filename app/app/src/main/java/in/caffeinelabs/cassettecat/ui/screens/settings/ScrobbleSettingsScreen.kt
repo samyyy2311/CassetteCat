@@ -111,7 +111,7 @@ fun ScrobbleSettingsScreen(
                 Icon(
                     painter = painterResource(AppR.drawable.ic_logo_listenbrainz),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
+                    tint = androidx.compose.ui.graphics.Color.Unspecified,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.width(16.dp))
@@ -173,7 +173,7 @@ fun ScrobbleSettingsScreen(
                 Icon(
                     painter = painterResource(AppR.drawable.ic_logo_librefm),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
+                    tint = androidx.compose.ui.graphics.Color.Unspecified,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.width(16.dp))

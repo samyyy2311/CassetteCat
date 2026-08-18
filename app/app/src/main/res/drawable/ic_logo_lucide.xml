@@ -3,8 +3,7 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Lucide icons official geometric diamond icon -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12,2L2,12l10,10 10,-10L12,2zM12,5.8l6.2,6.2 -6.2,6.2 -6.2,-6.2L12,5.8z"/>
+        android:fillColor="#F56565"
+        android:pathData="M11.997,2.003a1,1 0 0,0 -0.707,0.293L2.293,11.293a1,1 0 0,0 0,1.414l8.997,8.997a1,1 0 0,0 1.414,0l8.997,-8.997a1,1 0 0,0 0,-1.414l-8.997,-8.997a1,1 0 0,0 -0.707,-0.293zm0,2.828l7.583,7.583 -7.583,7.583 -7.583,-7.583 7.583,-7.583z"/>
 </vector>

@@ -52,7 +52,7 @@ fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(horizontal = 8.dp)
             .alpha(contentAlpha),
         verticalAlignment = Alignment.CenterVertically

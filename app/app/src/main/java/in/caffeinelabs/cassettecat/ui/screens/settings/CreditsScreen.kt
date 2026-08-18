@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import androidx.compose.ui.graphics.Color
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -71,6 +72,7 @@ fun CreditsScreen(
                 title = "LRCLIB",
                 subtitle = "Real-time synchronized and plain lyrics (lrclib.net)",
                 iconRes = AppR.drawable.ic_logo_lrclib,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://lrclib.net") }
             )
             SettingsDivider()
@@ -78,6 +80,7 @@ fun CreditsScreen(
                 title = "Wikipedia & Wikimedia",
                 subtitle = "Artist biographies and album background (CC BY-SA 4.0)",
                 iconRes = AppR.drawable.ic_logo_wikipedia,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://wikipedia.org") }
             )
             SettingsDivider()
@@ -85,13 +88,22 @@ fun CreditsScreen(
                 title = "MusicBrainz",
                 subtitle = "Open music encyclopedia and metadata references",
                 iconRes = AppR.drawable.ic_logo_musicbrainz,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://musicbrainz.org") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Cover Art Archive",
+                subtitle = "Archival CD and vinyl cover scans (Internet Archive & MusicBrainz)",
+                iconRes = R.drawable.lucide_ic_disc_3,
+                onClick = { openUrl("https://coverartarchive.org") }
             )
             SettingsDivider()
             NavigationRow(
                 title = "ListenBrainz",
                 subtitle = "Open scrobbling platform and CC0 listening data",
                 iconRes = AppR.drawable.ic_logo_listenbrainz,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://listenbrainz.org") }
             )
             SettingsDivider()
@@ -99,6 +111,7 @@ fun CreditsScreen(
                 title = "Libre.fm",
                 subtitle = "Free software music scrobbling network (GNU FM)",
                 iconRes = AppR.drawable.ic_logo_librefm,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://libre.fm") }
             )
         }
@@ -107,9 +120,17 @@ fun CreditsScreen(
 
         SettingsSection(title = "CORE AUDIO & ARCHITECTURE") {
             NavigationRow(
+                title = "AutoEq",
+                subtitle = "Calibrated headphone equalizer response curves by Jaakko Pasanen",
+                iconRes = R.drawable.lucide_ic_headphones,
+                onClick = { openUrl("https://github.com/jaakkopasanen/AutoEq") }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = "AndroidX Media3 (ExoPlayer)",
                 subtitle = "Audio streaming, session management, and offline cache",
                 iconRes = AppR.drawable.ic_logo_media3,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://developer.android.com/media/media3") }
             )
             SettingsDivider()
@@ -124,6 +145,7 @@ fun CreditsScreen(
                 title = "KotlinX Coroutines",
                 subtitle = "Asynchronous flows and reactive state management",
                 iconRes = AppR.drawable.ic_logo_kotlin,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://kotlinlang.org/docs/coroutines-overview.html") }
             )
             SettingsDivider()
@@ -138,6 +160,7 @@ fun CreditsScreen(
                 title = "OkHttp",
                 subtitle = "High-performance HTTP client for lyrics and hardware sync",
                 iconRes = AppR.drawable.ic_logo_okhttp,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://square.github.io/okhttp/") }
             )
         }
@@ -149,6 +172,7 @@ fun CreditsScreen(
                 title = "Lucide Icons",
                 subtitle = "Clean, open-source iconography (lucide.dev, ISC License)",
                 iconRes = AppR.drawable.ic_logo_lucide,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://lucide.dev") }
             )
             SettingsDivider()
@@ -156,6 +180,7 @@ fun CreditsScreen(
                 title = "IBM Plex (Sans & Mono)",
                 subtitle = "Designed by Mike Abbink and Bold Monday for IBM (OFL 1.1)",
                 iconRes = AppR.drawable.ic_logo_ibm,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/IBM/plex") }
             )
             SettingsDivider()
@@ -163,6 +188,7 @@ fun CreditsScreen(
                 title = "Jetpack Compose & Material 3",
                 subtitle = "Declarative Android UI toolkit and dynamic theming",
                 iconRes = AppR.drawable.ic_logo_compose,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://developer.android.com/jetpack/compose") }
             )
         }
@@ -173,7 +199,8 @@ fun CreditsScreen(
             NavigationRow(
                 title = "GNU General Public License v3.0",
                 subtitle = "View source code and contribute on GitHub",
-                iconRes = R.drawable.lucide_ic_github,
+                iconRes = AppR.drawable.ic_logo_github,
+                iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/samyyy2311/CassetteCat") }
             )
         }

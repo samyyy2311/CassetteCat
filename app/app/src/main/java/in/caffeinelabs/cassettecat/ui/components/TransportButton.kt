@@ -55,8 +55,6 @@ fun TransportButton(
     val capBrush = Brush.linearGradient(
         listOf(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.surfaceContainerLowest)
     )
-    val isPlay = iconRes == R.drawable.lucide_ic_play
-
     Box(
         modifier = modifier
             .size(size)
@@ -77,9 +75,7 @@ fun TransportButton(
             painter = painterResource(iconRes),
             contentDescription = null,
             tint = tint,
-            modifier = Modifier
-                .size(size * 0.42f)
-                .then(if (isPlay) Modifier.offset(x = 1.5.dp) else Modifier)
+            modifier = Modifier.size(size * 0.42f)
         )
     }
 }

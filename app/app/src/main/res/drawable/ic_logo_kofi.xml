@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Solid White Mug with Handle Loop -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M 2.5,4 C 1.67,4 1,4.67 1,5.5 L 1,14.5 C 1,18.09 3.91,21 7.5,21 L 11,21 C 14.59,21 17.5,18.09 17.5,14.5 L 17.5,14 C 19.98,14 22,11.98 22,9.5 L 22,8.5 C 22,6.02 19.98,4 17.5,4 Z M 17.5,6.5 C 18.88,6.5 20,7.62 20,9 L 20,9.5 C 20,10.88 18.88,12 17.5,12 Z"/>
+    <!-- Red Heart on Mug -->
+    <path
+        android:fillColor="#FF5E5B"
+        android:pathData="M 9.25,10 C 8.7,8.9 7.7,8.2 6.5,8.2 C 5,8.2 3.8,9.4 3.8,10.9 C 3.8,12.7 5.5,14.2 8.1,16.6 L 9.25,17.6 L 10.4,16.6 C 13,14.2 14.7,12.7 14.7,10.9 C 14.7,9.4 13.5,8.2 12,8.2 C 10.8,8.2 9.8,8.9 9.25,10 Z"/>
+</vector>

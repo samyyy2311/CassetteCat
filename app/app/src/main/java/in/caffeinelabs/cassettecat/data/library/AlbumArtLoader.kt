@@ -19,12 +19,17 @@ class AlbumArtLoader(private val context: Context) {
     private val cache = object : LruCache<String, Bitmap>(MAX_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
+    private val coverArtArchiveClient = CoverArtArchiveClient()
 
     fun peek(song: Song): Bitmap? = cache.get(song.id)
 
-    suspend fun load(song: Song): Bitmap? {
+    suspend fun load(song: Song, coverArtArchiveEnabled: Boolean = true): Bitmap? {
         cache.get(song.id)?.let { return it }
-        val bitmap = withContext(Dispatchers.IO) { decode(song) } ?: return null
+        val bitmap = withContext(Dispatchers.IO) {
+            decode(song) ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
+                coverArtArchiveClient.fetchCoverArt(song.album, song.artist)
+            } else null
+        } ?: return null
         cache.put(song.id, bitmap)
         return bitmap
     }

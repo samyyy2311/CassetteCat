@@ -14,41 +14,58 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfile
+import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfiles
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
-import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Locale
 
 @Composable
 fun EqualizerScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp,
     viewModel: EqualizerViewModel = viewModel()
 ) {
     val levels by viewModel.levels.collectAsState()
@@ -59,6 +76,9 @@ fun EqualizerScreen(
     val isEnabled = levels.enabled
     val hasCustomModifications = levels.bandLevelsMb.any { it != 0 } || levels.bassBoostStrength > 0 || levels.virtualizerStrength > 0
     val contentAlpha by animateFloatAsState(targetValue = if (isEnabled) 1.0f else 0.45f, label = "eqContentAlpha")
+
+    var showAutoEqPicker by remember { mutableStateOf(false) }
+    var selectedAutoEqName by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier
@@ -125,11 +145,58 @@ fun EqualizerScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .weight(1f)
                     .verticalScroll(scrollState)
                     .alpha(contentAlpha)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = listBottomPadding + 32.dp)
             ) {
+                Text(
+                    "HEADPHONE CALIBRATION (AUTOEQ)",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable(enabled = isEnabled) { showAutoEqPicker = true }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_headphones),
+                        contentDescription = null,
+                        tint = if (selectedAutoEqName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = selectedAutoEqName ?: "Select Headphone Model",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = if (selectedAutoEqName != null) IbmPlexMonoFontFamily else MaterialTheme.typography.bodyMedium.fontFamily),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (selectedAutoEqName != null) "AutoEq target curve applied" else "${AutoEqProfiles.profiles.size}+ calibrated models",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_chevron_right),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
                 if (presetNames.isNotEmpty()) {
                     Text(
                         "PRESETS",
@@ -147,7 +214,10 @@ fun EqualizerScreen(
                                 name = name,
                                 selected = isSelected,
                                 enabled = isEnabled,
-                                onClick = { viewModel.applyPreset(index) }
+                                onClick = {
+                                    selectedAutoEqName = null
+                                    viewModel.applyPreset(index)
+                                }
                             )
                         }
                     }
@@ -208,6 +278,122 @@ fun EqualizerScreen(
                                 strength = levels.virtualizerStrength,
                                 enabled = isEnabled,
                                 onValueChange = { viewModel.setVirtualizerStrength(it) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAutoEqPicker) {
+        AutoEqPickerSheet(
+            currentSelected = selectedAutoEqName,
+            onDismiss = { showAutoEqPicker = false },
+            onSelect = { profile ->
+                selectedAutoEqName = "${profile.brand} ${profile.name}"
+                viewModel.applyAutoEq(profile)
+                showAutoEqPicker = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AutoEqPickerSheet(
+    currentSelected: String?,
+    onDismiss: () -> Unit,
+    onSelect: (AutoEqProfile) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredProfiles = remember(searchQuery) {
+        if (searchQuery.isBlank()) {
+            AutoEqProfiles.profiles
+        } else {
+            val q = searchQuery.trim().lowercase(Locale.US)
+            AutoEqProfiles.profiles.filter {
+                it.brand.lowercase(Locale.US).contains(q) || it.name.lowercase(Locale.US).contains(q)
+            }
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp, bottom = 32.dp)
+        ) {
+            Text(
+                "Headphone Calibration",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Text(
+                "Calibrated frequency response curves from AutoEq",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search brand or model (e.g. Sony, HD 600)...") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                items(filteredProfiles, key = { "${it.brand}_${it.name}" }) { profile ->
+                    val fullName = "${profile.brand} ${profile.name}"
+                    val isSelected = currentSelected == fullName
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(profile) }
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                profile.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                profile.brand,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (isSelected) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_check),
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

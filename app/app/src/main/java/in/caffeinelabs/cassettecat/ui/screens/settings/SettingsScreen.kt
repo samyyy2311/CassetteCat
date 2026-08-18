@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,12 +26,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
@@ -60,6 +63,10 @@ fun SettingsScreen(
     listBottomPadding: Dp = 0.dp,
     viewModel: SettingsViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val openUrl: (String) -> Unit = { url ->
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
     val uiState by viewModel.uiState.collectAsState()
     val updateCheckResult by viewModel.updateCheckResult.collectAsState()
 
@@ -67,18 +74,19 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 24.dp)
+            .padding(top = 24.dp, bottom = listBottomPadding + 24.dp)
     ) {
         val enabledServices = externalServices.count { uiState.services.isEnabled(it) }
 
         SettingsHeader()
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
 
         SettingsSection(title = "Audio") {
             NavigationRow(
                 title = "Sleep timer",
                 subtitle = "Stop playback after a set time",
-                iconRes = R.drawable.lucide_ic_timer,
+                iconRes = R.drawable.lucide_ic_moon,
+                iconTint = Color(0xFFA5B4FC),
                 onClick = onNavigateToSleepTimer
             )
             SettingsDivider()
@@ -86,6 +94,7 @@ fun SettingsScreen(
                 title = "Equalizer",
                 subtitle = "Tune the current audio output",
                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                iconTint = Color(0xFFF59E0B),
                 onClick = onNavigateToEqualizer
             )
         }
@@ -96,6 +105,7 @@ fun SettingsScreen(
                 title = "CassetteCat Player",
                 subtitle = "Pair, sync music, and check hardware telemetry",
                 iconRes = R.drawable.lucide_ic_cassette_tape,
+                iconTint = Color(0xFFE5A93C),
                 onClick = onNavigateToPairing
             )
         }
@@ -105,7 +115,8 @@ fun SettingsScreen(
             NavigationRow(
                 title = "Listening Record",
                 subtitle = "Monthly time, favourite artists, and repeats",
-                iconRes = R.drawable.lucide_ic_chart_no_axes_combined,
+                iconRes = R.drawable.lucide_ic_disc_3,
+                iconTint = Color(0xFFC23B30),
                 onClick = onNavigateToStats
             )
             SettingsDivider()
@@ -117,6 +128,7 @@ fun SettingsScreen(
                     FolderFilterMode.BLACKLIST -> "${uiState.folderFilter.folders.size} folder(s) excluded"
                 },
                 iconRes = R.drawable.lucide_ic_folder,
+                iconTint = Color(0xFFC4C4C0),
                 onClick = onManageScanFolders
             )
             SettingsDivider()
@@ -124,6 +136,7 @@ fun SettingsScreen(
                 title = "Downloads",
                 subtitle = "Manage songs saved for offline playback",
                 iconRes = R.drawable.lucide_ic_download,
+                iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToDownloads
             )
         }
@@ -134,6 +147,8 @@ fun SettingsScreen(
                 title = "Subsonic",
                 subtitle = "Navidrome, gonic, and other Subsonic-API servers",
                 config = uiState.subsonic,
+                iconRes = AppR.drawable.ic_logo_subsonic,
+                iconTint = Color.Unspecified,
                 onConnect = { onConnectServer(StreamingProtocol.SUBSONIC) },
                 onDisconnect = { viewModel.disconnect(StreamingProtocol.SUBSONIC) }
             )
@@ -142,6 +157,8 @@ fun SettingsScreen(
                 title = "Jellyfin",
                 subtitle = "Connect to a Jellyfin media server",
                 config = uiState.jellyfin,
+                iconRes = AppR.drawable.ic_logo_jellyfin,
+                iconTint = Color.Unspecified,
                 onConnect = { onConnectServer(StreamingProtocol.JELLYFIN) },
                 onDisconnect = { viewModel.disconnect(StreamingProtocol.JELLYFIN) }
             )
@@ -149,14 +166,16 @@ fun SettingsScreen(
             NavigationRow(
                 title = "External Services",
                 subtitle = "$enabledServices of ${externalServices.size} enabled",
-                iconRes = R.drawable.lucide_ic_puzzle,
+                iconRes = R.drawable.lucide_ic_globe,
+                iconTint = Color(0xFF38BDF8),
                 onClick = onManageExternalServices
             )
             SettingsDivider()
             NavigationRow(
                 title = "Scrobbling",
                 subtitle = "ListenBrainz and Libre.fm listening sync",
-                iconRes = `in`.caffeinelabs.cassettecat.R.drawable.ic_logo_listenbrainz,
+                iconRes = AppR.drawable.ic_logo_listenbrainz,
+                iconTint = Color.Unspecified,
                 onClick = onNavigateToScrobbling
             )
         }
@@ -167,6 +186,7 @@ fun SettingsScreen(
                 title = "Privacy",
                 subtitle = "Listening data and saved server credentials",
                 iconRes = R.drawable.lucide_ic_shield,
+                iconTint = Color(0xFF10B981),
                 onClick = onNavigateToPrivacy
             )
             SettingsDivider()
@@ -174,6 +194,7 @@ fun SettingsScreen(
                 title = "Backup & Restore",
                 subtitle = "Keep your library, playlists, and preferences safe",
                 iconRes = R.drawable.lucide_ic_archive_restore,
+                iconTint = Color(0xFF60A5FA),
                 onClick = onNavigateToBackupRestore
             )
         }
@@ -184,7 +205,8 @@ fun SettingsScreen(
                 service = ExternalService.GITHUB_UPDATES,
                 enabled = uiState.services.githubUpdatesEnabled,
                 onToggle = { enabled -> viewModel.setServiceEnabled(ExternalService.GITHUB_UPDATES, enabled) },
-                iconRes = R.drawable.lucide_ic_github
+                iconRes = AppR.drawable.ic_logo_github,
+                iconTint = Color.Unspecified
             )
             SettingsDivider(startPadding = 24.dp)
             UpdateCheckRow(
@@ -195,11 +217,35 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(24.dp))
-        SettingsSection(title = "About") {
+        SettingsSection(title = "About & Support") {
+            Text(
+                "20% of all sponsorship proceeds are donated directly to LRCLIB to support free, open-source lyrics infrastructure.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            NavigationRow(
+                title = "Ko-fi",
+                subtitle = "Support development on Ko-fi",
+                iconRes = AppR.drawable.ic_logo_kofi,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://ko-fi.com/samyyy2311") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Buy Me a Coffee",
+                subtitle = "Support Samarth on Buy Me a Coffee",
+                iconRes = AppR.drawable.ic_logo_buymeacoffee,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://buymeacoffee.com/samyyy2311") }
+            )
+            SettingsDivider()
             NavigationRow(
                 title = "Credits & Attribution",
                 subtitle = "Services, libraries, and open source licenses",
                 iconRes = R.drawable.lucide_ic_heart,
+                iconTint = Color(0xFFC23B30),
                 onClick = onNavigateToCredits
             )
         }
@@ -221,34 +267,15 @@ private fun SettingsHeader() {
     }
 }
 
-@Composable
-fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-        Column(content = content)
-    }
-}
 
-@Composable
-fun SettingsDivider(startPadding: Dp = 68.dp) {
-    HorizontalDivider(
-        modifier = Modifier.padding(start = startPadding),
-        color = MaterialTheme.colorScheme.outlineVariant
-    )
-}
 
 @Composable
 fun ServiceToggleRow(
     service: ExternalService,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
-    iconRes: Int? = null
+    iconRes: Int? = null,
+    iconTint: Color = MaterialTheme.colorScheme.secondary
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
@@ -258,7 +285,8 @@ fun ServiceToggleRow(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(20.dp))
         }
@@ -334,73 +362,4 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
     }
 }
 
-@Composable
-fun NavigationRow(title: String, subtitle: String, iconRes: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .tapScale(onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        Spacer(Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_chevron_right),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
-@Composable
-private fun ServerRow(
-    title: String,
-    subtitle: String,
-    config: StreamingServerConfig,
-    onConnect: () -> Unit,
-    onDisconnect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (!config.connected) Modifier.tapScale(onConnect) else Modifier)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_server),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        Spacer(Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                if (config.connected) "Connected as ${config.username}" else subtitle,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        if (config.connected) {
-            TextButton(onClick = hapticClick(onDisconnect)) { Text("Disconnect") }
-        } else {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_chevron_right),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

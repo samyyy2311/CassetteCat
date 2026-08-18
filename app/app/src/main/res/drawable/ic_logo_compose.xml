@@ -3,8 +3,13 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Jetpack Compose isometric triangle logo -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12,2 L21,7.2 L21,17.6 L12,22.8 L3,17.6 L3,7.2 Z M12,5.5 L6,9 L12,12.5 L18,9 Z M5,10.7 L5,16.1 L11,19.5 L11,14.1 Z M13,14.1 L13,19.5 L19,16.1 L19,10.7 Z"/>
+        android:fillColor="#4285F4"
+        android:pathData="M12,2 L21,7.2 L12,12.5 L3,7.2 Z"/>
+    <path
+        android:fillColor="#08306B"
+        android:pathData="M3,7.2 L12,12.5 L12,22.8 L3,17.6 Z"/>
+    <path
+        android:fillColor="#00C853"
+        android:pathData="M12,12.5 L21,7.2 L21,17.6 L12,22.8 Z"/>
 </vector>

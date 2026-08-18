@@ -70,6 +70,7 @@ internal fun NowPlayingActionsSheet(
     onOpenOutputPicker: () -> Unit,
     onOpenListeningRoom: () -> Unit,
     onOpenSleepTimer: () -> Unit,
+    onOpenTagEditor: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val sleepTimerSubtitle = if (sleepTimerEndMs != null) {
@@ -129,6 +130,15 @@ internal fun NowPlayingActionsSheet(
                     label = "Download",
                     accented = false,
                     onClick = { onDownload(); onDismiss() }
+                )
+            }
+            if (song.source == MusicSource.Local && onOpenTagEditor != null) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                    label = "Edit Track Metadata",
+                    subtitle = "Modify title, artist, album, and year tags",
+                    accented = false,
+                    onClick = { onOpenTagEditor(); onDismiss() }
                 )
             }
             HorizontalDivider(

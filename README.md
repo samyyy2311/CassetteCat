@@ -102,6 +102,40 @@ Core principles:
 
 ---
 
+## Support & Sponsor
+
+If you enjoy CassetteCat and want to support ongoing development:
+
+- **[Ko-fi](https://ko-fi.com/samyyy2311)**
+- **[Buy Me a Coffee](https://buymeacoffee.com/samyyy2311)**
+
+> 20% of all sponsorship proceeds are donated directly to [LRCLIB](https://lrclib.net) to support free, open-source synchronized lyrics infrastructure.
+
+---
+
+## Credits & Attribution
+
+CassetteCat is powered by open data, open-source libraries, and community infrastructure:
+
+### Services & Data
+- **[LRCLIB](https://lrclib.net)**: Real-time synchronized and plain lyrics.
+- **[Cover Art Archive](https://coverartarchive.org)**: High-resolution archival CD and vinyl cover scans.
+- **[Wikipedia & Wikimedia](https://wikipedia.org)**: Artist biographies and album backgrounds (CC BY-SA 4.0).
+- **[MusicBrainz](https://musicbrainz.org)**: Open music encyclopedia and metadata references.
+- **[ListenBrainz](https://listenbrainz.org)**: Open listening data and scrobbling infrastructure.
+- **[Libre.fm](https://libre.fm)**: Free software music scrobbling network.
+- **[Deezer](https://deezer.com)** & **[TheAudioDB](https://theaudiodb.com)**: Metadata and artist imagery references.
+
+### Libraries & Design
+- **[AutoEq](https://github.com/jaakkopasanen/AutoEq)**: Calibrated headphone frequency response profiles.
+- **[AndroidX Media3](https://developer.android.com/media/media3)**: Audio streaming, foreground service, and cache architecture.
+- **[Jetpack Compose & Material 3](https://developer.android.com/jetpack/compose)**: Declarative Android UI toolkit.
+- **[Lucide Icons](https://lucide.dev)**: Clean open-source iconography (ISC License).
+- **[IBM Plex](https://github.com/IBM/plex)**: Typefaces designed by Mike Abbink and Bold Monday for IBM (OFL 1.1).
+- **[OkHttp](https://square.github.io/okhttp/)**: High-performance HTTP client.
+
+---
+
 ## License
 
 - **Software (`app/` and `firmware/`)**: [GPL-3.0](LICENSE)

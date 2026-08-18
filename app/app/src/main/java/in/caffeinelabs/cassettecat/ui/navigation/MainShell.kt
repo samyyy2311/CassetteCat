@@ -410,7 +410,10 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                         ExternalServicesScreen(onBack = { navController.popBackStack() })
                     }
                     composable(MainRoute.EQUALIZER) {
-                        EqualizerScreen(onBack = { navController.popBackStack() })
+                        EqualizerScreen(
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
                     }
                     composable(MainRoute.BACKUP_RESTORE) {
                         BackupRestoreScreen(onBack = { navController.popBackStack() })

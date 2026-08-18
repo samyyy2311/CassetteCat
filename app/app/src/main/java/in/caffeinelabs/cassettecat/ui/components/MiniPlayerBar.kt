@@ -2,8 +2,8 @@ package `in`.caffeinelabs.cassettecat.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,12 +65,8 @@ fun MiniPlayerRow(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp)
-            // The parent sheet is transparent while collapsed so the app navigation below can
-            // behave as glass. Keep the mini player readable as its own distinct surface.
             .background(
-                // The mini player carries primary playback controls, so unlike the nav glass
-                // it must completely block content scrolling underneath it.
-                MaterialTheme.colorScheme.surfaceContainerHigh,
+                MaterialTheme.colorScheme.surfaceContainerLow,
                 RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
             )
             .clickable(onClick = hapticClick(onExpand))
@@ -180,6 +176,7 @@ private fun MiniPlayerSongRow(
             Text(
                 song.artist,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

@@ -1,0 +1,660 @@
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
+import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
+import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexSansFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import java.util.Locale
+import kotlin.math.abs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+internal sealed interface LyricDisplayItem {
+    data class Line(
+        val lyricLine: LyricLine,
+        val originalIndex: Int,
+        val vocalDurationMs: Long
+    ) : LyricDisplayItem
+
+    data class Gap(val fromMs: Long, val toMs: Long) : LyricDisplayItem
+}
+
+@Composable
+internal fun LyricsView(
+    lyrics: String?,
+    syncedLyrics: List<LyricLine>?,
+    positionMs: Long,
+    durationMs: Long = 0L,
+    artist: String? = null,
+    lyricsProvider: String? = null,
+    isLoading: Boolean = false,
+    isPlaying: Boolean,
+    scrollState: ScrollState,
+    listState: LazyListState,
+    controlsVisible: Boolean,
+    onInteraction: () -> Unit,
+    onSeekToLine: (Long) -> Unit = {},
+    onScrollDelta: (Float) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val providerCredit = when (lyricsProvider) {
+        "LRCLIB" -> "Lyrics provided by LRCLIB"
+        "Embedded metadata" -> "Lyrics from file metadata"
+        "Local file" -> "Lyrics from local file"
+        else -> if (!lyrics.isNullOrBlank() || !syncedLyrics.isNullOrEmpty()) "Lyrics from file metadata" else null
+    }
+
+    val lyricBottomPadDp by animateDpAsState(
+        targetValue = if (controlsVisible) 240.dp else 64.dp,
+        animationSpec = spring(
+            dampingRatio = 0.86f,
+            stiffness = 400f
+        ),
+        label = "lyricBottomPad"
+    )
+
+    var syncOffsetMs by remember(syncedLyrics) { mutableStateOf(0L) }
+    val effectiveSyncedLyrics = remember(syncedLyrics, syncOffsetMs) {
+        if (syncedLyrics == null || syncOffsetMs == 0L) syncedLyrics else adjustLyricsSync(syncedLyrics, syncOffsetMs)
+    }
+
+    when {
+        !effectiveSyncedLyrics.isNullOrEmpty() -> {
+            val displayItems: List<LyricDisplayItem> = remember(effectiveSyncedLyrics, durationMs) {
+                buildList {
+                    val firstMs = effectiveSyncedLyrics.first().timestampMs
+                    if (firstMs >= 2_500L) {
+                        add(LyricDisplayItem.Gap(fromMs = 0L, toMs = (firstMs - 120L).coerceAtLeast(0L)))
+                    }
+
+                    effectiveSyncedLyrics.forEachIndexed { i, line ->
+                        val nextMs = effectiveSyncedLyrics.getOrNull(i + 1)?.timestampMs
+                        val words = line.text.split(" ").filter { it.isNotBlank() }
+                        if (nextMs != null) {
+                            val lineInterval = (nextMs - line.timestampMs).coerceAtLeast(100L)
+                            if (lineInterval >= 5_500L) {
+                                val maxBreak = (lineInterval - 1_500L).coerceAtLeast(1_200L)
+                                val vocalDuration = minOf(words.size * 280L + 600L, 4_200L)
+                                    .coerceAtLeast(1_200L)
+                                    .coerceAtMost(maxBreak)
+                                add(LyricDisplayItem.Line(line, i, vocalDuration))
+
+                                val gapStart = line.timestampMs + vocalDuration + 250L
+                                val gapEnd = nextMs - 120L
+                                if (gapEnd - gapStart >= 1_500L) {
+                                    add(LyricDisplayItem.Gap(fromMs = gapStart, toMs = gapEnd))
+                                }
+                            } else {
+                                val maxAllowed = maxOf(350L, lineInterval - 120L)
+                                val minTarget = (words.size * 180L).coerceAtLeast(250L)
+                                val rawCalculated = (lineInterval * 0.84f).toLong()
+                                val vocalDuration = if (maxAllowed >= minTarget) {
+                                    rawCalculated.coerceIn(minTarget, maxAllowed)
+                                } else {
+                                    maxAllowed
+                                }
+                                add(LyricDisplayItem.Line(line, i, vocalDuration))
+                            }
+                        } else {
+                            val vocalMs = (words.size * 260L + 500L).coerceIn(1_800L, 4_500L)
+                            add(LyricDisplayItem.Line(line, i, vocalMs))
+
+                            if (durationMs > 0L) {
+                                val outroStart = line.timestampMs + vocalMs + 300L
+                                val outroEnd = durationMs - 500L
+                                if (outroEnd - outroStart >= 2_500L) {
+                                    add(LyricDisplayItem.Gap(fromMs = outroStart, toMs = outroEnd))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            val effectivePositionMs = positionMs + 90L
+
+            val activeDisplayIndex = remember(effectivePositionMs, displayItems) {
+                displayItems.indexOfLast { item ->
+                    when (item) {
+                        is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
+                        is LyricDisplayItem.Gap  -> item.fromMs <= effectivePositionMs
+                    }
+                }.coerceAtLeast(0)
+            }
+            val currentActiveItem = displayItems.getOrNull(activeDisplayIndex)
+
+            val activeLineIndex = remember(effectivePositionMs, effectiveSyncedLyrics) {
+                effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }.coerceAtLeast(0)
+            }
+
+            val density = LocalDensity.current
+            val centerTopPad = 24.dp
+            val activeOffsetPx = with(density) { 100.dp.roundToPx() }
+
+            var userScrollToken by remember { mutableStateOf(0) }
+            var userIsDragging by remember { mutableStateOf(false) }
+
+            LaunchedEffect(userScrollToken) {
+                if (userScrollToken > 0) {
+                    userIsDragging = true
+                    delay(3_500L)
+                    userIsDragging = false
+                }
+            }
+
+            LaunchedEffect(activeDisplayIndex, userIsDragging) {
+                if (userIsDragging) return@LaunchedEffect
+                listState.animateScrollToItem(
+                    index = activeDisplayIndex,
+                    scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
+                )
+            }
+
+            val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
+            val lyricsScrollHideConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        if (source == NestedScrollSource.UserInput && abs(available.y) > 0.5f) {
+                            userScrollToken++
+                            currentOnScrollDelta(available.y)
+                        }
+                        return Offset.Zero
+                    }
+                }
+            }
+
+            val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontFamily = SpaceGroteskFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp,
+                lineHeight = 38.sp,
+                letterSpacing = (-0.3).sp,
+                textAlign = TextAlign.Start
+            )
+
+            val fadeStart by animateFloatAsState(
+                targetValue = if (controlsVisible) 0.48f else 0.85f,
+                animationSpec = spring(
+                    dampingRatio = 0.86f,
+                    stiffness = 400f
+                ),
+                label = "lyricsFadeStart"
+            )
+            val fadeEnd by animateFloatAsState(
+                targetValue = if (controlsVisible) 0.65f else 0.98f,
+                animationSpec = spring(
+                    dampingRatio = 0.86f,
+                    stiffness = 400f
+                ),
+                label = "lyricsFadeEnd"
+            )
+
+            LazyColumn(
+                state = listState,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    top = centerTopPad,
+                    bottom = lyricBottomPadDp
+                ),
+                horizontalAlignment = Alignment.Start,
+                modifier = modifier
+                    .fillMaxSize()
+                    .nestedScroll(lyricsScrollHideConnection)
+                    .clickable { onInteraction() }
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.0f to Color.Transparent,
+                                0.04f to Color.Black.copy(alpha = 0.35f),
+                                0.09f to Color.Black,
+                                fadeStart to Color.Black,
+                                ((fadeStart + fadeEnd) / 2f) to Color.Black.copy(alpha = 0.35f),
+                                fadeEnd to Color.Transparent,
+                                1.0f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                itemsIndexed(
+                    items = displayItems,
+                    key = { _, it -> when (it) {
+                        is LyricDisplayItem.Line -> it.lyricLine.timestampMs
+                        is LyricDisplayItem.Gap  -> "gap_${it.fromMs}"
+                    }}
+                ) { displayIdx, item ->
+                    when (item) {
+                        is LyricDisplayItem.Gap -> {
+                            val isInGap = effectivePositionMs in item.fromMs..item.toMs
+                            val dotsAlpha by animateFloatAsState(
+                                targetValue = if (isInGap) 1.0f else 0.22f,
+                                animationSpec = spring(dampingRatio = 0.85f, stiffness = 300f),
+                                label = "gapDotsAlpha"
+                            )
+                            val infiniteTransition = rememberInfiniteTransition(label = "dots")
+                            val dot1Scale by infiniteTransition.animateFloat(
+                                initialValue = 0.85f, targetValue = 1.35f,
+                                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot1Scale"
+                            )
+                            val dot1Alpha by infiniteTransition.animateFloat(
+                                initialValue = 0.35f, targetValue = 1.0f,
+                                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot1Alpha"
+                            )
+                            val dot2Scale by infiniteTransition.animateFloat(
+                                initialValue = 0.85f, targetValue = 1.35f,
+                                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot2Scale"
+                            )
+                            val dot2Alpha by infiniteTransition.animateFloat(
+                                initialValue = 0.35f, targetValue = 1.0f,
+                                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot2Alpha"
+                            )
+                            val dot3Scale by infiniteTransition.animateFloat(
+                                initialValue = 0.85f, targetValue = 1.35f,
+                                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot3Scale"
+                            )
+                            val dot3Alpha by infiniteTransition.animateFloat(
+                                initialValue = 0.35f, targetValue = 1.0f,
+                                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                                label = "dot3Alpha"
+                            )
+                            val onSurface = MaterialTheme.colorScheme.onSurface
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        userIsDragging = false
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onSeekToLine(item.fromMs)
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(displayIdx, 0)
+                                        }
+                                    }
+                                    .graphicsLayer { alpha = dotsAlpha }
+                                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .graphicsLayer {
+                                            scaleX = if (isInGap) dot1Scale else 1f
+                                             scaleY = if (isInGap) dot1Scale else 1f
+                                            alpha = if (isInGap) dot1Alpha else 0.3f
+                                        }
+                                        .background(onSurface, CircleShape)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .graphicsLayer {
+                                            scaleX = if (isInGap) dot2Scale else 1f
+                                            scaleY = if (isInGap) dot2Scale else 1f
+                                            alpha = if (isInGap) dot2Alpha else 0.3f
+                                        }
+                                        .background(onSurface, CircleShape)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .graphicsLayer {
+                                            scaleX = if (isInGap) dot3Scale else 1f
+                                            scaleY = if (isInGap) dot3Scale else 1f
+                                            alpha = if (isInGap) dot3Alpha else 0.3f
+                                        }
+                                        .background(onSurface, CircleShape)
+                                )
+                            }
+                        }
+
+                        is LyricDisplayItem.Line -> {
+                            val line = item.lyricLine
+                            val index = item.originalIndex
+                            val distanceFromActive = abs(index - activeLineIndex)
+                            val isActive = currentActiveItem is LyricDisplayItem.Line && currentActiveItem.originalIndex == index
+
+                            val lineScale by animateFloatAsState(
+                                targetValue = if (isActive) 1.025f else 0.965f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.82f,
+                                    stiffness = 220f
+                               ),
+                                label = "lyricLineScale"
+                            )
+
+                            val lyricOpacity by animateFloatAsState(
+                                targetValue = when {
+                                    isActive -> 1.00f
+                                    distanceFromActive == 1 -> 0.44f
+                                    distanceFromActive == 2 -> 0.26f
+                                    distanceFromActive == 3 -> 0.14f
+                                    else -> 0.08f
+                                },
+                                animationSpec = spring(
+                                    dampingRatio = 0.9f,
+                                    stiffness = 300f
+                                ),
+                                label = "lyricLineOpacity"
+                            )
+
+                            val lineModifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    userIsDragging = false
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onSeekToLine(line.timestampMs)
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(displayIdx, 0)
+                                    }
+                                }
+                                .graphicsLayer {
+                                    alpha = lyricOpacity
+                                    scaleX = lineScale
+                                    scaleY = lineScale
+                                    transformOrigin = TransformOrigin(0f, 0.5f)
+                                }
+                                .padding(horizontal = 24.dp, vertical = 13.dp)
+
+                            if (isActive) {
+                                ActiveLyricLine(
+                                    item = item,
+                                    positionMs = positionMs,
+                                    isPlaying = isPlaying,
+                                    lyricStyle = lyricStyle,
+                                    modifier = lineModifier
+                                )
+                            } else {
+                                Text(
+                                    text = line.text,
+                                    style = lyricStyle,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Start,
+                                    modifier = lineModifier
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item(key = "lyrics_credits_footer") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 48.dp)
+                    ) {
+                        if (!artist.isNullOrBlank()) {
+                            Text(
+                                text = "Written by $artist",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        if (!providerCredit.isNullOrBlank()) {
+                            Text(
+                                text = providerCredit,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 10.dp)
+                        ) {
+                            Text(
+                                text = if (syncOffsetMs != 0L) "Sync offset: %+.1fs".format(Locale.US, syncOffsetMs / 1000f) else "Timing:",
+                                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .clickable { syncOffsetMs -= 500L }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("-0.5s", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .clickable { syncOffsetMs += 500L }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("+0.5s", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+                            }
+                            if (syncOffsetMs != 0L) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                        .clickable { syncOffsetMs = 0L }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text("Reset", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily), color = MaterialTheme.colorScheme.tertiary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        lyrics != null -> {
+            LaunchedEffect(scrollState.isScrollInProgress) {
+                if (scrollState.isScrollInProgress) onScrollDelta(-10f)
+            }
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp)
+                    .clickable { onInteraction() }
+            ) {
+                Spacer(Modifier.height(48.dp))
+                Text(
+                    text = lyrics,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontFamily = IbmPlexSansFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(36.dp))
+                if (!artist.isNullOrBlank()) {
+                    Text(
+                        text = "Written by $artist",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+                if (!providerCredit.isNullOrBlank()) {
+                    Text(
+                        text = providerCredit,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    )
+                }
+                Spacer(Modifier.height(lyricBottomPadDp))
+            }
+        }
+
+        isLoading -> {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "Loading lyrics...",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        else -> {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No lyrics available",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActiveLyricLine(
+    item: LyricDisplayItem.Line,
+    positionMs: Long,
+    isPlaying: Boolean,
+    lyricStyle: TextStyle,
+    modifier: Modifier
+) {
+    val line = item.lyricLine
+    val words = remember(line.text) { line.text.split(" ").filter { it.isNotBlank() } }
+    val wordWeights = remember(words) {
+        val total = words.sumOf { it.length + 1 }.toFloat().coerceAtLeast(1f)
+        var acc = 0f
+        words.map { word ->
+            val start = acc / total
+            acc += word.length + 1
+            start to (acc / total)
+        }
+    }
+
+    val effectivePositionMs = positionMs + 90L
+    val progressAnim = remember { Animatable(0f) }
+
+    LaunchedEffect(line.timestampMs, item.vocalDurationMs, positionMs, isPlaying) {
+        val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
+        val currentElapsed = (effectivePositionMs - line.timestampMs).coerceIn(0L, safeDuration)
+        val initialProgress = (currentElapsed.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
+        progressAnim.snapTo(initialProgress)
+        if (isPlaying && initialProgress < 1f) {
+            val remainingMs = ((1f - initialProgress) * safeDuration).toLong().coerceAtLeast(50L)
+            progressAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = remainingMs.toInt(),
+                    easing = LinearEasing
+                )
+            )
+        }
+    }
+
+    val progress = progressAnim.value
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
+    val annotatedString = buildAnnotatedString {
+        words.forEachIndexed { wordIdx, word ->
+            val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
+            val wordAlpha = when {
+                progress >= slotEnd -> 1.0f
+                progress >= slotStart -> {
+                    val linearFraction = if (slotEnd > slotStart) {
+                        ((progress - slotStart) / (slotEnd - slotStart)).coerceIn(0f, 1f)
+                    } else 1f
+                    val smoothFraction = linearFraction * linearFraction * (3f - 2f * linearFraction)
+                    lerp(0.38f, 1.0f, smoothFraction)
+                }
+                else -> 0.38f
+            }
+            withStyle(SpanStyle(color = onSurface.copy(alpha = wordAlpha))) {
+                append(word)
+            }
+            if (wordIdx < words.size - 1) append(" ")
+        }
+    }
+
+    Text(
+        text = annotatedString,
+        style = lyricStyle,
+        textAlign = TextAlign.Start,
+        modifier = modifier
+    )
+}

@@ -88,11 +88,18 @@ fun SearchScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().padding(top = 24.dp)) {
-        Text(
-            "Search",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                "Search",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                "Find songs, artists, albums, and genres",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(
             value = query,
