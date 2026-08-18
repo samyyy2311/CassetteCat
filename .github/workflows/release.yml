@@ -1,0 +1,72 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g. 1.1.0)'
+        required: false
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        working-directory: ./app
+        run: chmod +x gradlew
+
+      - name: Build Unsigned Release APK and Debug APK
+        working-directory: ./app
+        env:
+          GITHUB_REF_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
+        run: |
+          ./gradlew assembleRelease assembleDebug --stacktrace
+
+      - name: Upload Unsigned Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cassettecat-release-unsigned
+          path: app/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: warn
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cassettecat-debug-apk
+          path: app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
+          body_path: CHANGELOG.md
+          files: |
+            app/app/build/outputs/apk/release/app-release-unsigned.apk
+            app/app/build/outputs/apk/debug/app-debug.apk
+          generate_release_notes: true

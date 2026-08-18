@@ -1,0 +1,54 @@
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors & IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Personal Scratch / Local Files ---
+*.local
+*.personal
+*.scratch
+
+# --- Environment & Secrets ---
+.env
+.env.*
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# --- Android / Gradle ---
+local.properties
+**/*.iml
+**/.gradle/
+**/.kotlin/
+**/build/
+**/.cxx/
+**/captures/
+**/.externalNativeBuild/
+*.apk
+*.aab
+*.hprof
+
+# --- ESP32 firmware ---
+firmware/.pio/
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+firmware/dependencies.lock
+*.elf
+*.bin
+
+# --- KiCad / hardware ---
+hardware/**/*-backups/
+hardware/**/_autosave-*
+hardware/**/*.bak
+hardware/**/fp-info-cache
+hardware/**/*.kicad_prl

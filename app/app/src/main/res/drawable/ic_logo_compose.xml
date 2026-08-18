@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Jetpack Compose isometric triangle logo -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2 L21,7.2 L21,17.6 L12,22.8 L3,17.6 L3,7.2 Z M12,5.5 L6,9 L12,12.5 L18,9 Z M5,10.7 L5,16.1 L11,19.5 L11,14.1 Z M13,14.1 L13,19.5 L19,16.1 L19,10.7 Z"/>
+</vector>

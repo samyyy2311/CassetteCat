@@ -1,0 +1,68 @@
+package `in`.caffeinelabs.cassettecat.data.playback
+
+import android.content.Context
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+private val Context.equalizerDataStore by preferencesDataStore(name = "equalizer_settings")
+private val EQUALIZER_STATE = stringPreferencesKey("equalizer_state_json")
+private val json = Json { ignoreUnknownKeys = true }
+
+@Serializable
+data class EqualizerLevels(
+    val bandLevelsMb: List<Int> = emptyList(),
+    val enabled: Boolean = true,
+    val bassBoostStrength: Int = 0,
+    val virtualizerStrength: Int = 0,
+    val selectedPresetIndex: Int = -1
+)
+
+class EqualizerSettingsRepository(private val context: Context) {
+    val levels: Flow<EqualizerLevels> = context.equalizerDataStore.data.map { prefs -> prefs.decode() }
+
+    suspend fun saveSettings(settings: EqualizerLevels) {
+        context.equalizerDataStore.edit { prefs -> prefs[EQUALIZER_STATE] = json.encodeToString(settings) }
+    }
+
+    suspend fun setBandLevels(levels: List<Int>, presetIndex: Int = -1) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(bandLevelsMb = levels, selectedPresetIndex = presetIndex)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setEnabled(enabled: Boolean) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(enabled = enabled)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setBassBoostStrength(strength: Int) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(bassBoostStrength = strength)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setVirtualizerStrength(strength: Int) {
+        context.equalizerDataStore.edit { prefs ->
+            val current = prefs.decode()
+            val updated = current.copy(virtualizerStrength = strength)
+            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+        }
+    }
+
+    private fun Preferences.decode(): EqualizerLevels =
+        this[EQUALIZER_STATE]?.let { runCatching { json.decodeFromString<EqualizerLevels>(it) }.getOrNull() } ?: EqualizerLevels()
+}
