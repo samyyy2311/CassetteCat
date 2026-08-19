@@ -1,5 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.onboarding
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +54,18 @@ fun PairingScreen(
     viewModel: PairingViewModel = viewModel()
 ) {
     val state by viewModel.pairingState.collectAsState()
+    val nearbyWifiPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.selectMode(DeviceConnectionType.SOFT_AP)
+    }
+    val startSoftApDiscovery = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            nearbyWifiPermissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else {
+            viewModel.selectMode(DeviceConnectionType.SOFT_AP)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -103,7 +119,7 @@ fun PairingScreen(
                         title = "Direct Hotspot",
                         subtitle = "Connect directly to the player's Wi-Fi network (192.168.4.1)",
                         iconRes = R.drawable.lucide_ic_radio_tower,
-                        onClick = { viewModel.selectMode(DeviceConnectionType.SOFT_AP) }
+                        onClick = startSoftApDiscovery
                     )
                     SettingsDivider()
                     NavigationRow(

@@ -446,7 +446,7 @@ internal fun parseUsltFrame(data: ByteArray): String? {
     return String(data, textStart, data.size - textStart, charset).trim().ifEmpty { null }
 }
 
-private fun Song.toMediaItem(): MediaItem = MediaItem.Builder()
+internal fun Song.toMediaItem(): MediaItem = MediaItem.Builder()
     .setMediaId(id)
     .setUri(contentUri)
     .setMediaMetadata(
@@ -454,13 +454,15 @@ private fun Song.toMediaItem(): MediaItem = MediaItem.Builder()
             .setTitle(title)
             .setArtist(artist)
             .setAlbumTitle(album)
+            .setIsBrowsable(false)
+            .setIsPlayable(true)
             .build()
     )
     .build()
 
 // Bridges Guava's ListenableFuture to a suspend call without a Guava/coroutines-guava
 // dependency; ContextCompat.getMainExecutor is already available via androidx-core-ktx.
-private suspend fun ListenableFuture<MediaController>.awaitController(context: Context): MediaController =
+internal suspend fun ListenableFuture<MediaController>.awaitController(context: Context): MediaController =
     suspendCancellableCoroutine { cont ->
         addListener({
             runCatching { get() }

@@ -2,6 +2,20 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.2.0] - Android Auto & Real Hotspot Pairing
+
+### Companion Hardware
+* **Real SoftAP Auto-Connect**: On Android 13+, pairing to the player's direct hotspot now associates automatically via `WifiNetworkSpecifier` instead of assuming the user already switched Wi-Fi networks manually. Older devices keep the existing connect-then-scan flow.
+* **Disconnect Fixed**: The companion Disconnect button now actually disconnects instead of restarting hotspot discovery.
+
+### Device Integration
+* **Android Auto & Automotive OS**: Browse your local library (Liked Songs, Playlists, Albums, Artists, All Songs) and control playback directly from the car.
+* **Quick Settings Tile**: Play, pause, and see what's playing without opening the app.
+
+### Polish
+* Haptic feedback now fires on every toggle switch throughout Settings, not just the row tap.
+* Fixed cramped accent color swatch spacing in Theme customization.
+
 ## [1.1.0] - Share Cards & UI Polish
 
 ### Share & Social

@@ -10,13 +10,13 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.1.0"
+        ?: "1.2.0"
 
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
+        versionCode = 3
         versionName = appVersionName
     }
 

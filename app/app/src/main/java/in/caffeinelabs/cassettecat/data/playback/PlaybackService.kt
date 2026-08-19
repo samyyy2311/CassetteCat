@@ -1,9 +1,11 @@
 package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -17,34 +19,42 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.download.DownloadCache
 import `in`.caffeinelabs.cassettecat.data.download.StreamCacheKeyFactory
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
+import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-class PlaybackService : MediaSessionService() {
-    private var mediaSession: MediaSession? = null
+class PlaybackService : MediaLibraryService() {
+    private var mediaSession: MediaLibrarySession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var favoritesRepository: FavoritesRepository
+    private lateinit var libraryTree: MediaLibraryTree
     private var currentFavoriteIds: Set<String> = emptySet()
 
     override fun onCreate() {
         super.onCreate()
         favoritesRepository = FavoritesRepository(this)
+        libraryTree = MediaLibraryTree(this)
 
         val directFactory = DefaultDataSource.Factory(this)
         val cacheDataSourceFactory = CacheDataSource.Factory()
@@ -119,9 +129,8 @@ class PlaybackService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, player)
+        mediaSession = MediaLibrarySession.Builder(this, player, CustomMediaLibrarySessionCallback())
             .setSessionActivity(sessionActivity)
-            .setCallback(CustomMediaSessionCallback())
             .setCustomLayout(buildCustomLayout(player, false))
             .build()
 
@@ -132,7 +141,7 @@ class PlaybackService : MediaSessionService() {
         )
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         mediaSession?.player?.stop()
@@ -201,7 +210,7 @@ class PlaybackService : MediaSessionService() {
         return listOf(favoriteButton, shuffleButton, repeatButton)
     }
 
-    private inner class CustomMediaSessionCallback : MediaSession.Callback {
+    private inner class CustomMediaLibrarySessionCallback : MediaLibrarySession.Callback {
         override fun onConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo
@@ -255,6 +264,65 @@ class PlaybackService : MediaSessionService() {
                 super.onPlaybackResumption(mediaSession, controller)
             }
         }
+
+        override fun onAddMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>
+        ): ListenableFuture<List<MediaItem>> {
+            val future = SettableFuture.create<List<MediaItem>>()
+            serviceScope.launch {
+                val resolved = mediaItems.map { item ->
+                    if (item.localConfiguration != null) item else libraryTree.item(item.mediaId) ?: item
+                }
+                future.set(resolved)
+            }
+            return future
+        }
+
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<MediaItem>> =
+            Futures.immediateFuture(LibraryResult.ofItem(libraryTree.rootItem, params))
+
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val future = SettableFuture.create<LibraryResult<MediaItem>>()
+            serviceScope.launch {
+                val item = libraryTree.item(mediaId)
+                future.set(
+                    if (item != null) LibraryResult.ofItem(item, null) else LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                )
+            }
+            return future
+        }
+
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+            serviceScope.launch {
+                val children = libraryTree.children(parentId)
+                future.set(
+                    if (children != null) {
+                        LibraryResult.ofItemList(children, params)
+                    } else {
+                        LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                    }
+                )
+            }
+            return future
+        }
     }
 
     private fun syncWidgetState(player: Player) {
@@ -279,6 +347,9 @@ class PlaybackService : MediaSessionService() {
                 isPlaying = isPlaying,
                 artBitmap = artBitmap
             )
+        }
+        runCatching {
+            TileService.requestListeningState(this, ComponentName(this, PlaybackTileService::class.java))
         }
     }
 

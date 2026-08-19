@@ -1,8 +1,18 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiNetworkSpecifier
+import android.os.Build
+import android.os.PatternMatcher
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,8 +22,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+private const val SOFT_AP_HOST = "192.168.4.1"
+private const val SOFT_AP_PORT = 80
+private const val SOFT_AP_SSID_PREFIX = "CassetteCat"
+
 class WifiDevicePairingRepository(private val context: Context) {
     private val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
+    private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val apiClient = CompanionApiClient()
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
@@ -21,7 +36,13 @@ class WifiDevicePairingRepository(private val context: Context) {
     val pairingState: StateFlow<DevicePairingState> = _pairingState.asStateFlow()
 
     private var discoveryListener: NsdManager.DiscoveryListener? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var searchJob: Job? = null
+    private var boundNetwork: Network? = null
+
+    private val canAutoAssociateSoftAp: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
 
     fun startDiscovery(mode: DeviceConnectionType) {
         stopDiscovery()
@@ -29,28 +50,7 @@ class WifiDevicePairingRepository(private val context: Context) {
 
         when (mode) {
             DeviceConnectionType.SOFT_AP -> {
-                searchJob = scope.launch {
-                    val defaultHost = "192.168.4.1"
-                    val defaultPort = 80
-                    var attempts = 0
-                    while (attempts < 10) {
-                        delay(1200)
-                        val status = apiClient.getStatus(defaultHost, defaultPort)
-                        if (status != null) {
-                            val device = DiscoveredDevice(
-                                name = status.deviceName,
-                                host = defaultHost,
-                                port = defaultPort,
-                                connectionType = DeviceConnectionType.SOFT_AP,
-                                status = status
-                            )
-                            _pairingState.value = DevicePairingState.DeviceFound(device)
-                            return@launch
-                        }
-                        attempts++
-                    }
-                    _pairingState.value = DevicePairingState.Failed(mode, "No CassetteCat device found on Wi-Fi hotspot.")
-                }
+                if (canAutoAssociateSoftAp) startSoftApAutoAssociate(mode) else startSoftApManualPoll(mode)
             }
 
             DeviceConnectionType.STATION -> {
@@ -65,21 +65,72 @@ class WifiDevicePairingRepository(private val context: Context) {
         }
     }
 
+    private fun startSoftApManualPoll(mode: DeviceConnectionType) {
+        searchJob = scope.launch {
+            var attempts = 0
+            while (attempts < 10) {
+                delay(1200)
+                val status = apiClient.getStatus(SOFT_AP_HOST, SOFT_AP_PORT)
+                if (status != null) {
+                    _pairingState.value = DevicePairingState.DeviceFound(
+                        DiscoveredDevice(name = status.deviceName, host = SOFT_AP_HOST, port = SOFT_AP_PORT, connectionType = DeviceConnectionType.SOFT_AP, status = status)
+                    )
+                    return@launch
+                }
+                attempts++
+            }
+            _pairingState.value = DevicePairingState.Failed(mode, "No CassetteCat device found on Wi-Fi hotspot.")
+        }
+    }
+
+    private fun startSoftApAutoAssociate(mode: DeviceConnectionType) {
+        val specifier = WifiNetworkSpecifier.Builder()
+            .setSsidPattern(PatternMatcher(SOFT_AP_SSID_PREFIX, PatternMatcher.PATTERN_PREFIX))
+            .build()
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .setNetworkSpecifier(specifier)
+            .build()
+
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                boundNetwork = network
+                searchJob = scope.launch {
+                    val status = apiClient.getStatus(SOFT_AP_HOST, SOFT_AP_PORT, network)
+                    _pairingState.value = if (status != null) {
+                        DevicePairingState.DeviceFound(
+                            DiscoveredDevice(name = status.deviceName, host = SOFT_AP_HOST, port = SOFT_AP_PORT, connectionType = DeviceConnectionType.SOFT_AP, status = status)
+                        )
+                    } else {
+                        DevicePairingState.Failed(mode, "Connected to the hotspot, but the player didn't respond.")
+                    }
+                }
+            }
+
+            override fun onUnavailable() {
+                _pairingState.value = DevicePairingState.Failed(mode, "Couldn't join the CassetteCat hotspot. Make sure the player is powered on.")
+            }
+        }
+        networkCallback = callback
+        connectivityManager.requestNetwork(request, callback, 20_000)
+    }
+
     fun stopDiscovery() {
         searchJob?.cancel()
         searchJob = null
         stopMdnsDiscovery()
+        networkCallback?.let { runCatching { connectivityManager.unregisterNetworkCallback(it) } }
+        networkCallback = null
+        boundNetwork = null
         _pairingState.value = DevicePairingState.SelectingMode
     }
 
     suspend fun connect(device: DiscoveredDevice) {
         _pairingState.value = DevicePairingState.Connecting(device)
-        val status = apiClient.getStatus(device.host, device.port)
-        if (status != null) {
-            _pairingState.value = DevicePairingState.Connected(device.copy(status = status))
-        } else {
-            _pairingState.value = DevicePairingState.Connected(device)
-        }
+        val network = boundNetwork.takeIf { device.connectionType == DeviceConnectionType.SOFT_AP }
+        val status = apiClient.getStatus(device.host, device.port, network)
+        _pairingState.value = DevicePairingState.Connected(if (status != null) device.copy(status = status) else device)
     }
 
     private fun startMdnsDiscovery() {
