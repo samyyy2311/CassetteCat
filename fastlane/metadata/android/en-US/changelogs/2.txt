@@ -1,0 +1,5 @@
+- Ultra-HD 2160x2700 share poster cards for songs and lyrics
+- Live Gaussian backdrop blur with atmospheric dark scrims
+- Direct sharing shortcuts with native app launcher icons
+- Refreshed UI elements and open-source attribution credits
+- Audio playback & DSP performance improvements

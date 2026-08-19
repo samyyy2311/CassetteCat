@@ -1,7 +1,8 @@
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
 import android.net.Uri
-import androidx.activity.compose.BackHandler
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -9,8 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,6 +79,20 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.PrivacyScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ScrobbleSettingsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.stats.StatsScreen
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationAudioEngineScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationRoute
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStartupLibraryScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStorageScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationThemeScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsViewModel
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
@@ -86,6 +101,7 @@ object MainRoute {
     const val LIBRARY = "main/library"
     const val SEARCH = "main/search"
     const val SETTINGS = "main/settings"
+    const val CUSTOMIZATION = "main/settings/customization"
     const val CONNECT_SERVER = "main/connect/{protocol}"
     fun connectServer(protocol: StreamingProtocol) = "main/connect/${protocol.name}"
     const val ARTIST_DETAIL = "main/library/artist/{artist}"
@@ -126,8 +142,13 @@ private val NAV_BAR_TOTAL_HEIGHT = 68.dp
 fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val scope = rememberCoroutineScope()
 
     fun navigateToTab(route: String) {
+        scope.launch { appPreferencesRepository.setLastOpenedRoute(route) }
         val activeParent = parentTabRoute(currentRoute)
         if (activeParent == route) {
             if (currentRoute != route) {
@@ -140,6 +161,31 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                 }
                 launchSingleTop = true
                 restoreState = false
+            }
+        }
+    }
+
+    var initialTabHandled by remember { mutableStateOf(false) }
+    LaunchedEffect(preferences.defaultStartScreen, preferences.lastOpenedRoute) {
+        if (!initialTabHandled) {
+            initialTabHandled = true
+            val targetRoute = when (preferences.defaultStartScreen) {
+                DefaultStartScreen.HOME -> MainRoute.HOME
+                DefaultStartScreen.LIBRARY -> MainRoute.LIBRARY
+                DefaultStartScreen.LAST_OPENED -> when (preferences.lastOpenedRoute) {
+                    MainRoute.HOME -> MainRoute.HOME
+                    MainRoute.SEARCH -> MainRoute.SEARCH
+                    MainRoute.SETTINGS -> MainRoute.SETTINGS
+                    else -> MainRoute.LIBRARY
+                }
+            }
+            if (targetRoute != MainRoute.LIBRARY) {
+                navController.navigate(targetRoute) {
+                    popUpTo(MainRoute.LIBRARY) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
             }
         }
     }
@@ -159,7 +205,6 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER
     val playbackState by playbackViewModel.playbackState.collectAsState()
     val hasSong = playbackState.currentSong != null
-    val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     // The custom bottom bar is an app overlay, so it must explicitly yield to the IME.
     // Otherwise its labels are left hovering below/over the keyboard on text-entry screens.
@@ -180,14 +225,13 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     // fades the sheet fill in Queue/Lyrics mode, where the real sheet doesn't move
     var headerDragRevealFraction by remember { mutableStateOf(0f) }
 
-    // without this, back gesture falls through and closes the app
-    BackHandler(enabled = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded) {
-        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-    }
+    val isSheetExpanded = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded ||
+            scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded ||
+            fraction > 0.4f
 
-    // resets sub-view on collapse so re-expanding lands on the art
-    LaunchedEffect(scaffoldState.bottomSheetState.currentValue) {
-        if (scaffoldState.bottomSheetState.currentValue != SheetValue.Expanded) {
+    // resets sub-view only when fully collapsed so it doesn't flip views mid-animation
+    LaunchedEffect(fraction) {
+        if (fraction <= 0.01f && nowPlayingView != NowPlayingView.PLAYER) {
             nowPlayingView = NowPlayingView.PLAYER
         }
     }
@@ -232,10 +276,11 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     Box(Modifier.fillMaxWidth().height(scaffoldHeight)) {
                         // both layers start from the sheet's top; peek shows just the mini-player slice
                         if (hasSong) {
+                            val miniPlayerAlpha = ((1f - fraction) / 0.45f).coerceIn(0f, 1f)
                             Box(
                                 Modifier
                                     .fillMaxWidth()
-                                    .graphicsLayer { alpha = 1f - fraction }
+                                    .graphicsLayer { alpha = miniPlayerAlpha }
                             ) {
                                 MiniPlayerRow(
                                     playbackViewModel = playbackViewModel,
@@ -278,8 +323,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     startDestination = MainRoute.LIBRARY,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = contentPadding.calculateTopPadding())
-                        .then(if (artistHeroRoute) Modifier else Modifier.windowInsetsPadding(WindowInsets.safeDrawing))
+                        .then(if (artistHeroRoute) Modifier else Modifier.statusBarsPadding())
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -287,6 +331,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             libraryViewModel = libraryViewModel,
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToLibrary = { navigateToTab(MainRoute.LIBRARY) },
+                            onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             // The app navigation is a glass overlay.  Do not reserve an opaque
                             // blank strip under it: content should continue beneath the tabs.
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -402,6 +447,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     }
                     composable(MainRoute.SETTINGS) {
                         SettingsScreen(
+                            playbackViewModel = playbackViewModel,
                             onConnectServer = { protocol -> navController.navigate(MainRoute.connectServer(protocol)) },
                             onNavigateToStats = { navController.navigate(MainRoute.STATS) },
                             onManageScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
@@ -411,10 +457,68 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             onNavigateToDownloads = { navController.navigate(MainRoute.DOWNLOADS) },
                             onNavigateToSleepTimer = { navController.navigate(MainRoute.SLEEP_TIMER) },
                             onNavigateToPrivacy = { navController.navigate(MainRoute.PRIVACY) },
+                            onNavigateToCustomization = { navController.navigate(MainRoute.CUSTOMIZATION) },
                             onNavigateToPairing = { navController.navigate(MainRoute.COMPANION_DEVICE) },
                             onNavigateToAboutLegal = { navController.navigate(MainRoute.ABOUT_LEGAL) },
                             onNavigateToCredits = { navController.navigate(MainRoute.CREDITS) },
                             onNavigateToScrobbling = { navController.navigate(MainRoute.SCROBBLING) },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.CUSTOMIZATION) {
+                        CustomizationScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            onNavigate = { route -> navController.navigate(route) },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.THEME) {
+                        CustomizationThemeScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.STARTUP_LIBRARY) {
+                        CustomizationStartupLibraryScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.NOW_PLAYING) {
+                        CustomizationNowPlayingScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.AUDIO_ENGINE) {
+                        CustomizationAudioEngineScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.LYRICS) {
+                        CustomizationLyricsScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.STORAGE) {
+                        CustomizationStorageScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.HOME_FEED) {
+                        CustomizationHomeFeedScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -514,6 +618,22 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     }
                 )
             }
+        }
+
+        val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+        DisposableEffect(isSheetExpanded, backDispatcher) {
+            if (!isSheetExpanded || backDispatcher == null) return@DisposableEffect onDispose {}
+            val callback = object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (nowPlayingView != NowPlayingView.PLAYER) {
+                        nowPlayingView = NowPlayingView.PLAYER
+                    } else {
+                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                    }
+                }
+            }
+            backDispatcher.addCallback(callback)
+            onDispose { callback.remove() }
         }
     }
 }

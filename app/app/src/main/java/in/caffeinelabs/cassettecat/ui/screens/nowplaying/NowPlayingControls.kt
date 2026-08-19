@@ -24,9 +24,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,14 +38,18 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
@@ -173,6 +179,11 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val scope = rememberCoroutineScope()
+
     var dragPositionMs by remember { mutableStateOf<Long?>(null) }
     var lastHapticTickMs by remember { mutableStateOf<Long?>(null) }
     val displayedPositionMs = dragPositionMs ?: positionMs
@@ -184,14 +195,16 @@ private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -
             onValueChange = { value ->
                 val newPositionMs = value.toLong()
                 val lastTick = lastHapticTickMs
-                if (lastTick == null || abs(newPositionMs - lastTick) >= SEEK_HAPTIC_TICK_INTERVAL_MS) {
+                if (preferences.hapticFeedbackEnabled && (lastTick == null || abs(newPositionMs - lastTick) >= SEEK_HAPTIC_TICK_INTERVAL_MS)) {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     lastHapticTickMs = newPositionMs
                 }
                 dragPositionMs = newPositionMs
             },
             onValueChangeFinished = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                if (preferences.hapticFeedbackEnabled) {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
                 dragPositionMs?.let(onSeek)
                 dragPositionMs = null
                 lastHapticTickMs = null
@@ -202,7 +215,17 @@ private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(formatTime(displayedPositionMs), style = readoutStyle())
-            Text(formatTime(durationMs), style = readoutStyle())
+            val remainingMs = (durationMs - displayedPositionMs).coerceAtLeast(0L)
+            val durationText = if (preferences.showRemainingTime) "-${formatTime(remainingMs)}" else formatTime(durationMs)
+            Text(
+                text = durationText,
+                style = readoutStyle(),
+                modifier = Modifier.clickable {
+                    scope.launch {
+                        appPreferencesRepository.setShowRemainingTime(!preferences.showRemainingTime)
+                    }
+                }
+            )
         }
     }
 }

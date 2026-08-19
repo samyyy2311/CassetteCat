@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.search
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -50,6 +52,37 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRow
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+
+private fun scoreSongMatch(song: Song, query: String, tokens: List<String>): Int {
+    val q = query.trim().lowercase()
+    val title = song.title.lowercase()
+    val artist = song.artist.lowercase()
+    val album = song.album.lowercase()
+
+    if (title == q) return 1000
+    if (artist == q) return 800
+    if (title.startsWith(q)) return 600
+    if (artist.startsWith(q)) return 500
+
+    var score = 0
+    if (title.contains(q)) score += 300
+    if (artist.contains(q)) score += 200
+    if (album.contains(q)) score += 100
+
+    val allFields = "$title $artist $album"
+    val allTokensMatch = tokens.all { token -> allFields.contains(token) }
+    if (!allTokensMatch && score == 0) return 0
+
+    tokens.forEach { token ->
+        if (title.contains(token)) score += 60
+        if (artist.contains(token)) score += 50
+        if (album.contains(token)) score += 25
+        if (title.split(" ", "-", "_", "/").any { it.startsWith(token) }) score += 40
+        if (artist.split(" ", "-", "_", "/").any { it.startsWith(token) }) score += 35
+    }
+
+    return score
+}
 
 @Composable
 fun SearchScreen(
@@ -65,6 +98,11 @@ fun SearchScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    BackHandler(enabled = query.isNotEmpty()) {
+        query = ""
+        keyboardController?.hide()
+    }
+
     LaunchedEffect(focusRequestId) {
         if (focusRequestId > 0) {
             focusRequester.requestFocus()
@@ -73,13 +111,19 @@ fun SearchScreen(
     }
 
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
-    val results = if (query.isBlank()) {
-        emptyList()
-    } else {
-        allSongs.filter { song ->
-            song.title.contains(query, ignoreCase = true) ||
-                song.artist.contains(query, ignoreCase = true) ||
-                song.album.contains(query, ignoreCase = true)
+    val results = remember(query, allSongs) {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) {
+            emptyList()
+        } else {
+            val tokens = trimmed.lowercase().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+            allSongs
+                .mapNotNull { song ->
+                    val score = scoreSongMatch(song, trimmed, tokens)
+                    if (score > 0) song to score else null
+                }
+                .sortedByDescending { it.second }
+                .map { it.first }
         }
     }
 
@@ -87,7 +131,15 @@ fun SearchScreen(
         allSongs.groupedByArtist().sortedByDescending { it.songs.size }.take(10)
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(top = 24.dp)) {
+    fun playSong(songs: List<Song>, song: Song) {
+        val index = songs.indexOfFirst { it.id == song.id }
+        if (index == -1) return
+        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+        playbackViewModel.playQueue(songs, index)
+        if (wasIdle) onNavigateToNowPlaying()
+    }
+
+    Column(modifier = modifier.fillMaxSize().padding(top = 4.dp)) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
                 "Search",
@@ -97,10 +149,10 @@ fun SearchScreen(
                 "Find songs, artists, albums, and genres",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -127,14 +179,14 @@ fun SearchScreen(
                 if (topArtists.isNotEmpty()) {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = listBottomPadding + 16.dp)
+                        contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
                     ) {
                         item {
                             SearchSectionHeader("Top Artists")
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 24.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.padding(top = 12.dp, bottom = 24.dp)
+                                modifier = Modifier.padding(top = 10.dp, bottom = 24.dp)
                             ) {
                                 items(topArtists, key = { it.artist }) { artistGroup ->
                                     SearchArtistChip(
@@ -171,17 +223,12 @@ fun SearchScreen(
 
             else -> LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = listBottomPadding)
+                contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
             ) {
                 items(results, key = { it.id }) { song ->
                     SongRow(
                         song = song,
-                        onClick = {
-                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                            val index = results.indexOfFirst { it.id == song.id }
-                            playbackViewModel.playQueue(results, index)
-                            if (wasIdle) onNavigateToNowPlaying()
-                        }
+                        onClick = { playSong(results, song) }
                     )
                 }
             }

@@ -42,6 +42,7 @@ suspend fun prefetchAlbumArt(context: Context, song: Song?) {
     when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
         MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+        MusicSource.ListeningRoomHost -> Unit
     }
 }
 
@@ -49,6 +50,7 @@ suspend fun loadSongArtwork(context: Context, song: Song): Bitmap? {
     return when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
         MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+        MusicSource.ListeningRoomHost -> null
     }
 }
 
@@ -60,6 +62,7 @@ fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
             when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).peek(song)
                 MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.peek(it) }
+                MusicSource.ListeningRoomHost -> null
             }
         )
     }
@@ -68,6 +71,7 @@ fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
             bitmap = when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
                 MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+                MusicSource.ListeningRoomHost -> null
             }
         }
     }

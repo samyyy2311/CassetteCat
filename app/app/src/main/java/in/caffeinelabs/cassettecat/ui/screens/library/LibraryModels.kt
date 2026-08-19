@@ -20,18 +20,18 @@ enum class GenreSortOrder(val label: String) { NAME("Name"), SONG_COUNT("Song Co
 data class M3uImportSummary(val name: String, val matched: Int, val total: Int)
 
 fun ArtistSortOrder.comparator(): Comparator<ArtistGroup> = when (this) {
-    ArtistSortOrder.NAME -> compareBy { it.artist.lowercase() }
+    ArtistSortOrder.NAME -> compareBy { it.artist.sortKey() }
     ArtistSortOrder.SONG_COUNT -> compareBy { it.songs.size }
 }
 
 fun AlbumSortOrder.comparator(): Comparator<AlbumGroup> = when (this) {
-    AlbumSortOrder.ALBUM -> compareBy { it.album.lowercase() }
-    AlbumSortOrder.ARTIST -> compareBy { it.artist.lowercase() }
+    AlbumSortOrder.ALBUM -> compareBy { it.album.sortKey() }
+    AlbumSortOrder.ARTIST -> compareBy { it.artist.sortKey() }
     AlbumSortOrder.SONG_COUNT -> compareBy { it.songs.size }
 }
 
 fun GenreSortOrder.comparator(): Comparator<GenreGroup> = when (this) {
-    GenreSortOrder.NAME -> compareBy { it.genre.lowercase() }
+    GenreSortOrder.NAME -> compareBy { it.genre.sortKey() }
     GenreSortOrder.SONG_COUNT -> compareBy { it.songs.size }
 }
 

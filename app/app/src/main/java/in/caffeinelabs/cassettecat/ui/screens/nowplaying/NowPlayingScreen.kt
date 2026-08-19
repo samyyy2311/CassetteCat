@@ -143,11 +143,11 @@ fun NowPlayingContent(
     val skipNext: () -> Unit = { playbackViewModel.skipNext() }
     val skipPrevious: () -> Unit = { playbackViewModel.skipPrevious() }
     val handleCollapseRequest: () -> Unit = {
-        onCollapseRequest()
         dragScope.launch {
             animate(headerDragOffsetPx, headerDragCapPx, animationSpec = tween(HEADER_COLLAPSE_EXIT_MS, easing = SmoothEasing)) { value, _ ->
                 headerDragOffsetPx = value
             }
+            onActiveViewChange(NowPlayingView.PLAYER)
             headerDragOffsetPx = 0f
         }
     }
@@ -174,7 +174,6 @@ fun NowPlayingContent(
                     Modifier
                 }
             )
-            .graphicsLayer { translationY = headerDragOffsetPx }
             .background(MaterialTheme.colorScheme.surface)
     ) {
         if (song != null) NowPlayingBackdrop(song)
@@ -213,9 +212,9 @@ fun NowPlayingContent(
                         onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
                         onShowMenu = { sheetState.showMenu = true },
                         onShowGoToMenu = { sheetState.showGoToMenu = true },
-                        onCollapseRequest = handleCollapseRequest,
-                        onHeaderDrag = handleHeaderDrag,
-                        onHeaderSpringBack = handleHeaderSpringBack,
+                        onCollapseRequest = onCollapseRequest,
+                        onHeaderDrag = {},
+                        onHeaderSpringBack = {},
                         onSkipNext = skipNext,
                         onSkipPrevious = skipPrevious,
                         onPlaySong = {
@@ -254,9 +253,9 @@ fun NowPlayingContent(
                         onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
                         onShowMenu = { sheetState.showMenu = true },
                         onShowGoToMenu = { sheetState.showGoToMenu = true },
-                        onCollapseRequest = handleCollapseRequest,
-                        onHeaderDrag = handleHeaderDrag,
-                        onHeaderSpringBack = handleHeaderSpringBack,
+                        onCollapseRequest = onCollapseRequest,
+                        onHeaderDrag = {},
+                        onHeaderSpringBack = {},
                         onSkipNext = skipNext,
                         onSkipPrevious = skipPrevious,
                         onUserSeekOrInteraction = { isSeek ->

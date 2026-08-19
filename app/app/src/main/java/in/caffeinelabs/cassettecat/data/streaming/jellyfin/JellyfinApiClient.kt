@@ -2,7 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.jellyfin
 
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -14,10 +14,9 @@ class JellyfinApiException(message: String) : Exception(message)
 // identity (StreamingServerRepository.deviceId()), stable across logins.
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')
-    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun authenticate(username: String, password: String): JellyfinAuthResult {
-        val requestJson = json.encodeToString(
+        val requestJson = sharedJson.encodeToString(
             JellyfinAuthRequest.serializer(),
             JellyfinAuthRequest(Username = username, Pw = password)
         )
@@ -32,7 +31,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             throw JellyfinApiException("Jellyfin login failed (${response.code})")
         }
         val body = response.use { it.body.string() }
-        return json.decodeFromString(JellyfinAuthResult.serializer(), body)
+        return sharedJson.decodeFromString(JellyfinAuthResult.serializer(), body)
     }
 
     suspend fun getAllAudioItems(userId: String, accessToken: String): List<JellyfinItem> {
@@ -57,7 +56,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
                 throw JellyfinApiException("Failed to load Jellyfin library (${response.code})")
             }
             val body = response.use { it.body.string() }
-            val page = json.decodeFromString(JellyfinItemsResponse.serializer(), body)
+            val page = sharedJson.decodeFromString(JellyfinItemsResponse.serializer(), body)
             items += page.Items
             if (page.Items.size < PAGE_SIZE) break
             startIndex += PAGE_SIZE

@@ -8,12 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
 
-private val json = Json { ignoreUnknownKeys = true }
 private val LRC_LINE_REGEX = Regex("""\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?]\s*(.*)""")
 private val CLEAN_TITLE_REGEX = Regex("""\s*[\(\[\{](?:feat\.?|ft\.?|remaster(?:ed)?|bonus|explicit|version|deluxe|edit|live|mono|stereo|single).*?[\)\]\}]""", RegexOption.IGNORE_CASE)
 
@@ -78,7 +77,7 @@ class LrcLibClient(private val cacheDir: File? = null) {
         val file = lyricsCacheDir?.let { File(it, "$cacheKey.json") } ?: return null
         if (!file.exists()) return null
         return runCatching {
-            val cached = json.decodeFromString<CachedLyrics>(file.readText())
+            val cached = sharedJson.decodeFromString<CachedLyrics>(file.readText())
             val synced = cached.syncedLyrics?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
             val plain = cached.plainLyrics?.trim()?.ifEmpty { null }
             if (synced != null || plain != null) LyricsLookupResult(synced, plain) else null
@@ -90,7 +89,7 @@ class LrcLibClient(private val cacheDir: File? = null) {
         runCatching {
             val file = File(dir, "$cacheKey.json")
             val payload = CachedLyrics(syncedLyrics = syncedLyrics, plainLyrics = plainLyrics)
-            file.writeText(json.encodeToString(payload))
+            file.writeText(sharedJson.encodeToString(payload))
         }
     }
 
@@ -113,7 +112,7 @@ class LrcLibClient(private val cacheDir: File? = null) {
         response.use {
             if (!it.isSuccessful) return null
             val body = it.body.string()
-            return if (isSearch) json.decodeFromString<List<LrcLibResponse>>(body) else listOf(json.decodeFromString(body))
+            return if (isSearch) sharedJson.decodeFromString<List<LrcLibResponse>>(body) else listOf(sharedJson.decodeFromString(body))
         }
     }
 
@@ -131,11 +130,11 @@ class LrcLibClient(private val cacheDir: File? = null) {
                 Request.Builder().url(challengeUrl).header("User-Agent", "CassetteCat/0.1.0").build()
             ).execute().use { if (!it.isSuccessful) null else it.body.string() } ?: return@withContext false
 
-            val challenge = json.decodeFromString<LrcLibChallenge>(challengeBody)
+            val challenge = sharedJson.decodeFromString<LrcLibChallenge>(challengeBody)
             val token = solveChallenge(challenge.prefix, challenge.target)
 
             val publishUrl = "https://lrclib.net/api/publish"
-            val payload = json.encodeToString(
+            val payload = sharedJson.encodeToString(
                 LrcLibPublishPayload(
                     trackName = trackName,
                     artistName = artistName,

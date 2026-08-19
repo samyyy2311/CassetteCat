@@ -30,12 +30,13 @@ fun PlaybackPreferencesScreen(
     val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsState()
     val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsState()
     val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsState()
+    val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsState()
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
@@ -67,10 +68,20 @@ fun PlaybackPreferencesScreen(
         SettingsSection(title = "Behavior") {
             ToggleRow(
                 title = "Gentle volume fade out",
-                subtitle = "Smoothly lower volume over the last 30 seconds",
+                subtitle = "Smoothly lower volume over the last ${fadeSeconds}s",
                 checked = fadeOut,
                 onCheckedChange = { playbackViewModel.setSleepTimerFadeOut(it) },
                 iconRes = R.drawable.lucide_ic_volume_2
+            )
+            SettingsDivider(startPadding = 24.dp)
+            SheetPickerRow(
+                title = "Fade-out Duration",
+                subtitle = "How long the volume takes to fade to silent",
+                iconRes = R.drawable.lucide_ic_timer,
+                options = listOf(10, 20, 30, 45, 60),
+                selected = fadeSeconds,
+                label = { "${it}s" },
+                onSelect = playbackViewModel::setSleepTimerFadeSeconds
             )
             SettingsDivider(startPadding = 24.dp)
             ToggleRow(

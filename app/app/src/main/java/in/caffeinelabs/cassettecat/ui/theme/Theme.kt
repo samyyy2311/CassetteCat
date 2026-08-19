@@ -4,53 +4,55 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-
-// Owned Device theme (default, dark-mode only, see CLAUDE.md).
-//
-// primary/secondary map to silver, not Record Red: Material3's default filled Button/FAB
-// use `primary` as background fill, and red must never be a large fill. Record Red lives
-// on tertiary/error instead (Material3's small-accent roles), so the deferred "Minimal"
-// (grayscale) theme can swap in later via tokens instead of a rewrite.
-private val ActiveContainer = Color(0xFF3A1512)
-
-private val OwnedDeviceColorScheme = darkColorScheme(
-    primary = Silver,
-    onPrimary = Background,
-    primaryContainer = SurfaceVariant,
-    onPrimaryContainer = TextPrimary,
-    secondary = SilverDim,
-    onSecondary = TextPrimary,
-    secondaryContainer = SurfaceVariant,
-    onSecondaryContainer = TextPrimary,
-    tertiary = RecordRed,
-    onTertiary = OnRecordRed,
-    tertiaryContainer = ActiveContainer,
-    onTertiaryContainer = TextPrimary,
-    background = Background,
-    onBackground = TextPrimary,
-    surface = Surface,
-    onSurface = TextPrimary,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = TextSecondary,
-    // Cards read surfaceContainer directly; unset would leak Material3's default
-    // purple tint onto an all-neutral surface.
-    surfaceContainerLowest = Color(0xFF000000),
-    surfaceContainerLow = Color(0xFF141210),
-    surfaceContainer = Surface,
-    surfaceContainerHigh = Color(0xFF232120),
-    surfaceContainerHighest = Color(0xFF2B2826),
-    outline = SilverDim,
-    outlineVariant = Color(0xFF3A3835),
-    error = RecordRed,
-    onError = OnRecordRed,
-    errorContainer = ActiveContainer,
-    onErrorContainer = TextPrimary
-)
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 
 @Composable
-fun CassetteCatTheme(content: @Composable () -> Unit) {
+fun CassetteCatTheme(
+    accent: ThemeAccent = ThemeAccent.RECORD_RED,
+    isAmoled: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val accentColor = Color(accent.colorValue)
+    val activeContainer = Color(accent.containerValue)
+
+    val backgroundColor = if (isAmoled) Color(0xFF000000) else Background
+    val surfaceColor = if (isAmoled) Color(0xFF080706) else Surface
+    val surfaceVariantColor = if (isAmoled) Color(0xFF12100E) else SurfaceVariant
+
+    val colorScheme = darkColorScheme(
+        primary = Silver,
+        onPrimary = backgroundColor,
+        primaryContainer = surfaceVariantColor,
+        onPrimaryContainer = TextPrimary,
+        secondary = SilverDim,
+        onSecondary = TextPrimary,
+        secondaryContainer = surfaceVariantColor,
+        onSecondaryContainer = TextPrimary,
+        tertiary = accentColor,
+        onTertiary = OnRecordRed,
+        tertiaryContainer = activeContainer,
+        onTertiaryContainer = TextPrimary,
+        background = backgroundColor,
+        onBackground = TextPrimary,
+        surface = surfaceColor,
+        onSurface = TextPrimary,
+        surfaceVariant = surfaceVariantColor,
+        onSurfaceVariant = TextSecondary,
+        surfaceContainerLowest = Color(0xFF000000),
+        surfaceContainerLow = if (isAmoled) Color(0xFF040404) else Color(0xFF141210),
+        surfaceContainer = surfaceColor,
+        surfaceContainerHigh = if (isAmoled) Color(0xFF161412) else Color(0xFF232120),
+        surfaceContainerHighest = if (isAmoled) Color(0xFF1E1C1A) else Color(0xFF2B2826),
+        outline = SilverDim,
+        outlineVariant = Color(0xFF3A3835),
+        error = accentColor,
+        onError = OnRecordRed,
+        errorContainer = activeContainer,
+        onErrorContainer = TextPrimary
+    )
+
     MaterialTheme(
-        colorScheme = OwnedDeviceColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         content = content
     )

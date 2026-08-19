@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
+import android.net.Uri
 import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,6 +28,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
@@ -95,6 +97,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private val stateRepository = PlaybackStateRepository(app)
     private val statsRepository = ListeningStatsRepository(app)
+    val monthlyStats: StateFlow<Map<String, MonthlyStats>> = statsRepository.monthlyStats
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
     private val equalizerSettingsRepository = EqualizerSettingsRepository(app)
     private val scrobbleManager = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager(app, viewModelScope)
     private var hasAttemptedRestore = false
@@ -132,6 +136,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 _isCurrentSongFavorite.value = song?.isFavorite ?: false
                 if (song != null) {
                     scrobbleManager.onTrackStarted(song)
+                    savePlaybackState()
                 }
             }
         }
@@ -149,7 +154,33 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     _fallbackLyrics.value = null
                     _lyricsProvider.value = null
                     _isLoadingLyrics.value = false
-                    if (!embedded.isNullOrBlank()) {
+                    val prioritizeLocalLrc = appPreferences.value.localLrcPriority
+                    if (prioritizeLocalLrc && song != null && song.source == MusicSource.Local) {
+                        val localLrc = localLrcLoader.loadFor(song)
+                        if (localLrc != null) {
+                            _syncedLyrics.value = localLrc
+                            _lyricsProvider.value = "Local file"
+                        } else if (!embedded.isNullOrBlank()) {
+                            _lyricsProvider.value = "Embedded metadata"
+                        } else {
+                            val localEmbedded = embeddedLyricsLoader.loadFor(song)
+                            if (!localEmbedded.isNullOrBlank()) {
+                                _fallbackLyrics.value = localEmbedded
+                                _lyricsProvider.value = "Embedded metadata"
+                            } else if (request.lrcLibEnabled) {
+                                _isLoadingLyrics.value = true
+                                try {
+                                    lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
+                                        _syncedLyrics.value = result.syncedLyrics
+                                        _fallbackLyrics.value = result.plainLyrics
+                                        _lyricsProvider.value = "LRCLIB"
+                                    }
+                                } finally {
+                                    _isLoadingLyrics.value = false
+                                }
+                            }
+                        }
+                    } else if (!embedded.isNullOrBlank()) {
                         _lyricsProvider.value = "Embedded metadata"
                     } else if (song != null) {
                         val localEmbedded = if (song.source == MusicSource.Local) embeddedLyricsLoader.loadFor(song) else null
@@ -199,12 +230,18 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     // once per process, and only into an idle session
     fun restoreIfNeeded(allSongs: List<Song>) {
-        if (hasAttemptedRestore) return
+        if (!appPreferences.value.resumeQueueOnLaunch || allSongs.isEmpty() || hasAttemptedRestore) return
         hasAttemptedRestore = true
-        if (playbackState.value.currentSong != null) return
         viewModelScope.launch {
             val saved = stateRepository.load() ?: return@launch
             val songsById = allSongs.associateBy { it.id }
+            if (saved.historySongIds.isNotEmpty()) {
+                val resolvedHistory = saved.historySongIds.mapNotNull { songsById[it] }
+                if (resolvedHistory.isNotEmpty()) {
+                    repository.restoreHistory(resolvedHistory)
+                }
+            }
+            if (playbackState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
             // adjust for ids that no longer resolve (deleted files) shifting positions
@@ -213,6 +250,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
     private var sleepTimerJob: Job? = null
+    private var sleepFading = false
     private val _sleepTimerEndMs = MutableStateFlow<Long?>(null)
     val sleepTimerEndMs: StateFlow<Long?> = _sleepTimerEndMs.asStateFlow()
 
@@ -222,6 +260,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _sleepTimerFinishTrack = MutableStateFlow(false)
     val sleepTimerFinishTrack: StateFlow<Boolean> = _sleepTimerFinishTrack.asStateFlow()
 
+    private val _sleepTimerFadeSeconds = MutableStateFlow(30)
+    val sleepTimerFadeSeconds: StateFlow<Int> = _sleepTimerFadeSeconds.asStateFlow()
+
     fun setSleepTimerFadeOut(enabled: Boolean) {
         _sleepTimerFadeOut.value = enabled
     }
@@ -230,10 +271,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerFinishTrack.value = enabled
     }
 
+    fun setSleepTimerFadeSeconds(seconds: Int) {
+        _sleepTimerFadeSeconds.value = seconds
+    }
+
     fun startSleepTimer(
         durationMs: Long,
         finishTrack: Boolean = _sleepTimerFinishTrack.value,
-        fadeOut: Boolean = _sleepTimerFadeOut.value
+        fadeOut: Boolean = _sleepTimerFadeOut.value,
+        fadeSeconds: Int = _sleepTimerFadeSeconds.value
     ) {
         sleepTimerJob?.cancel()
         val effectiveDurationMs = if (durationMs == -1L) {
@@ -243,12 +289,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         _sleepTimerEndMs.value = SystemClock.elapsedRealtime() + effectiveDurationMs
         sleepTimerJob = viewModelScope.launch {
-            val fadeMs = if (fadeOut) 30_000L.coerceAtMost(effectiveDurationMs / 2) else 0L
+            val fadeMs = if (fadeOut) (fadeSeconds * 1000L).coerceAtMost(effectiveDurationMs / 2) else 0L
             val preFadeMs = (effectiveDurationMs - fadeMs).coerceAtLeast(0L)
             if (preFadeMs > 0) {
                 delay(preFadeMs)
             }
             if (fadeOut && fadeMs > 0) {
+                sleepFading = true
                 val initialVol = repository.getVolume()
                 val steps = 20
                 val stepDelay = fadeMs / steps
@@ -259,6 +306,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (playbackState.value.isPlaying) togglePlayPause()
                 repository.setVolume(initialVol)
+                sleepFading = false
             } else {
                 if (playbackState.value.isPlaying) togglePlayPause()
             }
@@ -288,13 +336,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _positionMs.value = positionMs
     }
 
-    fun startListeningRoom() = listeningRoomRepository.startRoom()
+    fun startListeningRoom() = listeningRoomRepository.startRoom { playbackState.value.currentSong }
     fun findNearbyListeningRooms() = listeningRoomRepository.findNearbyRooms()
     fun joinListeningRoom(room: NearbyListeningRoom) = listeningRoomRepository.joinRoom(room)
-    fun leaveListeningRoom() = listeningRoomRepository.leaveRoom()
+    fun joinListeningRoomManually(address: String) = listeningRoomRepository.joinRoomManually(address)
+    fun leaveListeningRoom() {
+        cachedGuestLibrary = null
+        listeningRoomRepository.leaveRoom()
+    }
 
-    // Optimistic: flips immediately, reverts on failure. Doesn't retroactively update
-    // the Library list row, that corrects itself on the next refresh.
     fun toggleFavoriteForCurrentSong() {
         val song = playbackState.value.currentSong ?: return
         val newValue = !_isCurrentSongFavorite.value
@@ -302,6 +352,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             runCatching {
                 librariesBySource[song.source]?.setFavorite(song.id, newValue)
+                if (newValue && appPreferences.value.autoCacheFavorites && song.source != MusicSource.Local) {
+                    `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
+                }
             }.onFailure { _isCurrentSongFavorite.value = !newValue }
         }
     }
@@ -312,6 +365,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             var tick = 0
             while (true) {
                 _positionMs.value = repository.currentPositionMs()
+                applyCrossfade()
                 playbackState.value.currentSong?.let { song ->
                     val bucket = ListeningBucket(YearMonth.now().toString(), song.id)
                     accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + POSITION_TICK_MS
@@ -359,6 +413,16 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun applyCrossfade() {
+        val fadeMs = appPreferences.value.crossfadeSeconds * 1000L
+        val dur = playbackState.value.durationMs
+        if (fadeMs <= 0 || dur <= 0 || sleepFading) return
+        val pos = _positionMs.value
+        val fadeIn = (pos.toFloat() / fadeMs).coerceIn(0f, 1f)
+        val fadeOut = ((dur - pos).toFloat() / fadeMs).coerceIn(0f, 1f)
+        repository.setCrossfadeFraction(minOf(fadeIn, fadeOut))
+    }
+
     private fun stopTicker() {
         tickerJob?.cancel()
         tickerJob = null
@@ -382,12 +446,20 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    // Snapshots arrive every couple seconds (immediately on host state changes, too), and a
+    // full library re-scan (MediaStore + any Subsonic/Jellyfin calls) on every single one was
+    // the actual cause of a multi-second lag before a guest's playback updated. The guest's own
+    // library doesn't change mid-session, so fetch it once per room and reuse it.
+    private var cachedGuestLibrary: List<Song>? = null
+
     private suspend fun applyRoomSnapshot(snapshot: RoomSnapshot) {
-        val available = librariesBySource.values.flatMap { library ->
+        val available = cachedGuestLibrary ?: librariesBySource.values.flatMap { library ->
             runCatching { library.getSongs() }.getOrDefault(emptyList())
-        }
+        }.also { cachedGuestLibrary = it }
+        val hostIp = listeningRoomRepository.guestHostAddress
         val resolved = snapshot.tracks.mapNotNull { track ->
             available.firstOrNull { it.matchesRoomTrack(track) }
+                ?: snapshot.audioPort?.let { port -> hostIp?.let { ip -> track.toRelaySong(ip, port) } }
         }
         if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, snapshot.positionMs, snapshot.isPlaying)
     }
@@ -410,3 +482,21 @@ private fun Song.matchesRoomTrack(track: RoomTrack): Boolean =
         abs(durationMs - track.durationMs) <= 2_000L
 
 private fun roomKey(value: String): String = value.trim().lowercase()
+
+// Built when a guest has no local/server copy of a track: contentUri points at the host's
+// own RoomAudioServer, which always serves whatever it's currently playing. The `song` query
+// param is unused server-side; it only exists so the player opens a fresh connection whenever
+// the underlying track changes, instead of reusing a stale one.
+private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int): Song {
+    val id = "listeningroom:${roomKey(title)}_${roomKey(artist)}_$durationMs"
+    return Song(
+        id = id,
+        title = title,
+        artist = artist,
+        album = album,
+        albumId = id,
+        durationMs = durationMs,
+        contentUri = Uri.parse("http://$hostIp:$audioPort/stream?song=${Uri.encode(id)}"),
+        source = MusicSource.ListeningRoomHost
+    )
+}

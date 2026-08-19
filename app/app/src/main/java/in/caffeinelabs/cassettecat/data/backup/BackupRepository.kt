@@ -18,9 +18,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-
-private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 // Credentials (data/streaming/CredentialStore.kt) are deliberately excluded: their AES key
 // lives in Android Keystore, is hardware-backed, and can't be exported or survive an
@@ -70,12 +68,12 @@ class BackupRepository(private val context: Context) {
             listeningMilestones = statsRepository.milestones.first(),
             streamingServers = streamingServers
         )
-        json.encodeToString(bundle)
+        sharedJson.encodeToString(bundle)
     }
 
     suspend fun restoreBackup(content: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val bundle = json.decodeFromString<BackupBundle>(content)
+            val bundle = sharedJson.decodeFromString<BackupBundle>(content)
 
             ExternalService.entries.forEach { service ->
                 serviceSettingsRepository.setEnabled(service, bundle.serviceSettings.isEnabled(service))

@@ -90,10 +90,22 @@ class PlaybackService : MediaSessionService() {
             }
         })
 
+        val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(this)
+
         serviceScope.launch {
             favoritesRepository.favoriteIds.collect { ids ->
                 currentFavoriteIds = ids
                 mediaSession?.player?.let { p -> updateNotificationLayout(p) }
+            }
+        }
+
+        serviceScope.launch {
+            appPreferencesRepository.preferences.collect { prefs ->
+                player.setHandleAudioBecomingNoisy(prefs.pauseOnHeadphoneDisconnect)
+                val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setMaxAudioChannelCount(maxChannels)
+                    .build()
             }
         }
 

@@ -12,18 +12,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class WifiDevicePairingRepository(private val context: Context) : DevicePairingRepository {
+class WifiDevicePairingRepository(private val context: Context) {
     private val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
     private val apiClient = CompanionApiClient()
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
     private val _pairingState = MutableStateFlow<DevicePairingState>(DevicePairingState.SelectingMode)
-    override val pairingState: StateFlow<DevicePairingState> = _pairingState.asStateFlow()
+    val pairingState: StateFlow<DevicePairingState> = _pairingState.asStateFlow()
 
     private var discoveryListener: NsdManager.DiscoveryListener? = null
     private var searchJob: Job? = null
 
-    override fun startDiscovery(mode: DeviceConnectionType) {
+    fun startDiscovery(mode: DeviceConnectionType) {
         stopDiscovery()
         _pairingState.value = DevicePairingState.Searching(mode)
 
@@ -65,14 +65,14 @@ class WifiDevicePairingRepository(private val context: Context) : DevicePairingR
         }
     }
 
-    override fun stopDiscovery() {
+    fun stopDiscovery() {
         searchJob?.cancel()
         searchJob = null
         stopMdnsDiscovery()
         _pairingState.value = DevicePairingState.SelectingMode
     }
 
-    override suspend fun connect(device: DiscoveredDevice) {
+    suspend fun connect(device: DiscoveredDevice) {
         _pairingState.value = DevicePairingState.Connecting(device)
         val status = apiClient.getStatus(device.host, device.port)
         if (status != null) {

@@ -17,7 +17,6 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,7 +54,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,7 +63,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.drawable.toBitmap
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -239,70 +236,6 @@ fun LyricShareSheet(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ShareActionPill(
-    iconRes: Int,
-    label: String,
-    packageNames: List<String> = emptyList(),
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    backgroundBrush: Brush? = null,
-    iconTint: Color = Color.White,
-    onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val installedAppIcon = remember(packageNames) {
-        packageNames.firstNotNullOfOrNull { pkg ->
-            try {
-                val drawable = context.packageManager.getApplicationIcon(pkg)
-                drawable.toBitmap(width = 128, height = 128).asImageBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .tapScale(onClick)
-            .padding(4.dp)
-    ) {
-        if (installedAppIcon != null) {
-            Image(
-                bitmap = installedAppIcon,
-                contentDescription = label,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .then(
-                        if (backgroundBrush != null) Modifier.background(backgroundBrush)
-                        else Modifier.background(backgroundColor)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = label,
-                    tint = iconTint,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

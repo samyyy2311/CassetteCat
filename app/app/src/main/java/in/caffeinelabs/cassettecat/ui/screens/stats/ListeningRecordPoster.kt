@@ -1,16 +1,41 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
-import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
 import android.graphics.Typeface
-import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileOutputStream
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareActionPill
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImageWithApp
 import java.util.Locale
 
 internal fun buildListeningRecordPoster(
@@ -101,17 +126,85 @@ internal fun buildListeningRecordPoster(
     return bitmap
 }
 
-internal fun shareListeningRecordPoster(context: Context, bitmap: Bitmap, title: String) {
-    val dir = File(context.cacheDir, "shared_images").apply { mkdirs() }
-    val file = File(dir, "listening_record_${title.replace(' ', '_')}.png")
-    FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "image/png"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ListeningRecordShareSheet(bitmap: Bitmap, title: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Share", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                PressDepthIconButton(iconRes = R.drawable.lucide_ic_x, contentDescription = "Close", onClick = onDismiss)
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(20.dp))
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ShareActionPill(
+                    iconRes = AppR.drawable.ic_logo_whatsapp,
+                    label = "WhatsApp",
+                    packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
+                    backgroundColor = Color(0xFF25D366),
+                    iconTint = Color.White,
+                    onClick = {
+                        val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
+                            runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
+                        } ?: "com.whatsapp"
+                        shareImageWithApp(context, bitmap, title, targetPkg)
+                    }
+                )
+                ShareActionPill(
+                    iconRes = AppR.drawable.ic_logo_instagram,
+                    label = "Stories",
+                    packageNames = listOf("com.instagram.android"),
+                    backgroundBrush = Brush.linearGradient(
+                        listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
+                    ),
+                    iconTint = Color.White,
+                    onClick = { shareImageWithApp(context, bitmap, title, "com.instagram.android") }
+                )
+                ShareActionPill(
+                    iconRes = R.drawable.lucide_ic_share_2,
+                    label = "More",
+                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    iconTint = MaterialTheme.colorScheme.onSurface,
+                    onClick = { shareImageWithApp(context, bitmap, title, null) }
+                )
+            }
+        }
     }
-    context.startActivity(Intent.createChooser(intent, null))
 }
 
 private fun truncateText(paint: Paint, text: String, maxWidth: Float): String {

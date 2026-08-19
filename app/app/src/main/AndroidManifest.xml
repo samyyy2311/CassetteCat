@@ -39,7 +39,8 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.CassetteCat"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true">
 
         <activity
             android:name=".MainActivity"

@@ -2,19 +2,18 @@ package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 private const val API_BASE = "https://api.listenbrainz.org/1"
 private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 private data class ValidateTokenResponse(
@@ -56,7 +55,7 @@ class ListenBrainzClient {
             sharedHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body.string()
-                val parsed = json.decodeFromString<ValidateTokenResponse>(body)
+                val parsed = sharedJson.decodeFromString<ValidateTokenResponse>(body)
                 if (parsed.valid) parsed.userName else null
             }
         }.getOrNull()
@@ -83,7 +82,7 @@ class ListenBrainzClient {
                 .url("$API_BASE/submit-listens")
                 .header("Authorization", "Token ${token.trim()}")
                 .header("User-Agent", "CassetteCat/1.0.0")
-                .post(json.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
+                .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
                 .build()
 
             sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
@@ -111,7 +110,7 @@ class ListenBrainzClient {
                 .url("$API_BASE/submit-listens")
                 .header("Authorization", "Token ${token.trim()}")
                 .header("User-Agent", "CassetteCat/1.0.0")
-                .post(json.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
+                .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
                 .build()
 
             sharedHttpClient.newCall(request).execute().use { it.isSuccessful }

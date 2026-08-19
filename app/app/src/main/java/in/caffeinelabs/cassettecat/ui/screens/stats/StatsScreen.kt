@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -90,6 +91,7 @@ fun StatsScreen(
 
     var showClearConfirm by remember { mutableStateOf(false) }
     var showAllMostPlayed by rememberSaveable { mutableStateOf(false) }
+    var sharePreview by remember { mutableStateOf<Pair<Bitmap, String>?>(null) }
 
     val availableMonths = remember(monthlyStats) {
         monthlyStats.keys.mapNotNull { runCatching { YearMonth.parse(it) }.getOrNull() }.sortedDescending()
@@ -211,7 +213,7 @@ fun StatsScreen(
                             topSongs = computed.topSongs.take(5).map { Triple(it.song.title, it.song.artist, it.playCount) },
                             isRewind = isRewindMode
                         )
-                        shareListeningRecordPoster(context, bitmap, titleLabel)
+                        sharePreview = bitmap to titleLabel
                     }
                 )
             }
@@ -312,6 +314,10 @@ fun StatsScreen(
                 TextButton(onClick = hapticClick { showClearConfirm = false }) { Text("Cancel") }
             }
         )
+    }
+
+    sharePreview?.let { (bitmap, title) ->
+        ListeningRecordShareSheet(bitmap = bitmap, title = title, onDismiss = { sharePreview = null })
     }
 }
 

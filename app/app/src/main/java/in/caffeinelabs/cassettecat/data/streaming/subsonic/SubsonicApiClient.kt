@@ -2,7 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.subsonic
 
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -19,7 +19,6 @@ class SubsonicApiClient(
     private val password: String
 ) {
     private val baseUrl = serverUrl.trimEnd('/')
-    private val json = Json { ignoreUnknownKeys = true }
     private val salt = UUID.randomUUID().toString().replace("-", "").take(12)
     private val token: String by lazy { md5Hex(password + salt) }
 
@@ -74,7 +73,7 @@ class SubsonicApiClient(
         val url = urlBuilder(path).apply(configure).build()
         val response = sharedHttpClient.newCall(Request.Builder().url(url).build()).await()
         val body = response.use { it.body.string() }
-        val result = json.decodeFromString(SubsonicEnvelope.serializer(), body).response
+        val result = sharedJson.decodeFromString(SubsonicEnvelope.serializer(), body).response
         if (result.status != "ok") {
             throw SubsonicApiException(result.error?.message ?: "Subsonic request to $path failed")
         }

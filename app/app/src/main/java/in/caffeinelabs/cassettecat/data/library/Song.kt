@@ -8,6 +8,10 @@ sealed interface MusicSource {
     data object Local : MusicSource
     data object Subsonic : MusicSource
     data object Jellyfin : MusicSource
+    // A track relayed live from a Listening Room host because the guest has no local or
+    // server copy of it. contentUri points at the host's own ephemeral relay, not a
+    // persistent server, so it isn't a real download/share/edit target.
+    data object ListeningRoomHost : MusicSource
 }
 
 data class Song(

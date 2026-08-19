@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.navigation.CassetteCatNavHost
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
@@ -37,7 +43,14 @@ class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
         setContent {
-            CassetteCatTheme {
+            val context = LocalContext.current
+            val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+            val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+
+            CassetteCatTheme(
+                accent = preferences.themeAccent,
+                isAmoled = preferences.amoledDarkTheme
+            ) {
                 // Navigation owns safe insets per surface so immersive views can intentionally
                 // draw behind the system bars without changing ordinary screens.
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

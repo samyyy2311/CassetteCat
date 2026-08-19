@@ -3,7 +3,6 @@ package `in`.caffeinelabs.cassettecat.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -128,18 +127,12 @@ fun QueueList(
 
     val fadeStart by animateFloatAsState(
         targetValue = if (controlsVisible) 0.48f else 0.85f,
-        animationSpec = spring(
-            dampingRatio = 0.86f,
-            stiffness = 400f
-        ),
+        animationSpec = tween(220, easing = SmoothEasing),
         label = "queueFadeStart"
     )
     val fadeEnd by animateFloatAsState(
         targetValue = if (controlsVisible) 0.65f else 0.98f,
-        animationSpec = spring(
-            dampingRatio = 0.86f,
-            stiffness = 400f
-        ),
+        animationSpec = tween(220, easing = SmoothEasing),
         label = "queueFadeEnd"
     )
 

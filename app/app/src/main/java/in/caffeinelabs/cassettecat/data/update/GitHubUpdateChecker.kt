@@ -1,13 +1,11 @@
 package `in`.caffeinelabs.cassettecat.data.update
 
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import okhttp3.Request
-
-private val json = Json { ignoreUnknownKeys = true }
 private const val RELEASES_URL = "https://api.github.com/repos/samyyy2311/CassetteCat/releases/latest"
 
 @Serializable
@@ -27,7 +25,7 @@ class GitHubUpdateChecker {
                 if (!it.isSuccessful) return@runCatching UpdateCheckResult.Error
                 it.body.string()
             }
-            val release = json.decodeFromString<GitHubRelease>(body)
+            val release = sharedJson.decodeFromString<GitHubRelease>(body)
             val latestVersion = release.tag_name.removePrefix("v")
             if (isNewer(latestVersion, currentVersion)) {
                 UpdateCheckResult.UpdateAvailable(latestVersion, release.html_url)

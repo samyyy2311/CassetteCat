@@ -7,6 +7,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
@@ -14,6 +17,7 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -22,6 +26,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -31,6 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +62,8 @@ internal fun AlbumArtCarousel(
     onSwipePrevious: () -> Unit,
     collapsedArtRect: State<Rect?>?,
     expandFraction: Float,
+    onDoubleTapSeek: ((Boolean) -> Unit)? = null,
+    onSwipeUp: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
@@ -95,6 +106,8 @@ internal fun AlbumArtCarousel(
                 song = windowSongs[page],
                 collapsedArtRect = if (isCurrentSong) collapsedArtRect else null,
                 expandFraction = if (isCurrentSong) expandFraction else 1f,
+                onDoubleTapSeek = if (isCurrentSong) onDoubleTapSeek else null,
+                onSwipeUp = if (isCurrentSong) onSwipeUp else null,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -106,8 +119,16 @@ internal fun AlbumArtCard(
     song: Song,
     collapsedArtRect: State<Rect?>? = null,
     expandFraction: Float = 1f,
+    onDoubleTapSeek: ((Boolean) -> Unit)? = null,
+    onSwipeUp: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val cornerRadius = preferences.albumArtCornerRadiusDp.dp
+    val haptics = LocalHapticFeedback.current
+
     var expandedArtRect by remember(song.id) { mutableStateOf<Rect?>(null) }
     val targetRect = expandedArtRect
     Box(
@@ -115,6 +136,41 @@ internal fun AlbumArtCard(
             .onGloballyPositioned { coordinates ->
                 val bounds = coordinates.boundsInWindow()
                 if (expandedArtRect != bounds) expandedArtRect = bounds
+            }
+            .pointerInput(preferences.doubleTapSeekEnabled) {
+                if (preferences.doubleTapSeekEnabled) {
+                    detectTapGestures(
+                        onDoubleTap = { offset ->
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            val isForward = offset.x > size.width / 2f
+                            onDoubleTapSeek?.invoke(isForward)
+                        }
+                    )
+                }
+            }
+            .pointerInput(preferences.swipeUpLyricsEnabled) {
+                if (preferences.swipeUpLyricsEnabled && onSwipeUp != null) {
+                    val slop = viewConfiguration.touchSlop
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        var totalDragY = 0f
+                        var claimed = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (change.changedToUpIgnoreConsumed()) {
+                                if (claimed && totalDragY < -80f) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onSwipeUp.invoke()
+                                }
+                                break
+                            }
+                            totalDragY += change.positionChange().y
+                            if (!claimed && totalDragY <= -slop) claimed = true
+                            if (claimed) change.consume() else if (totalDragY >= slop) break
+                        }
+                    }
+                }
             }
             .graphicsLayer {
                 val sourceRect = collapsedArtRect?.value
@@ -137,7 +193,7 @@ internal fun AlbumArtCard(
                 transformOrigin = TransformOrigin(0f, 0f)
             }
     ) {
-        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(22.dp))) {
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadius))) {
             AlbumArt(song = song, modifier = Modifier.fillMaxSize())
             Box(
                 modifier = Modifier.matchParentSize().background(
@@ -154,6 +210,9 @@ internal fun AlbumArtCard(
 
 @Composable
 internal fun NowPlayingBackdrop(song: Song) {
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
     val transition = rememberInfiniteTransition(label = "artworkAtmosphere")
     val drift by transition.animateFloat(
         initialValue = 0f,
@@ -172,19 +231,21 @@ internal fun NowPlayingBackdrop(song: Song) {
             .fillMaxSize()
             .background(Color(0xFF0E0D10))
     ) {
-        AlbumArt(
-            song = song,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(72.dp)
-                .graphicsLayer {
-                    alpha = 0.68f
-                    scaleX = 2.2f
-                    scaleY = 2.2f
-                    translationX = (drift - 0.5f) * horizontalDrift
-                    translationY = (0.5f - drift) * verticalDrift
-                }
-        )
+        if (preferences.showNowPlayingBlur) {
+            AlbumArt(
+                song = song,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(72.dp)
+                    .graphicsLayer {
+                        alpha = 0.68f
+                        scaleX = 2.2f
+                        scaleY = 2.2f
+                        translationX = (drift - 0.5f) * horizontalDrift
+                        translationY = (0.5f - drift) * verticalDrift
+                    }
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

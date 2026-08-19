@@ -76,7 +76,7 @@ fun ScrobbleSettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, top = 24.dp, end = 24.dp, bottom = 16.dp),
+                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)

@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import android.provider.OpenableColumns
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -75,11 +76,15 @@ fun LibraryScreen(
     val playlists by playlistViewModel.playlists.collectAsState()
     val loadedState = uiState as? LibraryUiState.Loaded
     val isRefreshing = uiState is LibraryUiState.Loading
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
+
     var showSortSheet by remember { mutableStateOf(false) }
     var sortTarget by remember { mutableStateOf(LibraryViewMode.SONGS) }
     var showFilterSheet by remember { mutableStateOf(false) }
     var showNewPlaylistSheet by remember { mutableStateOf(false) }
-    val pagerState = rememberPagerState { LibraryViewMode.entries.size }
+    val pagerState = rememberPagerState(initialPage = preferences.defaultLibraryTab.pageIndex) { LibraryViewMode.entries.size }
     val pagerScope = rememberCoroutineScope()
     val songListState = rememberLazyListState()
     val songGridState = rememberLazyGridState()
@@ -91,20 +96,22 @@ fun LibraryScreen(
     val genreListState = rememberLazyListState()
     val playlistListState = rememberLazyListState()
     val viewMode = LibraryViewMode.entries[pagerState.currentPage]
-    var collectionLayout by rememberSaveable { mutableStateOf(CollectionLayout.GRID) }
-    var artistSortOrder by rememberSaveable { mutableStateOf(ArtistSortOrder.NAME) }
-    var artistSortDirection by rememberSaveable { mutableStateOf(SortDirection.ASCENDING) }
-    var albumSortOrder by rememberSaveable { mutableStateOf(AlbumSortOrder.ALBUM) }
-    var albumSortDirection by rememberSaveable { mutableStateOf(SortDirection.ASCENDING) }
-    var genreSortOrder by rememberSaveable { mutableStateOf(GenreSortOrder.NAME) }
-    var genreSortDirection by rememberSaveable { mutableStateOf(SortDirection.ASCENDING) }
+    val collectionLayout by viewModel.collectionLayout.collectAsState()
+    val artistSortOrder by viewModel.artistSortOrder.collectAsState()
+    val artistSortDirection by viewModel.artistSortDirection.collectAsState()
+    val albumSortOrder by viewModel.albumSortOrder.collectAsState()
+    val albumSortDirection by viewModel.albumSortDirection.collectAsState()
+    val genreSortOrder by viewModel.genreSortOrder.collectAsState()
+    val genreSortDirection by viewModel.genreSortDirection.collectAsState()
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    var songFilter by rememberSaveable { mutableStateOf(SongFilter.ALL) }
+    val songFilter by viewModel.songFilter.collectAsState()
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var editingSong by remember { mutableStateOf<Song?>(null) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
-    val context = LocalContext.current
+    BackHandler(enabled = selectionMode) {
+        selectedIds = emptySet()
+    }
     val favoritesRepository = remember { FavoritesRepository(context) }
     val favoriteIds by favoritesRepository.favoriteIds.collectAsState(initial = emptySet())
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
@@ -193,7 +200,7 @@ fun LibraryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp),
+                    .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (selectionMode) {
@@ -276,7 +283,7 @@ fun LibraryScreen(
                         iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
                         contentDescription = if (collectionLayout == CollectionLayout.GRID) "Use list layout" else "Use artwork layout",
                         onClick = {
-                            collectionLayout = if (collectionLayout == CollectionLayout.GRID) CollectionLayout.LIST else CollectionLayout.GRID
+                            viewModel.setCollectionLayout(if (collectionLayout == CollectionLayout.GRID) CollectionLayout.LIST else CollectionLayout.GRID)
                         }
                     )
                     if (viewMode != LibraryViewMode.PLAYLISTS && loadedState != null) {
@@ -453,12 +460,7 @@ fun LibraryScreen(
                 selected = artistSortOrder,
                 direction = artistSortDirection,
                 onSelect = { order ->
-                    if (order == artistSortOrder) {
-                        artistSortDirection = artistSortDirection.flipped()
-                    } else {
-                        artistSortOrder = order
-                        artistSortDirection = SortDirection.ASCENDING
-                    }
+                    viewModel.setArtistSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.ARTISTS)
                 },
                 onDismiss = { showSortSheet = false }
@@ -470,12 +472,7 @@ fun LibraryScreen(
                 selected = albumSortOrder,
                 direction = albumSortDirection,
                 onSelect = { order ->
-                    if (order == albumSortOrder) {
-                        albumSortDirection = albumSortDirection.flipped()
-                    } else {
-                        albumSortOrder = order
-                        albumSortDirection = SortDirection.ASCENDING
-                    }
+                    viewModel.setAlbumSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.ALBUMS)
                 },
                 onDismiss = { showSortSheet = false }
@@ -487,12 +484,7 @@ fun LibraryScreen(
                 selected = genreSortOrder,
                 direction = genreSortDirection,
                 onSelect = { order ->
-                    if (order == genreSortOrder) {
-                        genreSortDirection = genreSortDirection.flipped()
-                    } else {
-                        genreSortOrder = order
-                        genreSortDirection = SortDirection.ASCENDING
-                    }
+                    viewModel.setGenreSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.GENRES)
                 },
                 onDismiss = { showSortSheet = false }
@@ -506,7 +498,7 @@ fun LibraryScreen(
         SongFilterSheet(
             selected = songFilter,
             onSelect = {
-                songFilter = it
+                viewModel.setSongFilter(it)
                 showFilterSheet = false
             },
             onDismiss = { showFilterSheet = false }

@@ -1,0 +1,25 @@
+Categories:
+  - Multimedia
+License: GPL-3.0-or-later
+AuthorName: Caffeine Labs
+SourceCode: https://github.com/samyyy2311/CassetteCat
+IssueTracker: https://github.com/samyyy2311/CassetteCat/issues
+Changelog: https://github.com/samyyy2311/CassetteCat/releases
+
+AutoName: CassetteCat
+
+RepoType: git
+Repo: https://github.com/samyyy2311/CassetteCat.git
+
+Builds:
+  - versionName: 1.1.0
+    versionCode: 2
+    commit: d06375fe6d1a906a4ef4603afc8c033b1bd88bd5
+    subdir: app/app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.1.0
+CurrentVersionCode: 2

@@ -1,14 +1,12 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import okhttp3.Request
-
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 private data class WikipediaSummary(val extract: String? = null)
@@ -63,7 +61,7 @@ class WikipediaInfoLoader {
                 if (!it.isSuccessful) return@runCatching null
                 it.body.string()
             }
-            json.decodeFromString<WikipediaSummary>(body).extract?.trim()?.ifEmpty { null }
+            sharedJson.decodeFromString<WikipediaSummary>(body).extract?.trim()?.ifEmpty { null }
         }.getOrNull()
     }
 
@@ -78,7 +76,7 @@ class WikipediaInfoLoader {
                 if (!it.isSuccessful) return@runCatching null
                 it.body.string()
             }
-            json.decodeFromString<AudioDbBiographyResponse>(body)
+            sharedJson.decodeFromString<AudioDbBiographyResponse>(body)
                 .artists
                 ?.firstOrNull()
                 ?.strBiographyEN

@@ -23,6 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +41,8 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
+import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -46,6 +51,7 @@ val externalServices = ExternalService.entries.filter { it != ExternalService.GI
 
 @Composable
 fun SettingsScreen(
+    playbackViewModel: PlaybackViewModel,
     onConnectServer: (StreamingProtocol) -> Unit,
     onNavigateToStats: () -> Unit,
     onManageScanFolders: () -> Unit,
@@ -55,6 +61,7 @@ fun SettingsScreen(
     onNavigateToDownloads: () -> Unit,
     onNavigateToSleepTimer: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
+    onNavigateToCustomization: () -> Unit = {},
     onNavigateToPairing: () -> Unit = {},
     onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
@@ -69,20 +76,30 @@ fun SettingsScreen(
     }
     val uiState by viewModel.uiState.collectAsState()
     val updateCheckResult by viewModel.updateCheckResult.collectAsState()
+    val listeningRoom by playbackViewModel.listeningRoom.collectAsState()
+    var showListeningRoom by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 24.dp)
+            .padding(top = 8.dp)
     ) {
         val enabledServices = externalServices.count { uiState.services.isEnabled(it) }
 
         SettingsHeader()
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
 
         // 1. Audio & Playback
         SettingsSection(title = "Audio & Playback") {
+            NavigationRow(
+                title = "Customisation",
+                subtitle = "Startup tab, home feed, audio, and display",
+                iconRes = R.drawable.lucide_ic_palette,
+                iconTint = Color(0xFF38BDF8),
+                onClick = onNavigateToCustomization
+            )
+            SettingsDivider()
             NavigationRow(
                 title = "Sleep timer",
                 subtitle = "Stop playback after a set time",
@@ -189,6 +206,14 @@ fun SettingsScreen(
                 iconTint = Color.Unspecified,
                 onClick = onNavigateToScrobbling
             )
+            SettingsDivider()
+            NavigationRow(
+                title = "Listening Room",
+                subtitle = "Share playback with people on this Wi-Fi",
+                iconRes = R.drawable.lucide_ic_users,
+                iconTint = Color(0xFFC23B30),
+                onClick = { showListeningRoom = true }
+            )
         }
 
         Spacer(Modifier.height(20.dp))
@@ -273,6 +298,18 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))
+    }
+
+    if (showListeningRoom) {
+        ListeningRoomSheet(
+            state = listeningRoom,
+            onStart = playbackViewModel::startListeningRoom,
+            onFindNearby = playbackViewModel::findNearbyListeningRooms,
+            onJoin = playbackViewModel::joinListeningRoom,
+            onJoinManual = playbackViewModel::joinListeningRoomManually,
+            onLeave = playbackViewModel::leaveListeningRoom,
+            onDismiss = { showListeningRoom = false }
+        )
     }
 }
 

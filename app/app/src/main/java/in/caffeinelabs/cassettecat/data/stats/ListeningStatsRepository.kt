@@ -8,11 +8,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 private val Context.statsDataStore by preferencesDataStore(name = "listening_stats")
 private val STATS_KEY = stringPreferencesKey("stats_json")
-private val json = Json { ignoreUnknownKeys = true }
 
 private val MINUTE_MILESTONES = listOf(60L, 300L, 1000L, 5000L, 10000L, 50000L)
 private val PLAY_MILESTONES = listOf(50L, 250L, 1000L, 5000L, 10000L)
@@ -75,7 +74,7 @@ class ListeningStatsRepository(private val context: Context) {
 
     // backup restore only: full replace, not a merge
     suspend fun replaceAll(monthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
-        context.statsDataStore.edit { it[STATS_KEY] = json.encodeToString(StatsData(monthly, milestones)) }
+        context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(monthly, milestones)) }
     }
 
     private fun withNewMilestones(
@@ -90,9 +89,9 @@ class ListeningStatsRepository(private val context: Context) {
     }
 
     private suspend fun update(transform: (StatsData) -> StatsData) {
-        context.statsDataStore.edit { prefs -> prefs[STATS_KEY] = json.encodeToString(transform(prefs.decode())) }
+        context.statsDataStore.edit { prefs -> prefs[STATS_KEY] = sharedJson.encodeToString(transform(prefs.decode())) }
     }
 
     private fun Preferences.decode(): StatsData =
-        this[STATS_KEY]?.let { runCatching { json.decodeFromString<StatsData>(it) }.getOrNull() } ?: StatsData()
+        this[STATS_KEY]?.let { runCatching { sharedJson.decodeFromString<StatsData>(it) }.getOrNull() } ?: StatsData()
 }

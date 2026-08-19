@@ -10,11 +10,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 private val Context.playlistDataStore by preferencesDataStore(name = "playlists")
 private val PLAYLISTS_KEY = stringPreferencesKey("playlists_json")
-private val json = Json { ignoreUnknownKeys = true }
 
 enum class PlaylistCoverType { NONE, IMAGE, ICON, EMOJI }
 
@@ -72,9 +71,9 @@ class PlaylistRepository(private val context: Context) {
     }
 
     private suspend fun update(transform: (List<Playlist>) -> List<Playlist>) {
-        context.playlistDataStore.edit { prefs -> prefs[PLAYLISTS_KEY] = json.encodeToString(transform(prefs.decode())) }
+        context.playlistDataStore.edit { prefs -> prefs[PLAYLISTS_KEY] = sharedJson.encodeToString(transform(prefs.decode())) }
     }
 
     private fun Preferences.decode(): List<Playlist> =
-        this[PLAYLISTS_KEY]?.let { runCatching { json.decodeFromString<List<Playlist>>(it) }.getOrNull() } ?: emptyList()
+        this[PLAYLISTS_KEY]?.let { runCatching { sharedJson.decodeFromString<List<Playlist>>(it) }.getOrNull() } ?: emptyList()
 }

@@ -8,11 +8,10 @@ import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.Request
 
 private const val MAX_CACHE_BYTES = 24 * 1024 * 1024
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 private data class MusicBrainzSearchResponse(
@@ -41,7 +40,7 @@ class CoverArtArchiveClient {
             val query = "release:${album.urlEncode()} AND artist:${artist.urlEncode()}"
             val mbUrl = "https://musicbrainz.org/ws/2/release/?query=$query&fmt=json&limit=3"
             val mbBody = getBody(mbUrl) ?: return@runCatching null
-            val response = json.decodeFromString<MusicBrainzSearchResponse>(mbBody)
+            val response = sharedJson.decodeFromString<MusicBrainzSearchResponse>(mbBody)
             val release = response.releases.firstOrNull() ?: return@runCatching null
 
             val caaUrl = "https://coverartarchive.org/release/${release.id}/front-500"

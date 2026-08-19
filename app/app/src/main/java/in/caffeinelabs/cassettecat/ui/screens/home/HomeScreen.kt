@@ -2,8 +2,6 @@ package `in`.caffeinelabs.cassettecat.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,25 +32,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
-import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRow
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRowSkeleton
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByAlbum
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.screens.library.rememberSkeletonColor
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
@@ -58,17 +61,47 @@ fun HomeScreen(
     libraryViewModel: LibraryViewModel,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToLibrary: () -> Unit,
+    onNavigateToArtist: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
     val playbackState by playbackViewModel.playbackState.collectAsState()
     val libraryState by libraryViewModel.uiState.collectAsState()
+    val monthlyStats by playbackViewModel.monthlyStats.collectAsState()
+
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
 
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val recentlyPlayed = playbackState.history
     val favorites = allSongs.filter { it.isFavorite }
     val shufflePicks = remember(allSongs) { allSongs.shuffled().take(8) }
     val heroSong = remember(allSongs) { allSongs.randomOrNull() }
+
+    val greeting = remember { getDynamicGreeting() }
+
+    val heavyRotation = remember(allSongs, monthlyStats) {
+        val counts = monthlyStats.values
+            .flatMap { it.songPlayCounts.entries }
+            .groupBy({ it.key }, { it.value })
+            .mapValues { it.value.sum() }
+        val songsById = allSongs.associateBy { it.id }
+        counts.entries
+            .filter { it.value > 0 && it.key in songsById }
+            .sortedByDescending { it.value }
+            .take(10)
+            .mapNotNull { songsById[it.key] }
+    }
+
+    val recentlyAdded = remember(allSongs) {
+        allSongs.sortedByDescending { it.dateAddedMs }.take(10)
+    }
+
+    val recentIds = remember(recentlyPlayed) { recentlyPlayed.map { it.id }.toSet() }
+    val forgottenFavorites = remember(favorites, recentIds) {
+        favorites.filter { it.id !in recentIds }.take(10)
+    }
 
     fun play(songs: List<Song>, song: Song) {
         val index = songs.indexOfFirst { it.id == song.id }
@@ -85,20 +118,20 @@ fun HomeScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(top = 24.dp)) {
+    Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                "Home",
+                greeting,
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
                 "Quick picks, recently played, and your favorites",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
 
         if (libraryState is LibraryUiState.Loading) {
             HomeSkeletonContent(listBottomPadding = listBottomPadding)
@@ -112,7 +145,7 @@ fun HomeScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(bottom = listBottomPadding)
+                contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
             ) {
                 item {
                     LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)
@@ -143,35 +176,74 @@ fun HomeScreen(
                     }
                     item { Spacer(Modifier.height(32.dp)) }
                 }
-                if (recentlyPlayed.isNotEmpty()) {
-                    item {
-                        HomeSongSection(
-                            title = "Recently Played",
-                            subtitle = "Pick up where you left off",
-                            songs = recentlyPlayed,
-                            onSongClick = { play(recentlyPlayed, it) },
-                            onPlay = { playAll(recentlyPlayed, shuffle = false) },
-                            onShuffle = { playAll(recentlyPlayed, shuffle = true) }
-                        )
-                        Spacer(Modifier.height(24.dp))
+                    if (preferences.showHomeHeavyRotation && heavyRotation.isNotEmpty()) {
+                        item {
+                            HomeSongSection(
+                                title = "Heavy Rotation",
+                                subtitle = "Your most played tracks",
+                                songs = heavyRotation,
+                                onSongClick = { play(heavyRotation, it) },
+                                onPlay = { playAll(heavyRotation, shuffle = false) },
+                                onShuffle = { playAll(heavyRotation, shuffle = true) }
+                            )
+                            Spacer(Modifier.height(32.dp))
+                        }
                     }
-                }
-                if (favorites.isNotEmpty()) {
-                    item {
-                        HomeSongSection(
-                            title = "Favorites",
-                            subtitle = "Songs you've loved",
-                            songs = favorites,
-                            onSongClick = { play(favorites, it) },
-                            onPlay = { playAll(favorites, shuffle = false) },
-                            onShuffle = { playAll(favorites, shuffle = true) }
-                        )
+                    if (preferences.showHomeRecentlyPlayed && recentlyPlayed.isNotEmpty()) {
+                        item {
+                            HomeSongSection(
+                                title = "Recently Played",
+                                subtitle = "Pick up where you left off",
+                                songs = recentlyPlayed,
+                                onSongClick = { play(recentlyPlayed, it) },
+                                onPlay = { playAll(recentlyPlayed, shuffle = false) },
+                                onShuffle = { playAll(recentlyPlayed, shuffle = true) }
+                            )
+                            Spacer(Modifier.height(32.dp))
+                        }
+                    }
+                    if (preferences.showHomeRecentlyAdded && recentlyAdded.isNotEmpty()) {
+                        item {
+                            HomeSongSection(
+                                title = "Recently Added",
+                                subtitle = "Fresh in your library",
+                                songs = recentlyAdded,
+                                onSongClick = { play(recentlyAdded, it) },
+                                onPlay = { playAll(recentlyAdded, shuffle = false) },
+                                onShuffle = { playAll(recentlyAdded, shuffle = true) }
+                            )
+                            Spacer(Modifier.height(32.dp))
+                        }
+                    }
+                    if (preferences.showHomeForgottenFavorites && forgottenFavorites.isNotEmpty() && forgottenFavorites.size >= 3) {
+                        item {
+                            HomeSongSection(
+                                title = "Forgotten Favorites",
+                                subtitle = "Rediscover what you loved",
+                                songs = forgottenFavorites,
+                                onSongClick = { play(forgottenFavorites, it) },
+                                onPlay = { playAll(forgottenFavorites, shuffle = false) },
+                                onShuffle = { playAll(forgottenFavorites, shuffle = true) }
+                            )
+                            Spacer(Modifier.height(32.dp))
+                        }
+                    }
+                    if (favorites.isNotEmpty()) {
+                        item {
+                            HomeSongSection(
+                                title = "Favorites",
+                                subtitle = "Songs you've loved",
+                                songs = favorites,
+                                onSongClick = { play(favorites, it) },
+                                onPlay = { playAll(favorites, shuffle = false) },
+                                onShuffle = { playAll(favorites, shuffle = true) }
+                            )
+                        }
                     }
                 }
             }
         }
     }
-}
 
 // Mirrors the summary, hero, and vertical Shuffle Picks list rather than using a generic spinner.
 @Composable
@@ -323,3 +395,58 @@ private fun ShufflePicksHeader() {
         )
     }
 }
+
+private fun getDynamicGreeting(): String {
+    val calendar = Calendar.getInstance()
+    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+    val isWeekend = dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+
+    val options = when (hour) {
+        in 5..8 -> listOf(
+            "Good morning",
+            "Early rise soundtrack",
+            "Morning coffee & tape",
+            "Start your day"
+        )
+        in 9..11 -> listOf(
+            "Good morning",
+            "Morning focus",
+            "The daily rotation",
+            "Morning soundscape",
+            if (isWeekend) "Weekend morning" else "Workday soundtrack"
+        )
+        in 12..16 -> listOf(
+            "Good afternoon",
+            "Afternoon session",
+            "Midday rhythm",
+            "Afternoon groove",
+            if (isWeekend) "Weekend afternoon" else "Afternoon flow"
+        )
+        in 17..21 -> listOf(
+            "Good evening",
+            "Golden hour grooves",
+            "Evening listening",
+            "Winding down",
+            "Nightfall frequencies",
+            if (isWeekend) "Saturday night session" else "Evening unwind"
+        )
+        in 22..23 -> listOf(
+            "Late night session",
+            "Midnight frequencies",
+            "Night owl tunes",
+            "Low-light listening",
+            "Late night rotation"
+        )
+        else -> listOf(
+            "Late night session",
+            "Deep night vibes",
+            "Midnight tape",
+            "Insomnia session",
+            "Quiet hours",
+            "After-hours rotation"
+        )
+    }
+    return options.random()
+}
+

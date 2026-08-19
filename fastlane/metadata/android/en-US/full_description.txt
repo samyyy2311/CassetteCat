@@ -1,0 +1,17 @@
+CassetteCat is a privacy-first, open-source Android music player engineered for local media ownership and self-hosted streaming.
+
+<b>Features:</b>
+• <b>Audio & Playback</b>: Built on AndroidX Media3 (ExoPlayer) with background playback, lock screen controls, and system media integration.
+• <b>Hardware DSP & EQ</b>: Parametric equalizer, bass boost, virtualizer, and loudness enhancer.
+• <b>Synchronized Lyrics</b>: Real-time karaoke-style lyrics powered by LRCLIB and embedded ID3 tags.
+• <b>Self-Hosted Streaming</b>: Connect seamlessly to your own Subsonic (Navidrome, Gonic, Airsonic) or Jellyfin music server.
+• <b>Offline Downloads</b>: Cache tracks for offline listening anywhere.
+• <b>Scrobbling</b>: Scrobble your plays to ListenBrainz and Libre.fm.
+• <b>Tactile Dark Design</b>: Clean industrial dark UI, dynamic artwork theming, and smooth haptic feedback.
+• <b>Ultra-HD Share Cards</b>: Generate 2160x2700 poster cards for tracks and lyrics excerpts.
+• <b>Home Screen Widget</b>: Control playback and view current album art directly from your home screen.
+
+<b>Privacy First:</b>
+• 100% local-first: Zero third-party trackers, zero telemetry, and zero Google Play Services dependencies.
+• Hardware-backed encryption via AndroidKeyStore for all streaming server credentials.
+• Free and open source licensed under GPL-3.0.

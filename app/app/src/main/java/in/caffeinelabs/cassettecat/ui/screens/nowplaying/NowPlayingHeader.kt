@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +46,10 @@ internal fun TitleRow(
     onCollapseRequest: () -> Unit = {},
     onHeaderDrag: (Float) -> Unit = {},
     onHeaderSpringBack: () -> Unit = {},
+    // Queue/Lyrics only: those views disable the scaffold's native sheet-swipe (it would fight
+    // list scrolling), so dragging their header is the only way back to the mini-player. The
+    // Player view keeps the native swipe active everywhere, so it opts out of this.
+    enableHeaderDrag: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -57,36 +62,35 @@ internal fun TitleRow(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (showThumbnail) {
+                if (enableHeaderDrag) {
                     Modifier.pointerInput(Unit) {
-                        val collapseThresholdPx = with(density) { HEADER_COLLAPSE_DRAG_THRESHOLD.toPx() }
-                        val flingVelocityPx = with(density) { HEADER_COLLAPSE_FLING_VELOCITY.toPx() }
-                        var netDragPx = 0f
-                        var velocityTracker = VelocityTracker()
+                        val thresholdPx = with(density) { HEADER_COLLAPSE_DRAG_THRESHOLD.toPx() }
+                        val flingThresholdPx = with(density) { HEADER_COLLAPSE_FLING_VELOCITY.toPx() }
+                        val velocityTracker = VelocityTracker()
+                        var totalDragPx = 0f
                         detectVerticalDragGestures(
                             onDragStart = {
-                                netDragPx = 0f
-                                velocityTracker = VelocityTracker()
+                                totalDragPx = 0f
+                                velocityTracker.resetTracking()
                             },
-                            onDragCancel = {
-                                netDragPx = 0f
-                                currentOnHeaderSpringBack()
+                            onVerticalDrag = { change, dragAmount ->
+                                if (dragAmount > 0f || totalDragPx > 0f) {
+                                    change.consume()
+                                    totalDragPx += dragAmount
+                                    currentOnHeaderDrag(dragAmount)
+                                    velocityTracker.addPointerInputChange(change)
+                                }
                             },
                             onDragEnd = {
                                 val flingVelocity = velocityTracker.calculateVelocity().y
-                                if (netDragPx > collapseThresholdPx || flingVelocity > flingVelocityPx) {
-                                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                if (totalDragPx > thresholdPx || flingVelocity > flingThresholdPx) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     currentOnCollapseRequest()
                                 } else {
                                     currentOnHeaderSpringBack()
                                 }
                             },
-                            onVerticalDrag = { change, dragAmount ->
-                                change.consume()
-                                netDragPx += dragAmount
-                                velocityTracker.addPosition(change.uptimeMillis, change.position)
-                                currentOnHeaderDrag(dragAmount)
-                            }
+                            onDragCancel = { currentOnHeaderSpringBack() }
                         )
                     }
                 } else {

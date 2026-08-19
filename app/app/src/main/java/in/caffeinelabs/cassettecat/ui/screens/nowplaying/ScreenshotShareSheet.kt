@@ -561,7 +561,7 @@ private fun LyricSharePreviewCard(
 }
 
 @Composable
-private fun ShareActionPill(
+internal fun ShareActionPill(
     iconRes: Int,
     label: String,
     packageNames: List<String> = emptyList(),
@@ -937,7 +937,7 @@ private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
     }
 }
 
-private fun shareImageWithApp(
+internal fun shareImageWithApp(
     context: Context,
     bitmap: Bitmap,
     title: String,

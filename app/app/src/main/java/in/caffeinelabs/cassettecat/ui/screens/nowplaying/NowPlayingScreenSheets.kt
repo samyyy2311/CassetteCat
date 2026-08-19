@@ -144,6 +144,7 @@ internal fun NowPlayingScreenSheetsHost(
             onStart = playbackViewModel::startListeningRoom,
             onFindNearby = playbackViewModel::findNearbyListeningRooms,
             onJoin = playbackViewModel::joinListeningRoom,
+            onJoinManual = playbackViewModel::joinListeningRoomManually,
             onLeave = playbackViewModel::leaveListeningRoom,
             onDismiss = { sheetState.showListeningRoom = false }
         )

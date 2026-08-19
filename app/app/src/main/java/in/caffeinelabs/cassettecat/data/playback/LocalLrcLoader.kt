@@ -15,19 +15,27 @@ import kotlinx.coroutines.withContext
 // present) and hands back a content:// Uri the app can actually open.
 class LocalLrcLoader(private val context: Context) {
     suspend fun loadFor(song: Song): List<LyricLine>? = withContext(Dispatchers.IO) {
-        val audioPath = song.filePath ?: return@withContext null
-        val lrcPath = File(audioPath).let { File(it.parentFile, it.nameWithoutExtension + ".lrc") }.absolutePath
+        val audioFile = song.filePath?.let(::File) ?: return@withContext null
+        val dir = audioFile.parentFile ?: return@withContext null
+        val candidates = listOf(
+            File(dir, audioFile.nameWithoutExtension + ".lrc"),
+            File(dir, "${song.artist} - ${song.title}.lrc"),
+            File(dir, "${song.title}.lrc")
+        )
 
+        candidates.firstOrNull { it.exists() }?.let { loadLrc(it.absolutePath) }
+    }
+
+    private suspend fun loadLrc(path: String): List<LyricLine>? {
         val uri = suspendCancellableCoroutine<Uri?> { cont ->
-            MediaScannerConnection.scanFile(context, arrayOf(lrcPath), null) { _, scannedUri ->
+            MediaScannerConnection.scanFile(context, arrayOf(path), null) { _, scannedUri ->
                 if (cont.isActive) cont.resume(scannedUri)
             }
         }
-
         val text = uri?.let {
             runCatching { context.contentResolver.openInputStream(it)?.bufferedReader()?.use { reader -> reader.readText() } }
                 .getOrNull()
         }
-        text?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
+        return text?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
     }
 }

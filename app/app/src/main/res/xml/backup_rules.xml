@@ -2,4 +2,5 @@
 <full-backup-content>
     <exclude domain="sharedpref" path="credentials.xml" />
     <exclude domain="root" path="cache" />
+    <exclude domain="file" path="crash_log.txt" />
 </full-backup-content>

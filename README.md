@@ -21,16 +21,14 @@
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/01_home.png" width="23%" alt="Home Screen" />
-  <img src="assets/screenshots/06_now_playing.png" width="23%" alt="Now Playing" />
-  <img src="assets/screenshots/03_library.png" width="23%" alt="Library" />
-  <img src="assets/screenshots/09_share_card.png" width="23%" alt="Share Card" />
+  <img src="assets/screenshots/01_home.png" width="30%" alt="Home Screen" />
+  <img src="assets/screenshots/06_now_playing.png" width="30%" alt="Now Playing" />
+  <img src="assets/screenshots/03_library.png" width="30%" alt="Library" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/02_search.png" width="23%" alt="Search" />
-  <img src="assets/screenshots/04_artists.png" width="23%" alt="Artists" />
-  <img src="assets/screenshots/08_queue.png" width="23%" alt="Up Next Queue" />
-  <img src="assets/screenshots/05_settings.png" width="23%" alt="Settings" />
+  <img src="assets/screenshots/04_artists.png" width="30%" alt="Artists" />
+  <img src="assets/screenshots/08_queue.png" width="30%" alt="Up Next Queue" />
+  <img src="assets/screenshots/05_settings.png" width="30%" alt="Settings" />
 </p>
 
 ---
@@ -47,23 +45,29 @@
 ## Features
 
 ### Audio & Playback
-- **Media3 Playback**: Background audio playback with lock screen controls and system media notifications.
-- **Hardware Equalizer & DSP**: System graphic EQ, bass boost, virtualizer, and loudness enhancer. Includes calibrated headphone presets powered by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
-- **Synchronized Lyrics**: Real-time karaoke-style lyrics via [LRCLIB](https://lrclib.net) and embedded ID3 tags.
-- **Sleep Timer**: Built-in sleep timer to automatically pause playback.
+- **Media3 Playback Engine**: Background audio playback with lock screen controls, system media notifications, and state restoration on launch.
+- **Hardware Equalizer & DSP**: 5-band graphic EQ, bass boost, virtualizer, and loudness enhancer. Includes calibrated headphone presets powered by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
+- **Volume Normalization (ReplayGain)**: Automatic track volume balancing to avoid sudden loudness spikes.
+- **Synchronized Lyrics**: Real-time karaoke-style lyrics via [LRCLIB](https://lrclib.net), embedded ID3 tags, and local `.lrc` sidecars with configurable typography scaling and keep-screen-awake mode.
+- **Sleep Timer & Smart Disconnect**: Sleep timer to pause playback, plus instant pause when headphones or Bluetooth disconnect.
 
 ### Library & Streaming
-- **Local Audio**: Scans device audio with configurable folder whitelists and blacklists.
+- **Local Audio Scanning**: Scans device audio with configurable folder whitelists, blacklists, and short audio clip filtering.
+- **Tape Index Rail**: Industrial tactile A–Z fast scroller with an interactive HUD letter badge and haptic clock ticks for lightning-fast library browsing.
+- **Smart Relevance Search**: Real-time multi-token relevance search matching across song titles, artists, and albums.
 - **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token authentication.
 - **Jellyfin**: Direct streaming and music library browsing from your Jellyfin server.
-- **Offline Cache**: Download and cache streaming songs for offline playback.
+- **Offline Cache**: Download and cache streaming tracks for offline playback.
 - **Scrobbling**: Track your listening on [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
 - **Listening Log**: Local playback statistics tracking your top tracks, artists, and albums.
 
-### Design & UI
-- **Tactile Dark Theme**: Sleek industrial dark interface with mechanical button animations and haptic feedback.
+### Design & Customization
+- **Curated Theme Accents**: 6 dynamic color palettes — *Record Red*, *Cassette Amber*, *Electric Cyan*, *Neon Emerald*, *Tape Magenta*, and *Monochrome Silver*.
+- **Pure Black AMOLED Mode**: Pitch black `#000000` surface backgrounds for true OLED blacks and maximum battery efficiency.
+- **Now Playing & Artwork Styling**: Configurable album art corner radii (Curved 16dp, Soft 8dp, Vinyl Square 0dp) and interactive remaining time countdown toggle (`-02:45`).
+- **Navigation & Startup Preferences**: Configurable default landing screen (*Home*, *Library*, or *Last active tab*) and default Library section.
 - **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and synchronized lyric excerpts.
-- **Home Screen Widget**: Control playback and see current song artwork directly from your home screen.
+- **Home Screen Widget**: Control playback and view current song artwork directly from your home screen.
 
 ### Privacy
 - Local-first architecture: no analytics, no third-party tracking, zero Google Play Services dependencies.

@@ -37,18 +37,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
@@ -104,24 +110,59 @@ internal fun GridCardSkeleton() {
 
 @Composable
 internal fun RowScope.SongListRowContent(song: Song) {
-    Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp))) {
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val isCompact = preferences.trackRowDensity == TrackRowDensity.COMPACT
+    val artSize = if (isCompact) 40.dp else 48.dp
+
+    val audioFormat = remember(song.filePath, song.source) {
+        val ext = song.filePath?.substringAfterLast('.', "")?.uppercase().orEmpty()
+        when (ext) {
+            "FLAC", "WAV", "ALAC" -> "FLAC"
+            "MP3" -> "MP3"
+            "M4A", "AAC" -> "AAC"
+            "OGG", "OPUS" -> "OPUS"
+            else -> if (song.source != MusicSource.Local) "STREAM" else null
+        }
+    }
+
+    Box(modifier = Modifier.size(artSize).clip(RoundedCornerShape(6.dp))) {
         AlbumArt(song = song, modifier = Modifier.fillMaxSize())
     }
-    Spacer(Modifier.width(16.dp))
+    Spacer(Modifier.width(14.dp))
     Column(modifier = Modifier.weight(1f)) {
         Text(
             song.title,
-            style = MaterialTheme.typography.bodyLarge,
+            style = if (isCompact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Text(
-            song.artist,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            if (preferences.showAudioQualityBadge && audioFormat != null) {
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        audioFormat,
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                        color = if (audioFormat == "FLAC") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
     DownloadStatusIcon(song = song, modifier = Modifier.padding(start = 8.dp))
 }

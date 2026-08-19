@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -37,7 +36,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,13 +57,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -71,7 +76,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
@@ -121,6 +125,19 @@ internal fun LyricsView(
 ) {
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+
+    if (preferences.keepScreenOnLyrics) {
+        val activity = context as? android.app.Activity
+        DisposableEffect(activity) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            onDispose {
+                activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+    }
 
     val providerCredit = when (lyricsProvider) {
         "LRCLIB" -> "Lyrics provided by LRCLIB"
@@ -131,10 +148,7 @@ internal fun LyricsView(
 
     val lyricBottomPadDp by animateDpAsState(
         targetValue = if (controlsVisible) 240.dp else 64.dp,
-        animationSpec = spring(
-            dampingRatio = 0.86f,
-            stiffness = 400f
-        ),
+        animationSpec = tween(220, easing = SmoothEasing),
         label = "lyricBottomPad"
     )
 
@@ -251,29 +265,26 @@ internal fun LyricsView(
                 }
             }
 
+            val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) TextAlign.Center else TextAlign.Start
+            val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) Alignment.CenterHorizontally else Alignment.Start
+            val fontScale = preferences.lyricsFontSize.scaleMultiplier
             val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = SpaceGroteskFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                lineHeight = 38.sp,
+                fontSize = (28 * fontScale).sp,
+                lineHeight = (38 * fontScale).sp,
                 letterSpacing = (-0.3).sp,
-                textAlign = TextAlign.Start
+                textAlign = lyricsTextAlign
             )
 
             val fadeStart by animateFloatAsState(
                 targetValue = if (controlsVisible) 0.48f else 0.85f,
-                animationSpec = spring(
-                    dampingRatio = 0.86f,
-                    stiffness = 400f
-                ),
+                animationSpec = tween(220, easing = SmoothEasing),
                 label = "lyricsFadeStart"
             )
             val fadeEnd by animateFloatAsState(
                 targetValue = if (controlsVisible) 0.65f else 0.98f,
-                animationSpec = spring(
-                    dampingRatio = 0.86f,
-                    stiffness = 400f
-                ),
+                animationSpec = tween(220, easing = SmoothEasing),
                 label = "lyricsFadeEnd"
             )
 
@@ -295,7 +306,7 @@ internal fun LyricsView(
                     top = centerTopPad,
                     bottom = lyricBottomPadDp
                 ),
-                horizontalAlignment = Alignment.Start,
+                horizontalAlignment = lyricsHorizontalAlignment,
                 modifier = modifier
                     .fillMaxSize()
                     .nestedScroll(lyricsScrollHideConnection)
@@ -341,10 +352,7 @@ internal fun LyricsView(
 
                             val lineScale by animateFloatAsState(
                                 targetValue = if (isActive || isSelected) 1.025f else 0.965f,
-                                animationSpec = spring(
-                                    dampingRatio = 0.82f,
-                                    stiffness = 220f
-                                ),
+                                animationSpec = tween(220, easing = SmoothEasing),
                                 label = "lyricLineScale"
                             )
 
@@ -357,10 +365,7 @@ internal fun LyricsView(
                                     distanceFromActive == 3 -> 0.14f
                                     else -> 0.08f
                                 },
-                                animationSpec = spring(
-                                    dampingRatio = 0.9f,
-                                    stiffness = 300f
-                                ),
+                                animationSpec = tween(220, easing = SmoothEasing),
                                 label = "lyricLineOpacity"
                             )
 
@@ -413,7 +418,7 @@ internal fun LyricsView(
                                     text = line.text,
                                     style = lyricStyle,
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Start,
+                                    textAlign = lyricsTextAlign,
                                     modifier = lineModifier
                                 )
                             }
@@ -518,7 +523,7 @@ private fun GapItemView(
 ) {
     val dotsAlpha by animateFloatAsState(
         targetValue = if (isInGap) 1.0f else 0.22f,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = 300f),
+        animationSpec = tween(220, easing = SmoothEasing),
         label = "gapDotsAlpha"
     )
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -643,9 +648,8 @@ private fun ActiveLyricLine(
     }
 
     val progressAnim = remember { Animatable(0f) }
-    val seekBucket = remember(positionMs) { positionMs / 800L }
 
-    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying, seekBucket) {
+    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying) {
         val effectivePositionMs = positionMs + 90L
         val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
         val currentElapsed = (effectivePositionMs - line.timestampMs).coerceIn(0L, safeDuration)
@@ -665,22 +669,31 @@ private fun ActiveLyricLine(
 
     val progress = progressAnim.value
     val onSurface = MaterialTheme.colorScheme.onSurface
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val activeWordColor = if (preferences.lyricsActiveStyle == `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle.ACCENT_GLOW) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        onSurface
+    }
 
+    val dimColor = onSurface.copy(alpha = 0.38f)
     val annotatedString = buildAnnotatedString {
         words.forEachIndexed { wordIdx, word ->
             val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
-            val wordAlpha = when {
-                progress >= slotEnd -> 1.0f
+            val revealFraction = when {
+                progress >= slotEnd -> 1f
                 progress >= slotStart -> {
                     val linearFraction = if (slotEnd > slotStart) {
                         ((progress - slotStart) / (slotEnd - slotStart)).coerceIn(0f, 1f)
                     } else 1f
-                    val smoothFraction = linearFraction * linearFraction * (3f - 2f * linearFraction)
-                    lerp(0.38f, 1.0f, smoothFraction)
+                    linearFraction * linearFraction * (3f - 2f * linearFraction)
                 }
-                else -> 0.38f
+                else -> 0f
             }
-            withStyle(SpanStyle(color = onSurface.copy(alpha = wordAlpha))) {
+            val color = lerp(dimColor, activeWordColor, revealFraction)
+            withStyle(SpanStyle(color = color)) {
                 append(word)
             }
             if (wordIdx < words.size - 1) append(" ")
@@ -690,7 +703,7 @@ private fun ActiveLyricLine(
     Text(
         text = annotatedString,
         style = lyricStyle,
-        textAlign = TextAlign.Start,
+        textAlign = lyricStyle.textAlign,
         modifier = modifier
     )
 }

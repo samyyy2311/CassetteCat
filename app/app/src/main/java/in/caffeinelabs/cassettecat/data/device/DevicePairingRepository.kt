@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
 enum class DeviceConnectionType { SOFT_AP, STATION }
@@ -32,9 +31,3 @@ sealed interface DevicePairingState {
     data class Failed(val mode: DeviceConnectionType, val message: String) : DevicePairingState
 }
 
-interface DevicePairingRepository {
-    val pairingState: StateFlow<DevicePairingState>
-    fun startDiscovery(mode: DeviceConnectionType)
-    fun stopDiscovery()
-    suspend fun connect(device: DiscoveredDevice)
-}

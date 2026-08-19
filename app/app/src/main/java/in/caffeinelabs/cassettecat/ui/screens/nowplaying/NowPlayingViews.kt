@@ -1,8 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,12 +27,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 
@@ -51,6 +56,10 @@ internal fun NowPlayingPlayerView(
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit
 ) {
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,6 +74,20 @@ internal fun NowPlayingPlayerView(
             onSwipePrevious = onSkipPrevious,
             collapsedArtRect = collapsedArtRect,
             expandFraction = expandFraction,
+            onDoubleTapSeek = { isForward ->
+                val stepMs = preferences.seekStepSeconds * 1000L
+                val targetMs = if (isForward) {
+                    (positionMs + stepMs).coerceAtMost(state.durationMs)
+                } else {
+                    (positionMs - stepMs).coerceAtLeast(0L)
+                }
+                playbackViewModel.seekTo(targetMs)
+            },
+            onSwipeUp = {
+                if (preferences.swipeUpLyricsEnabled) {
+                    onActiveViewChange(NowPlayingView.LYRICS)
+                }
+            },
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .aspectRatio(1f)
@@ -136,12 +159,13 @@ internal fun NowPlayingQueueView(
             onCollapseRequest = onCollapseRequest,
             onHeaderDrag = onHeaderDrag,
             onHeaderSpringBack = onHeaderSpringBack,
+            enableHeaderDrag = true,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(Modifier.height(16.dp))
         val queueBottomPadDp by animateDpAsState(
             targetValue = if (chromeVisible) 240.dp else 64.dp,
-            animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+            animationSpec = tween(220, easing = SmoothEasing),
             label = "queueBottomPad"
         )
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -161,12 +185,12 @@ internal fun NowPlayingQueueView(
             )
             val queueControlsAlpha by animateFloatAsState(
                 targetValue = if (chromeVisible) 1f else 0f,
-                animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                animationSpec = tween(220, easing = SmoothEasing),
                 label = "queueControlsAlpha"
             )
             val queueControlsSlideY by animateFloatAsState(
                 targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
-                animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                animationSpec = tween(220, easing = SmoothEasing),
                 label = "queueControlsSlide"
             )
             if (chromeVisible || queueControlsAlpha > 0.001f) {
@@ -245,6 +269,11 @@ internal fun NowPlayingLyricsView(
     var selectedIndices by remember(song.id) { mutableStateOf(setOf<Int>()) }
     var showShareSheet by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = selectionMode) {
+        selectionMode = false
+        selectedIndices = emptySet()
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TitleRow(
             song = song,
@@ -257,6 +286,7 @@ internal fun NowPlayingLyricsView(
             onCollapseRequest = onCollapseRequest,
             onHeaderDrag = onHeaderDrag,
             onHeaderSpringBack = onHeaderSpringBack,
+            enableHeaderDrag = true,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(Modifier.height(8.dp))
@@ -334,12 +364,12 @@ internal fun NowPlayingLyricsView(
             } else {
                 val lyricsControlsAlpha by animateFloatAsState(
                     targetValue = if (chromeVisible) 1f else 0f,
-                    animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                    animationSpec = tween(220, easing = SmoothEasing),
                     label = "lyricsControlsAlpha"
                 )
                 val lyricsControlsSlideY by animateFloatAsState(
                     targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
-                    animationSpec = spring(dampingRatio = 0.86f, stiffness = 400f),
+                    animationSpec = tween(220, easing = SmoothEasing),
                     label = "lyricsControlsSlide"
                 )
                 if (chromeVisible || lyricsControlsAlpha > 0.001f) {

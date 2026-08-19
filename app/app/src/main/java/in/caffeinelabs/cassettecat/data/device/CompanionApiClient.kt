@@ -1,15 +1,13 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 data class WifiProvisionRequest(
@@ -29,14 +27,14 @@ class CompanionApiClient {
             response.use {
                 if (!it.isSuccessful) return@runCatching null
                 val body = it.body.string()
-                json.decodeFromString<CompanionStatus>(body)
+                sharedJson.decodeFromString<CompanionStatus>(body)
             }
         }.getOrNull()
     }
 
     suspend fun provisionWifi(host: String, port: Int = 80, ssid: String, passphrase: String): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-            val payload = json.encodeToString(WifiProvisionRequest.serializer(), WifiProvisionRequest(ssid, passphrase))
+            val payload = sharedJson.encodeToString(WifiProvisionRequest.serializer(), WifiProvisionRequest(ssid, passphrase))
             val request = Request.Builder()
                 .url("http://$host:$port/api/wifi")
                 .post(payload.toRequestBody("application/json".toMediaType()))

@@ -8,11 +8,10 @@ import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.Request
 
 private const val MAX_CACHE_BYTES = 24 * 1024 * 1024
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 private data class DeezerSearchResponse(val data: List<DeezerArtist> = emptyList())
@@ -59,7 +58,7 @@ class ArtistImageLoader {
     private fun fetchFromDeezer(artist: String): Bitmap? = runCatching {
         val url = "https://api.deezer.com/search/artist?q=${artist.urlEncode()}"
         val body = getBody(url) ?: return@runCatching null
-        val artist = json.decodeFromString<DeezerSearchResponse>(body).data
+        val artist = sharedJson.decodeFromString<DeezerSearchResponse>(body).data
             .firstOrNull { it.name?.isSameArtistAs(artist) == true }
             ?: return@runCatching null
         val pictureUrl = artist.picture_xl ?: artist.picture_big ?: artist.picture_medium
@@ -70,7 +69,7 @@ class ArtistImageLoader {
     private fun fetchFromAudioDb(artist: String): Bitmap? = runCatching {
         val url = "https://www.theaudiodb.com/api/v1/json/2/search.php?s=${artist.urlEncode()}"
         val body = getBody(url) ?: return@runCatching null
-        val artist = json.decodeFromString<AudioDbSearchResponse>(body).artists
+        val artist = sharedJson.decodeFromString<AudioDbSearchResponse>(body).artists
             ?.firstOrNull { it.strArtist?.isSameArtistAs(artist) == true }
             ?: return@runCatching null
         val pictureUrl = artist.strArtistFanart ?: artist.strArtistThumb

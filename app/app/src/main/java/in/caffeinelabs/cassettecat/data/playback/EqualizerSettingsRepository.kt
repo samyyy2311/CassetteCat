@@ -9,11 +9,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 private val Context.equalizerDataStore by preferencesDataStore(name = "equalizer_settings")
 private val EQUALIZER_STATE = stringPreferencesKey("equalizer_state_json")
-private val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 data class EqualizerLevels(
@@ -30,14 +29,14 @@ class EqualizerSettingsRepository(private val context: Context) {
     val levels: Flow<EqualizerLevels> = context.equalizerDataStore.data.map { prefs -> prefs.decode() }
 
     suspend fun saveSettings(settings: EqualizerLevels) {
-        context.equalizerDataStore.edit { prefs -> prefs[EQUALIZER_STATE] = json.encodeToString(settings) }
+        context.equalizerDataStore.edit { prefs -> prefs[EQUALIZER_STATE] = sharedJson.encodeToString(settings) }
     }
 
     suspend fun setBandLevels(levels: List<Int>, presetIndex: Int = -1) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(bandLevelsMb = levels, selectedPresetIndex = presetIndex)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
@@ -45,7 +44,7 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(enabled = enabled)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
@@ -53,7 +52,7 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(bassBoostStrength = strength)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
@@ -61,7 +60,7 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(virtualizerStrength = strength)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
@@ -69,7 +68,7 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(preampGainMb = gainMb)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
@@ -77,10 +76,10 @@ class EqualizerSettingsRepository(private val context: Context) {
         context.equalizerDataStore.edit { prefs ->
             val current = prefs.decode()
             val updated = current.copy(loudnessNormalization = enabled)
-            prefs[EQUALIZER_STATE] = json.encodeToString(updated)
+            prefs[EQUALIZER_STATE] = sharedJson.encodeToString(updated)
         }
     }
 
     private fun Preferences.decode(): EqualizerLevels =
-        this[EQUALIZER_STATE]?.let { runCatching { json.decodeFromString<EqualizerLevels>(it) }.getOrNull() } ?: EqualizerLevels()
+        this[EQUALIZER_STATE]?.let { runCatching { sharedJson.decodeFromString<EqualizerLevels>(it) }.getOrNull() } ?: EqualizerLevels()
 }

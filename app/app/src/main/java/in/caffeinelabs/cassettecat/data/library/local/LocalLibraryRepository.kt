@@ -18,10 +18,12 @@ import kotlinx.coroutines.withContext
 class LocalLibraryRepository(private val context: Context) : LibraryRepository {
     private val folderRepository = LibraryFolderRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
+    private val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context)
 
     override suspend fun getSongs(): List<Song> = withContext(Dispatchers.IO) {
         val folderConfig = folderRepository.folderFilterConfig.first()
         val favoriteIds = favoritesRepository.favoriteIds.first()
+        val appPreferences = appPreferencesRepository.preferences.first()
 
         val hasDirectGenreColumn = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
         val genreByAudioId = if (hasDirectGenreColumn) null else loadGenresByAudioId()
@@ -76,6 +78,9 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
             while (cursor.moveToNext()) {
                 val path = cursor.getString(dataCol) ?: ""
                 if (!path.matchesFolderFilter(folderConfig)) continue
+
+                val duration = cursor.getLong(durationCol)
+                if (appPreferences.ignoreShortAudioClips && duration in 1..29_999L) continue
 
                 val id = cursor.getLong(idCol)
                 val songId = "local:$id"

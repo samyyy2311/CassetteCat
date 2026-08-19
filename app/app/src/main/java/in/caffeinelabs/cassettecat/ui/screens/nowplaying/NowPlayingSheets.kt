@@ -14,15 +14,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -124,7 +130,7 @@ internal fun NowPlayingActionsSheet(
                 accented = false,
                 onClick = { onAddToQueue(); onDismiss() }
             )
-            if (song.source != MusicSource.Local) {
+            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_download,
                     label = "Download",
@@ -160,7 +166,7 @@ internal fun NowPlayingActionsSheet(
                 onClick = { onOpenOutputPicker(); onDismiss() }
             )
             SongActionRow(
-                iconRes = R.drawable.lucide_ic_radio,
+                iconRes = R.drawable.lucide_ic_users,
                 label = "Listening Room",
                 subtitle = "Share playback on this Wi-Fi",
                 accented = false,
@@ -188,6 +194,7 @@ internal fun ListeningRoomSheet(
     onStart: () -> Unit,
     onFindNearby: () -> Unit,
     onJoin: (NearbyListeningRoom) -> Unit,
+    onJoinManual: (String) -> Unit,
     onLeave: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -211,7 +218,7 @@ internal fun ListeningRoomSheet(
             when (state.role) {
                 ListeningRoomRole.HOST -> {
                     SongActionRow(
-                        iconRes = R.drawable.lucide_ic_radio,
+                        iconRes = R.drawable.lucide_ic_users,
                         label = state.roomName ?: "Listening Room",
                         subtitle = "Room controls are on this phone • ${state.participantCount} connected",
                         accented = true,
@@ -225,6 +232,14 @@ internal fun ListeningRoomSheet(
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                         )
                     }
+                    state.hostAddress?.let { address ->
+                        Text(
+                            "If a guest can't find this room automatically, have them enter: $address",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+                        )
+                    }
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_x,
                         label = "End nearby room",
@@ -235,7 +250,7 @@ internal fun ListeningRoomSheet(
                 }
                 ListeningRoomRole.GUEST -> {
                     SongActionRow(
-                        iconRes = R.drawable.lucide_ic_radio,
+                        iconRes = R.drawable.lucide_ic_users,
                         label = state.roomName ?: "Listening Room",
                         subtitle = "Following the host's playback and queue",
                         accented = true,
@@ -251,7 +266,7 @@ internal fun ListeningRoomSheet(
                 }
                 ListeningRoomRole.NONE -> {
                     SongActionRow(
-                        iconRes = R.drawable.lucide_ic_radio,
+                        iconRes = R.drawable.lucide_ic_users,
                         label = "Start a nearby room",
                         subtitle = "Host playback for people on this Wi-Fi",
                         accented = true,
@@ -280,6 +295,36 @@ internal fun ListeningRoomSheet(
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                         )
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                    Text(
+                        "Join by address",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 4.dp)
+                    )
+                    Text(
+                        "Can't find the room automatically? Ask the host for the address on their screen.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
+                    )
+                    var manualAddress by remember { mutableStateOf("") }
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        OutlinedTextField(
+                            value = manualAddress,
+                            onValueChange = { manualAddress = it },
+                            placeholder = { Text("192.168.1.1:12345") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { onJoinManual(manualAddress) },
+                            enabled = manualAddress.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Join")
+                        }
+                    }
                 }
             }
         }
@@ -293,6 +338,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.Local -> "On-device library"
         MusicSource.Subsonic -> "Subsonic server"
         MusicSource.Jellyfin -> "Jellyfin server"
+        MusicSource.ListeningRoomHost -> "Streamed from Listening Room host"
     }
     val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Not supplied" }
 
