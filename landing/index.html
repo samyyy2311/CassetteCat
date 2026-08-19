@@ -5,15 +5,43 @@
   <meta charset="UTF-8">
   <script>(function(){try{var t=localStorage.getItem('cc-theme');if(t!=='dark')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CassetteCat · CaffeineLabs</title>
+  <title>CassetteCat · Open Source Music Player</title>
   <meta name="description" content="CassetteCat is an open-source Android music player. Local files, self-hosted Subsonic and Jellyfin streaming, and a DIY hardware player being built in the open.">
-  <meta property="og:title" content="CassetteCat · CaffeineLabs">
+  <meta property="og:title" content="CassetteCat · Open Source Music Player">
   <meta property="og:description" content="An open-source music player you can make your own.">
   <meta property="og:url" content="https://cassettecat.caffeinelabs.in/">
   <meta property="og:image" content="https://cassettecat.caffeinelabs.in/assets/feature_graphic_1024x500.png">
+  <meta property="og:image:width" content="1024">
+  <meta property="og:image:height" content="500">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CassetteCat · Open Source Music Player">
+  <meta name="twitter:description" content="An open-source music player you can make your own.">
+  <meta name="twitter:image" content="https://cassettecat.caffeinelabs.in/assets/feature_graphic_1024x500.png">
   <meta name="theme-color" content="#F4F1EB">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CassetteCat",
+    "operatingSystem": "Android",
+    "applicationCategory": "MusicApplication",
+    "description": "CassetteCat is an open-source Android music player. Local files, self-hosted Subsonic and Jellyfin streaming, and a DIY hardware player being built in the open.",
+    "url": "https://cassettecat.caffeinelabs.in/",
+    "image": "https://cassettecat.caffeinelabs.in/assets/feature_graphic_1024x500.png",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "CaffeineLabs"
+    },
+    "downloadUrl": "https://github.com/samyyy2311/CassetteCat/releases/latest"
+  }
+  </script>
   <link rel="canonical" href="https://cassettecat.caffeinelabs.in/">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <link rel="icon" type="image/png" href="assets/play_store_icon_512.png">
@@ -79,12 +107,12 @@
       <div class="cc-hero-phone" style="display:flex; justify-content:center; position:relative;">
         <div style="position:relative; width:250px; aspect-ratio:9/19.5; border-radius:34px; padding:3px; background:#0D0D0D; border:1px solid rgba(255,255,255,0.14); box-shadow:0 30px 60px -20px rgba(0,0,0,0.8);">
           <div style="width:100%; height:100%; border-radius:31px; overflow:hidden; background:#000; position:relative;">
-            <img src="assets/screenshots/now-playing.webp" class="hero-shot active" data-hero="now" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/home.webp" class="hero-shot" data-hero="home" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/library.webp" class="hero-shot" data-hero="library" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/artists.webp" class="hero-shot" data-hero="artists" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/queue.webp" class="hero-shot" data-hero="queue" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/lyrics.webp" class="hero-shot" data-hero="lyrics" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/now-playing.webp" alt="CassetteCat now playing screen with album art and playback controls" class="hero-shot active" data-hero="now" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/home.webp" alt="CassetteCat home screen with library overview and quick picks" class="hero-shot" data-hero="home" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/library.webp" alt="CassetteCat library screen showing songs and albums" class="hero-shot" data-hero="library" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/artists.webp" alt="CassetteCat artists library view" class="hero-shot" data-hero="artists" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/queue.webp" alt="CassetteCat play queue screen" class="hero-shot" data-hero="queue" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/lyrics.webp" alt="CassetteCat synced lyrics screen" class="hero-shot" data-hero="lyrics" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
             <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); width:13px; height:13px; background:#000; border-radius:50%; border:1px solid rgba(255,255,255,0.08);"></div>
           </div>
         </div>
@@ -125,6 +153,29 @@
           <div style="font-weight:600; font-size:15px; margin-bottom:6px;">Encrypted Credentials</div>
           <div style="font-size:13.5px; color:var(--text-2); line-height:1.55;">Hardware-backed AES-256. No accounts, no ads.</div>
         </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9a9 9 0 0 1 9 9"/><path d="M2 13a5 5 0 0 1 5 5"/><circle cx="4" cy="20" r="1"/></svg>
+          <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+            <div style="font-weight:600; font-size:15px;">Listening Room</div>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase;">Beta</span>
+          </div>
+          <div style="font-size:13.5px; color:var(--text-2); line-height:1.55;">Sync playback with nearby devices over your local Wi-Fi.</div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 11h20"/><circle cx="7" cy="15" r="1"/><circle cx="12" cy="15" r="1"/></svg>
+          <div style="font-weight:600; font-size:15px; margin-bottom:6px;">Android Auto</div>
+          <div style="font-size:13.5px; color:var(--text-2); line-height:1.55;">Browse your library and control playback from the car.</div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--silver)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+          <div style="font-weight:600; font-size:15px; margin-bottom:6px;">Scrobbling</div>
+          <div style="font-size:13.5px; color:var(--text-2); line-height:1.55;">Track plays with ListenBrainz and Libre.fm.</div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B7F9E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+          <div style="font-weight:600; font-size:15px; margin-bottom:6px;">Backup &amp; Restore</div>
+          <div style="font-size:13.5px; color:var(--text-2); line-height:1.55;">Export and restore your library, playlists, and settings as a local file.</div>
+        </div>
         <div class="wide" style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:26px; display:flex; align-items:center; gap:18px;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
           <div>
@@ -147,9 +198,9 @@
       <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap;">
         <div style="position:relative; width:230px; aspect-ratio:9/19.5; border-radius:32px; padding:3px; background:#0D0D0D; border:1px solid rgba(255,255,255,0.14); box-shadow:0 24px 48px -16px rgba(0,0,0,0.7); flex-shrink:0;">
           <div style="width:100%; height:100%; border-radius:29px; overflow:hidden; background:#000; position:relative;">
-            <img src="assets/screenshots/home.webp" class="app-shot active" data-tab="home" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/now-playing.webp" class="app-shot" data-tab="now" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
-            <img src="assets/screenshots/library.webp" class="app-shot" data-tab="library" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/home.webp" alt="CassetteCat home screen with library overview and quick picks" class="app-shot active" data-tab="home" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/now-playing.webp" alt="CassetteCat now playing screen with album art and playback controls" class="app-shot" data-tab="now" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+            <img src="assets/screenshots/library.webp" alt="CassetteCat library screen showing songs and albums" class="app-shot" data-tab="library" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
             <div style="position:absolute; top:7px; left:50%; transform:translateX(-50%); width:12px; height:12px; background:#000; border-radius:50%; border:1px solid rgba(255,255,255,0.08);"></div>
           </div>
         </div>
