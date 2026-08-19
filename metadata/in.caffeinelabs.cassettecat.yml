@@ -12,9 +12,9 @@ RepoType: git
 Repo: https://github.com/samyyy2311/CassetteCat.git
 
 Builds:
-  - versionName: 1.1.0
-    versionCode: 2
-    commit: d06375fe6d1a906a4ef4603afc8c033b1bd88bd5
+  - versionName: 1.2.0
+    versionCode: 3
+    commit: f27da0e2e290e8b0bdfd9034ed95461c1f342014
     subdir: app/app
     gradle:
       - yes
@@ -25,5 +25,5 @@ AllowedAPKSigningKeys: e55ead1e67b33ffc10f29323b72cafaffbc9fb34f31f40ae069eb307d
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.1.0
-CurrentVersionCode: 2
+CurrentVersion: 1.2.0
+CurrentVersionCode: 3
