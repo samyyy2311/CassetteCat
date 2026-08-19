@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.1.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.1.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.2.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.2.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -60,6 +60,15 @@
 - **Offline Cache**: Download and cache streaming tracks for offline playback.
 - **Scrobbling**: Track your listening on [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
 - **Listening Log**: Local playback statistics tracking your top tracks, artists, and albums.
+- **Listening Room**: Sync playback with nearby devices over your local Wi-Fi.
+
+### Companion Hardware
+- **Wireless Pairing**: Connect to a standalone ESP32 CassetteCat player over a direct SoftAP hotspot or your local Wi-Fi network via mDNS. On Android 13+, hotspot pairing associates automatically via `WifiNetworkSpecifier`.
+- **Live Telemetry**: Battery level, charging status, SD card capacity, and firmware version, all from the Pairing screen.
+
+### Device Integration
+- **Android Auto & Android Automotive OS**: Browse your local library (Liked Songs, Playlists, Albums, Artists, All Songs) and control playback directly from the car.
+- **Quick Settings Tile**: Play, pause, and see what's playing without opening the app.
 
 ### Design & Customization
 - **Curated Theme Accents**: 6 dynamic color palettes — *Record Red*, *Cassette Amber*, *Electric Cyan*, *Neon Emerald*, *Tape Magenta*, and *Monochrome Silver*.
