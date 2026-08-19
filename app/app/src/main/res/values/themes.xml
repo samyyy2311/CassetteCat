@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.CassetteCat" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:windowBackground">#0F0D0C</item>
+    </style>
+</resources>

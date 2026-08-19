@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Official Cover Art Archive Logo (MetaBrainz Foundation) -->
+    <!-- Left panel (Teal) -->
+    <path
+        android:fillColor="#20656C"
+        android:pathData="M2,6.2L11.4,0.8v22.4L2,17.8z" />
+    <!-- Right panel (Orange) -->
+    <path
+        android:fillColor="#EB743B"
+        android:pathData="M12.6,0.8L22,6.2v11.6l-9.4,5.4z" />
+</vector>

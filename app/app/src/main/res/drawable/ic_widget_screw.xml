@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="12dp"
+    android:height="12dp"
+    android:viewportWidth="12"
+    android:viewportHeight="12">
+    <!-- Screw Outer Circle -->
+    <path
+        android:fillColor="#2A2723"
+        android:pathData="M6,0.5A5.5,5.5,0,1,1,0.5,6A5.5,5.5,0,0,1,6,0.5" />
+    <path
+        android:fillColor="#4A453F"
+        android:pathData="M6,1.5A4.5,4.5,0,1,1,1.5,6A4.5,4.5,0,0,1,6,1.5" />
+    <!-- Screw Cross (+) Thread Slot -->
+    <path
+        android:fillColor="#151311"
+        android:pathData="M5.2,2.5h1.6v7h-1.6zM2.5,5.2h7v1.6h-7z" />
+</vector>

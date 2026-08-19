@@ -1,0 +1,328 @@
+package `in`.caffeinelabs.cassettecat.data.playback
+
+import android.app.PendingIntent
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
+import `in`.caffeinelabs.cassettecat.MainActivity
+import `in`.caffeinelabs.cassettecat.R
+import `in`.caffeinelabs.cassettecat.data.download.DownloadCache
+import `in`.caffeinelabs.cassettecat.data.download.StreamCacheKeyFactory
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+
+class PlaybackService : MediaSessionService() {
+    private var mediaSession: MediaSession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var favoritesRepository: FavoritesRepository
+    private var currentFavoriteIds: Set<String> = emptySet()
+
+    override fun onCreate() {
+        super.onCreate()
+        favoritesRepository = FavoritesRepository(this)
+
+        val directFactory = DefaultDataSource.Factory(this)
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(DownloadCache.get(this))
+            .setCacheKeyFactory(StreamCacheKeyFactory)
+            .setUpstreamDataSourceFactory(directFactory)
+        val routedFactory = DataSource.Factory {
+            StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
+        }
+
+        val player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(routedFactory))
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                true
+            )
+            .setHandleAudioBecomingNoisy(true)
+            .build()
+
+        player.addListener(object : Player.Listener {
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                updateNotificationLayout(player)
+            }
+
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                updateNotificationLayout(player)
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                syncWidgetState(player)
+                updateNotificationLayout(player)
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                syncWidgetState(player)
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                syncWidgetState(player)
+            }
+        })
+
+        val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(this)
+
+        serviceScope.launch {
+            favoritesRepository.favoriteIds.collect { ids ->
+                currentFavoriteIds = ids
+                mediaSession?.player?.let { p -> updateNotificationLayout(p) }
+            }
+        }
+
+        serviceScope.launch {
+            appPreferencesRepository.preferences.collect { prefs ->
+                player.setHandleAudioBecomingNoisy(prefs.pauseOnHeadphoneDisconnect)
+                val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setMaxAudioChannelCount(maxChannels)
+                    .build()
+                player.skipSilenceEnabled = prefs.skipSilenceEnabled
+            }
+        }
+
+        val sessionActivity = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(sessionActivity)
+            .setCallback(CustomMediaSessionCallback())
+            .setCustomLayout(buildCustomLayout(player, false))
+            .build()
+
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelName(R.string.app_name)
+                .build()
+        )
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        mediaSession?.player?.stop()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+        if (action != null) {
+            val player = mediaSession?.player
+            when (action) {
+                ACTION_WIDGET_PLAY_PAUSE -> {
+                    if (player != null) {
+                        if (player.isPlaying) player.pause() else player.play()
+                    }
+                }
+                ACTION_WIDGET_NEXT -> player?.seekToNextMediaItem()
+                ACTION_WIDGET_PREV -> player?.seekToPreviousMediaItem()
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun updateNotificationLayout(player: Player) {
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
+        mediaSession?.setCustomLayout(buildCustomLayout(player, isFav))
+    }
+
+    private fun buildCustomLayout(player: Player, isFavorite: Boolean): List<CommandButton> {
+        val favoriteIconRes = if (isFavorite) {
+            R.drawable.ic_notification_heart_filled
+        } else {
+            R.drawable.ic_notification_heart_outline
+        }
+        val favoriteButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+            .setCustomIconResId(favoriteIconRes)
+            .setSessionCommand(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
+            .setDisplayName(if (isFavorite) "Unfavorite" else "Favorite")
+            .build()
+
+        val shuffleButton = CommandButton.Builder(
+            if (player.shuffleModeEnabled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF
+        )
+            .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
+            .setDisplayName(if (player.shuffleModeEnabled) "Shuffle on" else "Shuffle off")
+            .build()
+
+        val repeatIcon = when (player.repeatMode) {
+            Player.REPEAT_MODE_ONE -> CommandButton.ICON_REPEAT_ONE
+            Player.REPEAT_MODE_ALL -> CommandButton.ICON_REPEAT_ALL
+            else -> CommandButton.ICON_REPEAT_OFF
+        }
+        val repeatButton = CommandButton.Builder(repeatIcon)
+            .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE)
+            .setDisplayName(
+                when (player.repeatMode) {
+                    Player.REPEAT_MODE_ONE -> "Repeat one"
+                    Player.REPEAT_MODE_ALL -> "Repeat all"
+                    else -> "Repeat off"
+                }
+            )
+            .build()
+
+        return listOf(favoriteButton, shuffleButton, repeatButton)
+    }
+
+    private inner class CustomMediaSessionCallback : MediaSession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                .add(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
+                .build()
+            val currentMediaId = session.player.currentMediaItem?.mediaId
+            val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                .setAvailableSessionCommands(availableSessionCommands)
+                .setCustomLayout(buildCustomLayout(session.player, isFav))
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == ACTION_CUSTOM_FAVORITE) {
+                val currentMediaId = session.player.currentMediaItem?.mediaId
+                if (currentMediaId != null) {
+                    val isFav = currentMediaId in currentFavoriteIds
+                    serviceScope.launch {
+                        favoritesRepository.setFavorite(currentMediaId, !isFav)
+                    }
+                }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            return super.onCustomCommand(session, controller, customCommand, args)
+        }
+
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val player = mediaSession.player
+            val currentItem = player.currentMediaItem
+            return if (currentItem != null) {
+                Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(
+                        listOf(currentItem),
+                        player.currentMediaItemIndex,
+                        player.currentPosition
+                    )
+                )
+            } else {
+                super.onPlaybackResumption(mediaSession, controller)
+            }
+        }
+    }
+
+    private fun syncWidgetState(player: Player) {
+        val metadata = player.mediaMetadata
+        val title = metadata.title?.toString()
+        val artist = metadata.artist?.toString()
+        val isPlaying = player.isPlaying
+        val artBitmap = metadata.artworkData?.let { data ->
+            runCatching {
+                val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                val decoded = android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size, options)
+                if (decoded != null) {
+                    android.graphics.Bitmap.createScaledBitmap(decoded, 120, 120, true)
+                } else null
+            }.getOrNull()
+        }
+        runCatching {
+            CassetteWidgetProvider.updateAllWidgets(
+                context = this,
+                title = title,
+                artist = artist,
+                isPlaying = isPlaying,
+                artBitmap = artBitmap
+            )
+        }
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        mediaSession?.run {
+            player.release()
+            release()
+            mediaSession = null
+        }
+        super.onDestroy()
+    }
+
+    companion object {
+        const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
+        const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"
+        const val ACTION_WIDGET_NEXT = "in.caffeinelabs.cassettecat.action.WIDGET_NEXT"
+        const val ACTION_WIDGET_PREV = "in.caffeinelabs.cassettecat.action.WIDGET_PREV"
+    }
+}
+
+private class StreamOnlyCacheDataSource(
+    private val cached: DataSource,
+    private val direct: DataSource
+) : DataSource {
+    private var active: DataSource = direct
+
+    override fun open(dataSpec: DataSpec): Long {
+        active = if (dataSpec.uri.scheme == "http" || dataSpec.uri.scheme == "https") cached else direct
+        return active.open(dataSpec)
+    }
+
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int = active.read(buffer, offset, length)
+
+    override fun addTransferListener(transferListener: TransferListener) {
+        cached.addTransferListener(transferListener)
+        direct.addTransferListener(transferListener)
+    }
+
+    override fun getUri(): Uri? = active.uri
+
+    override fun getResponseHeaders(): Map<String, List<String>> = active.responseHeaders
+
+    override fun close() {
+        active.close()
+    }
+}

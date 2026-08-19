@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="credentials.xml" />
+    <exclude domain="root" path="cache" />
+    <exclude domain="file" path="crash_log.txt" />
+</full-backup-content>

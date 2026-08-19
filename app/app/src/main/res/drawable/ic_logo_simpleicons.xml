@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Official Simple Icons Logo (simpleicons.org) -->
+    <path
+        android:fillColor="#F5F0EC"
+        android:pathData="M18,6a6,6 0,1 0,-6 6a6,6 0,0 1,5.35 9h1.5A7.5,7.5 0,0 0,12 10.5A4.5,4.5 0,1 1,16.5 6zM12,3a3,3 0,0 0,0 6a1,1 0,0 0,0 -6m0,1.5a1.5,1.5 0,0 1,0 3a1,1 0,0 1,0 -3M7.5,15v1.5H9v6H4.5V24h15v-1.5H15v-6h1.5V15zm3,1.5h3v6h-3zm-6,1.5a7.5,7.5 0,0 0,0.7 3h1.5a6,6 0,0 1,-0.7 -3z" />
+</vector>
