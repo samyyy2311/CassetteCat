@@ -3,6 +3,8 @@ package `in`.caffeinelabs.cassettecat.data.playback
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.service.quicksettings.TileService
@@ -36,6 +38,7 @@ import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.download.DownloadCache
 import `in`.caffeinelabs.cassettecat.data.download.StreamCacheKeyFactory
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import kotlinx.coroutines.CoroutineScope
@@ -100,7 +103,7 @@ class PlaybackService : MediaLibraryService() {
             }
         })
 
-        val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(this)
+        val appPreferencesRepository = AppPreferencesRepository(this)
 
         serviceScope.launch {
             favoritesRepository.favoriteIds.collect { ids ->
@@ -117,6 +120,7 @@ class PlaybackService : MediaLibraryService() {
                     .setMaxAudioChannelCount(maxChannels)
                     .build()
                 player.skipSilenceEnabled = prefs.skipSilenceEnabled
+                player.pauseAtEndOfMediaItems = !prefs.gaplessPlayback
             }
         }
 
@@ -363,26 +367,27 @@ class PlaybackService : MediaLibraryService() {
         val title = metadata.title?.toString()
         val artist = metadata.artist?.toString()
         val isPlaying = player.isPlaying
-        val artBitmap = metadata.artworkData?.let { data ->
+        val artworkData = metadata.artworkData
+        serviceScope.launch(Dispatchers.Default) {
+            val artBitmap = artworkData?.let { data ->
+                runCatching {
+                    val options = BitmapFactory.Options().apply { inSampleSize = 2 }
+                    val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options)
+                    decoded?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
+                }.getOrNull()
+            }
             runCatching {
-                val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
-                val decoded = android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size, options)
-                if (decoded != null) {
-                    android.graphics.Bitmap.createScaledBitmap(decoded, 120, 120, true)
-                } else null
-            }.getOrNull()
-        }
-        runCatching {
-            CassetteWidgetProvider.updateAllWidgets(
-                context = this,
-                title = title,
-                artist = artist,
-                isPlaying = isPlaying,
-                artBitmap = artBitmap
-            )
-        }
-        runCatching {
-            TileService.requestListeningState(this, ComponentName(this, PlaybackTileService::class.java))
+                CassetteWidgetProvider.updateAllWidgets(
+                    context = this@PlaybackService,
+                    title = title,
+                    artist = artist,
+                    isPlaying = isPlaying,
+                    artBitmap = artBitmap
+                )
+            }
+            runCatching {
+                TileService.requestListeningState(this@PlaybackService, ComponentName(this@PlaybackService, PlaybackTileService::class.java))
+            }
         }
     }
 

@@ -57,14 +57,14 @@ internal fun buildListeningRecordPoster(
 
     val ibmPlexSansBold = runCatching {
         val font = ResourcesCompat.getFont(context, AppR.font.ibm_plex_sans_variable)
-        if (font != null) Typeface.create(font, 700, false) else Typeface.DEFAULT_BOLD
+        Typeface.create(font ?: Typeface.DEFAULT_BOLD, Typeface.BOLD)
     }.getOrNull() ?: Typeface.DEFAULT_BOLD
     val ibmPlexMono = runCatching {
         ResourcesCompat.getFont(context, AppR.font.ibm_plex_mono_regular)
     }.getOrNull() ?: Typeface.MONOSPACE
     val ibmPlexSansRegular = runCatching {
         val font = ResourcesCompat.getFont(context, AppR.font.ibm_plex_sans_variable)
-        if (font != null) Typeface.create(font, 400, false) else Typeface.DEFAULT
+        Typeface.create(font ?: Typeface.DEFAULT, Typeface.NORMAL)
     }.getOrNull() ?: Typeface.DEFAULT
 
     val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
