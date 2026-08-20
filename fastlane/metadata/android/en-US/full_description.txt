@@ -5,8 +5,10 @@ CassetteCat is a privacy-first, open-source Android music player engineered for 
 • <b>Hardware DSP & EQ</b>: Parametric equalizer, bass boost, virtualizer, and loudness enhancer.
 • <b>Synchronized Lyrics</b>: Real-time karaoke-style lyrics powered by LRCLIB and embedded ID3 tags.
 • <b>Self-Hosted Streaming</b>: Connect seamlessly to your own Subsonic (Navidrome, Gonic, Airsonic) or Jellyfin music server.
+• <b>Internet Radio</b>: Search and browse tens of thousands of live stations from Radio Browser.
 • <b>Offline Downloads</b>: Cache tracks for offline listening anywhere.
 • <b>Scrobbling</b>: Scrobble your plays to ListenBrainz and Libre.fm.
+• <b>Android Auto</b>: Browse your library and control playback from the car.
 • <b>Tactile Dark Design</b>: Clean industrial dark UI, dynamic artwork theming, and smooth haptic feedback.
 • <b>Ultra-HD Share Cards</b>: Generate 2160x2700 poster cards for tracks and lyrics excerpts.
 • <b>Home Screen Widget</b>: Control playback and view current album art directly from your home screen.

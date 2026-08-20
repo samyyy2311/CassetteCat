@@ -18,6 +18,28 @@
 
 ---
 
+## Install
+
+<p align="center">
+  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest">
+    <img src="https://img.shields.io/badge/Download%20APK-GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="Download APK from GitHub Releases" />
+  </a>
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/samyyy2311/CassetteCat">
+    <img src="https://img.shields.io/badge/Install%20with-Obtainium-4A154B?style=for-the-badge&logo=android&logoColor=white" alt="Install CassetteCat with Obtainium" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Android 8.0+</strong><br />
+  Download the latest APK directly from GitHub or use Obtainium for automatic update tracking.
+</p>
+
+> **F-Droid and IzzyOnDroid:** submissions are currently pending. Their install
+> buttons will be added once CassetteCat is available through those
+> repositories.
+
+---
+
 ## Screenshots
 
 <p align="center">
@@ -33,57 +55,87 @@
 
 ---
 
-## Download
-
-<p align="center">
-  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><img src="https://img.shields.io/badge/GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases" /></a>
-  <a href="https://github.com/ImranR98/Obtainium"><img src="https://img.shields.io/badge/Obtainium-4A154B?style=for-the-badge&logo=git&logoColor=white" alt="Obtainium" /></a>
-</p>
-
----
-
 ## Features
 
 ### Audio & Playback
-- **Media3 Playback Engine**: Background audio playback with lock screen controls, system media notifications, and state restoration on launch.
-- **Hardware Equalizer & DSP**: 5-band graphic EQ, bass boost, virtualizer, and loudness enhancer. Includes calibrated headphone presets powered by [AutoEq](https://github.com/jaakkopasanen/AutoEq).
-- **Volume Normalization (ReplayGain)**: Automatic track volume balancing to avoid sudden loudness spikes.
-- **Synchronized Lyrics**: Real-time karaoke-style lyrics via [LRCLIB](https://lrclib.net), embedded ID3 tags, and local `.lrc` sidecars with configurable typography scaling and keep-screen-awake mode.
-- **Sleep Timer & Smart Disconnect**: Sleep timer to pause playback, plus instant pause when headphones or Bluetooth disconnect.
+
+- **Media3 Playback Engine**: Background audio playback with lock screen
+  controls, system media notifications, and state restoration on launch.
+- **Hardware Equalizer & DSP**: 5-band graphic EQ, bass boost, virtualizer, and
+  loudness enhancer. Includes calibrated headphone presets powered by
+  [AutoEq](https://github.com/jaakkopasanen/AutoEq).
+- **Volume Normalization (ReplayGain)**: Automatic track volume balancing to
+  avoid sudden loudness spikes.
+- **Synchronized Lyrics**: Real-time karaoke-style lyrics via
+  [LRCLIB](https://lrclib.net), embedded ID3 tags, and local `.lrc` sidecars
+  with configurable typography scaling and keep-screen-awake mode.
+- **Sleep Timer & Smart Disconnect**: Sleep timer to pause playback, plus
+  instant pause when headphones or Bluetooth disconnect.
 
 ### Library & Streaming
-- **Local Audio Scanning**: Scans device audio with configurable folder whitelists, blacklists, and short audio clip filtering.
-- **Tape Index Rail**: Industrial tactile A–Z fast scroller with an interactive HUD letter badge and haptic clock ticks for lightning-fast library browsing.
-- **Smart Relevance Search**: Real-time multi-token relevance search matching across song titles, artists, and albums.
-- **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token authentication.
-- **Jellyfin**: Direct streaming and music library browsing from your Jellyfin server.
-- **Internet Radio**: Search and browse tens of thousands of live stations from [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with favorites and Android Auto support.
+
+- **Local Audio Scanning**: Scans device audio with configurable folder
+  whitelists, blacklists, and short audio clip filtering.
+- **Tape Index Rail**: Industrial tactile A–Z fast scroller with an interactive
+  HUD letter badge and haptic clock ticks for lightning-fast library browsing.
+- **Smart Relevance Search**: Real-time multi-token relevance search matching
+  across song titles, artists, and albums.
+- **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token
+  authentication.
+- **Jellyfin**: Direct streaming and music library browsing from your Jellyfin
+  server.
+- **Internet Radio**: Search and browse tens of thousands of live stations from
+  [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with
+  favorites and Android Auto support.
 - **Offline Cache**: Download and cache streaming tracks for offline playback.
-- **Scrobbling**: Track your listening on [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
-- **Listening Log**: Local playback statistics tracking your top tracks, artists, and albums.
+- **Scrobbling**: Track your listening on
+  [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
+- **Listening Log**: Local playback statistics tracking your top tracks,
+  artists, and albums.
 - **Listening Room**: Sync playback with nearby devices over your local Wi-Fi.
 
 ### Companion Hardware
-- **Wireless Pairing**: Connect to a standalone ESP32 CassetteCat player over a direct SoftAP hotspot or your local Wi-Fi network via mDNS. On Android 13+, hotspot pairing associates automatically via `WifiNetworkSpecifier`.
-- **Live Telemetry**: Battery level, charging status, SD card capacity, and firmware version, all from the Pairing screen.
+
+- **Wireless Pairing**: Connect to a standalone ESP32 CassetteCat player over a
+  direct SoftAP hotspot or your local Wi-Fi network via mDNS. On Android 13+,
+  hotspot pairing associates automatically via `WifiNetworkSpecifier`.
+- **Live Telemetry**: Battery level, charging status, SD card capacity, and
+  firmware version, all from the Pairing screen.
 
 ### Device Integration
-- **Android Auto & Android Automotive OS**: Browse your local library (Liked Songs, Playlists, Albums, Artists, All Songs) and control playback directly from the car.
-- **Quick Settings Tile**: Play, pause, and see what's playing without opening the app.
+
+- **Android Auto & Android Automotive OS**: Browse your local library (Liked
+  Songs, Playlists, Albums, Artists, All Songs) and control playback directly
+  from the car.
+- **Quick Settings Tile**: Play, pause, and see what's playing without opening
+  the app.
 
 ### Design & Customization
-- **Curated Theme Accents**: 6 dynamic color palettes: *Record Red*, *Cassette Amber*, *Electric Cyan*, *Neon Emerald*, *Tape Magenta*, and *Monochrome Silver*.
-- **Pure Black AMOLED Mode**: Pitch black `#000000` surface backgrounds for true OLED blacks and maximum battery efficiency.
-- **Now Playing & Artwork Styling**: Configurable album art corner radii (Curved 16dp, Soft 8dp, Vinyl Square 0dp) and interactive remaining time countdown toggle (`-02:45`).
-- **Navigation & Startup Preferences**: Configurable default landing screen (*Home*, *Library*, or *Last active tab*) and default Library section.
-- **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and synchronized lyric excerpts.
+
+- **Curated Theme Accents**: 6 dynamic color palettes: _Record Red_, _Cassette
+  Amber_, _Electric Cyan_, _Neon Emerald_, _Tape Magenta_, and _Monochrome
+  Silver_.
+- **Pure Black AMOLED Mode**: Pitch black `#000000` surface backgrounds for true
+  OLED blacks and maximum battery efficiency.
+- **Now Playing & Artwork Styling**: Configurable album art corner radii (Curved
+  16dp, Soft 8dp, Vinyl Square 0dp) and interactive remaining time countdown
+  toggle (`-02:45`).
+- **Navigation & Startup Preferences**: Configurable default landing screen
+  (_Home_, _Library_, or _Last active tab_) and default Library section.
+- **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and
+  synchronized lyric excerpts.
 - **Rewind**: Export your monthly listening stats as a shareable poster.
-- **Home Screen Widget**: Control playback and view current song artwork directly from your home screen.
+- **Home Screen Widget**: Control playback and view current song artwork
+  directly from your home screen.
 
 ### Privacy
-- Local-first architecture: no analytics, no third-party tracking, zero Google Play Services dependencies.
-- Streaming server credentials encrypted with AES-256 via the hardware-backed `AndroidKeyStore`.
-- Fully F-Droid compatible and open source under GPL-3.0.
+
+- Local-first architecture: no analytics, no third-party tracking, zero Google
+  Play Services dependencies.
+- Streaming server credentials encrypted with AES-256 via the hardware-backed
+  `AndroidKeyStore`.
+- Fully open source under GPL-3.0.
+- F-Droid and IzzyOnDroid submissions pending.
 
 ---
 
@@ -95,7 +147,11 @@ cd app
 ./gradlew testDebugUnitTest
 ```
 
-Output: `app/app/build/outputs/apk/debug/app-debug.apk`
+Output:
+
+```text
+app/app/build/outputs/apk/debug/app-debug.apk
+```
 
 ---
 
@@ -109,6 +165,8 @@ Output: `app/app/build/outputs/apk/debug/app-debug.apk`
 ---
 
 ## Contributing
+
+Contributions are welcome.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
@@ -126,26 +184,45 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## Credits
 
 ### Services & Data
-- <a href="https://lrclib.net"><img src="https://img.shields.io/badge/LRCLIB-38BDF8?style=flat-square" alt="LRCLIB" /></a> Synchronized and plain lyrics.
-- <a href="https://coverartarchive.org"><img src="https://img.shields.io/badge/Cover%20Art%20Archive-20656C?style=flat-square" alt="Cover Art Archive" /></a> Album artwork from MetaBrainz and the Internet Archive.
-- <a href="https://musicbrainz.org"><img src="https://img.shields.io/badge/MusicBrainz-EB743B?style=flat-square&logo=musicbrainz&logoColor=white" alt="MusicBrainz" /></a> Music metadata and encyclopedia.
-- <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a> Open scrobbling.
-- <a href="https://libre.fm"><img src="https://img.shields.io/badge/Libre.fm-990000?style=flat-square&logo=gnu&logoColor=white" alt="Libre.fm" /></a> Free software scrobbling (GNU FM).
-- <a href="https://wikipedia.org"><img src="https://img.shields.io/badge/Wikipedia-000000?style=flat-square&logo=wikipedia&logoColor=white" alt="Wikipedia" /></a> Artist biographies (CC BY-SA 4.0).
-- <a href="https://deezer.com"><img src="https://img.shields.io/badge/Deezer-FEAA2D?style=flat-square&logo=deezer&logoColor=white" alt="Deezer" /></a> <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-242424?style=flat-square" alt="TheAudioDB" /></a> Artist imagery and metadata.
+
+- <a href="https://lrclib.net"><img src="https://img.shields.io/badge/LRCLIB-38BDF8?style=flat-square" alt="LRCLIB" /></a>
+  Synchronized and plain lyrics.
+- <a href="https://coverartarchive.org"><img src="https://img.shields.io/badge/Cover%20Art%20Archive-20656C?style=flat-square" alt="Cover Art Archive" /></a>
+  Album artwork from MetaBrainz and the Internet Archive.
+- <a href="https://musicbrainz.org"><img src="https://img.shields.io/badge/MusicBrainz-EB743B?style=flat-square&logo=musicbrainz&logoColor=white" alt="MusicBrainz" /></a>
+  Music metadata and encyclopedia.
+- <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a>
+  Open scrobbling.
+- <a href="https://libre.fm"><img src="https://img.shields.io/badge/Libre.fm-990000?style=flat-square&logo=gnu&logoColor=white" alt="Libre.fm" /></a>
+  Free software scrobbling (GNU FM).
+- <a href="https://wikipedia.org"><img src="https://img.shields.io/badge/Wikipedia-000000?style=flat-square&logo=wikipedia&logoColor=white" alt="Wikipedia" /></a>
+  Artist biographies (CC BY-SA 4.0).
+- <a href="https://deezer.com"><img src="https://img.shields.io/badge/Deezer-FEAA2D?style=flat-square&logo=deezer&logoColor=white" alt="Deezer" /></a>
+  <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-242424?style=flat-square" alt="TheAudioDB" /></a>
+  Artist imagery and metadata.
 
 ### Libraries & Design
-- <a href="https://github.com/jaakkopasanen/AutoEq"><img src="https://img.shields.io/badge/AutoEq-1C1917?style=flat-square" alt="AutoEq" /></a> Headphone EQ profiles by Jaakko Pasanen.
-- <a href="https://developer.android.com/media/media3"><img src="https://img.shields.io/badge/Media3-3DDC84?style=flat-square&logo=android&logoColor=white" alt="AndroidX Media3" /></a> Playback engine and caching.
-- <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" /></a> UI toolkit.
-- <a href="https://lucide.dev"><img src="https://img.shields.io/badge/Lucide-F56565?style=flat-square&logo=lucide&logoColor=white" alt="Lucide" /></a> App logo and icons (ISC).
-- <a href="https://simpleicons.org"><img src="https://img.shields.io/badge/Simple%20Icons-111111?style=flat-square&logo=simpleicons&logoColor=white" alt="Simple Icons" /></a> Brand icons (CC0 1.0).
-- <a href="https://github.com/square/okhttp"><img src="https://img.shields.io/badge/OkHttp-006AFF?style=flat-square&logo=square&logoColor=white" alt="OkHttp" /></a> HTTP client.
-- <a href="https://github.com/IBM/plex"><img src="https://img.shields.io/badge/IBM%20Plex-0F62FE?style=flat-square&logo=ibm&logoColor=white" alt="IBM Plex" /></a> Typefaces (OFL 1.1).
-- <a href="https://github.com/floriankarsten/space-grotesk"><img src="https://img.shields.io/badge/Space%20Grotesk-242424?style=flat-square" alt="Space Grotesk" /></a> Display font by Florian Karsten (OFL 1.1).
+
+- <a href="https://github.com/jaakkopasanen/AutoEq"><img src="https://img.shields.io/badge/AutoEq-1C1917?style=flat-square" alt="AutoEq" /></a>
+  Headphone EQ profiles by Jaakko Pasanen.
+- <a href="https://developer.android.com/media/media3"><img src="https://img.shields.io/badge/Media3-3DDC84?style=flat-square&logo=android&logoColor=white" alt="AndroidX Media3" /></a>
+  Playback engine and caching.
+- <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" /></a>
+  UI toolkit.
+- <a href="https://lucide.dev"><img src="https://img.shields.io/badge/Lucide-F56565?style=flat-square&logo=lucide&logoColor=white" alt="Lucide" /></a>
+  App logo and icons (ISC).
+- <a href="https://simpleicons.org"><img src="https://img.shields.io/badge/Simple%20Icons-111111?style=flat-square&logo=simpleicons&logoColor=white" alt="Simple Icons" /></a>
+  Brand icons (CC0 1.0).
+- <a href="https://github.com/square/okhttp"><img src="https://img.shields.io/badge/OkHttp-006AFF?style=flat-square&logo=square&logoColor=white" alt="OkHttp" /></a>
+  HTTP client.
+- <a href="https://github.com/IBM/plex"><img src="https://img.shields.io/badge/IBM%20Plex-0F62FE?style=flat-square&logo=ibm&logoColor=white" alt="IBM Plex" /></a>
+  Typefaces (OFL 1.1).
+- <a href="https://github.com/floriankarsten/space-grotesk"><img src="https://img.shields.io/badge/Space%20Grotesk-242424?style=flat-square" alt="Space Grotesk" /></a>
+  Display font by Florian Karsten (OFL 1.1).
 
 ---
 
 ## License
 
-CassetteCat is licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
+CassetteCat is licensed under the
+[GNU General Public License v3.0 (GPL-3.0)](LICENSE).
