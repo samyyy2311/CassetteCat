@@ -2,6 +2,16 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.3.1] - Performance & Reliability
+
+### Performance
+* Smoother transitions between songs during playback.
+* Playlist import (M3U), backup restore, and starting a download no longer briefly freeze the UI.
+* Faster song selection when adding songs to a playlist.
+
+### Also
+* Home screen icon now supports Android 13+ themed icons.
+
 ## [1.3.0] - Internet Radio & Onboarding Fixes
 
 ### Radio
