@@ -68,6 +68,7 @@ fun ExternalServicesScreen(
                     ExternalService.COVER_ART_ARCHIVE -> R.drawable.lucide_ic_disc_3 to MaterialTheme.colorScheme.secondary
                     ExternalService.WIKIPEDIA -> AppR.drawable.ic_logo_wikipedia to Color.Unspecified
                     ExternalService.GITHUB_UPDATES -> AppR.drawable.ic_logo_github to Color.Unspecified
+                    ExternalService.RADIO_BROWSER -> R.drawable.lucide_ic_radio to MaterialTheme.colorScheme.secondary
                 }
                 ServiceToggleRow(
                     service = service,

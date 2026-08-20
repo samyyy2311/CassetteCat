@@ -1,6 +1,12 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -102,7 +108,7 @@ internal fun PlaybackControlsRow(
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
-        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
+        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, isPlaying = isPlaying)
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -178,7 +184,12 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit) {
+private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit, isPlaying: Boolean = true) {
+    if (durationMs <= 0) {
+        LiveIndicator(isPlaying = isPlaying)
+        return
+    }
+
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
@@ -225,6 +236,52 @@ private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -
                         appPreferencesRepository.setShowRemainingTime(!preferences.showRemainingTime)
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveIndicator(isPlaying: Boolean = true) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(28.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LiveWaveform(isPlaying = isPlaying)
+        Spacer(Modifier.width(10.dp))
+        Text(if (isPlaying) "LIVE" else "PAUSED", style = readoutStyle())
+    }
+}
+
+private const val WAVEFORM_BAR_COUNT = 5
+
+@Composable
+private fun LiveWaveform(isPlaying: Boolean) {
+    val transition = rememberInfiniteTransition(label = "liveWaveform")
+    val color = if (isPlaying) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        repeat(WAVEFORM_BAR_COUNT) { index ->
+            val heightFraction = if (isPlaying) {
+                val animated by transition.animateFloat(
+                    initialValue = 0.25f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 480 + index * 90, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                        initialStartOffset = StartOffset(index * 90)
+                    ),
+                    label = "waveBar$index"
+                )
+                animated
+            } else {
+                0.3f
+            }
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(16.dp * heightFraction)
+                    .background(color, RoundedCornerShape(1.5.dp))
             )
         }
     }

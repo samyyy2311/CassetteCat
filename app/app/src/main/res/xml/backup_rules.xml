@@ -3,4 +3,5 @@
     <exclude domain="sharedpref" path="credentials.xml" />
     <exclude domain="root" path="cache" />
     <exclude domain="file" path="crash_log.txt" />
+    <exclude domain="file" path="datastore/onboarding.preferences_pb" />
 </full-backup-content>

@@ -65,6 +65,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.SmartPlaylistType
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingContent
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingView
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.radio.RadioScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.search.SearchScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.AboutLegalScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.BackupRestoreScreen
@@ -100,6 +101,7 @@ object MainRoute {
     const val HOME = "main/home"
     const val LIBRARY = "main/library"
     const val SEARCH = "main/search"
+    const val RADIO = "main/radio"
     const val SETTINGS = "main/settings"
     const val CUSTOMIZATION = "main/settings/customization"
     const val CONNECT_SERVER = "main/connect/{protocol}"
@@ -442,6 +444,13 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             libraryViewModel = libraryViewModel,
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             focusRequestId = searchFocusRequestId,
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.RADIO) {
+                        RadioScreen(
+                            playbackViewModel = playbackViewModel,
+                            onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }

@@ -3,15 +3,22 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.LibraryFolderRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
+import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
@@ -40,6 +47,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val serviceSettingsRepository = ServiceSettingsRepository(app)
     private val libraryFolderRepository = LibraryFolderRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
+    private val downloadSettingsRepository = DownloadSettingsRepository(app)
     private val updateChecker = GitHubUpdateChecker()
     private val currentVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName ?: "0.0.0"
 
@@ -127,22 +135,23 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setShowHomeForgottenFavorites(enabled) }
     }
 
-    fun setThemeAccent(accent: `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent) {
+    fun setShowMiniPlayerProgress(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setShowMiniPlayerProgress(enabled) }
+    }
+
+    fun setThemeAccent(accent: ThemeAccent) {
         viewModelScope.launch { appPreferencesRepository.setThemeAccent(accent) }
     }
 
     fun setCustomAccentColor(colorValue: Long) {
-        viewModelScope.launch {
-            appPreferencesRepository.setCustomAccentColor(colorValue)
-            appPreferencesRepository.setThemeAccent(`in`.caffeinelabs.cassettecat.data.settings.ThemeAccent.CUSTOM)
-        }
+        viewModelScope.launch { appPreferencesRepository.setCustomAccentColorAndAccent(colorValue) }
     }
 
     fun setAmoledDarkTheme(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setAmoledDarkTheme(enabled) }
     }
 
-    fun setDefaultLibraryTab(tab: `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab) {
+    fun setDefaultLibraryTab(tab: DefaultLibraryTab) {
         viewModelScope.launch { appPreferencesRepository.setDefaultLibraryTab(tab) }
     }
 
@@ -152,10 +161,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setShowRemainingTime(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setShowRemainingTime(enabled) }
-    }
-
-    fun setSeekStepSeconds(seconds: Int) {
-        viewModelScope.launch { appPreferencesRepository.setSeekStepSeconds(seconds) }
     }
 
     fun setHapticFeedbackEnabled(enabled: Boolean) {
@@ -192,11 +197,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setGridColumnCount(columns) }
     }
 
-    fun setTrackRowDensity(density: `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity) {
+    fun setTrackRowDensity(density: TrackRowDensity) {
         viewModelScope.launch { appPreferencesRepository.setTrackRowDensity(density) }
     }
 
-    fun setDefaultSortMetric(metric: `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric) {
+    fun setDefaultSortMetric(metric: DefaultSortMetric) {
         viewModelScope.launch { appPreferencesRepository.setDefaultSortMetric(metric) }
     }
 
@@ -209,20 +214,16 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // Gestures
-    fun setDoubleTapSeekEnabled(enabled: Boolean) {
-        viewModelScope.launch { appPreferencesRepository.setDoubleTapSeekEnabled(enabled) }
-    }
-
     fun setSwipeUpLyricsEnabled(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setSwipeUpLyricsEnabled(enabled) }
     }
 
     // Lyrics Customization
-    fun setLyricsAlignment(alignment: `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment) {
+    fun setLyricsAlignment(alignment: LyricsAlignment) {
         viewModelScope.launch { appPreferencesRepository.setLyricsAlignment(alignment) }
     }
 
-    fun setLyricsActiveStyle(style: `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle) {
+    fun setLyricsActiveStyle(style: LyricsActiveStyle) {
         viewModelScope.launch { appPreferencesRepository.setLyricsActiveStyle(style) }
     }
 
@@ -230,16 +231,14 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setMaxCacheSizeMb(sizeMb: Int) {
         viewModelScope.launch {
             appPreferencesRepository.setMaxCacheSizeMb(sizeMb)
-            `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository(getApplication())
-                .setMaxCacheBytes(sizeMb * 1024L * 1024L)
+            downloadSettingsRepository.setMaxCacheBytes(sizeMb * 1024L * 1024L)
         }
     }
 
     fun setAutoCacheFavorites(enabled: Boolean) {
         viewModelScope.launch {
             appPreferencesRepository.setAutoCacheFavorites(enabled)
-            `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository(getApplication())
-                .setAutoDownloadFavorites(enabled)
+            downloadSettingsRepository.setAutoDownloadFavorites(enabled)
         }
     }
 }

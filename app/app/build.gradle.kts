@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -12,29 +14,46 @@ android {
         ?: (project.findProperty("versionName") as? String)
         ?: "1.2.0"
 
+    val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
+        ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
+        ?: 3
+
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
+        versionCode = appVersionCode
         versionName = appVersionName
     }
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_FILE") ?: (project.findProperty("RELEASE_STORE_FILE") as? String)
+            // Load from keystore.properties file if it exists (local dev)
+            val keystoreProps = Properties()
+            val keystoreFile = rootProject.file("keystore.properties")
+            if (keystoreFile.exists()) keystoreProps.load(keystoreFile.inputStream())
+
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+                ?: keystoreProps.getProperty("RELEASE_STORE_FILE")
+                ?: (project.findProperty("RELEASE_STORE_FILE") as? String)
             if (!keystorePath.isNullOrEmpty() && file(keystorePath).exists()) {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (project.findProperty("RELEASE_STORE_PASSWORD") as? String) ?: ""
-                keyAlias = System.getenv("KEY_ALIAS") ?: (project.findProperty("RELEASE_KEY_ALIAS") as? String) ?: ""
-                keyPassword = System.getenv("KEY_PASSWORD") ?: (project.findProperty("RELEASE_KEY_PASSWORD") as? String) ?: ""
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: keystoreProps.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: (project.findProperty("RELEASE_STORE_PASSWORD") as? String) ?: ""
+                keyAlias = System.getenv("KEY_ALIAS")
+                    ?: keystoreProps.getProperty("RELEASE_KEY_ALIAS")
+                    ?: (project.findProperty("RELEASE_KEY_ALIAS") as? String) ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: keystoreProps.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: (project.findProperty("RELEASE_KEY_PASSWORD") as? String) ?: ""
             }
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             val releaseSigning = signingConfigs.getByName("release")
             if (releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning

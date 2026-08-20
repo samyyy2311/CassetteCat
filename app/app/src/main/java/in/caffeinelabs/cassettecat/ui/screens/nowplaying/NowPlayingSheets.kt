@@ -73,6 +73,7 @@ internal fun NowPlayingActionsSheet(
     playbackSpeed: Float,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onShareFile: () -> Unit,
     onAddToQueue: () -> Unit,
     onDownload: () -> Unit,
     onOpenCredits: () -> Unit,
@@ -127,6 +128,15 @@ internal fun NowPlayingActionsSheet(
                 accented = false,
                 onClick = { onShare(); onDismiss() }
             )
+            if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_file_music,
+                    label = "Share Song File",
+                    subtitle = "Send the original audio file",
+                    accented = false,
+                    onClick = { onShareFile(); onDismiss() }
+                )
+            }
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_list_plus,
                 label = "Add to Up Next",
@@ -134,7 +144,7 @@ internal fun NowPlayingActionsSheet(
                 accented = false,
                 onClick = { onAddToQueue(); onDismiss() }
             )
-            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost) {
+            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_download,
                     label = "Download",
@@ -385,6 +395,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.Subsonic -> "Subsonic server"
         MusicSource.Jellyfin -> "Jellyfin server"
         MusicSource.ListeningRoomHost -> "Streamed from Listening Room host"
+        MusicSource.Radio -> "Internet radio"
     }
     val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Not supplied" }
 
@@ -528,19 +539,21 @@ internal fun NowPlayingGoToSheet(
                 color = MaterialTheme.colorScheme.outlineVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
             )
-            GoToMusicDetailRow(
-                title = "Go to Artist",
-                subtitle = primaryArtist,
-                onClick = { onNavigateToArtist(primaryArtist) }
-            ) {
-                ArtistImage(artist = primaryArtist, modifier = Modifier.fillMaxSize())
-            }
-            GoToMusicDetailRow(
-                title = "Go to Album",
-                subtitle = song.album,
-                onClick = { onNavigateToAlbum(song.albumId) }
-            ) {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            if (song.source != MusicSource.Radio) {
+                GoToMusicDetailRow(
+                    title = "Go to Artist",
+                    subtitle = primaryArtist,
+                    onClick = { onNavigateToArtist(primaryArtist) }
+                ) {
+                    ArtistImage(artist = primaryArtist, modifier = Modifier.fillMaxSize())
+                }
+                GoToMusicDetailRow(
+                    title = "Go to Album",
+                    subtitle = song.album,
+                    onClick = { onNavigateToAlbum(song.albumId) }
+                ) {
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                }
             }
             GoToMusicDetailRow(
                 title = "Go to Playlist",

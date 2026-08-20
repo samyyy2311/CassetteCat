@@ -34,11 +34,14 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -60,44 +63,62 @@ fun MiniPlayerRow(
     val song = state.currentSong ?: return
     val previousSong = state.previousInQueue
     val nextSong = state.upNext.firstOrNull()
+    val positionMs by playbackViewModel.positionMs.collectAsState()
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerLow,
-                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    val context = LocalContext.current
+    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                )
+                .clickable(onClick = hapticClick(onExpand))
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                MiniPlayerArtRow(
+                    currentSong = song,
+                    previousSong = previousSong,
+                    nextSong = nextSong,
+                    onSwipeNext = { playbackViewModel.skipNext() },
+                    onSwipePrevious = { playbackViewModel.skipPrevious() },
+                    onThumbnailBoundsChange = onThumbnailBoundsChange
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            TransportButton(
+                iconRes = if (state.isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
+                size = 44.dp,
+                tint = MaterialTheme.colorScheme.tertiary,
+                onClick = { playbackViewModel.togglePlayPause() },
+                accented = state.isPlaying
             )
-            .clickable(onClick = hapticClick(onExpand))
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.weight(1f)) {
-            MiniPlayerArtRow(
-                currentSong = song,
-                previousSong = previousSong,
-                nextSong = nextSong,
-                onSwipeNext = { playbackViewModel.skipNext() },
-                onSwipePrevious = { playbackViewModel.skipPrevious() },
-                onThumbnailBoundsChange = onThumbnailBoundsChange
+            Spacer(Modifier.width(12.dp))
+            TransportButton(
+                iconRes = R.drawable.lucide_ic_skip_forward,
+                size = 40.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { playbackViewModel.skipNext() }
             )
         }
-        Spacer(Modifier.width(12.dp))
-        TransportButton(
-            iconRes = if (state.isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
-            size = 44.dp,
-            tint = MaterialTheme.colorScheme.tertiary,
-            onClick = { playbackViewModel.togglePlayPause() },
-            accented = state.isPlaying
-        )
-        Spacer(Modifier.width(12.dp))
-        TransportButton(
-            iconRes = R.drawable.lucide_ic_skip_forward,
-            size = 40.dp,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            onClick = { playbackViewModel.skipNext() }
-        )
+
+        if (preferences.showMiniPlayerProgress && state.durationMs > 0) {
+            val fraction = (positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(fraction)
+                    .height(2.dp)
+                    .background(MaterialTheme.colorScheme.tertiary)
+            )
+        }
     }
 }
 

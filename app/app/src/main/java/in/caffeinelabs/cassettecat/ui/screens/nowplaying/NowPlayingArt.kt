@@ -1,21 +1,28 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import android.graphics.Bitmap
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -28,18 +35,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -47,11 +61,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
+import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.components.prefetchAlbumArt
 
 private const val CAROUSEL_SNAP_MS = 380
+private const val SWIPE_UP_TRIGGER_DISTANCE = 80f
 
 @Composable
 internal fun AlbumArtCarousel(
@@ -62,8 +79,8 @@ internal fun AlbumArtCarousel(
     onSwipePrevious: () -> Unit,
     collapsedArtRect: State<Rect?>?,
     expandFraction: Float,
-    onDoubleTapSeek: ((Boolean) -> Unit)? = null,
     onSwipeUp: (() -> Unit)? = null,
+    isPlaying: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
@@ -106,8 +123,8 @@ internal fun AlbumArtCarousel(
                 song = windowSongs[page],
                 collapsedArtRect = if (isCurrentSong) collapsedArtRect else null,
                 expandFraction = if (isCurrentSong) expandFraction else 1f,
-                onDoubleTapSeek = if (isCurrentSong) onDoubleTapSeek else null,
                 onSwipeUp = if (isCurrentSong) onSwipeUp else null,
+                isPlaying = isPlaying,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -119,8 +136,8 @@ internal fun AlbumArtCard(
     song: Song,
     collapsedArtRect: State<Rect?>? = null,
     expandFraction: Float = 1f,
-    onDoubleTapSeek: ((Boolean) -> Unit)? = null,
     onSwipeUp: (() -> Unit)? = null,
+    isPlaying: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -137,37 +154,23 @@ internal fun AlbumArtCard(
                 val bounds = coordinates.boundsInWindow()
                 if (expandedArtRect != bounds) expandedArtRect = bounds
             }
-            .pointerInput(preferences.doubleTapSeekEnabled) {
-                if (preferences.doubleTapSeekEnabled) {
-                    detectTapGestures(
-                        onDoubleTap = { offset ->
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            val isForward = offset.x > size.width / 2f
-                            onDoubleTapSeek?.invoke(isForward)
-                        }
-                    )
-                }
-            }
             .pointerInput(preferences.swipeUpLyricsEnabled) {
                 if (preferences.swipeUpLyricsEnabled && onSwipeUp != null) {
-                    val slop = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         var totalDragY = 0f
-                        var claimed = false
                         while (true) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (change.changedToUpIgnoreConsumed()) {
-                                if (claimed && totalDragY < -80f) {
+                                if (totalDragY < -SWIPE_UP_TRIGGER_DISTANCE) {
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onSwipeUp.invoke()
                                 }
                                 break
                             }
                             totalDragY += change.positionChange().y
-                            if (!claimed && totalDragY <= -slop) claimed = true
-                            if (claimed) change.consume() else if (totalDragY >= slop) break
+                            if (totalDragY < -SWIPE_UP_TRIGGER_DISTANCE) change.consume()
                         }
                     }
                 }
@@ -194,7 +197,23 @@ internal fun AlbumArtCard(
             }
     ) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadius))) {
-            AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            if (song.source == MusicSource.Radio) {
+                var artwork by remember(song.id) { mutableStateOf<Bitmap?>(null) }
+                LaunchedEffect(song.id) { artwork = loadSongArtwork(context, song) }
+                val loadedArtwork = artwork
+                if (loadedArtwork != null) {
+                    Image(
+                        bitmap = loadedArtwork.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    RotatingVinylPlaceholder(isPlaying = isPlaying, modifier = Modifier.fillMaxSize())
+                }
+            } else {
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            }
             Box(
                 modifier = Modifier.matchParentSize().background(
                     Brush.verticalGradient(
@@ -204,6 +223,85 @@ internal fun AlbumArtCard(
                     )
                 )
             )
+        }
+    }
+}
+
+private const val VINYL_ROTATION_MS = 6000
+
+@Composable
+private fun RotatingVinylPlaceholder(isPlaying: Boolean, modifier: Modifier = Modifier) {
+    val rotation = remember { Animatable(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                rotation.animateTo(
+                    targetValue = rotation.value + 360f,
+                    animationSpec = tween(durationMillis = VINYL_ROTATION_MS, easing = LinearEasing)
+                )
+            }
+        }
+    }
+    val needleAngle by animateFloatAsState(
+        targetValue = if (isPlaying) 0f else -30f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "needleLift"
+    )
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        VinylDisc(
+            modifier = Modifier
+                .fillMaxSize(0.66f)
+                .aspectRatio(1f)
+                .graphicsLayer { rotationZ = rotation.value % 360f }
+        )
+        Tonearm(
+            liftAngleDeg = needleAngle,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxSize(0.44f)
+                .aspectRatio(1f)
+        )
+    }
+}
+
+@Composable
+private fun VinylDisc(modifier: Modifier = Modifier) {
+    val labelColor = MaterialTheme.colorScheme.tertiary
+    Canvas(modifier = modifier) {
+        val radius = size.minDimension / 2f
+        val center = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(color = Color(0xFF141414), radius = radius, center = center)
+        var grooveRadius = radius * 0.94f
+        while (grooveRadius > radius * 0.42f) {
+            drawCircle(
+                color = Color.White.copy(alpha = 0.05f),
+                radius = grooveRadius,
+                center = center,
+                style = Stroke(width = 1.dp.toPx())
+            )
+            grooveRadius -= radius * 0.045f
+        }
+        drawCircle(color = labelColor, radius = radius * 0.34f, center = center)
+        drawCircle(color = Color(0xFF141414), radius = radius * 0.05f, center = center)
+    }
+}
+
+@Composable
+private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
+    val armColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(modifier = modifier) {
+        val pivot = Offset(size.width * 0.82f, size.height * 0.10f)
+        val restTip = Offset(size.width * 0.28f, size.height * 0.80f)
+        rotate(degrees = liftAngleDeg, pivot = pivot) {
+            drawLine(
+                color = armColor,
+                start = pivot,
+                end = restTip,
+                strokeWidth = size.minDimension * 0.05f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(color = armColor, radius = size.minDimension * 0.09f, center = pivot)
+            drawCircle(color = armColor, radius = size.minDimension * 0.045f, center = restTip)
         }
     }
 }

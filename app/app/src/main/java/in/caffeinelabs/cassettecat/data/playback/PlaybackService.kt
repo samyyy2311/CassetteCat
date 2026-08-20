@@ -323,6 +323,39 @@ class PlaybackService : MediaLibraryService() {
             }
             return future
         }
+
+        override fun onSearch(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<Void>> {
+            val future = SettableFuture.create<LibraryResult<Void>>()
+            serviceScope.launch {
+                val results = libraryTree.search(query)
+                session.notifySearchResultChanged(browser, query, results.size, params)
+                future.set(LibraryResult.ofVoid(params))
+            }
+            return future
+        }
+
+        override fun onGetSearchResult(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+            serviceScope.launch {
+                val results = libraryTree.search(query)
+                val start = (page * pageSize).coerceIn(0, results.size)
+                val end = (start + pageSize).coerceIn(start, results.size)
+                future.set(LibraryResult.ofItemList(ImmutableList.copyOf(results.subList(start, end)), params))
+            }
+            return future
+        }
     }
 
     private fun syncWidgetState(player: Player) {

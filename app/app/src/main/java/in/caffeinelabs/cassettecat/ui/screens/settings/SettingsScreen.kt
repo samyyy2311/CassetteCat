@@ -195,7 +195,7 @@ fun SettingsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "External Services",
-                subtitle = "$enabledServices of ${externalServices.size} enabled (Lyrics, Metadata)",
+                subtitle = "$enabledServices of ${externalServices.size} enabled (Lyrics, Metadata, Radio)",
                 iconRes = R.drawable.lucide_ic_globe,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onManageExternalServices

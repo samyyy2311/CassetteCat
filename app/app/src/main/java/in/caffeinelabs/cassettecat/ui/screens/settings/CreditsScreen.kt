@@ -81,6 +81,29 @@ fun CreditsScreen(
             )
             SettingsDivider()
             NavigationRow(
+                title = "Deezer",
+                subtitle = "Artist photos and images (deezer.com)",
+                iconRes = AppR.drawable.ic_logo_deezer,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://deezer.com") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "TheAudioDB",
+                subtitle = "Fallback artist images and biographies (theaudiodb.com)",
+                iconRes = AppR.drawable.ic_logo_theaudiodb,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://theaudiodb.com") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Radio Browser",
+                subtitle = "Community-run internet radio station directory (radio-browser.info)",
+                iconRes = R.drawable.lucide_ic_radio,
+                onClick = { openUrl("https://radio-browser.info") }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = "Wikipedia & Wikimedia",
                 subtitle = "Artist biographies and album background (CC BY-SA 4.0)",
                 iconRes = AppR.drawable.ic_logo_wikipedia,
@@ -118,6 +141,14 @@ fun CreditsScreen(
                 iconRes = AppR.drawable.ic_logo_librefm,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://libre.fm") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "GitHub",
+                subtitle = "Release update checks (github.com)",
+                iconRes = AppR.drawable.ic_logo_github,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://github.com") }
             )
         }
 

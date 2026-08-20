@@ -41,7 +41,7 @@ suspend fun prefetchAlbumArt(context: Context, song: Song?) {
     song ?: return
     when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
-        MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
         MusicSource.ListeningRoomHost -> Unit
     }
 }
@@ -49,7 +49,7 @@ suspend fun prefetchAlbumArt(context: Context, song: Song?) {
 suspend fun loadSongArtwork(context: Context, song: Song): Bitmap? {
     return when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
-        MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
         MusicSource.ListeningRoomHost -> null
     }
 }
@@ -61,7 +61,7 @@ fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
         mutableStateOf(
             when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).peek(song)
-                MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.peek(it) }
+                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it) }
                 MusicSource.ListeningRoomHost -> null
             }
         )
@@ -70,7 +70,7 @@ fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
         if (bitmap == null) {
             bitmap = when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).load(song)
-                MusicSource.Subsonic, MusicSource.Jellyfin -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.load(it) }
                 MusicSource.ListeningRoomHost -> null
             }
         }

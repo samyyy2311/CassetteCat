@@ -88,20 +88,12 @@ internal fun NowPlayingPlayerView(
             onSwipePrevious = onSkipPrevious,
             collapsedArtRect = collapsedArtRect,
             expandFraction = expandFraction,
-            onDoubleTapSeek = { isForward ->
-                val stepMs = preferences.seekStepSeconds * 1000L
-                val targetMs = if (isForward) {
-                    (positionMs + stepMs).coerceAtMost(state.durationMs)
-                } else {
-                    (positionMs - stepMs).coerceAtLeast(0L)
-                }
-                playbackViewModel.seekTo(targetMs)
-            },
             onSwipeUp = {
                 if (preferences.swipeUpLyricsEnabled) {
                     onActiveViewChange(NowPlayingView.LYRICS)
                 }
             },
+            isPlaying = state.isPlaying,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .aspectRatio(1f)

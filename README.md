@@ -36,8 +36,8 @@
 ## Download
 
 <p align="center">
-  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><img src="https://img.shields.io/badge/GitHub%20Releases-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub Releases" /></a>
-  <a href="https://github.com/ImranR98/Obtainium"><img src="https://img.shields.io/badge/Obtainium-4A154B?style=flat-square&logo=git&logoColor=white" alt="Obtainium" /></a>
+  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><img src="https://img.shields.io/badge/GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases" /></a>
+  <a href="https://github.com/ImranR98/Obtainium"><img src="https://img.shields.io/badge/Obtainium-4A154B?style=for-the-badge&logo=git&logoColor=white" alt="Obtainium" /></a>
 </p>
 
 ---

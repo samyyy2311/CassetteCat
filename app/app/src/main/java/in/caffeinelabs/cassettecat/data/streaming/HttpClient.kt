@@ -10,7 +10,9 @@ import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-val sharedHttpClient: OkHttpClient = OkHttpClient()
+val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
+    .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
+    .build()
 val sharedJson: Json = Json { ignoreUnknownKeys = true }
 
 // Mirrors PlaybackRepository's awaitController() bridging idiom, giving real

@@ -43,4 +43,11 @@ class LibraryScanViewModel(app: Application) : AndroidViewModel(app) {
             onSaved()
         }
     }
+
+    fun skip(onSkipped: () -> Unit) {
+        viewModelScope.launch {
+            repository.setFolderFilter(FolderFilterConfig())
+            onSkipped()
+        }
+    }
 }

@@ -204,6 +204,7 @@ fun StatsScreen(
                     onClick = {
                         val titleLabel = if (isRewindMode) "Cassette Rewind $year" else "$monthName $year"
                         val bitmap = buildListeningRecordPoster(
+                            context = context,
                             monthLabel = monthName,
                             yearLabel = year.toString(),
                             listeningMinutes = listeningMinutes,

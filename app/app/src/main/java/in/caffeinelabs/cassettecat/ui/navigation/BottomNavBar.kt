@@ -27,8 +27,9 @@ private data class NavItem(val route: String, val iconRes: Int, val label: Strin
 
 private val items = listOf(
     NavItem(MainRoute.HOME, R.drawable.lucide_ic_house, "Home"),
-    NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, "Search"),
     NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, "Library"),
+    NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, "Radio"),
+    NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, "Search"),
     NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, "Settings")
 )
 
@@ -36,6 +37,7 @@ fun parentTabRoute(currentRoute: String?): String? = when {
     currentRoute == MainRoute.HOME || currentRoute?.startsWith("${MainRoute.HOME}/") == true -> MainRoute.HOME
     currentRoute == MainRoute.SEARCH || currentRoute?.startsWith("${MainRoute.SEARCH}/") == true -> MainRoute.SEARCH
     currentRoute == MainRoute.LIBRARY || currentRoute?.startsWith("${MainRoute.LIBRARY}/") == true -> MainRoute.LIBRARY
+    currentRoute == MainRoute.RADIO || currentRoute?.startsWith("${MainRoute.RADIO}/") == true -> MainRoute.RADIO
     currentRoute == MainRoute.SETTINGS || currentRoute == MainRoute.STATS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
     else -> currentRoute
 }

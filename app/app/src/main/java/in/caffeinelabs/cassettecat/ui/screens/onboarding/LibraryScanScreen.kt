@@ -64,12 +64,14 @@ fun LibraryScanScreen(
 
         Spacer(Modifier.weight(1f))
 
+        val needsFolder = config.mode == FolderFilterMode.WHITELIST && config.folders.isEmpty()
         Button(
             onClick = hapticClick { viewModel.save(onContinue) },
+            enabled = !needsFolder,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Continue") }
         TextButton(
-            onClick = hapticClick { viewModel.save(onContinue) },
+            onClick = hapticClick { viewModel.skip(onContinue) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.textButtonColors(
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -97,14 +99,14 @@ fun FolderScanConfigBody(
             selected = config.mode == FolderFilterMode.NONE,
             onClick = { onSetMode(FolderFilterMode.NONE) }
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         ScanModeOption(
             title = "Only these folders",
             description = "Build a library from selected folders only.",
             selected = config.mode == FolderFilterMode.WHITELIST,
             onClick = { onSetMode(FolderFilterMode.WHITELIST) }
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         ScanModeOption(
             title = "Everything except these folders",
             description = "Ignore selected folders while scanning.",
@@ -114,9 +116,17 @@ fun FolderScanConfigBody(
 
         if (config.mode != FolderFilterMode.NONE) {
             Spacer(Modifier.height(20.dp))
+            if (config.folders.isEmpty() && config.mode == FolderFilterMode.WHITELIST) {
+                Text(
+                    "Add at least one folder to continue.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.height(12.dp))
+            }
             config.folders.forEach { path ->
                 FolderRow(path = path, onRemove = { onRemoveFolder(path) })
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
             }
             Row(
                 modifier = Modifier
@@ -130,7 +140,7 @@ fun FolderScanConfigBody(
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(16.dp))
                 Text("Add folder", style = MaterialTheme.typography.titleMedium)
             }
         }
@@ -150,10 +160,10 @@ private fun ScanModeOption(title: String, description: String, selected: Boolean
                 if (selected) R.drawable.lucide_ic_circle_check_big else R.drawable.lucide_ic_circle
             ),
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(24.dp),
+            tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(16.dp))
         Column {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(
@@ -171,6 +181,13 @@ private fun FolderRow(path: String, onRemove: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_folder),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(16.dp))
         Text(
             text = path.substringAfterLast('/').ifEmpty { path },
             style = MaterialTheme.typography.bodyMedium,

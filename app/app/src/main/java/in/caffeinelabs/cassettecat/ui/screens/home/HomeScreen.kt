@@ -76,7 +76,15 @@ fun HomeScreen(
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val recentlyPlayed = playbackState.history
     val favorites = allSongs.filter { it.isFavorite }
-    val shufflePicks = remember(allSongs) { allSongs.shuffled().take(8) }
+    val shufflePicks = remember(allSongs) {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        if (hour >= 22 || hour < 5) {
+            val soft = allSongs.filter { it.isSoftGenre() }.shuffled()
+            (soft + allSongs.shuffled()).distinct().take(8)
+        } else {
+            allSongs.shuffled().take(8)
+        }
+    }
     val heroSong = remember(allSongs) { allSongs.randomOrNull() }
 
     val greeting = remember { getDynamicGreeting() }
@@ -396,6 +404,10 @@ private fun ShufflePicksHeader() {
     }
 }
 
+private val SOFT_GENRE_KEYWORDS = setOf("ambient", "chill", "lofi", "lo-fi", "jazz", "classical", "acoustic", "folk", "instrumental")
+
+private fun Song.isSoftGenre(): Boolean = genres.any { g -> SOFT_GENRE_KEYWORDS.any { g.lowercase().contains(it) } }
+
 private fun getDynamicGreeting(): String {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
@@ -428,7 +440,6 @@ private fun getDynamicGreeting(): String {
             "Golden hour grooves",
             "Evening listening",
             "Winding down",
-            "Nightfall frequencies",
             if (isWeekend) "Saturday night session" else "Evening unwind"
         )
         in 22..23 -> listOf(

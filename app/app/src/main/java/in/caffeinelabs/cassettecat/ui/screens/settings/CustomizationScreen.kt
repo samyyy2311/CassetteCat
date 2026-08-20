@@ -64,19 +64,21 @@ fun CustomizationScreen(
     val prefs = uiState.preferences
     val cornerLabel = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp }.label.substringBefore(" (")
     val crossfadeLabel = if (prefs.crossfadeSeconds == 0) "Crossfade off" else "${prefs.crossfadeSeconds}s crossfade"
-    val homeFeedCount = listOf(
+    val homeFeedCount = remember(
         prefs.showHomeRecentlyPlayed,
         prefs.showHomeHeavyRotation,
         prefs.showHomeRecentlyAdded,
         prefs.showHomeForgottenFavorites
-    ).count { it }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(top = 8.dp, bottom = listBottomPadding + 32.dp)
     ) {
+        listOf(
+            prefs.showHomeRecentlyPlayed,
+            prefs.showHomeHeavyRotation,
+            prefs.showHomeRecentlyAdded,
+            prefs.showHomeForgottenFavorites
+        ).count { it }
+    }
+
+    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
         CategoryHeader("Customisation", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -96,7 +98,7 @@ fun CustomizationScreen(
             SettingsDivider()
             NavigationRow(
                 title = "Now Playing & Gestures",
-                subtitle = "$cornerLabel corners · ${prefs.seekStepSeconds}s seek step",
+                subtitle = "$cornerLabel corners",
                 iconRes = R.drawable.lucide_ic_hand,
                 onClick = { onNavigate(CustomizationRoute.NOW_PLAYING) },
             )
@@ -230,6 +232,14 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
             onCheckedChange = viewModel::setAmoledDarkTheme,
             iconRes = R.drawable.lucide_ic_moon,
         )
+        SettingsDivider()
+        ToggleRow(
+            title = "Mini-Player Progress",
+            subtitle = "Show a thin progress line on the mini-player",
+            checked = prefs.showMiniPlayerProgress,
+            onCheckedChange = viewModel::setShowMiniPlayerProgress,
+            iconRes = R.drawable.lucide_ic_activity,
+        )
         }
     }
 }
@@ -349,7 +359,7 @@ fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -
             ) {
                 RadioButton(
                     selected = isSelected,
-                    onClick = { viewModel.setDefaultStartScreen(option) },
+                    onClick = null,
                     colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.tertiary)
                 )
                 Spacer(Modifier.width(12.dp))
@@ -452,24 +462,6 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             checked = prefs.showRemainingTime,
             onCheckedChange = viewModel::setShowRemainingTime,
             iconRes = R.drawable.lucide_ic_timer,
-        )
-        SettingsDivider()
-        SheetPickerRow(
-            title = "Fast Seek Jump Step",
-            subtitle = "Duration to jump when scrubbing",
-            iconRes = R.drawable.lucide_ic_zap,
-            options = listOf(5, 10, 15, 30),
-            selected = prefs.seekStepSeconds,
-            label = { "${it}s" },
-            onSelect = viewModel::setSeekStepSeconds
-        )
-        SettingsDivider()
-        ToggleRow(
-            title = "Double-Tap Sides to Seek",
-            subtitle = "Double tap left side to rewind, right side to fast-forward",
-            checked = prefs.doubleTapSeekEnabled,
-            onCheckedChange = viewModel::setDoubleTapSeekEnabled,
-            iconRes = R.drawable.lucide_ic_hand,
         )
         SettingsDivider()
         ToggleRow(

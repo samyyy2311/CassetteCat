@@ -31,14 +31,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.res.ResourcesCompat
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareActionPill
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImageWithApp
+import android.content.Context
 import java.util.Locale
 
 internal fun buildListeningRecordPoster(
+    context: Context,
     monthLabel: String,
     yearLabel: String,
     listeningMinutes: Long,
@@ -51,6 +54,18 @@ internal fun buildListeningRecordPoster(
     val size = 1080
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
+
+    val ibmPlexSansBold = runCatching {
+        val font = ResourcesCompat.getFont(context, AppR.font.ibm_plex_sans_variable)
+        if (font != null) Typeface.create(font, 700, false) else Typeface.DEFAULT_BOLD
+    }.getOrNull() ?: Typeface.DEFAULT_BOLD
+    val ibmPlexMono = runCatching {
+        ResourcesCompat.getFont(context, AppR.font.ibm_plex_mono_regular)
+    }.getOrNull() ?: Typeface.MONOSPACE
+    val ibmPlexSansRegular = runCatching {
+        val font = ResourcesCompat.getFont(context, AppR.font.ibm_plex_sans_variable)
+        if (font != null) Typeface.create(font, 400, false) else Typeface.DEFAULT
+    }.getOrNull() ?: Typeface.DEFAULT
 
     val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         shader = LinearGradient(
@@ -67,21 +82,23 @@ internal fun buildListeningRecordPoster(
     canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), bgPaint)
 
     val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.argb(32, 255, 244, 237)
+        color = android.graphics.Color.argb(28, 255, 244, 237)
     }
-    canvas.drawCircle(920f, 150f, 250f, accentPaint)
-    canvas.drawCircle(120f, 940f, 180f, accentPaint)
+    canvas.drawCircle(960f, 100f, 320f, accentPaint)
+    canvas.drawCircle(1000f, 260f, 150f, Paint(accentPaint).apply { alpha = 20 })
+    canvas.drawCircle(60f, 1000f, 240f, accentPaint)
+    canvas.drawCircle(-40f, 780f, 130f, Paint(accentPaint).apply { alpha = 16 })
 
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.parseColor("#F5F0EC")
         textSize = 64f
-        typeface = Typeface.DEFAULT_BOLD
+        typeface = ibmPlexSansBold
     }
 
     val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.parseColor("#F5F0EC")
         textSize = 30f
-        typeface = Typeface.DEFAULT_BOLD
+        typeface = ibmPlexMono
         letterSpacing = 0.14f
     }
     canvas.drawText("CASSETTECAT", 64f, 108f, headerPaint)
@@ -96,7 +113,7 @@ internal fun buildListeningRecordPoster(
     val subHeroPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 48f
         color = android.graphics.Color.parseColor("#A8A29A")
-        typeface = Typeface.DEFAULT
+        typeface = ibmPlexSansRegular
     }
     val subHeroText = if (isRewind) "ANNUAL RECAP" else yearLabel
     canvas.drawText(subHeroText, 70f, 438f, subHeroPaint)
@@ -114,6 +131,7 @@ internal fun buildListeningRecordPoster(
         val sectionLabelPaint = Paint(subHeroPaint).apply {
             textSize = 26f
             letterSpacing = 0.12f
+            typeface = ibmPlexMono
         }
         canvas.drawText("ON REPEAT", 64f, 870f, sectionLabelPaint)
 

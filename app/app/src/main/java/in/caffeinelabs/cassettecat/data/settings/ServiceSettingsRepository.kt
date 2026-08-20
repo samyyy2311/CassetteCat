@@ -17,6 +17,7 @@ private val LRCLIB_ENABLED = booleanPreferencesKey("lrclib_enabled")
 private val WIKIPEDIA_ENABLED = booleanPreferencesKey("wikipedia_enabled")
 private val COVER_ART_ARCHIVE_ENABLED = booleanPreferencesKey("cover_art_archive_enabled")
 private val GITHUB_UPDATES_ENABLED = booleanPreferencesKey("github_updates_enabled")
+private val RADIO_BROWSER_ENABLED = booleanPreferencesKey("radio_browser_enabled")
 
 enum class ExternalService(val label: String, val description: String) {
     DEEZER("Deezer", "Artist images and album artwork"),
@@ -24,7 +25,8 @@ enum class ExternalService(val label: String, val description: String) {
     LRCLIB("LrcLib", "Synced lyrics when a track has none embedded"),
     COVER_ART_ARCHIVE("Cover Art Archive", "Archival CD and vinyl artwork from MusicBrainz"),
     WIKIPEDIA("Wikipedia", "About descriptions for artists and albums"),
-    GITHUB_UPDATES("GitHub", "Check for newer app releases")
+    GITHUB_UPDATES("GitHub", "Check for newer app releases"),
+    RADIO_BROWSER("Radio Browser", "Search and browse internet radio stations")
 }
 
 @Serializable
@@ -35,7 +37,8 @@ data class ServiceSettings(
     val lrcLibEnabled: Boolean = true,
     val coverArtArchiveEnabled: Boolean = true,
     val wikipediaEnabled: Boolean = true,
-    val githubUpdatesEnabled: Boolean = true
+    val githubUpdatesEnabled: Boolean = true,
+    val radioBrowserEnabled: Boolean = true
 ) {
     fun isEnabled(service: ExternalService): Boolean = if (offlineBlackoutMode) false else when (service) {
         ExternalService.DEEZER -> deezerEnabled
@@ -44,6 +47,7 @@ data class ServiceSettings(
         ExternalService.COVER_ART_ARCHIVE -> coverArtArchiveEnabled
         ExternalService.WIKIPEDIA -> wikipediaEnabled
         ExternalService.GITHUB_UPDATES -> githubUpdatesEnabled
+        ExternalService.RADIO_BROWSER -> radioBrowserEnabled
     }
 }
 
@@ -56,7 +60,8 @@ class ServiceSettingsRepository(private val context: Context) {
             lrcLibEnabled = prefs[LRCLIB_ENABLED] ?: true,
             coverArtArchiveEnabled = prefs[COVER_ART_ARCHIVE_ENABLED] ?: true,
             wikipediaEnabled = prefs[WIKIPEDIA_ENABLED] ?: true,
-            githubUpdatesEnabled = prefs[GITHUB_UPDATES_ENABLED] ?: true
+            githubUpdatesEnabled = prefs[GITHUB_UPDATES_ENABLED] ?: true,
+            radioBrowserEnabled = prefs[RADIO_BROWSER_ENABLED] ?: true
         )
     }
 
@@ -79,5 +84,6 @@ class ServiceSettingsRepository(private val context: Context) {
         ExternalService.COVER_ART_ARCHIVE -> COVER_ART_ARCHIVE_ENABLED
         ExternalService.WIKIPEDIA -> WIKIPEDIA_ENABLED
         ExternalService.GITHUB_UPDATES -> GITHUB_UPDATES_ENABLED
+        ExternalService.RADIO_BROWSER -> RADIO_BROWSER_ENABLED
     }
 }

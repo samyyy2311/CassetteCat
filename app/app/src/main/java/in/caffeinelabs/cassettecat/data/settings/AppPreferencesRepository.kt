@@ -18,7 +18,6 @@ private val AMOLED_DARK_THEME = booleanPreferencesKey("amoled_dark_theme")
 private val DEFAULT_LIBRARY_TAB = stringPreferencesKey("default_library_tab")
 private val ALBUM_ART_CORNER_RADIUS = intPreferencesKey("album_art_corner_radius")
 private val SHOW_REMAINING_TIME = booleanPreferencesKey("show_remaining_time")
-private val SEEK_STEP_SECONDS = intPreferencesKey("seek_step_seconds")
 private val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
 
 // Audio Engine & Transitions
@@ -47,7 +46,6 @@ private val LIBRARY_GENRE_SORT_ORDER = stringPreferencesKey("library_genre_sort_
 private val LIBRARY_GENRE_SORT_DIRECTION = stringPreferencesKey("library_genre_sort_direction")
 
 // Gestures
-private val DOUBLE_TAP_SEEK_ENABLED = booleanPreferencesKey("double_tap_seek_enabled")
 private val SWIPE_UP_LYRICS_ENABLED = booleanPreferencesKey("swipe_up_lyrics_enabled")
 
 // Lyrics Customization
@@ -73,6 +71,16 @@ private val SHOW_HOME_RECENTLY_PLAYED = booleanPreferencesKey("show_home_recentl
 private val SHOW_HOME_HEAVY_ROTATION = booleanPreferencesKey("show_home_heavy_rotation")
 private val SHOW_HOME_RECENTLY_ADDED = booleanPreferencesKey("show_home_recently_added")
 private val SHOW_HOME_FORGOTTEN_FAVORITES = booleanPreferencesKey("show_home_forgotten_favorites")
+private val SHOW_MINI_PLAYER_PROGRESS = booleanPreferencesKey("show_mini_player_progress")
+
+// Radio
+private val RADIO_SORT_ORDER = stringPreferencesKey("radio_sort_order")
+private val RADIO_SORT_DIRECTION = stringPreferencesKey("radio_sort_direction")
+private val RADIO_SELECTED_COUNTRY = stringPreferencesKey("radio_selected_country")
+private val RADIO_SELECTED_STATE = stringPreferencesKey("radio_selected_state")
+private val RADIO_SELECTED_LANGUAGE = stringPreferencesKey("radio_selected_language")
+private val RADIO_SELECTED_TAG = stringPreferencesKey("radio_selected_tag")
+private val RADIO_DEFAULT_COUNTRY_APPLIED = booleanPreferencesKey("radio_default_country_applied")
 
 enum class ThemeAccent(val label: String, val colorValue: Long, val containerValue: Long) {
     RECORD_RED("Record Red", 0xFFC23B30, 0xFF3A1512),
@@ -138,7 +146,6 @@ data class AppPreferences(
     val defaultLibraryTab: DefaultLibraryTab = DefaultLibraryTab.SONGS,
     val albumArtCornerRadiusDp: Int = 16,
     val showRemainingTime: Boolean = false,
-    val seekStepSeconds: Int = 10,
     val hapticFeedbackEnabled: Boolean = true,
     // Audio Engine & Transitions
     val crossfadeSeconds: Int = 0,
@@ -163,7 +170,6 @@ data class AppPreferences(
     val libraryGenreSortOrder: String = "NAME",
     val libraryGenreSortDirection: String = "ASCENDING",
     // Gestures
-    val doubleTapSeekEnabled: Boolean = true,
     val swipeUpLyricsEnabled: Boolean = true,
     // Lyrics Customization
     val lyricsAlignment: LyricsAlignment = LyricsAlignment.CENTER,
@@ -186,7 +192,16 @@ data class AppPreferences(
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,
     val showHomeRecentlyAdded: Boolean = true,
-    val showHomeForgottenFavorites: Boolean = true
+    val showHomeForgottenFavorites: Boolean = true,
+    val showMiniPlayerProgress: Boolean = true,
+    // Radio
+    val radioSortOrder: String = "POPULARITY",
+    val radioSortDirection: String = "DESCENDING",
+    val radioSelectedCountry: String = "",
+    val radioSelectedState: String = "",
+    val radioSelectedLanguage: String = "",
+    val radioSelectedTag: String = "",
+    val radioDefaultCountryApplied: Boolean = false
 )
 
 class AppPreferencesRepository(private val context: Context) {
@@ -206,7 +221,6 @@ class AppPreferencesRepository(private val context: Context) {
             },
             albumArtCornerRadiusDp = prefs[ALBUM_ART_CORNER_RADIUS] ?: 16,
             showRemainingTime = prefs[SHOW_REMAINING_TIME] ?: false,
-            seekStepSeconds = prefs[SEEK_STEP_SECONDS] ?: 10,
             hapticFeedbackEnabled = prefs[HAPTIC_FEEDBACK_ENABLED] ?: true,
             // Audio Engine & Transitions
             crossfadeSeconds = prefs[CROSSFADE_SECONDS] ?: 0,
@@ -239,7 +253,6 @@ class AppPreferencesRepository(private val context: Context) {
             libraryGenreSortOrder = prefs[LIBRARY_GENRE_SORT_ORDER] ?: "NAME",
             libraryGenreSortDirection = prefs[LIBRARY_GENRE_SORT_DIRECTION] ?: "ASCENDING",
             // Gestures
-            doubleTapSeekEnabled = prefs[DOUBLE_TAP_SEEK_ENABLED] ?: true,
             swipeUpLyricsEnabled = prefs[SWIPE_UP_LYRICS_ENABLED] ?: true,
             // Lyrics Customization
             lyricsAlignment = try {
@@ -278,7 +291,16 @@ class AppPreferencesRepository(private val context: Context) {
             showHomeRecentlyPlayed = prefs[SHOW_HOME_RECENTLY_PLAYED] ?: true,
             showHomeHeavyRotation = prefs[SHOW_HOME_HEAVY_ROTATION] ?: true,
             showHomeRecentlyAdded = prefs[SHOW_HOME_RECENTLY_ADDED] ?: true,
-            showHomeForgottenFavorites = prefs[SHOW_HOME_FORGOTTEN_FAVORITES] ?: true
+            showHomeForgottenFavorites = prefs[SHOW_HOME_FORGOTTEN_FAVORITES] ?: true,
+            showMiniPlayerProgress = prefs[SHOW_MINI_PLAYER_PROGRESS] ?: true,
+            // Radio
+            radioSortOrder = prefs[RADIO_SORT_ORDER] ?: "POPULARITY",
+            radioSortDirection = prefs[RADIO_SORT_DIRECTION] ?: "DESCENDING",
+            radioSelectedCountry = prefs[RADIO_SELECTED_COUNTRY] ?: "",
+            radioSelectedState = prefs[RADIO_SELECTED_STATE] ?: "",
+            radioSelectedLanguage = prefs[RADIO_SELECTED_LANGUAGE] ?: "",
+            radioSelectedTag = prefs[RADIO_SELECTED_TAG] ?: "",
+            radioDefaultCountryApplied = prefs[RADIO_DEFAULT_COUNTRY_APPLIED] ?: false
         )
     }
 
@@ -288,6 +310,13 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setCustomAccentColor(colorValue: Long) {
         context.appPreferencesDataStore.edit { it[THEME_ACCENT_CUSTOM_COLOR] = colorValue }
+    }
+
+    suspend fun setCustomAccentColorAndAccent(colorValue: Long) {
+        context.appPreferencesDataStore.edit {
+            it[THEME_ACCENT_CUSTOM_COLOR] = colorValue
+            it[THEME_ACCENT] = ThemeAccent.CUSTOM.name
+        }
     }
 
     suspend fun setAmoledDarkTheme(enabled: Boolean) {
@@ -304,10 +333,6 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setShowRemainingTime(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SHOW_REMAINING_TIME] = enabled }
-    }
-
-    suspend fun setSeekStepSeconds(seconds: Int) {
-        context.appPreferencesDataStore.edit { it[SEEK_STEP_SECONDS] = seconds }
     }
 
     suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
@@ -397,10 +422,6 @@ class AppPreferencesRepository(private val context: Context) {
     }
 
     // Gestures
-    suspend fun setDoubleTapSeekEnabled(enabled: Boolean) {
-        context.appPreferencesDataStore.edit { it[DOUBLE_TAP_SEEK_ENABLED] = enabled }
-    }
-
     suspend fun setSwipeUpLyricsEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SWIPE_UP_LYRICS_ENABLED] = enabled }
     }
@@ -482,5 +503,38 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setShowHomeForgottenFavorites(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SHOW_HOME_FORGOTTEN_FAVORITES] = enabled }
+    }
+
+    suspend fun setShowMiniPlayerProgress(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[SHOW_MINI_PLAYER_PROGRESS] = enabled }
+    }
+
+    // Radio
+    suspend fun setRadioSortOrder(order: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SORT_ORDER] = order }
+    }
+
+    suspend fun setRadioSortDirection(direction: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SORT_DIRECTION] = direction }
+    }
+
+    suspend fun setRadioSelectedCountry(country: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SELECTED_COUNTRY] = country }
+    }
+
+    suspend fun setRadioSelectedState(state: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SELECTED_STATE] = state }
+    }
+
+    suspend fun setRadioSelectedLanguage(language: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SELECTED_LANGUAGE] = language }
+    }
+
+    suspend fun setRadioSelectedTag(tag: String) {
+        context.appPreferencesDataStore.edit { it[RADIO_SELECTED_TAG] = tag }
+    }
+
+    suspend fun setRadioDefaultCountryApplied(applied: Boolean) {
+        context.appPreferencesDataStore.edit { it[RADIO_DEFAULT_COUNTRY_APPLIED] = applied }
     }
 }

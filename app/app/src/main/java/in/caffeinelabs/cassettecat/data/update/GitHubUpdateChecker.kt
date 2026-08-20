@@ -21,7 +21,11 @@ sealed interface UpdateCheckResult {
 class GitHubUpdateChecker {
     suspend fun checkForUpdate(currentVersion: String): UpdateCheckResult = withContext(Dispatchers.IO) {
         runCatching {
-            val body = sharedHttpClient.newCall(Request.Builder().url(RELEASES_URL).build()).execute().use {
+            val request = Request.Builder()
+                .url(RELEASES_URL)
+                .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
+                .build()
+            val body = sharedHttpClient.newCall(request).execute().use {
                 if (!it.isSuccessful) return@runCatching UpdateCheckResult.Error
                 it.body.string()
             }

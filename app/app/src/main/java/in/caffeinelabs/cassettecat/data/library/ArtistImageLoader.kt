@@ -34,7 +34,7 @@ private data class AudioDbArtist(
     val strArtistThumb: String? = null
 )
 
-// Deezer first, TheAudioDB fallback; both no-auth (TheAudioDB's "2" is their published test key)
+// Deezer first, TheAudioDB fallback; both no-auth (TheAudioDB's "123" is their published free key)
 class ArtistImageLoader {
     private val cache = object : LruCache<String, Bitmap>(MAX_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -67,7 +67,7 @@ class ArtistImageLoader {
     }.getOrNull()
 
     private fun fetchFromAudioDb(artist: String): Bitmap? = runCatching {
-        val url = "https://www.theaudiodb.com/api/v1/json/2/search.php?s=${artist.urlEncode()}"
+        val url = "https://www.theaudiodb.com/api/v1/json/123/search.php?s=${artist.urlEncode()}"
         val body = getBody(url) ?: return@runCatching null
         val artist = sharedJson.decodeFromString<AudioDbSearchResponse>(body).artists
             ?.firstOrNull { it.strArtist?.isSameArtistAs(artist) == true }

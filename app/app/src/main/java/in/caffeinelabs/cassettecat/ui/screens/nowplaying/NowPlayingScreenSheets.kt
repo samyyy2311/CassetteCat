@@ -3,18 +3,28 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
 
 internal class NowPlayingSheetState {
     var showMenu by mutableStateOf(false)
@@ -50,6 +60,8 @@ internal fun NowPlayingScreenSheetsHost(
     fallbackLyrics: String? = null,
     currentPositionMs: Long = 0L
 ) {
+    val scope = rememberCoroutineScope()
+
     if (sheetState.showMenu) {
         song?.let { currentSong ->
             val playbackSpeed by playbackViewModel.playbackSpeed.collectAsState()
@@ -61,6 +73,7 @@ internal fun NowPlayingScreenSheetsHost(
                 playbackSpeed = playbackSpeed,
                 onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
                 onShare = { sheetState.showScreenshotSuggestion = true },
+                onShareFile = { scope.launch { shareAudioFile(context, currentSong) } },
                 onAddToQueue = { playbackViewModel.addToUpNext(listOf(currentSong)) },
                 onDownload = { downloadRepository.download(currentSong) },
                 onOpenCredits = { sheetState.showCredits = true },
@@ -174,4 +187,51 @@ internal fun NowPlayingScreenSheetsHost(
             )
         }
     }
+}
+
+private suspend fun shareAudioFile(context: Context, song: Song) {
+    if (song.source == MusicSource.Local) {
+        launchAudioShareIntent(context, song, song.contentUri)
+        return
+    }
+
+    Toast.makeText(context, "Preparing ${song.title} to share...", Toast.LENGTH_SHORT).show()
+    val shareUri = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = sharedHttpClient.newCall(Request.Builder().url(song.contentUri.toString()).build()).execute()
+            if (!response.isSuccessful) return@runCatching null
+            val cacheDir = File(context.cacheDir, "shared_audio").apply { mkdirs() }
+            val extension = extensionForMimeType(response.header("Content-Type"))
+            val file = File(cacheDir, "share_${song.id.hashCode()}.$extension")
+            response.body.byteStream().use { input -> file.outputStream().use { output -> input.copyTo(output) } }
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        }.getOrNull()
+    }
+
+    if (shareUri != null) {
+        launchAudioShareIntent(context, song, shareUri)
+    } else {
+        Toast.makeText(context, "Couldn't prepare ${song.title} to share", Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun launchAudioShareIntent(context: Context, song: Song, uri: android.net.Uri) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "audio/*"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, "${song.title} - ${song.artist}")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    runCatching {
+        context.startActivity(Intent.createChooser(intent, "Share ${song.title}"))
+    }
+}
+
+private fun extensionForMimeType(mimeType: String?): String = when {
+    mimeType == null -> "mp3"
+    mimeType.contains("flac") -> "flac"
+    mimeType.contains("ogg") -> "ogg"
+    mimeType.contains("wav") -> "wav"
+    mimeType.contains("mp4") || mimeType.contains("m4a") || mimeType.contains("aac") -> "m4a"
+    else -> "mp3"
 }

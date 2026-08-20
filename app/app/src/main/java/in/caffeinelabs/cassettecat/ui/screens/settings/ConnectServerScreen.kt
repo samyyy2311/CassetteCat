@@ -154,6 +154,26 @@ fun ConnectServerScreen(
         }
     }
 
+    val untrustedCertificateState = state as? ConnectionState.UntrustedCertificate
+    if (untrustedCertificateState != null) {
+        AlertDialog(
+            onDismissRequest = hapticClick { viewModel.cancelPendingConnection() },
+            title = { Text("Untrusted certificate") },
+            text = {
+                Text(
+                    "This server's certificate isn't signed by a recognized authority, common for self-hosted servers. " +
+                        "Only continue if you trust this server and recognize its fingerprint:\n\n${untrustedCertificateState.fingerprint}"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = hapticClick { viewModel.trustCertificateAndRetry() }) { Text("Trust & Connect") }
+            },
+            dismissButton = {
+                TextButton(onClick = hapticClick { viewModel.cancelPendingConnection() }) { Text("Cancel") }
+            }
+        )
+    }
+
     if (showHttpWarning) {
         AlertDialog(
             onDismissRequest = { showHttpWarning = false },

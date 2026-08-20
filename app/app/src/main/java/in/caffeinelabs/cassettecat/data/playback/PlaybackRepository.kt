@@ -14,6 +14,7 @@ import androidx.media3.extractor.metadata.id3.BinaryFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import com.google.common.util.concurrent.ListenableFuture
 import kotlin.coroutines.resume
@@ -358,6 +359,7 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun recordPlayed(song: Song) {
+        if (song.source == MusicSource.Radio) return
         val remaining = history.filterNot { it.id == song.id }
         history.clear()
         history.addFirst(song)

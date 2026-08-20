@@ -9,6 +9,7 @@ sealed interface MusicSource {
     data object Subsonic : MusicSource
     data object Jellyfin : MusicSource
     data object ListeningRoomHost : MusicSource
+    data object Radio : MusicSource
 }
 
 data class Song(
