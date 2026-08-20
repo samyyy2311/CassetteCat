@@ -42,6 +42,18 @@ jobs:
         working-directory: ./app
         run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
 
+      - name: Run Android Lint
+        working-directory: ./app
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Upload Lint Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cassettecat-lint-report
+          path: app/app/build/reports/lint-results-debug.html
+          if-no-files-found: warn
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         if: always()

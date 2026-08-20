@@ -50,7 +50,7 @@ jobs:
         working-directory: ./app
         env:
           GITHUB_REF_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
-          KEYSTORE_FILE: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' && '../release.keystore' || '' }}
+          KEYSTORE_FILE: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' && '../../release.keystore' || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -71,12 +71,29 @@ jobs:
           path: app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
 
+      - name: Extract Changelog Section
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]") > 0) found=1
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "::warning::No CHANGELOG.md section found for $VERSION, falling back to full file"
+            cp CHANGELOG.md release_notes.md
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
-          body_path: CHANGELOG.md
+          body_path: release_notes.md
           files: |
             app/app/build/outputs/apk/release/app-release*.apk
             app/app/build/outputs/apk/debug/app-debug.apk
