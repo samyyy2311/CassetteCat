@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.LibraryFolderRepository
@@ -49,7 +50,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val appPreferencesRepository = AppPreferencesRepository(app)
     private val downloadSettingsRepository = DownloadSettingsRepository(app)
     private val updateChecker = GitHubUpdateChecker()
-    private val currentVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName ?: "0.0.0"
+    private val currentVersion = BuildConfig.VERSION_NAME
 
     val uiState: StateFlow<SettingsUiState> = combine(
         serverRepository.config(StreamingProtocol.SUBSONIC),

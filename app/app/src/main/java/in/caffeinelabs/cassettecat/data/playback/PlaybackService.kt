@@ -219,7 +219,7 @@ class PlaybackService : MediaLibraryService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo
         ): MediaSession.ConnectionResult {
-            val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+            val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                 .add(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
                 .build()
             val currentMediaId = session.player.currentMediaItem?.mediaId
@@ -276,10 +276,11 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<List<MediaItem>> {
             val future = SettableFuture.create<List<MediaItem>>()
             serviceScope.launch {
-                val resolved = mediaItems.map { item ->
-                    if (item.localConfiguration != null) item else libraryTree.item(item.mediaId) ?: item
-                }
-                future.set(resolved)
+                runCatching {
+                    mediaItems.map { item ->
+                        if (item.localConfiguration != null) item else libraryTree.item(item.mediaId) ?: item
+                    }
+                }.onSuccess { future.set(it) }.onFailure { future.setException(it) }
             }
             return future
         }
@@ -298,10 +299,13 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<LibraryResult<MediaItem>> {
             val future = SettableFuture.create<LibraryResult<MediaItem>>()
             serviceScope.launch {
-                val item = libraryTree.item(mediaId)
-                future.set(
-                    if (item != null) LibraryResult.ofItem(item, null) else LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
-                )
+                runCatching { libraryTree.item(mediaId) }
+                    .onSuccess { item ->
+                        future.set(
+                            if (item != null) LibraryResult.ofItem(item, null) else LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                        )
+                    }
+                    .onFailure { future.setException(it) }
             }
             return future
         }
@@ -316,14 +320,19 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
             serviceScope.launch {
-                val children = libraryTree.children(parentId)
-                future.set(
-                    if (children != null) {
-                        LibraryResult.ofItemList(children, params)
-                    } else {
-                        LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                runCatching { libraryTree.children(parentId) }
+                    .onSuccess { children ->
+                        future.set(
+                            if (children != null) {
+                                val start = (page * pageSize).coerceIn(0, children.size)
+                                val end = (start + pageSize).coerceIn(start, children.size)
+                                LibraryResult.ofItemList(ImmutableList.copyOf(children.subList(start, end)), params)
+                            } else {
+                                LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                            }
+                        )
                     }
-                )
+                    .onFailure { future.setException(it) }
             }
             return future
         }
@@ -336,9 +345,12 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<LibraryResult<Void>> {
             val future = SettableFuture.create<LibraryResult<Void>>()
             serviceScope.launch {
-                val results = libraryTree.search(query)
-                session.notifySearchResultChanged(browser, query, results.size, params)
-                future.set(LibraryResult.ofVoid(params))
+                runCatching { libraryTree.search(query) }
+                    .onSuccess { results ->
+                        session.notifySearchResultChanged(browser, query, results.size, params)
+                        future.set(LibraryResult.ofVoid(params))
+                    }
+                    .onFailure { future.setException(it) }
             }
             return future
         }
@@ -353,10 +365,13 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
             serviceScope.launch {
-                val results = libraryTree.search(query)
-                val start = (page * pageSize).coerceIn(0, results.size)
-                val end = (start + pageSize).coerceIn(start, results.size)
-                future.set(LibraryResult.ofItemList(ImmutableList.copyOf(results.subList(start, end)), params))
+                runCatching { libraryTree.search(query) }
+                    .onSuccess { results ->
+                        val start = (page * pageSize).coerceIn(0, results.size)
+                        val end = (start + pageSize).coerceIn(start, results.size)
+                        future.set(LibraryResult.ofItemList(ImmutableList.copyOf(results.subList(start, end)), params))
+                    }
+                    .onFailure { future.setException(it) }
             }
             return future
         }

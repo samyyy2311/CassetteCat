@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import androidx.compose.ui.graphics.Color
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -51,9 +52,7 @@ fun CreditsScreen(
             Text("Credits & Attribution", style = MaterialTheme.typography.headlineSmall)
         }
 
-        val appVersion = runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull() ?: "1.1.0"
+        val appVersion = BuildConfig.VERSION_NAME
 
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(

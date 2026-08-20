@@ -13,6 +13,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackService
 import `in`.caffeinelabs.cassettecat.data.playback.awaitController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 class PlaybackTileService : TileService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
+    private var connectJob: Job? = null
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) = updateTile()
@@ -28,7 +30,7 @@ class PlaybackTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        scope.launch {
+        connectJob = scope.launch {
             val token = SessionToken(this@PlaybackTileService, ComponentName(this@PlaybackTileService, PlaybackService::class.java))
             runCatching {
                 MediaController.Builder(this@PlaybackTileService, token).buildAsync().awaitController(this@PlaybackTileService)
@@ -41,6 +43,8 @@ class PlaybackTileService : TileService() {
     }
 
     override fun onStopListening() {
+        connectJob?.cancel()
+        connectJob = null
         controller?.removeListener(playerListener)
         controller?.release()
         controller = null

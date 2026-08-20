@@ -97,14 +97,19 @@ class WifiDevicePairingRepository(private val context: Context) {
             override fun onAvailable(network: Network) {
                 boundNetwork = network
                 searchJob = scope.launch {
-                    val status = apiClient.getStatus(SOFT_AP_HOST, SOFT_AP_PORT, network)
-                    _pairingState.value = if (status != null) {
-                        DevicePairingState.DeviceFound(
-                            DiscoveredDevice(name = status.deviceName, host = SOFT_AP_HOST, port = SOFT_AP_PORT, connectionType = DeviceConnectionType.SOFT_AP, status = status)
-                        )
-                    } else {
-                        DevicePairingState.Failed(mode, "Connected to the hotspot, but the player didn't respond.")
+                    var attempts = 0
+                    while (attempts < 10) {
+                        val status = apiClient.getStatus(SOFT_AP_HOST, SOFT_AP_PORT, network)
+                        if (status != null) {
+                            _pairingState.value = DevicePairingState.DeviceFound(
+                                DiscoveredDevice(name = status.deviceName, host = SOFT_AP_HOST, port = SOFT_AP_PORT, connectionType = DeviceConnectionType.SOFT_AP, status = status)
+                            )
+                            return@launch
+                        }
+                        attempts++
+                        delay(1200)
                     }
+                    _pairingState.value = DevicePairingState.Failed(mode, "Connected to the hotspot, but the player didn't respond.")
                 }
             }
 
