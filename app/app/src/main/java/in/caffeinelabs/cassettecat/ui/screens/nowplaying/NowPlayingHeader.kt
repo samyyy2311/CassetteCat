@@ -41,13 +41,13 @@ internal fun TitleRow(
     showThumbnail: Boolean,
     onToggleFavorite: () -> Unit,
     onShowMenu: () -> Unit,
+    modifier: Modifier = Modifier,
     onArtistClick: () -> Unit = {},
     onThumbnailClick: () -> Unit = {},
     onCollapseRequest: () -> Unit = {},
     onHeaderDrag: (Float) -> Unit = {},
     onHeaderSpringBack: () -> Unit = {},
-    enableHeaderDrag: Boolean = false,
-    modifier: Modifier = Modifier
+    enableHeaderDrag: Boolean = false
 ) {
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current

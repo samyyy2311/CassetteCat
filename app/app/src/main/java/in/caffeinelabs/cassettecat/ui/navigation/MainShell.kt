@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -217,7 +218,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     val peekHeight = if (showChrome) navBarReservation + (if (hasSong) MINI_PLAYER_HEIGHT else 0.dp) else 0.dp
     val scaffoldState = rememberBottomSheetScaffoldState()
 
-    var fraction by remember { mutableStateOf(0f) }
+    var fraction by remember { mutableFloatStateOf(0f) }
     // State, not by: per-frame drag updates shouldn't recompose MainShell
     val collapsedArtRect = remember { mutableStateOf<Rect?>(null) }
     // hoisted so sheetSwipeEnabled can turn off during Queue/Lyrics
@@ -225,7 +226,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     var searchFocusRequestId by remember { mutableIntStateOf(0) }
 
     // fades the sheet fill in Queue/Lyrics mode, where the real sheet doesn't move
-    var headerDragRevealFraction by remember { mutableStateOf(0f) }
+    var headerDragRevealFraction by remember { mutableFloatStateOf(0f) }
 
     val isSheetExpanded = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded ||
             scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded ||
@@ -260,7 +261,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                 sheetSwipeEnabled = showChrome && hasSong && nowPlayingView == NowPlayingView.PLAYER,
                 containerColor = Color.Transparent,
                 sheetContent = {
-                    var offsetPx by remember { mutableStateOf(Float.NaN) }
+                    var offsetPx by remember { mutableFloatStateOf(Float.NaN) }
                     LaunchedEffect(scaffoldState.bottomSheetState) {
                         snapshotFlow { runCatching { scaffoldState.bottomSheetState.requireOffset() }.getOrNull() }
                             .filterNotNull()

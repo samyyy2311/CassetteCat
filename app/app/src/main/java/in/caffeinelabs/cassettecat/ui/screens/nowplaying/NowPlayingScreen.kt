@@ -26,6 +26,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,6 +53,7 @@ import kotlinx.coroutines.launch
 enum class NowPlayingView { PLAYER, QUEUE, LYRICS }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
+@Suppress("ConfigurationScreenWidthHeight")
 @Composable
 fun NowPlayingContent(
     playbackViewModel: PlaybackViewModel,
@@ -107,7 +109,7 @@ fun NowPlayingContent(
 
     var lyricsControlsVisible by remember(song?.id, activeView) { mutableStateOf(false) }
     var queueControlsVisible by remember(song?.id, activeView) { mutableStateOf(false) }
-    var userInteractionCounter by remember { mutableStateOf(0) }
+    var userInteractionCounter by remember { mutableIntStateOf(0) }
 
     val chromeVisible = when (activeView) {
         NowPlayingView.PLAYER -> true

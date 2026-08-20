@@ -1,8 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="40"
-    android:viewportHeight="40">
+    android:viewportHeight="40"
+    tools:ignore="VectorPath">
     <group android:translateX="6">
         <path
             android:fillColor="#FFDD00"

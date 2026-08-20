@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -113,15 +114,15 @@ internal fun LyricsView(
     scrollState: ScrollState,
     listState: LazyListState,
     controlsVisible: Boolean,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier,
     selectionMode: Boolean = false,
     selectedIndices: Set<Int> = emptySet(),
     onToggleLineSelection: (Int) -> Unit = {},
     onStartSelection: (Int) -> Unit = {},
-    onInteraction: () -> Unit,
     onSeekToLine: (Long) -> Unit = {},
     onScrollDelta: (Float) -> Unit = {},
-    onReturnToPlayer: () -> Unit = onInteraction,
-    modifier: Modifier = Modifier
+    onReturnToPlayer: () -> Unit = onInteraction
 ) {
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -233,7 +234,7 @@ internal fun LyricsView(
             val centerTopPad = 24.dp
             val activeOffsetPx = with(density) { 100.dp.roundToPx() }
 
-            var userScrollToken by remember { mutableStateOf(0) }
+            var userScrollToken by remember { mutableIntStateOf(0) }
             var userIsDragging by remember { mutableStateOf(false) }
 
             LaunchedEffect(userScrollToken) {

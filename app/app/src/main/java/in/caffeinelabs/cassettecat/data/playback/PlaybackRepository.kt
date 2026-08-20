@@ -10,6 +10,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.id3.BinaryFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import androidx.media3.session.MediaController
@@ -19,19 +20,24 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import com.google.common.util.concurrent.ListenableFuture
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 private const val HISTORY_LIMIT = 50
 
+@UnstableApi
 class PlaybackRepository(private val context: Context) {
     private val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context)
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
     private var replayGainVolume = 1f
     private var currentQueue: List<Song> = emptyList()
@@ -85,10 +91,12 @@ class PlaybackRepository(private val context: Context) {
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
             // Lyrics become known only once container tags parse during load, not at transition time.
             override fun onTracksChanged(tracks: Tracks) {
-                val prefs = runBlocking { appPreferencesRepository.preferences.first() }
-                replayGainVolume = extractReplayGain(tracks).volumeMultiplier(prefs.replayGainEnabled, prefs.replayGainPreAmpDb)
-                controller?.volume = replayGainVolume
-                updateState()
+                repositoryScope.launch {
+                    val prefs = appPreferencesRepository.preferences.first()
+                    replayGainVolume = extractReplayGain(tracks).volumeMultiplier(prefs.replayGainEnabled, prefs.replayGainPreAmpDb)
+                    controller?.volume = replayGainVolume
+                    updateState()
+                }
             }
             // Safety net: toggleShuffle()/moveInUpNext() already updateState() synchronously,
             // this just re-syncs if the timeline changes some other way.
@@ -155,6 +163,7 @@ class PlaybackRepository(private val context: Context) {
                         if (bufferedForMs > 150L) c.seekTo(basePositionMs + bufferedForMs)
                     }
                     Player.STATE_IDLE -> c.removeListener(this)
+                    else -> {}
                 }
             }
         }
@@ -379,6 +388,7 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun release() {
+        repositoryScope.cancel()
         controller?.release()
         controller = null
     }

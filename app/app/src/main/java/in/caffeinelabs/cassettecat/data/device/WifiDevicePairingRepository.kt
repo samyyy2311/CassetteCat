@@ -12,6 +12,7 @@ import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiNetworkSpecifier
 import android.os.Build
 import android.os.PatternMatcher
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +84,7 @@ class WifiDevicePairingRepository(private val context: Context) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun startSoftApAutoAssociate(mode: DeviceConnectionType) {
         val specifier = WifiNetworkSpecifier.Builder()
             .setSsidPattern(PatternMatcher(SOFT_AP_SSID_PREFIX, PatternMatcher.PATTERN_PREFIX))

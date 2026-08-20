@@ -27,6 +27,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
 
 // Process-wide, not per-composable: a remember{}-scoped loader wouldn't share its LRU
 // cache across LazyColumn rows, causing repeated decode/network work (visible scroll jank).
+@Suppress("StaticFieldLeak")
 private object AlbumArtLoaders {
     @Volatile private var local: AlbumArtLoader? = null
     val remote = RemoteAlbumArtLoader()

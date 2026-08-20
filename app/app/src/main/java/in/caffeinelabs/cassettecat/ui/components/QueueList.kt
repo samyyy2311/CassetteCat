@@ -93,11 +93,11 @@ fun QueueList(
     onReorderUpNext: (fromIndex: Int, toIndex: Int) -> Unit,
     onRemoveUpNext: (Song) -> Unit,
     onClearHistory: () -> Unit,
+    modifier: Modifier = Modifier,
     onScrollDelta: (Float) -> Unit = {},
     bottomPaddingDp: Dp = 240.dp,
     controlsVisible: Boolean = true,
     onInteraction: () -> Unit = {},
-    modifier: Modifier = Modifier,
     // Hoisted so the caller can observe isScrollInProgress too (auto-hides the
     // player's scrubber/transport chrome while this list is scrolling).
     state: LazyListState = rememberLazyListState()

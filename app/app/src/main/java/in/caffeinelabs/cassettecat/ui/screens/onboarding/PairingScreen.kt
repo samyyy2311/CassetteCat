@@ -48,8 +48,8 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 @Composable
 fun PairingScreen(
     onFinish: () -> Unit,
-    isOnboarding: Boolean = false,
     modifier: Modifier = Modifier,
+    isOnboarding: Boolean = false,
     listBottomPadding: Dp = 0.dp,
     viewModel: PairingViewModel = viewModel()
 ) {

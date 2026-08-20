@@ -18,7 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun OnboardingProgressDots(currentStep: Int, totalSteps: Int = 4, modifier: Modifier = Modifier) {
+fun OnboardingProgressDots(currentStep: Int, modifier: Modifier = Modifier, totalSteps: Int = 4) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically

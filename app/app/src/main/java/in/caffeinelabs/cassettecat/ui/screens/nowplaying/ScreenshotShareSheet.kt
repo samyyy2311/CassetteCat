@@ -68,7 +68,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.withTranslation
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -634,7 +638,7 @@ private fun generateSharePoster(
 ): Bitmap {
     val width = 2160
     val height = 2700
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
     val spaceGroteskBold = runCatching {
@@ -673,9 +677,9 @@ private fun generateSharePoster(
                     shader = LinearGradient(
                         0f, 0f, 0f, height.toFloat(),
                         intArrayOf(
-                            android.graphics.Color.parseColor("#261E1A"),
-                            android.graphics.Color.parseColor("#14110F"),
-                            android.graphics.Color.parseColor("#0A0908")
+                            "#261E1A".toColorInt(),
+                            "#14110F".toColorInt(),
+                            "#0A0908".toColorInt()
                         ),
                         floatArrayOf(0f, 0.5f, 1f),
                         Shader.TileMode.CLAMP
@@ -686,12 +690,12 @@ private fun generateSharePoster(
         }
         LyricCardTheme.OBSIDIAN -> {
             val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#0F0E0D")
+                color = "#0F0E0D".toColorInt()
             }
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
 
             val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#2E2A27")
+                color = "#2E2A27".toColorInt()
                 style = Paint.Style.STROKE
                 strokeWidth = 6f
             }
@@ -724,7 +728,7 @@ private fun generateSharePoster(
             canvas.drawRoundRect(artRect, 72f, 72f, artPaint)
         } else {
             val placeholderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#221F1D")
+                color = "#221F1D".toColorInt()
             }
             canvas.drawRoundRect(artRect, 72f, 72f, placeholderPaint)
         }
@@ -802,7 +806,7 @@ private fun generateSharePoster(
             canvas.drawRoundRect(thumbRect, 40f, 40f, thumbPaint)
         } else {
             val placeholderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#221F1D")
+                color = "#221F1D".toColorInt()
             }
             canvas.drawRoundRect(thumbRect, 40f, 40f, placeholderPaint)
         }
@@ -862,10 +866,9 @@ private fun generateSharePoster(
             .setLineSpacing(24f, lineSpacingMult)
             .build()
 
-        canvas.save()
-        canvas.translate(180f, 620f)
-        staticLayout.draw(canvas)
-        canvas.restore()
+        canvas.withTranslation(180f, 620f) {
+            staticLayout.draw(this)
+        }
 
         // Footer
         val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -894,7 +897,7 @@ private fun generateSharePoster(
 private fun createFastBlurredBitmap(src: Bitmap): Bitmap {
     val downW = 128
     val downH = 160
-    val small = Bitmap.createScaledBitmap(src, downW, downH, true)
+    val small = src.scale(downW, downH)
     val pixels = IntArray(downW * downH)
     small.getPixels(pixels, 0, downW, 0, 0, downW, downH)
     fastBoxBlur(pixels, downW, downH, 8)

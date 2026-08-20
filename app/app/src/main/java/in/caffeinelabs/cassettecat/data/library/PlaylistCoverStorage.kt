@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.core.graphics.scale
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +46,7 @@ class PlaylistCoverStorage(private val context: Context) {
     private fun Bitmap.scaledDownTo(maxDimension: Int): Bitmap {
         val largestSide = maxOf(width, height)
         if (largestSide <= maxDimension) return this
-        val scale = maxDimension.toFloat() / largestSide
-        return Bitmap.createScaledBitmap(this, (width * scale).toInt(), (height * scale).toInt(), true)
+        val factor = maxDimension.toFloat() / largestSide
+        return scale((width * factor).toInt(), (height * factor).toInt())
     }
 }

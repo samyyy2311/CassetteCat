@@ -27,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.backup.BackupRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,7 +49,9 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         if (uri != null) {
             scope.launch {
                 val json = backupRepository.createBackup()
-                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                }
                 resultMessage = "Backup created."
             }
         }
@@ -111,8 +115,10 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     restoreUri = null
                     if (uri != null) {
                         scope.launch {
-                            val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                            val result = text?.let { backupRepository.restoreBackup(it) }
+                            val result = withContext(Dispatchers.IO) {
+                                val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                                text?.let { backupRepository.restoreBackup(it) }
+                            }
                             resultMessage = if (result?.isSuccess == true) {
                                 "Backup restored."
                             } else {

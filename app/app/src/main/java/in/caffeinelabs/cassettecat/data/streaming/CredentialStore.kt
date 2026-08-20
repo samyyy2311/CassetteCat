@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.content.edit
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -26,14 +27,14 @@ class CredentialStore(context: Context) {
             StreamingProtocol.SUBSONIC -> KEY_SUBSONIC_PASSWORD
             StreamingProtocol.JELLYFIN -> KEY_JELLYFIN_TOKEN
         }
-        prefs.edit().remove(key).apply()
+        prefs.edit { remove(key) }
     }
 
     private fun save(key: String, value: String) {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
         val ciphertext = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
         val encoded = "${cipher.iv.toBase64()}:${ciphertext.toBase64()}"
-        prefs.edit().putString(key, encoded).apply()
+        prefs.edit { putString(key, encoded) }
     }
 
     private fun load(key: String): String? {

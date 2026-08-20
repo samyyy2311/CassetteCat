@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -293,7 +294,7 @@ internal fun NowPlayingLyricsView(
     onScrollDelta: (Float) -> Unit
 ) {
     val density = LocalDensity.current
-    var syncOffsetMs by remember(song.id, syncedLyrics) { mutableStateOf(0L) }
+    var syncOffsetMs by remember(song.id, syncedLyrics) { mutableLongStateOf(0L) }
     var selectionMode by remember(song.id) { mutableStateOf(false) }
     var selectedIndices by remember(song.id) { mutableStateOf(setOf<Int>()) }
     var showShareSheet by remember { mutableStateOf(false) }

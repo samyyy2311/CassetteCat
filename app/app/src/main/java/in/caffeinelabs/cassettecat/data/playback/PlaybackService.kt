@@ -8,10 +8,12 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.service.quicksettings.TileService
+import androidx.core.graphics.scale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
@@ -47,6 +49,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
+@UnstableApi
 class PlaybackService : MediaLibraryService() {
     private var mediaSession: MediaLibrarySession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -292,6 +295,7 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<LibraryResult<MediaItem>> =
             Futures.immediateFuture(LibraryResult.ofItem(libraryTree.rootItem, params))
 
+        @Suppress("WrongConstant")
         override fun onGetItem(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -310,6 +314,7 @@ class PlaybackService : MediaLibraryService() {
             return future
         }
 
+        @Suppress("WrongConstant")
         override fun onGetChildren(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -388,7 +393,7 @@ class PlaybackService : MediaLibraryService() {
                 runCatching {
                     val options = BitmapFactory.Options().apply { inSampleSize = 2 }
                     val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options)
-                    decoded?.let { Bitmap.createScaledBitmap(it, 120, 120, true) }
+                    decoded?.scale(120, 120)
                 }.getOrNull()
             }
             runCatching {

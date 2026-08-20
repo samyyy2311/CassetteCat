@@ -1,7 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,7 +66,7 @@ fun ScrobbleSettingsScreen(
     var showLibreFmDialog by remember { mutableStateOf(false) }
 
     val openUrl: (String) -> Unit = { url ->
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
 
     Column(

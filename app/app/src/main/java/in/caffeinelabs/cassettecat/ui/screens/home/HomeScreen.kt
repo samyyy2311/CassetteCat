@@ -61,8 +61,8 @@ fun HomeScreen(
     libraryViewModel: LibraryViewModel,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToLibrary: () -> Unit,
-    onNavigateToArtist: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onNavigateToArtist: (String) -> Unit = {},
     listBottomPadding: Dp = 0.dp
 ) {
     val playbackState by playbackViewModel.playbackState.collectAsState()

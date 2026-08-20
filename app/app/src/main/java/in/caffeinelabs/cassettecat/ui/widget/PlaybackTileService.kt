@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.ui.widget
 
 import android.content.ComponentName
 import android.graphics.drawable.Icon
+import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.media3.common.MediaItem
@@ -64,7 +65,9 @@ class PlaybackTileService : TileService() {
         qsTile?.apply {
             state = if (isPlaying) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             label = title ?: "CassetteCat"
-            subtitle = if (isPlaying) "Playing" else "Paused"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                subtitle = if (isPlaying) "Playing" else "Paused"
+            }
             icon = Icon.createWithResource(this@PlaybackTileService, if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play)
             updateTile()
         }

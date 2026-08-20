@@ -89,8 +89,8 @@ fun SearchScreen(
     playbackViewModel: PlaybackViewModel,
     libraryViewModel: LibraryViewModel,
     onNavigateToNowPlaying: () -> Unit,
-    focusRequestId: Int = 0,
     modifier: Modifier = Modifier,
+    focusRequestId: Int = 0,
     listBottomPadding: Dp = 0.dp
 ) {
     val libraryState by libraryViewModel.uiState.collectAsState()

@@ -78,7 +78,7 @@ fun CustomizationScreen(
         ).count { it }
     }
 
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Customisation", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -158,7 +158,7 @@ private fun CategoryHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun categoryModifier(modifier: Modifier, listBottomPadding: Dp) = modifier
+private fun Modifier.categoryModifier(listBottomPadding: Dp) = this
     .fillMaxSize()
     .verticalScroll(rememberScrollState())
     .padding(top = 8.dp, bottom = listBottomPadding + 32.dp)
@@ -167,7 +167,7 @@ private fun categoryModifier(modifier: Modifier, listBottomPadding: Dp) = modifi
 fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Theme", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -344,7 +344,7 @@ private fun CustomAccentColorSheet(
 fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Startup & Library", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -434,7 +434,7 @@ fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -
 fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Now Playing & Gestures", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -479,7 +479,7 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
 fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Audio Engine", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -574,7 +574,7 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
 fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Lyrics", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -631,7 +631,7 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
 fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Storage & Cache", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
@@ -668,7 +668,7 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
 fun CustomizationHomeFeedScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsState()
     val prefs = uiState.preferences
-    Column(modifier = categoryModifier(modifier, listBottomPadding)) {
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Home Feed", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {

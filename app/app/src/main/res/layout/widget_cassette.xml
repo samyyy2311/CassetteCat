@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Not playing"
+                android:text="@string/widget_not_playing"
                 android:textColor="#F5F0EC"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -46,13 +46,13 @@
                 android:layout_marginTop="1dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="CassetteCat"
+                android:text="@string/app_name"
                 android:textColor="#A8A29A"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <FrameLayout
+    <Space
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -70,7 +70,7 @@
             android:layout_height="28dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
-            android:contentDescription="Previous"
+            android:contentDescription="@string/widget_previous"
             android:padding="4dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_prev" />
@@ -82,7 +82,7 @@
             android:layout_marginStart="6dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_widget_play_pill"
-            android:contentDescription="Play/Pause"
+            android:contentDescription="@string/widget_play_pause"
             android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_play" />
@@ -93,7 +93,7 @@
             android:layout_height="28dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
-            android:contentDescription="Next"
+            android:contentDescription="@string/widget_next"
             android:padding="4dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_next" />

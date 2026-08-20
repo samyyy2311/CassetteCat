@@ -1,8 +1,8 @@
 package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
-import android.net.Uri
 import android.os.SystemClock
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
@@ -379,8 +379,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 _positionMs.value = repository.currentPositionMs()
                 applyCrossfade()
                 playbackState.value.currentSong?.let { song ->
-                    val bucket = ListeningBucket(YearMonth.now().toString(), song.id)
-                    accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + POSITION_TICK_MS
+                    if (song.source != MusicSource.Radio) {
+                        val bucket = ListeningBucket(YearMonth.now().toString(), song.id)
+                        accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + POSITION_TICK_MS
+                    }
                 }
                 tick++
                 if (tick % 2 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
@@ -510,7 +512,7 @@ private fun roomKey(value: String): String = value.trim().lowercase()
 
 private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int): Song {
     val id = "listeningroom:${roomKey(title)}_${roomKey(artist)}_$durationMs"
-    val uri = Uri.parse("http://$hostIp:$audioPort/stream").buildUpon()
+    val uri = "http://$hostIp:$audioPort/stream".toUri().buildUpon()
         .appendQueryParameter("title", title)
         .appendQueryParameter("artist", artist)
         .appendQueryParameter("duration", durationMs.toString())

@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -36,8 +37,8 @@ fun TransportButton(
     size: Dp,
     tint: Color,
     onClick: () -> Unit,
-    accented: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accented: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -58,7 +59,7 @@ fun TransportButton(
     Box(
         modifier = modifier
             .size(size)
-            .offset(y = pressDepth)
+            .offset { IntOffset(0, pressDepth.roundToPx()) }
             .shadow(elevation, CircleShape)
             .clip(CircleShape)
             .background(capBrush)

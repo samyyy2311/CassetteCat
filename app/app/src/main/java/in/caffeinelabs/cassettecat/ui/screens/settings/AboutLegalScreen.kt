@@ -1,7 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -48,7 +48,7 @@ fun AboutLegalScreen(
 ) {
     val context = LocalContext.current
     val openUrl: (String) -> Unit = { url ->
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
 
     val appVersion = BuildConfig.VERSION_NAME

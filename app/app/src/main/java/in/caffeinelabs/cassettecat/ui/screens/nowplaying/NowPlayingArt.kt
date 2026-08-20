@@ -79,9 +79,9 @@ internal fun AlbumArtCarousel(
     onSwipePrevious: () -> Unit,
     collapsedArtRect: State<Rect?>?,
     expandFraction: Float,
+    modifier: Modifier = Modifier,
     onSwipeUp: (() -> Unit)? = null,
-    isPlaying: Boolean = true,
-    modifier: Modifier = Modifier
+    isPlaying: Boolean = true
 ) {
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -136,9 +136,9 @@ internal fun AlbumArtCard(
     song: Song,
     collapsedArtRect: State<Rect?>? = null,
     expandFraction: Float = 1f,
+    modifier: Modifier = Modifier,
     onSwipeUp: (() -> Unit)? = null,
-    isPlaying: Boolean = true,
-    modifier: Modifier = Modifier
+    isPlaying: Boolean = true
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }

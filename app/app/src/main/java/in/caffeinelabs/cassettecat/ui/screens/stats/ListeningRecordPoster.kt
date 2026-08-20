@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -52,7 +54,7 @@ internal fun buildListeningRecordPoster(
     isRewind: Boolean = false
 ): Bitmap {
     val size = 1080
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(size, size)
     val canvas = Canvas(bitmap)
 
     val ibmPlexSansBold = runCatching {
@@ -71,9 +73,9 @@ internal fun buildListeningRecordPoster(
         shader = LinearGradient(
             0f, 0f, size.toFloat(), size.toFloat(),
             intArrayOf(
-                android.graphics.Color.parseColor("#C23B30"),
-                android.graphics.Color.parseColor("#321319"),
-                android.graphics.Color.parseColor("#09090B")
+                "#C23B30".toColorInt(),
+                "#321319".toColorInt(),
+                "#09090B".toColorInt()
             ),
             floatArrayOf(0f, 0.45f, 1f),
             Shader.TileMode.CLAMP
@@ -90,13 +92,13 @@ internal fun buildListeningRecordPoster(
     canvas.drawCircle(-40f, 780f, 130f, Paint(accentPaint).apply { alpha = 16 })
 
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.parseColor("#F5F0EC")
+        color = "#F5F0EC".toColorInt()
         textSize = 64f
         typeface = ibmPlexSansBold
     }
 
     val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.parseColor("#F5F0EC")
+        color = "#F5F0EC".toColorInt()
         textSize = 30f
         typeface = ibmPlexMono
         letterSpacing = 0.14f
@@ -112,7 +114,7 @@ internal fun buildListeningRecordPoster(
 
     val subHeroPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 48f
-        color = android.graphics.Color.parseColor("#A8A29A")
+        color = "#A8A29A".toColorInt()
         typeface = ibmPlexSansRegular
     }
     val subHeroText = if (isRewind) "ANNUAL RECAP" else yearLabel

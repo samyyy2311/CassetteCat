@@ -1,6 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.radio
 
-import android.net.Uri
+import androidx.core.net.toUri
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.serialization.Serializable
@@ -24,9 +24,9 @@ fun RadioStation.toSong(): Song = Song(
     album = "",
     albumId = "",
     durationMs = 0L,
-    contentUri = Uri.parse(streamUrl),
+    contentUri = streamUrl.toUri(),
     source = MusicSource.Radio,
-    artUri = favicon?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+    artUri = favicon?.takeIf { it.isNotBlank() }?.let { it.toUri() }
 )
 
 fun customRadioStation(name: String, streamUrl: String): RadioStation = RadioStation(

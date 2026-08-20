@@ -42,6 +42,7 @@ private fun systemDefaultTrustManager(): X509TrustManager {
     return factory.trustManagers.filterIsInstance<X509TrustManager>().first()
 }
 
+@Suppress("CustomX509TrustManager")
 private class TofuTrustManager(private val systemDefault: X509TrustManager) : X509TrustManager {
     override fun checkClientTrusted(chain: Array<out X509Certificate>, authType: String) =
         systemDefault.checkClientTrusted(chain, authType)

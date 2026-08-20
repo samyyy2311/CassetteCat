@@ -1,6 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -126,7 +126,7 @@ fun ConnectServerScreen(
                 Spacer(Modifier.height(24.dp))
                 Button(
                     onClick = hapticClick {
-                        if (Uri.parse(serverUrl).scheme.equals("http", ignoreCase = true)) {
+                        if (serverUrl.toUri().scheme.equals("http", ignoreCase = true)) {
                             showHttpWarning = true
                         } else {
                             viewModel.connect(protocol, serverUrl.trim(), username.trim(), password)

@@ -359,13 +359,15 @@ private fun AddSongsSheet(
     onDismiss: () -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val filteredSongs = if (query.isBlank()) {
-        allSongs
-    } else {
-        allSongs.filter {
-            it.title.contains(query, ignoreCase = true) ||
-                it.artist.contains(query, ignoreCase = true) ||
-                it.album.contains(query, ignoreCase = true)
+    val filteredSongs = remember(allSongs, query) {
+        if (query.isBlank()) {
+            allSongs
+        } else {
+            allSongs.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                    it.artist.contains(query, ignoreCase = true) ||
+                    it.album.contains(query, ignoreCase = true)
+            }
         }
     }
 

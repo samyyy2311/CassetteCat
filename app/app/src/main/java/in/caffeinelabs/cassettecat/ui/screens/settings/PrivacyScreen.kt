@@ -1,7 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -129,7 +129,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://cassettecat.caffeinelabs.in/privacy/")
+                            "https://cassettecat.caffeinelabs.in/privacy/".toUri()
                         )
                     )
                 }

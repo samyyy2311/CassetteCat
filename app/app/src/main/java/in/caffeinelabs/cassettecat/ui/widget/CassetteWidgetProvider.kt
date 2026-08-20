@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.RemoteViews
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackService
@@ -56,7 +58,7 @@ class CassetteWidgetProvider : AppWidgetProvider() {
 
                 if (artBitmap != null && !artBitmap.isRecycled) {
                     val safeBitmap = if (artBitmap.width > 128 || artBitmap.height > 128) {
-                        Bitmap.createScaledBitmap(artBitmap, 120, 120, true)
+                        artBitmap.scale(120, 120)
                     } else {
                         artBitmap
                     }
@@ -116,7 +118,7 @@ class CassetteWidgetProvider : AppWidgetProvider() {
 
         private fun roundedBitmap(source: Bitmap): Bitmap {
             val cornerRadius = source.width * 0.3f
-            val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+            val output = createBitmap(source.width, source.height)
             val canvas = android.graphics.Canvas(output)
             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
             val rect = android.graphics.RectF(0f, 0f, source.width.toFloat(), source.height.toFloat())

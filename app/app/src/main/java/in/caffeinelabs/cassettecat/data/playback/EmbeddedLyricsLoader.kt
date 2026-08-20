@@ -4,19 +4,20 @@ import android.content.Context
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.InputStream
 
 /** Reads ID3 USLT tags from local MP3 files when the playback metadata omits them. */
 class EmbeddedLyricsLoader(private val context: Context) {
     suspend fun loadFor(song: Song): String? = withContext(Dispatchers.IO) {
         runCatching {
             context.contentResolver.openInputStream(song.contentUri)?.use { input ->
-                val header = input.readNBytes(10)
+                val header = input.readNBytesCompat(10)
                 if (header.size != 10 || header.copyOfRange(0, 3).decodeToString() != "ID3") return@use null
 
                 val version = header[3].toInt() and 0xFF
                 if (version !in 3..4) return@use null
                 val tagSize = synchSafeInt(header, 6).coerceAtMost(MAX_TAG_BYTES)
-                val tag = input.readNBytes(tagSize)
+                val tag = input.readNBytesCompat(tagSize)
                 extractUslt(tag, version)
             }
         }.getOrNull()
@@ -50,4 +51,16 @@ class EmbeddedLyricsLoader(private val context: Context) {
             (bytes[offset + 3].toInt() and 0xFF)
 
     private companion object { const val MAX_TAG_BYTES = 4 * 1024 * 1024 }
+}
+
+// InputStream.readNBytes(Int) requires API 33; app's minSdk is 26.
+private fun InputStream.readNBytesCompat(n: Int): ByteArray {
+    val buffer = ByteArray(n)
+    var totalRead = 0
+    while (totalRead < n) {
+        val read = read(buffer, totalRead, n - totalRead)
+        if (read == -1) break
+        totalRead += read
+    }
+    return if (totalRead == n) buffer else buffer.copyOf(totalRead)
 }

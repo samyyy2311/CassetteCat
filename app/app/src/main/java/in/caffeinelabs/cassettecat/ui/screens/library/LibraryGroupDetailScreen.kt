@@ -471,16 +471,16 @@ private fun LibraryGroupDetailScreen(
     title: String,
     subtitle: String?,
     wikipediaQuery: String?,
-    wikipediaAlbumArtist: String? = null,
     artistForHero: String?,
     albumHeroSong: Song?,
-    playlistViewModel: PlaylistViewModel? = null,
     metadata: List<Pair<String, String>>,
     songs: List<Song>,
     playbackViewModel: PlaybackViewModel,
     onBack: () -> Unit,
     onNavigateToNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
+    wikipediaAlbumArtist: String? = null,
+    playlistViewModel: PlaylistViewModel? = null,
     listBottomPadding: Dp = 0.dp
 ) {
     val context = LocalContext.current

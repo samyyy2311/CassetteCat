@@ -11,8 +11,11 @@ import androidx.media3.exoplayer.scheduler.Requirements
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import java.util.concurrent.Executor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +33,7 @@ class SongDownloadRepository private constructor(private val context: Context) {
 
     private val _downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
     val downloads: StateFlow<Map<String, Download>> = _downloads.asStateFlow()
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         refreshFromIndex()
@@ -49,17 +53,19 @@ class SongDownloadRepository private constructor(private val context: Context) {
         if (current != null && (current.state == Download.STATE_COMPLETED || current.state == Download.STATE_DOWNLOADING || current.state == Download.STATE_QUEUED)) {
             return
         }
-        runCatching {
-            val wifiOnly = runBlocking { AppPreferencesRepository(context).preferences.first().wifiOnlyDownloads }
-            val requirements = Requirements(
-                if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK
-            )
-            DownloadService.sendSetRequirements(context, SongDownloadService::class.java, requirements, false)
-            val request = DownloadRequest.Builder(song.id, song.contentUri)
-                .setCustomCacheKey(song.id)
-                .setData(song.title.toByteArray())
-                .build()
-            DownloadService.sendAddDownload(context, SongDownloadService::class.java, request, false)
+        repositoryScope.launch {
+            runCatching {
+                val wifiOnly = AppPreferencesRepository(context).preferences.first().wifiOnlyDownloads
+                val requirements = Requirements(
+                    if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK
+                )
+                DownloadService.sendSetRequirements(context, SongDownloadService::class.java, requirements, false)
+                val request = DownloadRequest.Builder(song.id, song.contentUri)
+                    .setCustomCacheKey(song.id)
+                    .setData(song.title.toByteArray())
+                    .build()
+                DownloadService.sendAddDownload(context, SongDownloadService::class.java, request, false)
+            }
         }
     }
 
@@ -82,6 +88,7 @@ class SongDownloadRepository private constructor(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
+    @Suppress("StaticFieldLeak")
     companion object {
         @Volatile private var instance: SongDownloadRepository? = null
 

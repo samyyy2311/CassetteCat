@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.util.UnstableApi
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
@@ -51,10 +52,13 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
+@UnstableApi
 @Composable
 fun LibraryScreen(
     playbackViewModel: PlaybackViewModel,
@@ -132,17 +136,21 @@ fun LibraryScreen(
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val resolver = context.contentResolver
-            val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getString(0) else null
-            }?.substringBeforeLast(".") ?: "Imported Playlist"
-            val text = resolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-            if (text != null) {
-                val entries = parseM3u(text)
-                val librarySongs = loadedState?.songs.orEmpty()
-                val matchedIds = librarySongs.matchM3uEntries(entries)
-                playlistViewModel.create(name) { playlist -> playlistViewModel.addSongs(playlist.id, matchedIds) }
-                importSummary = M3uImportSummary(name, matchedIds.size, entries.size)
+            val librarySongs = loadedState?.songs.orEmpty()
+            pagerScope.launch {
+                val resolver = context.contentResolver
+                val result = withContext(Dispatchers.IO) {
+                    val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0) else null
+                    }?.substringBeforeLast(".") ?: "Imported Playlist"
+                    val text = resolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    text?.let { parseM3u(it) }?.let { entries -> Triple(name, librarySongs.matchM3uEntries(entries), entries.size) }
+                }
+                if (result != null) {
+                    val (name, matchedIds, entryCount) = result
+                    playlistViewModel.create(name) { playlist -> playlistViewModel.addSongs(playlist.id, matchedIds) }
+                    importSummary = M3uImportSummary(name, matchedIds.size, entryCount)
+                }
             }
         }
     }

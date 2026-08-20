@@ -1,7 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -63,18 +63,18 @@ fun SettingsScreen(
     onNavigateToDownloads: () -> Unit,
     onNavigateToSleepTimer: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
+    modifier: Modifier = Modifier,
     onNavigateToCustomization: () -> Unit = {},
     onNavigateToPairing: () -> Unit = {},
     onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
     onNavigateToScrobbling: () -> Unit = {},
-    modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp,
     viewModel: SettingsViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val openUrl: (String) -> Unit = { url ->
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
     val uiState by viewModel.uiState.collectAsState()
     val updateCheckResult by viewModel.updateCheckResult.collectAsState()
@@ -385,7 +385,7 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
                 if (checkEnabled) {
                     Modifier.tapScale {
                         if (available != null) {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(available.url)))
+                            context.startActivity(Intent(Intent.ACTION_VIEW, available.url.toUri()))
                         } else {
                             onCheck()
                         }
