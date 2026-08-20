@@ -35,11 +35,11 @@
   --text: #1B1814;
   --text-2: rgba(27, 24, 20, 0.62);
   --text-3: rgba(27, 24, 20, 0.42);
-  --accent: #5BB8FF;
-  --accent-hi: #7BC7FF;
-  --accent-lo: #1F5F92;
-  --accent-dim: rgba(91, 184, 255, 0.12);
-  --on-accent: #0B2233;
+  --accent: #C23B30;
+  --accent-hi: #D65546;
+  --accent-lo: #7A241C;
+  --accent-dim: rgba(194, 59, 48, 0.12);
+  --on-accent: #FBF3EE;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

@@ -2,6 +2,18 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.3.0] - Internet Radio & Onboarding Fixes
+
+### Radio
+* **Internet Radio**: Search and browse tens of thousands of live stations from Radio Browser by name, tag, or country. Favorite stations sync to Android Auto, which also gets a dedicated Radio browse tree and voice search support.
+
+### Stats
+* **Rewind**: Export your monthly listening stats as a shareable poster.
+
+### Fixes
+* **Onboarding**: Fixed the folder setup step letting you continue with an empty folder selection.
+* **Gapless Playback**: Fixed the Gapless Playback setting not working correctly.
+
 ## [1.2.0] - Android Auto & Real Hotspot Pairing
 
 ### Companion Hardware

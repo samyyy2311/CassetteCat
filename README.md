@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.2.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.2.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.3.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.3.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -57,6 +57,7 @@
 - **Smart Relevance Search**: Real-time multi-token relevance search matching across song titles, artists, and albums.
 - **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token authentication.
 - **Jellyfin**: Direct streaming and music library browsing from your Jellyfin server.
+- **Internet Radio**: Search and browse tens of thousands of live stations from [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with favorites and Android Auto support.
 - **Offline Cache**: Download and cache streaming tracks for offline playback.
 - **Scrobbling**: Track your listening on [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
 - **Listening Log**: Local playback statistics tracking your top tracks, artists, and albums.
@@ -71,11 +72,12 @@
 - **Quick Settings Tile**: Play, pause, and see what's playing without opening the app.
 
 ### Design & Customization
-- **Curated Theme Accents**: 6 dynamic color palettes — *Record Red*, *Cassette Amber*, *Electric Cyan*, *Neon Emerald*, *Tape Magenta*, and *Monochrome Silver*.
+- **Curated Theme Accents**: 6 dynamic color palettes: *Record Red*, *Cassette Amber*, *Electric Cyan*, *Neon Emerald*, *Tape Magenta*, and *Monochrome Silver*.
 - **Pure Black AMOLED Mode**: Pitch black `#000000` surface backgrounds for true OLED blacks and maximum battery efficiency.
 - **Now Playing & Artwork Styling**: Configurable album art corner radii (Curved 16dp, Soft 8dp, Vinyl Square 0dp) and interactive remaining time countdown toggle (`-02:45`).
 - **Navigation & Startup Preferences**: Configurable default landing screen (*Home*, *Library*, or *Last active tab*) and default Library section.
 - **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and synchronized lyric excerpts.
+- **Rewind**: Export your monthly listening stats as a shareable poster.
 - **Home Screen Widget**: Control playback and view current song artwork directly from your home screen.
 
 ### Privacy

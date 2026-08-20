@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var t=localStorage.getItem('cc-theme');if(t!=='dark')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog · CassetteCat · CaffeineLabs</title>
+  <meta name="description" content="Release notes and version history for CassetteCat, a local-first, zero-tracking Android audio player.">
+  <meta property="og:title" content="Changelog · CassetteCat · CaffeineLabs">
+  <meta property="og:description" content="Release notes and version history for CassetteCat.">
+  <meta property="og:url" content="https://cassettecat.caffeinelabs.in/changelog">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+  <link rel="icon" type="image/png" href="/assets/play_store_icon_512.png">
+  <link rel="apple-touch-icon" href="/assets/play_store_icon_512.png">
+  <link rel="canonical" href="https://cassettecat.caffeinelabs.in/changelog">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+
+<body>
+
+  <header class="masthead">
+    <div class="frame">
+      <div class="mast">
+        <div class="mast-left">
+          <a href="/" class="brand">
+            <img src="/assets/logo.svg" alt="" class="brand-mark" width="30" height="30">
+            <span class="brand-word">Cassette<span class="accent">Cat</span></span>
+          </a>
+        </div>
+        <nav class="nav-links">
+          <a href="/">Home</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="https://github.com/samyyy2311/CassetteCat" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="frame">
+    <div class="doc-layout">
+
+      <div class="doc-head">
+        <h1>Changelog</h1>
+        <div class="doc-head-meta">
+          <span><b>App</b> CassetteCat</span>
+          <span class="sep">·</span>
+          <span><b>Latest</b> v1.3.0</span>
+          <span class="sep">·</span>
+          <span><b>Source</b> <a href="https://github.com/samyyy2311/CassetteCat/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a></span>
+        </div>
+      </div>
+
+      <aside class="doc-toc">
+        <h4>Versions</h4>
+        <ol>
+          <li><a href="#v1-3-0"><span class="toc-num">01</span>v1.3.0</a></li>
+          <li><a href="#v1-2-0"><span class="toc-num">02</span>v1.2.0</a></li>
+          <li><a href="#v1-1-0"><span class="toc-num">03</span>v1.1.0</a></li>
+          <li><a href="#v1-0-0"><span class="toc-num">04</span>v1.0.0</a></li>
+        </ol>
+      </aside>
+
+      <div class="doc-body">
+        <p class="doc-lede">All notable changes to CassetteCat are documented here, in the same order as <a href="https://github.com/samyyy2311/CassetteCat/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a> in the repository.</p>
+
+        <section id="v1-3-0">
+          <h2><span class="sec-num">01.</span>v1.3.0 - Internet Radio &amp; Onboarding Fixes</h2>
+          <p><strong>Radio</strong></p>
+          <ul>
+            <li><strong>Internet Radio</strong>: Search and browse tens of thousands of live stations from Radio Browser by name, tag, or country. Favorite stations sync to Android Auto, which also gets a dedicated Radio browse tree and voice search support.</li>
+          </ul>
+          <p><strong>Stats</strong></p>
+          <ul>
+            <li><strong>Rewind</strong>: Export your monthly listening stats as a shareable poster.</li>
+          </ul>
+          <p><strong>Fixes</strong></p>
+          <ul>
+            <li><strong>Onboarding</strong>: Fixed the folder setup step letting you continue with an empty folder selection.</li>
+            <li><strong>Gapless Playback</strong>: Fixed the Gapless Playback setting not working correctly.</li>
+          </ul>
+        </section>
+
+        <section id="v1-2-0">
+          <h2><span class="sec-num">02.</span>v1.2.0 - Android Auto &amp; Real Hotspot Pairing</h2>
+          <p><strong>Companion Hardware</strong></p>
+          <ul>
+            <li><strong>Real SoftAP Auto-Connect</strong>: On Android 13+, pairing to the player's direct hotspot now associates automatically via <code>WifiNetworkSpecifier</code> instead of assuming the user already switched Wi-Fi networks manually. Older devices keep the existing connect-then-scan flow.</li>
+            <li><strong>Disconnect Fixed</strong>: The companion Disconnect button now actually disconnects instead of restarting hotspot discovery.</li>
+          </ul>
+          <p><strong>Device Integration</strong></p>
+          <ul>
+            <li><strong>Android Auto &amp; Automotive OS</strong>: Browse your local library (Liked Songs, Playlists, Albums, Artists, All Songs) and control playback directly from the car.</li>
+            <li><strong>Quick Settings Tile</strong>: Play, pause, and see what's playing without opening the app.</li>
+          </ul>
+          <p><strong>Polish</strong></p>
+          <ul>
+            <li>Haptic feedback now fires on every toggle switch throughout Settings, not just the row tap.</li>
+            <li>Fixed cramped accent color swatch spacing in Theme customization.</li>
+          </ul>
+        </section>
+
+        <section id="v1-1-0">
+          <h2><span class="sec-num">03.</span>v1.1.0 - Share Cards &amp; UI Polish</h2>
+          <p><strong>Share &amp; Social</strong></p>
+          <ul>
+            <li><strong>1:1 Share Card Export</strong>: Exported posters for both Song and Lyrics cards now render identically to the in-app preview card.</li>
+            <li><strong>Ultra-HD Resolution</strong>: Exported cards render at 2160 × 2700 with subpixel antialiasing and lossless PNG output.</li>
+            <li><strong>Atmospheric Background Blur</strong>: Upgraded live backdrop shader to generate silk-smooth Gaussian blur directly from current song artwork with dark gradient scrims.</li>
+            <li><strong>Authentic Branding &amp; Icons</strong>: Integrated Lucide quote marks, cassette tape glyphs, Space Grotesk Bold, and IBM Plex Mono fonts directly into the canvas rendering pipeline.</li>
+            <li><strong>Native App Launcher Icons</strong>: Share tray now dynamically queries and displays installed WhatsApp and Instagram launcher icons directly from device <code>PackageManager</code>.</li>
+            <li><strong>Now Playing Share Access</strong>: Connected the 3-dots Now Playing menu's Share option directly to the interactive screenshot and lyrics card sheet.</li>
+          </ul>
+          <p><strong>UI &amp; Credits</strong></p>
+          <ul>
+            <li>Refreshed Credits screen with official vector logos for Android, Internet Archive, Simple Icons, and GNU GPL v3.0.</li>
+            <li>Scaled and balanced share action pill vectors for seamless visual padding.</li>
+          </ul>
+        </section>
+
+        <section id="v1-0-0">
+          <h2><span class="sec-num">04.</span>v1.0.0 - Initial Release</h2>
+          <p><strong>Audio &amp; Playback</strong></p>
+          <ul>
+            <li>High-fidelity audio engine built on AndroidX Media3 (ExoPlayer).</li>
+            <li>Hardware-accelerated DSP effects: parametric equalizer, bass boost, and spatial virtualizer.</li>
+            <li>Real-time synchronized and plain lyrics via embedded LRC/ID3 tags and LRCLIB.</li>
+            <li>Configurable sleep timer and precise playback speed adjustment.</li>
+          </ul>
+          <p><strong>Cloud &amp; Streaming</strong></p>
+          <ul>
+            <li>Native Subsonic API integration compatible with Navidrome, Gonic, and Airsonic.</li>
+            <li>Jellyfin music library streaming with secure token authentication.</li>
+            <li>Offline song downloads with dedicated cache management and background sync.</li>
+            <li>User-owned scrobbling support for ListenBrainz and Libre.fm.</li>
+          </ul>
+          <p><strong>Companion Hardware</strong></p>
+          <ul>
+            <li>Wireless pairing and sync for standalone ESP32 audio players over direct SoftAP hotspot or local Wi-Fi mDNS.</li>
+            <li>Live hardware telemetry: battery level, charging status, SD card capacity, and firmware version.</li>
+          </ul>
+          <p><strong>Library &amp; User Experience</strong></p>
+          <ul>
+            <li>Fast local search across songs, artists, and albums with artist portraits.</li>
+            <li>Custom playlist creation, cover art customization, and M3U/M3U8 import and export.</li>
+            <li>Device-local listening stats: monthly playback time, top artists, and repeat metrics.</li>
+            <li>Fine-grained folder scan filters (whitelist and blacklist modes).</li>
+            <li>Full JSON backup and restore for playlists, favorites, and user settings.</li>
+            <li>Credits and open-source attributions in Settings.</li>
+          </ul>
+          <p><strong>Privacy &amp; Architecture</strong></p>
+          <ul>
+            <li>100% local-first: no tracking, no analytics, and zero Google Play Services dependencies.</li>
+            <li>Server passwords encrypted with hardware-backed Android Keystore.</li>
+            <li>Free and open-source software licensed under GPL-3.0.</li>
+          </ul>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="frame" style="width:100%; display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:20px;">
+      <div class="brand-line">
+        <a href="https://caffeinelabs.in" class="fb-name">Caffeine<span class="dim">Labs</span></a>
+        <span class="sep">/</span>
+        <span>CassetteCat</span>
+        <span class="sep">/</span>
+        <span>GPL-3.0 License</span>
+      </div>
+      <div class="legal">
+        <a href="/">Home</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="https://github.com/samyyy2311/CassetteCat" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/samyyy2311/CassetteCat/releases" target="_blank" rel="noopener">Releases</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark theme">
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+<script src="/assets/main.js"></script>
+</body>
+
+</html>
