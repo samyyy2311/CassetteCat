@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.content.ComponentName
@@ -22,6 +24,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +43,8 @@ class PlaybackRepository(private val context: Context) {
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var controller: MediaController? = null
     private var replayGainVolume = 1f
+    private var replayGainJob: Job? = null
+    private var volumeOverrideActive = false
     private var currentQueue: List<Song> = emptyList()
     // Snapshot of the order playQueue() was called with, untouched by shuffle
     // or manual drag-reorder: what toggling shuffle off restores.
@@ -91,10 +96,11 @@ class PlaybackRepository(private val context: Context) {
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
             // Lyrics become known only once container tags parse during load, not at transition time.
             override fun onTracksChanged(tracks: Tracks) {
-                repositoryScope.launch {
+                replayGainJob?.cancel()
+                replayGainJob = repositoryScope.launch {
                     val prefs = appPreferencesRepository.preferences.first()
                     replayGainVolume = extractReplayGain(tracks).volumeMultiplier(prefs.replayGainEnabled, prefs.replayGainPreAmpDb)
-                    controller?.volume = replayGainVolume
+                    if (!volumeOverrideActive) controller?.volume = replayGainVolume
                     updateState()
                 }
             }
@@ -246,6 +252,12 @@ class PlaybackRepository(private val context: Context) {
 
     fun setVolume(volume: Float) {
         controller?.volume = volume.coerceIn(0f, 1f)
+    }
+
+    // Prevents an in-flight replay-gain recalculation (from a track change racing
+    // a sleep-timer fade) from clobbering the fade with a jump in volume.
+    fun setVolumeOverrideActive(active: Boolean) {
+        volumeOverrideActive = active
     }
 
     fun getVolume(): Float {

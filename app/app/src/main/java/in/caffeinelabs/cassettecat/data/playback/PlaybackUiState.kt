@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package `in`.caffeinelabs.cassettecat.data.playback
 
 import androidx.media3.common.C

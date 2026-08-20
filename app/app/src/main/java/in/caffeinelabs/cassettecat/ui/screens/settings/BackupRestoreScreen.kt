@@ -49,10 +49,10 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         if (uri != null) {
             scope.launch {
                 val json = backupRepository.createBackup()
-                withContext(Dispatchers.IO) {
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                val wrote = withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) } != null
                 }
-                resultMessage = "Backup created."
+                resultMessage = if (wrote) "Backup created." else "Backup failed: couldn't open the destination file."
             }
         }
     }

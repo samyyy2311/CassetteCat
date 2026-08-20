@@ -22,7 +22,7 @@
         android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"
         android:minSdkVersion="33"
-        tools:targetApi="31" />
+        tools:targetApi="33" />
     <!-- Android 14+: lets the player offer a contextual share suggestion after a screenshot. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
 

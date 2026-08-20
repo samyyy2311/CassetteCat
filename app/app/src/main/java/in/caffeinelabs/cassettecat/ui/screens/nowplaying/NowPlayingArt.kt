@@ -134,9 +134,9 @@ internal fun AlbumArtCarousel(
 @Composable
 internal fun AlbumArtCard(
     song: Song,
+    modifier: Modifier = Modifier,
     collapsedArtRect: State<Rect?>? = null,
     expandFraction: Float = 1f,
-    modifier: Modifier = Modifier,
     onSwipeUp: (() -> Unit)? = null,
     isPlaying: Boolean = true
 ) {

@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package `in`.caffeinelabs.cassettecat.ui.components
 
 import androidx.compose.foundation.layout.size

@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package `in`.caffeinelabs.cassettecat.data.download
 
 import android.content.Context
@@ -88,7 +90,7 @@ class SongDownloadRepository private constructor(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
-    @Suppress("StaticFieldLeak")
+    @android.annotation.SuppressLint("StaticFieldLeak")
     companion object {
         @Volatile private var instance: SongDownloadRepository? = null
 

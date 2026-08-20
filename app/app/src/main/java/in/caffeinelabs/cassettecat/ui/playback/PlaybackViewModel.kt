@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
@@ -57,6 +59,7 @@ private const val AUTOPLAY_BATCH_SIZE = 20
 private data class ListeningBucket(val monthKey: String, val songId: String)
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = PlaybackRepository(app)
     private val listeningRoomRepository = LocalListeningRoomRepository(app)
@@ -306,6 +309,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (fadeOut && fadeMs > 0) {
                 sleepFading = true
+                repository.setVolumeOverrideActive(true)
                 val initialVol = repository.getVolume()
                 val steps = 20
                 val stepDelay = fadeMs / steps
@@ -316,6 +320,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (playbackState.value.isPlaying) togglePlayPause()
                 repository.setVolume(initialVol)
+                repository.setVolumeOverrideActive(false)
                 sleepFading = false
             } else {
                 if (playbackState.value.isPlaying) togglePlayPause()
