@@ -18,6 +18,12 @@ Builds:
     subdir: app/app
     gradle:
       - yes
+  - versionName: 1.3.1
+    versionCode: 5
+    commit: 390e13bdefdf8c2643a5afbe779d8c5ca51ca07d
+    subdir: app/app
+    gradle:
+      - yes
 
 Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-release.apk
 
@@ -25,5 +31,5 @@ AllowedAPKSigningKeys: e55ead1e67b33ffc10f29323b72cafaffbc9fb34f31f40ae069eb307d
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.2.0
-CurrentVersionCode: 3
+CurrentVersion: 1.3.1
+CurrentVersionCode: 5

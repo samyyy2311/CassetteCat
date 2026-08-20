@@ -1,0 +1,4 @@
+- Smoother transitions between songs during playback
+- Playlist import, backup restore, and downloads no longer briefly freeze the UI
+- Faster song selection when adding songs to a playlist
+- Home screen icon now supports Android 13+ themed icons
