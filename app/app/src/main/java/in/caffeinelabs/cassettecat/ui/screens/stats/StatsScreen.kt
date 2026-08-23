@@ -16,7 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -45,7 +46,6 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import java.time.YearMonth
 import java.time.format.TextStyle
-import java.util.Locale
 import kotlinx.coroutines.launch
 
 internal data class SongStat(val song: Song, val playCount: Int, val listeningMs: Long)
@@ -82,9 +82,9 @@ fun StatsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { ListeningStatsRepository(context) }
-    val monthlyStats by repository.monthlyStats.collectAsState(initial = emptyMap<String, MonthlyStats>())
-    val milestones by repository.milestones.collectAsState(initial = emptyList<Milestone>())
-    val libraryState by libraryViewModel.uiState.collectAsState()
+    val monthlyStats by repository.monthlyStats.collectAsStateWithLifecycle(initialValue = emptyMap<String, MonthlyStats>())
+    val milestones by repository.milestones.collectAsStateWithLifecycle(initialValue = emptyList<Milestone>())
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val allSongsById = remember(libraryState) {
         (libraryState as? LibraryUiState.Loaded)?.songs?.associateBy { it.id }.orEmpty()
     }
@@ -167,7 +167,9 @@ fun StatsScreen(
     val listeningMinutes = (activeStats?.listeningMs ?: 0L) / 60_000
     val totalPlays = activeStats?.songPlayCounts?.values?.sum() ?: 0
     val uniqueSongs = activeStats?.songPlayCounts?.size ?: 0
-    val monthName = if (isRewindMode) "REWIND" else month?.month?.getDisplayName(TextStyle.FULL, Locale.US) ?: ""
+    val locale = LocalLocale.current.platformLocale
+    val monthName = if (isRewindMode) "REWIND" else month?.month?.getDisplayName(TextStyle.FULL, locale) ?: ""
+    val monthAbbreviation = month?.month?.getDisplayName(TextStyle.SHORT_STANDALONE, locale).orEmpty()
 
     if (showAllMostPlayed) {
         BackHandler { showAllMostPlayed = false }
@@ -205,7 +207,7 @@ fun StatsScreen(
                         val titleLabel = if (isRewindMode) "Cassette Rewind $year" else "$monthName $year"
                         val bitmap = buildListeningRecordPoster(
                             context = context,
-                            monthLabel = monthName,
+                            monthAbbreviation = monthAbbreviation,
                             yearLabel = year.toString(),
                             listeningMinutes = listeningMinutes,
                             totalPlays = totalPlays,
@@ -285,7 +287,7 @@ fun StatsScreen(
                     },
                     onViewAllMostPlayed = { showAllMostPlayed = true },
                     onSavePlaylist = {
-                        val monthNameFormatted = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+                        val monthNameFormatted = month.month.getDisplayName(TextStyle.FULL, locale)
                         val name = "Listening Record: $monthNameFormatted ${month.year}"
                         val songIds = computed.topSongs.map { it.song.id }
                         playlistViewModel.create(name) { playlist: Playlist ->

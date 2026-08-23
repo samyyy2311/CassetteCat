@@ -23,7 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,15 +70,15 @@ fun NowPlayingContent(
     drawBehindSystemBars: Boolean = false,
     onHeaderDragProgressChange: (Float) -> Unit = {}
 ) {
-    val state by playbackViewModel.playbackState.collectAsState()
-    val positionMs by playbackViewModel.positionMs.collectAsState()
-    val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsState()
-    val syncedLyrics by playbackViewModel.syncedLyrics.collectAsState()
-    val fallbackLyrics by playbackViewModel.fallbackLyrics.collectAsState()
-    val lyricsProvider by playbackViewModel.lyricsProvider.collectAsState()
-    val isLoadingLyrics by playbackViewModel.isLoadingLyrics.collectAsState()
-    val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsState()
-    val listeningRoom by playbackViewModel.listeningRoom.collectAsState()
+    val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
+    val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
+    val syncedLyrics by playbackViewModel.syncedLyrics.collectAsStateWithLifecycle()
+    val fallbackLyrics by playbackViewModel.fallbackLyrics.collectAsStateWithLifecycle()
+    val lyricsProvider by playbackViewModel.lyricsProvider.collectAsStateWithLifecycle()
+    val isLoadingLyrics by playbackViewModel.isLoadingLyrics.collectAsStateWithLifecycle()
+    val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsStateWithLifecycle()
+    val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val song = state.currentSong
 
     val sheetState = rememberNowPlayingSheetState()

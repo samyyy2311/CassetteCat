@@ -40,7 +40,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,10 +69,10 @@ fun EqualizerScreen(
     listBottomPadding: Dp = 0.dp,
     viewModel: EqualizerViewModel = viewModel()
 ) {
-    val levels by viewModel.levels.collectAsState()
-    val isAvailable by viewModel.isAvailable.collectAsState()
-    val isBassBoostSupported by viewModel.isBassBoostSupported.collectAsState()
-    val isVirtualizerSupported by viewModel.isVirtualizerSupported.collectAsState()
+    val levels by viewModel.levels.collectAsStateWithLifecycle()
+    val isAvailable by viewModel.isAvailable.collectAsStateWithLifecycle()
+    val isBassBoostSupported by viewModel.isBassBoostSupported.collectAsStateWithLifecycle()
+    val isVirtualizerSupported by viewModel.isVirtualizerSupported.collectAsStateWithLifecycle()
 
     val isEnabled = levels.enabled
     val hasCustomModifications = levels.bandLevelsMb.any { it != 0 } || levels.bassBoostStrength > 0 || levels.virtualizerStrength > 0

@@ -12,6 +12,7 @@ import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
+import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.listeningroom.LocalListeningRoomRepository
@@ -89,7 +90,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val serviceSettingsRepository = ServiceSettingsRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
     private val appPreferences = appPreferencesRepository.preferences
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
+    private val autoDownloadFavorites = DownloadSettingsRepository(app).autoDownloadFavorites
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
     val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
     private val _fallbackLyrics = MutableStateFlow<String?>(null)
@@ -369,7 +372,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             runCatching {
                 librariesBySource[song.source]?.setFavorite(song.id, newValue)
-                if (newValue && appPreferences.value.autoCacheFavorites && song.source != MusicSource.Local) {
+                if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
                     `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
                 }
             }.onFailure { _isCurrentSongFavorite.value = !newValue }
@@ -486,7 +489,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         val hostIp = listeningRoomRepository.guestHostAddress
         val resolved = snapshot.tracks.mapNotNull { track ->
             available.firstOrNull { it.matchesRoomTrack(track) }
-                ?: snapshot.audioPort?.let { port -> hostIp?.let { ip -> track.toRelaySong(ip, port) } }
+                ?: snapshot.audioPort?.let { port ->
+                    snapshot.roomToken?.let { token -> hostIp?.let { ip -> track.toRelaySong(ip, port, token) } }
+                }
         }
         val positionMs = if (snapshot.isPlaying) {
             snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
@@ -515,12 +520,13 @@ private fun Song.matchesRoomTrack(track: RoomTrack): Boolean =
 
 private fun roomKey(value: String): String = value.trim().lowercase()
 
-private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int): Song {
+private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int, roomToken: String): Song {
     val id = "listeningroom:${roomKey(title)}_${roomKey(artist)}_$durationMs"
     val uri = "http://$hostIp:$audioPort/stream".toUri().buildUpon()
         .appendQueryParameter("title", title)
         .appendQueryParameter("artist", artist)
         .appendQueryParameter("duration", durationMs.toString())
+        .appendQueryParameter("token", roomToken)
         .build()
     return Song(
         id = id,

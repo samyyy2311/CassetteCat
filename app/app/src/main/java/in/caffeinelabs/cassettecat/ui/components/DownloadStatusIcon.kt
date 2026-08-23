@@ -7,7 +7,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,7 +28,7 @@ fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
     if (song.source == MusicSource.Local) return
     val context = LocalContext.current
     val repository = remember { SongDownloadRepository.getInstance(context) }
-    val downloads by repository.downloads.collectAsState()
+    val downloads by repository.downloads.collectAsStateWithLifecycle()
     val state = downloads[song.id]?.state ?: return
 
     when (state) {

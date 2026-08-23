@@ -155,7 +155,7 @@ def main():
     
     # 4. Device Mockups on Right
     now_playing_ss = "assets/screenshots/06_now_playing.png"
-    library_ss = "assets/screenshots/03_library.png"
+    library_ss = "assets/screenshots/02_library_albums.png"
     
     # Back Phone (Library)
     if os.path.exists(library_ss):

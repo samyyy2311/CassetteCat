@@ -26,7 +26,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +39,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.download.DEFAULT_MAX_CACHE_BYTES
+import `in`.caffeinelabs.cassettecat.data.download.DOWNLOAD_CACHE_LIMIT_OPTIONS_MB
 import `in`.caffeinelabs.cassettecat.data.settings.AlbumArtCornerStyle
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
@@ -60,7 +62,7 @@ fun CustomizationScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     val cornerLabel = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp }.label.substringBefore(" (")
     val crossfadeLabel = if (prefs.crossfadeSeconds == 0) "Crossfade off" else "${prefs.crossfadeSeconds}s crossfade"
@@ -119,7 +121,7 @@ fun CustomizationScreen(
             SettingsDivider()
             NavigationRow(
                 title = "Storage & Cache",
-                subtitle = "${prefs.maxCacheSizeMb / 1024} GB cache · Auto-cache favourites ${if (prefs.autoCacheFavorites) "on" else "off"}",
+                subtitle = "Manage offline downloads and local library filtering",
                 iconRes = R.drawable.lucide_ic_download,
                 onClick = { onNavigate(CustomizationRoute.STORAGE) },
             )
@@ -165,7 +167,7 @@ private fun Modifier.categoryModifier(listBottomPadding: Dp) = this
 
 @Composable
 fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Theme", onBack)
@@ -342,7 +344,7 @@ private fun CustomAccentColorSheet(
 
 @Composable
 fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Startup & Library", onBack)
@@ -432,7 +434,7 @@ fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -
 
 @Composable
 fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Now Playing & Gestures", onBack)
@@ -477,7 +479,7 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
 
 @Composable
 fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Audio Engine", onBack)
@@ -536,6 +538,26 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
         )
         SettingsDivider()
         ToggleRow(
+            title = "Volume Limit (Ear Protection)",
+            subtitle = "Cap the maximum playback level regardless of system volume",
+            checked = prefs.volumeLimitEnabled,
+            onCheckedChange = viewModel::setVolumeLimitEnabled,
+            iconRes = R.drawable.lucide_ic_ear,
+        )
+        if (prefs.volumeLimitEnabled) {
+            SettingsDivider()
+            SheetPickerRow(
+                title = "Maximum Volume",
+                subtitle = "Loudest level the app will ever play at",
+                iconRes = R.drawable.lucide_ic_volume_1,
+                options = listOf(50, 60, 70, 80, 90, 100),
+                selected = prefs.maxVolumePercent,
+                label = { "$it%" },
+                onSelect = viewModel::setMaxVolumePercent
+            )
+        }
+        SettingsDivider()
+        ToggleRow(
             title = "Resume Queue on Launch",
             subtitle = "Auto-restore active track and queue on startup",
             checked = prefs.resumeQueueOnLaunch,
@@ -572,7 +594,7 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
 
 @Composable
 fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Lyrics", onBack)
@@ -629,8 +651,10 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
 
 @Composable
 fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
+    val maxCacheBytes by viewModel.maxCacheBytes.collectAsStateWithLifecycle(initialValue = DEFAULT_MAX_CACHE_BYTES)
+    val autoDownloadFavorites by viewModel.autoDownloadFavorites.collectAsStateWithLifecycle(initialValue = false)
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Storage & Cache", onBack)
         Spacer(Modifier.height(16.dp))
@@ -639,17 +663,17 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
             title = "Streaming Cache Quota",
             subtitle = "Max device storage for caching streamed audio",
             iconRes = R.drawable.lucide_ic_download,
-            options = listOf(1024, 2048, 5120, 10240),
-            selected = prefs.maxCacheSizeMb,
-            label = { "${it / 1024} GB" },
+            options = DOWNLOAD_CACHE_LIMIT_OPTIONS_MB,
+            selected = (maxCacheBytes / 1024 / 1024).toInt(),
+            label = { if (it < 1024) "$it MB" else "${it / 1024} GB" },
             onSelect = viewModel::setMaxCacheSizeMb
         )
         SettingsDivider()
         ToggleRow(
             title = "Auto-Cache Favourite Tracks",
             subtitle = "Automatically download and cache tracks when marked as favourite",
-            checked = prefs.autoCacheFavorites,
-            onCheckedChange = viewModel::setAutoCacheFavorites,
+            checked = autoDownloadFavorites,
+            onCheckedChange = viewModel::setAutoDownloadFavorites,
             iconRes = R.drawable.lucide_ic_heart,
         )
         SettingsDivider()
@@ -666,7 +690,7 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
 
 @Composable
 fun CustomizationHomeFeedScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Home Feed", onBack)

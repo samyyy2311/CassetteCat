@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,10 +43,10 @@ fun LikedSongsScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
-    val uiState by libraryViewModel.uiState.collectAsState()
+    val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val favoritesRepository = remember { FavoritesRepository(context) }
-    val favoriteIds by favoritesRepository.favoriteIds.collectAsState(initial = emptySet())
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val allSongs = (uiState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val songs = remember(allSongs, favoriteIds) {
         allSongs.filter { it.isFavorite || it.id in favoriteIds }

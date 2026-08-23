@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -39,7 +39,7 @@ private fun Modifier.pressScale(onClick: () -> Unit, onLongClick: (() -> Unit)? 
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val hapticEnabled = preferences.hapticFeedbackEnabled
 
     graphicsLayer { scaleX = scale; scaleY = scale }

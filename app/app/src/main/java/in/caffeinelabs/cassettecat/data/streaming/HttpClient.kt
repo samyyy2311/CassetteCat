@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.streaming
 
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import okhttp3.Call
@@ -12,6 +13,12 @@ import kotlin.coroutines.resumeWithException
 
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
+    .addInterceptor { chain ->
+        val request = chain.request().newBuilder()
+            .header("User-Agent", "CassetteCat/${BuildConfig.VERSION_NAME} (https://github.com/samyyy2311/CassetteCat)")
+            .build()
+        chain.proceed(request)
+    }
     .build()
 val sharedJson: Json = Json { ignoreUnknownKeys = true }
 

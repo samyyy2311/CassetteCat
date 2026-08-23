@@ -26,7 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +43,7 @@ import androidx.media3.exoplayer.offline.Download
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.download.DEFAULT_MAX_CACHE_BYTES
+import `in`.caffeinelabs.cassettecat.data.download.DOWNLOAD_CACHE_LIMIT_OPTIONS_MB
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -59,13 +60,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
 
-private val downloadLimitOptions = listOf(
-    512L * 1024 * 1024,
-    1L * 1024 * 1024 * 1024,
-    2L * 1024 * 1024 * 1024,
-    5L * 1024 * 1024 * 1024,
-    10L * 1024 * 1024 * 1024
-)
+private val downloadLimitOptions = DOWNLOAD_CACHE_LIMIT_OPTIONS_MB.map { it * 1024L * 1024 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -76,10 +71,10 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloadSettingsRepository = remember { DownloadSettingsRepository(context) }
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val downloads by downloadRepository.downloads.collectAsState()
-    val maxCacheBytes by downloadSettingsRepository.maxCacheBytes.collectAsState(initial = DEFAULT_MAX_CACHE_BYTES)
-    val appPreferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
-    val libraryState by libraryViewModel.uiState.collectAsState()
+    val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
+    val maxCacheBytes by downloadSettingsRepository.maxCacheBytes.collectAsStateWithLifecycle(initialValue = DEFAULT_MAX_CACHE_BYTES)
+    val appPreferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val librarySongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
 
     val trackedDownloads = remember(downloads, librarySongs) {
@@ -94,7 +89,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             download.state == Download.STATE_RESTARTING
     }
     val favoritesRepository = remember { FavoritesRepository(context) }
-    val favoriteIds by favoritesRepository.favoriteIds.collectAsState(initial = emptySet())
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val undownloadedLiked = remember(librarySongs, favoriteIds, downloads) {
         librarySongs.filter { (it.isFavorite || it.id in favoriteIds) && it.source != MusicSource.Local && downloads[it.id]?.state != Download.STATE_COMPLETED }
     }
@@ -162,7 +157,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             )
         }
 
-        val autoDownloadFavorites by downloadSettingsRepository.autoDownloadFavorites.collectAsState(initial = false)
+        val autoDownloadFavorites by downloadSettingsRepository.autoDownloadFavorites.collectAsStateWithLifecycle(initialValue = false)
         Row(
             modifier = Modifier
                 .fillMaxWidth()

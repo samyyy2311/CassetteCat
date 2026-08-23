@@ -106,7 +106,6 @@ class LrcLibClient(private val cacheDir: File? = null) {
         val response = sharedHttpClient.newCall(
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "CassetteCat/0.1.0")
                 .build()
         ).execute()
         response.use {
@@ -127,7 +126,7 @@ class LrcLibClient(private val cacheDir: File? = null) {
         runCatching {
             val challengeUrl = "https://lrclib.net/api/request-challenge"
             val challengeBody = sharedHttpClient.newCall(
-                Request.Builder().url(challengeUrl).header("User-Agent", "CassetteCat/0.1.0").build()
+                Request.Builder().url(challengeUrl).build()
             ).execute().use { if (!it.isSuccessful) null else it.body.string() } ?: return@withContext false
 
             val challenge = sharedJson.decodeFromString<LrcLibChallenge>(challengeBody)
@@ -147,7 +146,6 @@ class LrcLibClient(private val cacheDir: File? = null) {
 
             val request = Request.Builder()
                 .url(publishUrl)
-                .header("User-Agent", "CassetteCat/0.1.0")
                 .header("X-Publish-Token", "${challenge.prefix}:$token")
                 .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()

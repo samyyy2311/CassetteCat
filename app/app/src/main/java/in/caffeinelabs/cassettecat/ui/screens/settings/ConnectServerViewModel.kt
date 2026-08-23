@@ -10,7 +10,11 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.findUntrustedCertificateCause
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinApiClient
+import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinAuthResult
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicApiClient
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +31,13 @@ sealed interface ConnectionState {
     data class UntrustedCertificate(val fingerprint: String) : ConnectionState
 }
 
+sealed interface QuickConnectState {
+    data object Idle : QuickConnectState
+    data class AwaitingApproval(val code: String) : QuickConnectState
+}
+
+private const val QUICK_CONNECT_POLL_INTERVAL_MS = 3000L
+
 // protocol is passed per-call rather than injected into the constructor, so this
 // stays a zero-arg-Application AndroidViewModel, no custom ViewModelProvider.Factory.
 class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
@@ -37,7 +48,11 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
+    private val _quickConnectState = MutableStateFlow<QuickConnectState>(QuickConnectState.Idle)
+    val quickConnectState: StateFlow<QuickConnectState> = _quickConnectState.asStateFlow()
+
     private var pendingAttempt: (suspend () -> ConnectionState)? = null
+    private var quickConnectJob: Job? = null
 
     fun connect(protocol: StreamingProtocol, serverUrl: String, username: String, password: String) {
         val attempt: suspend () -> ConnectionState = {
@@ -62,6 +77,33 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun cancelPendingConnection() {
         pendingAttempt = null
+        _connectionState.value = ConnectionState.Idle
+    }
+
+    fun startQuickConnect(serverUrl: String) {
+        quickConnectJob?.cancel()
+        quickConnectJob = viewModelScope.launch {
+            _quickConnectState.value = QuickConnectState.Idle
+            _connectionState.value = ConnectionState.Connecting
+            _connectionState.value = runCatching {
+                val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
+                val initiate = client.initiateQuickConnect()
+                _quickConnectState.value = QuickConnectState.AwaitingApproval(initiate.Code)
+                while (!client.isQuickConnectAuthenticated(initiate.Secret)) {
+                    delay(QUICK_CONNECT_POLL_INTERVAL_MS)
+                }
+                finalizeJellyfinLogin(serverUrl, client.authenticateWithQuickConnect(initiate.Secret))
+            }.getOrElse {
+                if (it is CancellationException) throw it
+                it.toConnectionState()
+            }
+            _quickConnectState.value = QuickConnectState.Idle
+        }
+    }
+
+    fun cancelQuickConnect() {
+        quickConnectJob?.cancel()
+        _quickConnectState.value = QuickConnectState.Idle
         _connectionState.value = ConnectionState.Idle
     }
 
@@ -99,12 +141,15 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun connectJellyfin(serverUrl: String, username: String, password: String): ConnectionState {
         val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
-        val result = client.authenticate(username, password)
+        return finalizeJellyfinLogin(serverUrl, client.authenticate(username, password))
+    }
+
+    private suspend fun finalizeJellyfinLogin(serverUrl: String, result: JellyfinAuthResult): ConnectionState {
         credentialStore.saveJellyfinAccessToken(result.AccessToken)
         serverRepository.setConfig(
             StreamingProtocol.JELLYFIN,
-            StreamingServerConfig(serverUrl = serverUrl, username = username, userId = result.User.Id, connected = true)
+            StreamingServerConfig(serverUrl = serverUrl, username = result.User.Name, userId = result.User.Id, connected = true)
         )
-        return ConnectionState.Connected(username)
+        return ConnectionState.Connected(result.User.Name)
     }
 }

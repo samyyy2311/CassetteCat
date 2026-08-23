@@ -10,6 +10,10 @@ data class PlaybackUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
+    // Drives the play/pause button: user intent, true the instant play() is called and
+    // held through buffering, unlike isPlaying which can gap briefly between skip and
+    // STATE_BUFFERING actually being reported.
+    val playWhenReady: Boolean = false,
     val durationMs: Long = 0L,
     val isShuffleEnabled: Boolean = false,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,

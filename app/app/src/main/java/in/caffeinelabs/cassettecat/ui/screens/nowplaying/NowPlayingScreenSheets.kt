@@ -5,7 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +36,6 @@ internal class NowPlayingSheetState {
     var showListeningRoom by mutableStateOf(false)
     var showPlaybackSpeed by mutableStateOf(false)
     var showScreenshotSuggestion by mutableStateOf(false)
-    var showTagEditor by mutableStateOf(false)
 }
 
 @Composable
@@ -64,7 +63,7 @@ internal fun NowPlayingScreenSheetsHost(
 
     if (sheetState.showMenu) {
         song?.let { currentSong ->
-            val playbackSpeed by playbackViewModel.playbackSpeed.collectAsState()
+            val playbackSpeed by playbackViewModel.playbackSpeed.collectAsStateWithLifecycle()
             NowPlayingActionsSheet(
                 song = currentSong,
                 isFavorite = isFavorite,
@@ -81,26 +80,17 @@ internal fun NowPlayingScreenSheetsHost(
                 onOpenListeningRoom = { sheetState.showListeningRoom = true },
                 onOpenPlaybackSpeed = { sheetState.showPlaybackSpeed = true },
                 onOpenSleepTimer = { sheetState.showSleepTimerPicker = true },
-                onOpenTagEditor = { sheetState.showTagEditor = true },
                 onDismiss = { sheetState.showMenu = false }
             )
         }
     }
     if (sheetState.showPlaybackSpeed) {
-        val playbackSpeed by playbackViewModel.playbackSpeed.collectAsState()
+        val playbackSpeed by playbackViewModel.playbackSpeed.collectAsStateWithLifecycle()
         PlaybackSpeedSheet(
             currentSpeed = playbackSpeed,
             onSelect = { playbackViewModel.setPlaybackSpeed(it) },
             onDismiss = { sheetState.showPlaybackSpeed = false }
         )
-    }
-    if (sheetState.showTagEditor) {
-        song?.let { currentSong ->
-            `in`.caffeinelabs.cassettecat.ui.screens.library.TagEditorSheet(
-                song = currentSong,
-                onDismiss = { sheetState.showTagEditor = false }
-            )
-        }
     }
     if (sheetState.showGoToMenu) {
         song?.let { currentSong ->

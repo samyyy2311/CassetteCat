@@ -45,6 +45,7 @@ class PlaybackRepository(private val context: Context) {
     private var replayGainVolume = 1f
     private var replayGainJob: Job? = null
     private var volumeOverrideActive = false
+    private var volumeLimitMultiplier = 1f
     private var currentQueue: List<Song> = emptyList()
     // Snapshot of the order playQueue() was called with, untouched by shuffle
     // or manual drag-reorder: what toggling shuffle off restores.
@@ -88,6 +89,7 @@ class PlaybackRepository(private val context: Context) {
                 }
                 updateState()
             }
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = updateState()
             override fun onRepeatModeChanged(repeatMode: Int) = updateState()
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                 if (suppressShuffleSync) return
@@ -100,7 +102,7 @@ class PlaybackRepository(private val context: Context) {
                 replayGainJob = repositoryScope.launch {
                     val prefs = appPreferencesRepository.preferences.first()
                     replayGainVolume = extractReplayGain(tracks).volumeMultiplier(prefs.replayGainEnabled, prefs.replayGainPreAmpDb)
-                    if (!volumeOverrideActive) controller?.volume = replayGainVolume
+                    if (!volumeOverrideActive) controller?.volume = replayGainVolume * volumeLimitMultiplier
                     updateState()
                 }
             }
@@ -108,6 +110,12 @@ class PlaybackRepository(private val context: Context) {
             // this just re-syncs if the timeline changes some other way.
             override fun onTimelineChanged(timeline: Timeline, reason: Int) = updateState()
         })
+        repositoryScope.launch {
+            appPreferencesRepository.preferences.collect { prefs ->
+                volumeLimitMultiplier = if (prefs.volumeLimitEnabled) prefs.maxVolumePercent / 100f else 1f
+                if (!volumeOverrideActive) controller?.volume = replayGainVolume * volumeLimitMultiplier
+            }
+        }
         updateState()
     }
 
@@ -221,6 +229,8 @@ class PlaybackRepository(private val context: Context) {
         } else if (c.hasNextMediaItem()) {
             c.seekToNextMediaItem()
             c.play()
+        } else {
+            onQueueExhausted?.invoke()
         }
     }
 
@@ -251,7 +261,7 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun setVolume(volume: Float) {
-        controller?.volume = volume.coerceIn(0f, 1f)
+        controller?.volume = (volume.coerceIn(0f, 1f) * volumeLimitMultiplier)
     }
 
     // Prevents an in-flight replay-gain recalculation (from a track change racing
@@ -267,7 +277,7 @@ class PlaybackRepository(private val context: Context) {
     // Single-player crossfade approximation: fades in/out around track boundaries
     // rather than true overlapping playback. fraction is 1f mid-track, 0f at the edges.
     fun setCrossfadeFraction(fraction: Float) {
-        controller?.volume = replayGainVolume * fraction.coerceIn(0f, 1f)
+        controller?.volume = replayGainVolume * volumeLimitMultiplier * fraction.coerceIn(0f, 1f)
     }
 
     // Real toggle, not ExoPlayer's shuffleModeEnabled (fixed order reused across
@@ -338,7 +348,7 @@ class PlaybackRepository(private val context: Context) {
         c.addMediaItems(insertAt, songs.map { it.toMediaItem() })
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
         originalQueue = currentQueue
-        if (c.hasNextMediaItem()) c.seekToNextMediaItem()
+        c.seekTo(insertAt, 0L)
         c.play()
         updateState()
     }
@@ -414,6 +424,7 @@ class PlaybackRepository(private val context: Context) {
             currentSong = currentQueue.getOrNull(index),
             isPlaying = c.isPlaying,
             isBuffering = c.playbackState == Player.STATE_BUFFERING,
+            playWhenReady = c.playWhenReady,
             durationMs = c.duration.coerceAtLeast(0L),
             isShuffleEnabled = shuffleEnabled,
             repeatMode = c.repeatMode,

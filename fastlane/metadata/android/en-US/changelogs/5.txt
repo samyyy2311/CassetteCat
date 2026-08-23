@@ -1,4 +1,8 @@
-- Smoother transitions between songs during playback
-- Playlist import, backup restore, and downloads no longer briefly freeze the UI
-- Faster song selection when adding songs to a playlist
-- Home screen icon now supports Android 13+ themed icons
+Initial Google Play release of CassetteCat.
+
+- Play music stored on your device
+- Stream from Subsonic-compatible and Jellyfin servers
+- Enjoy synchronized lyrics, internet radio, and offline downloads
+- Scrobble with ListenBrainz and Libre.fm
+- Customize playback with equalizer, AutoEQ, and ReplayGain
+- No ads, analytics, or tracking

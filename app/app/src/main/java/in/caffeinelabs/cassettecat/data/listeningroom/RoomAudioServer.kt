@@ -10,6 +10,7 @@ import java.io.BufferedReader
 import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.Semaphore
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,13 +20,17 @@ import kotlinx.coroutines.launch
 import okhttp3.Request
 
 private const val RELAY_CHUNK_BYTES = 64 * 1024
+private const val MAX_HTTP_LINE_LENGTH = 8 * 1024
+private const val SOCKET_TIMEOUT_MS = 10_000
 
 class RoomAudioServer(
     private val context: Context,
+    private val roomToken: String,
     private val queueProvider: () -> List<Song>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serverSocket: ServerSocket? = null
+    private val connections = Semaphore(MAX_LISTENING_ROOM_GUESTS)
 
     fun start(): Int {
         val server = ServerSocket(0)
@@ -33,7 +38,17 @@ class RoomAudioServer(
         scope.launch {
             while (!server.isClosed) {
                 val socket = runCatching { server.accept() }.getOrNull() ?: continue
-                scope.launch { runCatching { handleRequest(socket) } }
+                if (!connections.tryAcquire()) {
+                    runCatching { socket.close() }
+                } else {
+                    scope.launch {
+                        try {
+                            runCatching { handleRequest(socket) }
+                        } finally {
+                            connections.release()
+                        }
+                    }
+                }
             }
         }
         return server.localPort
@@ -47,13 +62,18 @@ class RoomAudioServer(
 
     private fun handleRequest(socket: Socket) {
         socket.use {
+            socket.soTimeout = SOCKET_TIMEOUT_MS
             val reader = socket.getInputStream().bufferedReader()
-            val requestLine = reader.readLine() ?: return
+            val requestLine = reader.readLineBounded(MAX_HTTP_LINE_LENGTH) ?: return
             val query = parseQuery(requestLine)
+            if (query["token"] != roomToken) {
+                writeHeaders(BufferedOutputStream(socket.getOutputStream()), 403, "Forbidden", null, "text/plain")
+                return
+            }
             val rangeStart = readRangeStart(reader)
             val output = BufferedOutputStream(socket.getOutputStream())
             val queue = queueProvider()
-            val song = resolveSong(queue, query) ?: queue.firstOrNull()
+            val song = resolveSong(queue, query)
             if (song == null) {
                 writeHeaders(output, 404, "Not Found", contentLength = null, contentType = "text/plain")
                 return
@@ -89,12 +109,12 @@ class RoomAudioServer(
 
     private fun readRangeStart(reader: BufferedReader): Long {
         var rangeStart = 0L
-        var line = reader.readLine()
+        var line = reader.readLineBounded(MAX_HTTP_LINE_LENGTH)
         while (!line.isNullOrEmpty()) {
             if (line.startsWith("Range:", ignoreCase = true)) {
                 rangeStart = line.substringAfter("bytes=").substringBefore('-').trim().toLongOrNull() ?: 0L
             }
-            line = reader.readLine()
+            line = reader.readLineBounded(MAX_HTTP_LINE_LENGTH)
         }
         return rangeStart
     }
@@ -104,13 +124,21 @@ class RoomAudioServer(
             context.contentResolver.openAssetFileDescriptor(song.contentUri, "r")?.use { it.length }
         }.getOrNull()?.takeIf { it > 0 }
 
+        if (isInvalidLocalRange(rangeStart, totalSize)) {
+            writeHeaders(output, 416, "Range Not Satisfiable", 0, "text/plain", totalSize)
+            return
+        }
+
         val input = runCatching { context.contentResolver.openInputStream(song.contentUri) }.getOrNull()
         if (input == null) {
             writeHeaders(output, 404, "Not Found", contentLength = null, contentType = "text/plain")
             return
         }
         input.use {
-            if (rangeStart > 0) it.skip(rangeStart)
+            if (!it.skipFully(rangeStart)) {
+                writeHeaders(output, 416, "Range Not Satisfiable", 0, "text/plain", totalSize)
+                return
+            }
             val remaining = totalSize?.let { size -> size - rangeStart }
             val partial = rangeStart > 0 && totalSize != null
             writeHeaders(
@@ -165,6 +193,7 @@ class RoomAudioServer(
             append("Connection: close\r\n")
             if (contentLength != null) append("Content-Length: $contentLength\r\n")
             if (code == 206 && totalSize != null) append("Content-Range: bytes $rangeStart-${totalSize - 1}/$totalSize\r\n")
+            if (code == 416 && totalSize != null) append("Content-Range: bytes */$totalSize\r\n")
             append("\r\n")
         }
         output.write(headers.toByteArray(Charsets.US_ASCII))
@@ -180,4 +209,24 @@ class RoomAudioServer(
         }
         output.flush()
     }
+}
+
+internal fun isInvalidLocalRange(rangeStart: Long, totalSize: Long?): Boolean =
+    rangeStart < 0 ||
+        (rangeStart > 0 && totalSize == null) ||
+        (totalSize != null && rangeStart >= totalSize)
+
+internal fun InputStream.skipFully(byteCount: Long): Boolean {
+    var remaining = byteCount
+    while (remaining > 0) {
+        val skipped = skip(remaining)
+        if (skipped > 0) {
+            remaining -= skipped
+        } else if (read() == -1) {
+            return false
+        } else {
+            remaining--
+        }
+    }
+    return true
 }

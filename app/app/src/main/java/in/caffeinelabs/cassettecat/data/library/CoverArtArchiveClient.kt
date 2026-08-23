@@ -77,7 +77,6 @@ class CoverArtArchiveClient {
         sharedHttpClient.newCall(
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
                 .build()
         ).execute().use {
             if (!it.isSuccessful) null else it.body.string()
@@ -87,7 +86,6 @@ class CoverArtArchiveClient {
         sharedHttpClient.newCall(
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
                 .build()
         ).execute().use {
             if (!it.isSuccessful) return null

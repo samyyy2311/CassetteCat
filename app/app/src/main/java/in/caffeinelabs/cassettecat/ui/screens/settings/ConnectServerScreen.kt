@@ -18,7 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,12 +41,14 @@ fun ConnectServerScreen(
     modifier: Modifier = Modifier,
     viewModel: ConnectServerViewModel = viewModel()
 ) {
-    val state by viewModel.connectionState.collectAsState()
+    val state by viewModel.connectionState.collectAsStateWithLifecycle()
+    val quickConnectState by viewModel.quickConnectState.collectAsStateWithLifecycle()
     var serverUrl by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var showHttpWarning by rememberSaveable { mutableStateOf(false) }
+    var pendingQuickConnect by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
         Text(protocolTitle(protocol), style = MaterialTheme.typography.headlineSmall)
@@ -146,6 +148,23 @@ fun ConnectServerScreen(
                         Text("Connect")
                     }
                 }
+                if (protocol == StreamingProtocol.JELLYFIN) {
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(
+                        onClick = hapticClick {
+                            if (serverUrl.toUri().scheme.equals("http", ignoreCase = true)) {
+                                pendingQuickConnect = true
+                                showHttpWarning = true
+                            } else {
+                                viewModel.startQuickConnect(serverUrl.trim())
+                            }
+                        },
+                        enabled = current != ConnectionState.Connecting && serverUrl.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Sign in with Quick Connect")
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = hapticClick(onDone), modifier = Modifier.fillMaxWidth()) {
                     Text("Cancel")
@@ -174,18 +193,46 @@ fun ConnectServerScreen(
         )
     }
 
+    val awaitingApproval = quickConnectState as? QuickConnectState.AwaitingApproval
+    if (awaitingApproval != null) {
+        AlertDialog(
+            onDismissRequest = hapticClick { viewModel.cancelQuickConnect() },
+            title = { Text("Quick Connect") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text("Enter this code in Jellyfin under your profile's Quick Connect page:")
+                    Spacer(Modifier.height(16.dp))
+                    Text(awaitingApproval.code, style = MaterialTheme.typography.headlineMedium)
+                    Spacer(Modifier.height(16.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = hapticClick { viewModel.cancelQuickConnect() }) { Text("Cancel") }
+            }
+        )
+    }
+
     if (showHttpWarning) {
         AlertDialog(
-            onDismissRequest = { showHttpWarning = false },
+            onDismissRequest = { showHttpWarning = false; pendingQuickConnect = false },
             title = { Text("Use HTTPS if possible") },
             text = { Text("HTTP can expose your login while it travels across the network. Continue only for a server you trust on a private network.") },
             confirmButton = {
                 TextButton(onClick = hapticClick {
                     showHttpWarning = false
-                    viewModel.connect(protocol, serverUrl.trim(), username.trim(), password)
+                    if (pendingQuickConnect) {
+                        pendingQuickConnect = false
+                        viewModel.startQuickConnect(serverUrl.trim())
+                    } else {
+                        viewModel.connect(protocol, serverUrl.trim(), username.trim(), password)
+                    }
                 }) { Text("Connect") }
             },
-            dismissButton = { TextButton(onClick = hapticClick { showHttpWarning = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = hapticClick { showHttpWarning = false; pendingQuickConnect = false }) { Text("Cancel") }
+            }
         )
     }
 }

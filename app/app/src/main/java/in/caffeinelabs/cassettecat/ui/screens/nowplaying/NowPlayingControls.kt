@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +31,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -101,6 +102,8 @@ internal fun PlaybackControlsRow(
     onToggleShuffle: () -> Unit,
     onSkipPrevious: () -> Unit,
     isPlaying: Boolean,
+    playWhenReady: Boolean = isPlaying,
+    isRadio: Boolean = false,
     onTogglePlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     repeatMode: Int,
@@ -108,7 +111,7 @@ internal fun PlaybackControlsRow(
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
-        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, isPlaying = isPlaying)
+        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, isPlaying = isPlaying, isRadio = isRadio)
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -130,7 +133,7 @@ internal fun PlaybackControlsRow(
                 )
                 Spacer(Modifier.width(20.dp))
                 Crossfade(
-                    targetState = isPlaying,
+                    targetState = playWhenReady,
                     animationSpec = tween(durationMillis = 150, easing = SmoothEasing),
                     label = "playPause"
                 ) { playing ->
@@ -162,7 +165,12 @@ internal fun PlaybackControlsRow(
 
 @Composable
 internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange: (NowPlayingView) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_mic_vocal,
             contentDescription = if (activeView == NowPlayingView.LYRICS) "Close lyrics" else "Lyrics",
@@ -184,15 +192,21 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScrubberControl(positionMs: Long, durationMs: Long, onSeek: (Long) -> Unit, isPlaying: Boolean = true) {
-    if (durationMs <= 0) {
+private fun ScrubberControl(
+    positionMs: Long,
+    durationMs: Long,
+    onSeek: (Long) -> Unit,
+    isPlaying: Boolean = true,
+    isRadio: Boolean = false
+) {
+    if (isRadio) {
         LiveIndicator(isPlaying = isPlaying)
         return
     }
 
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val scope = rememberCoroutineScope()
 
     var dragPositionMs by remember { mutableStateOf<Long?>(null) }

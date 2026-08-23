@@ -33,7 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,23 +76,23 @@ fun RadioScreen(
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
-    val playbackState by playbackViewModel.playbackState.collectAsState()
-    val favorites by viewModel.favoriteStations.collectAsState(initial = emptyList())
-    val recentStations by viewModel.recentStations.collectAsState(initial = emptyList())
-    val topStations by viewModel.topStations.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-    val sortOrder by viewModel.sortOrder.collectAsState()
-    val sortDirection by viewModel.sortDirection.collectAsState()
-    val countries by viewModel.countries.collectAsState()
-    val selectedCountry by viewModel.selectedCountry.collectAsState()
-    val states by viewModel.states.collectAsState()
-    val selectedState by viewModel.selectedState.collectAsState()
-    val languages by viewModel.languages.collectAsState()
-    val selectedLanguage by viewModel.selectedLanguage.collectAsState()
-    val tags by viewModel.tags.collectAsState()
-    val selectedTag by viewModel.selectedTag.collectAsState()
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val favorites by viewModel.favoriteStations.collectAsStateWithLifecycle(initialValue = emptyList())
+    val recentStations by viewModel.recentStations.collectAsStateWithLifecycle(initialValue = emptyList())
+    val topStations by viewModel.topStations.collectAsStateWithLifecycle()
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
+    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
+    val countries by viewModel.countries.collectAsStateWithLifecycle()
+    val selectedCountry by viewModel.selectedCountry.collectAsStateWithLifecycle()
+    val states by viewModel.states.collectAsStateWithLifecycle()
+    val selectedState by viewModel.selectedState.collectAsStateWithLifecycle()
+    val languages by viewModel.languages.collectAsStateWithLifecycle()
+    val selectedLanguage by viewModel.selectedLanguage.collectAsStateWithLifecycle()
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val selectedTag by viewModel.selectedTag.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     var showAddCustom by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }

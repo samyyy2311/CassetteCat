@@ -24,7 +24,6 @@ class CompanionApiClient {
         runCatching {
             val request = Request.Builder()
                 .url("http://$host:$port/api/status")
-                .header("User-Agent", "CassetteCat/0.1.0")
                 .build()
 
             val response = clientFor(network).newCall(request).execute()

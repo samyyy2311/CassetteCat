@@ -2,7 +2,7 @@
 
 CassetteCat is designed around two main components:
 1. **Android Application (`app/`)**: A native music player that operates both as a standalone player and as a companion for physical devices.
-2. **Hardware Player & Firmware (`hardware/`, `firmware/`)**: A dedicated open-hardware portable audio player powered by an ESP32-S3 microcontroller.
+2. **Planned Hardware Player & Firmware (`hardware/`, `firmware/`)**: The Android protocol targets a future ESP32-S3 portable player. Buildable firmware and fabrication files are not yet included.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

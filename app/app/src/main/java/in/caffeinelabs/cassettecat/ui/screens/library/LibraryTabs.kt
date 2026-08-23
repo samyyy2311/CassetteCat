@@ -23,7 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -89,7 +89,7 @@ internal fun SongsTabContent(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
     if (filteredSongs.isEmpty()) {
@@ -179,7 +179,7 @@ internal fun ArtistsTabContent(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
     val artists = remember(filteredSongs, sortOrder, sortDirection) {
@@ -263,7 +263,7 @@ internal fun AlbumsTabContent(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
     val albums = remember(filteredSongs, sortOrder, sortDirection) {
@@ -347,7 +347,7 @@ internal fun GenresTabContent(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
     val genres = remember(filteredSongs, sortOrder, sortDirection) {

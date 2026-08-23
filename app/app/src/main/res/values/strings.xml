@@ -6,4 +6,24 @@
     <string name="widget_previous">Previous</string>
     <string name="widget_play_pause">Play/Pause</string>
     <string name="widget_next">Next</string>
+    <string name="poster_period_annual">ANNUAL / %1$s</string>
+    <string name="poster_period_month">%1$s / %2$s</string>
+    <string name="poster_year_in_music">YOUR YEAR IN MUSIC</string>
+    <string name="poster_month_in_music">YOUR MONTH IN MUSIC</string>
+    <string name="poster_total_listening_time">TOTAL LISTENING TIME</string>
+    <string name="poster_plays">PLAYS</string>
+    <string name="poster_tracks">TRACKS</string>
+    <string name="poster_play_frequency">PLAY FREQUENCY</string>
+    <string name="poster_on_repeat">ON REPEAT</string>
+    <string name="poster_no_repeats">No repeats yet</string>
+    <string name="poster_top_track">TOP TRACK</string>
+    <plurals name="poster_play_count">
+        <item quantity="one">%d PLAY</item>
+        <item quantity="other">%d PLAYS</item>
+    </plurals>
+    <string name="share_listening_record">Share your record</string>
+    <string name="close">Close</string>
+    <string name="share_whatsapp">WhatsApp</string>
+    <string name="share_stories">Stories</string>
+    <string name="share_more">More</string>
 </resources>

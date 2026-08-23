@@ -67,11 +67,9 @@ class WikipediaInfoLoader {
                 val encodedTitle = URLEncoder.encode(title.replace(' ', '_'), "UTF-8")
                 val url = "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&redirects=true&titles=$encodedTitle"
                 // Wikimedia rejects anonymous/default HTTP clients on some routes. An identifying
-                // User-Agent makes artist summaries work consistently instead of silently falling
                 // through to the empty About state.
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
                     .header("Accept", "application/json")
                     .build()
                 val body = sharedHttpClient.newCall(request).execute().use {
@@ -89,7 +87,6 @@ class WikipediaInfoLoader {
             val url = "https://www.theaudiodb.com/api/v1/json/123/search.php?s=${URLEncoder.encode(artist, "UTF-8")}"
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
                 .build()
             val body = sharedHttpClient.newCall(request).execute().use {
                 if (!it.isSuccessful) return@runCatching null

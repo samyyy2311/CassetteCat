@@ -25,7 +25,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +60,7 @@ fun ScrobbleSettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { ScrobbleSettingsRepository(context) }
-    val settings by repository.settings.collectAsState(initial = ScrobbleSettings())
+    val settings by repository.settings.collectAsStateWithLifecycle(initialValue = ScrobbleSettings())
 
     var showListenBrainzDialog by remember { mutableStateOf(false) }
     var showLibreFmDialog by remember { mutableStateOf(false) }

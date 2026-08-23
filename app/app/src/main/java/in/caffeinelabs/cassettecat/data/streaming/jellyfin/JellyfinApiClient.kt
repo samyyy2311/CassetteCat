@@ -1,8 +1,11 @@
 package `in`.caffeinelabs.cassettecat.data.streaming.jellyfin
 
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -15,7 +18,7 @@ class JellyfinApiException(message: String) : Exception(message)
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')
 
-    suspend fun authenticate(username: String, password: String): JellyfinAuthResult {
+    suspend fun authenticate(username: String, password: String): JellyfinAuthResult = withContext(Dispatchers.IO) {
         val requestJson = sharedJson.encodeToString(
             JellyfinAuthRequest.serializer(),
             JellyfinAuthRequest(Username = username, Pw = password)
@@ -31,10 +34,55 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             throw JellyfinApiException("Jellyfin login failed (${response.code})")
         }
         val body = response.use { it.body.string() }
-        return sharedJson.decodeFromString(JellyfinAuthResult.serializer(), body)
+        sharedJson.decodeFromString(JellyfinAuthResult.serializer(), body)
     }
 
-    suspend fun getAllAudioItems(userId: String, accessToken: String): List<JellyfinItem> {
+    suspend fun initiateQuickConnect(): QuickConnectInitiateResult = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl/QuickConnect/Initiate")
+            .header("Authorization", authorizationHeader(null))
+            .post("".toRequestBody(null))
+            .build()
+        val response = sharedHttpClient.newCall(request).await()
+        if (!response.isSuccessful) {
+            response.close()
+            throw JellyfinApiException("Quick Connect isn't available on this server (${response.code})")
+        }
+        val body = response.use { it.body.string() }
+        sharedJson.decodeFromString(QuickConnectInitiateResult.serializer(), body)
+    }
+
+    suspend fun isQuickConnectAuthenticated(secret: String): Boolean = withContext(Dispatchers.IO) {
+        val url = "$baseUrl/QuickConnect/Connect".toHttpUrl().newBuilder()
+            .addQueryParameter("Secret", secret)
+            .build()
+        val request = Request.Builder().url(url).build()
+        val response = sharedHttpClient.newCall(request).await()
+        if (!response.isSuccessful) {
+            response.close()
+            throw JellyfinApiException("Failed to check Quick Connect status (${response.code})")
+        }
+        val body = response.use { it.body.string() }
+        sharedJson.decodeFromString(QuickConnectStateResult.serializer(), body).Authenticated
+    }
+
+    suspend fun authenticateWithQuickConnect(secret: String): JellyfinAuthResult = withContext(Dispatchers.IO) {
+        val requestJson = sharedJson.encodeToString(QuickConnectAuthRequest.serializer(), QuickConnectAuthRequest(Secret = secret))
+        val request = Request.Builder()
+            .url("$baseUrl/Users/AuthenticateWithQuickConnect")
+            .header("Authorization", authorizationHeader(null))
+            .post(requestJson.toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = sharedHttpClient.newCall(request).await()
+        if (!response.isSuccessful) {
+            response.close()
+            throw JellyfinApiException("Quick Connect sign-in failed (${response.code})")
+        }
+        val body = response.use { it.body.string() }
+        sharedJson.decodeFromString(JellyfinAuthResult.serializer(), body)
+    }
+
+    suspend fun getAllAudioItems(userId: String, accessToken: String): List<JellyfinItem> = withContext(Dispatchers.IO) {
         val items = mutableListOf<JellyfinItem>()
         var startIndex = 0
         while (true) {
@@ -61,10 +109,10 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             if (page.Items.size < PAGE_SIZE) break
             startIndex += PAGE_SIZE
         }
-        return items
+        items
     }
 
-    suspend fun setFavorite(userId: String, itemId: String, accessToken: String, favorite: Boolean) {
+    suspend fun setFavorite(userId: String, itemId: String, accessToken: String, favorite: Boolean) = withContext(Dispatchers.IO) {
         val requestBuilder = Request.Builder()
             .url("$baseUrl/Users/$userId/FavoriteItems/$itemId")
             .header("Authorization", authorizationHeader(accessToken))
@@ -98,11 +146,10 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     // used; this is the current Authorization scheme. Token is omitted pre-login.
     private fun authorizationHeader(accessToken: String?): String {
         val tokenPart = accessToken?.let { ", Token=\"$it\"" }.orEmpty()
-        return "MediaBrowser Client=\"CassetteCat\", Device=\"Android\", DeviceId=\"$deviceId\", Version=\"$APP_VERSION\"$tokenPart"
+        return "MediaBrowser Client=\"CassetteCat\", Device=\"Android\", DeviceId=\"$deviceId\", Version=\"${BuildConfig.VERSION_NAME}\"$tokenPart"
     }
 
     private companion object {
-        const val APP_VERSION = "0.1.0"
         const val PAGE_SIZE = 200
     }
 }

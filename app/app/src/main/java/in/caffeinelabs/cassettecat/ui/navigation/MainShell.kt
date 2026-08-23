@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +25,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -149,7 +151,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val scope = rememberCoroutineScope()
 
     fun navigateToTab(route: String) {
@@ -198,8 +200,8 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     // shared across Library/Home/Search to avoid redundant refetches
     val libraryViewModel: LibraryViewModel = viewModel()
     val playlistViewModel: PlaylistViewModel = viewModel()
-    val libraryState by libraryViewModel.uiState.collectAsState()
-    val playlists by playlistViewModel.playlists.collectAsState()
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     LaunchedEffect(libraryState) {
         (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
     }
@@ -208,14 +210,15 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     val artistHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL
     // artist/album/playlist detail are playback-adjacent, unlike CONNECT_SERVER, so chrome stays visible
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER
-    val playbackState by playbackViewModel.playbackState.collectAsState()
+    val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null
     val density = LocalDensity.current
     // The custom bottom bar is an app overlay, so it must explicitly yield to the IME.
     // Otherwise its labels are left hovering below/over the keyboard on text-entry screens.
     val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    val navigationBarInset = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
 
-    val navBarReservation = if (showChrome && !imeVisible) NAV_BAR_TOTAL_HEIGHT else 0.dp
+    val navBarReservation = if (showChrome && !imeVisible) NAV_BAR_TOTAL_HEIGHT + navigationBarInset else 0.dp
     // fixed height, not animated, to avoid a feedback loop with `fraction`
     val peekHeight = if (showChrome) navBarReservation + (if (hasSong) MINI_PLAYER_HEIGHT else 0.dp) else 0.dp
     val scaffoldState = rememberBottomSheetScaffoldState()
@@ -605,7 +608,13 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                         val protocol = StreamingProtocol.valueOf(
                             entry.arguments?.getString("protocol") ?: StreamingProtocol.SUBSONIC.name
                         )
-                        ConnectServerScreen(protocol = protocol, onDone = { navController.popBackStack() })
+                        ConnectServerScreen(
+                            protocol = protocol,
+                            onDone = {
+                                libraryViewModel.refresh()
+                                navController.popBackStack()
+                            }
+                        )
                     }
                 }
             }
@@ -617,7 +626,8 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(NAV_BAR_TOTAL_HEIGHT * (1f - fraction))
+                    .height(NAV_BAR_TOTAL_HEIGHT * (1f - fraction) + navigationBarInset)
+                    .padding(bottom = navigationBarInset)
                     .clipToBounds()
             ) {
                 BottomNavBar(

@@ -1,7 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.util
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -17,7 +17,7 @@ fun hapticClick(onClick: () -> Unit): () -> Unit {
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val hapticEnabled = preferences.hapticFeedbackEnabled
     return {
         if (hapticEnabled) {
@@ -32,7 +32,7 @@ fun hapticToggle(onCheckedChange: (Boolean) -> Unit): (Boolean) -> Unit {
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val hapticEnabled = preferences.hapticFeedbackEnabled
     return { checked ->
         if (hapticEnabled) {

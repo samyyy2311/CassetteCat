@@ -20,7 +20,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +51,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val preferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by preferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by preferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     var showClearCredentialsConfirm by remember { mutableStateOf(false) }
     val crashLogRepository = remember { CrashLogRepository(context) }
     var hasCrashLog by remember { mutableStateOf(crashLogRepository.hasCrashLog()) }

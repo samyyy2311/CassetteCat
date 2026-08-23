@@ -52,6 +52,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val updateChecker = GitHubUpdateChecker()
     private val currentVersion = BuildConfig.VERSION_NAME
 
+    val maxCacheBytes = downloadSettingsRepository.maxCacheBytes
+    val autoDownloadFavorites = downloadSettingsRepository.autoDownloadFavorites
+
     val uiState: StateFlow<SettingsUiState> = combine(
         serverRepository.config(StreamingProtocol.SUBSONIC),
         serverRepository.config(StreamingProtocol.JELLYFIN),
@@ -193,6 +196,14 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setAutoplayEnabled(enabled) }
     }
 
+    fun setVolumeLimitEnabled(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setVolumeLimitEnabled(enabled) }
+    }
+
+    fun setMaxVolumePercent(percent: Int) {
+        viewModelScope.launch { appPreferencesRepository.setMaxVolumePercent(percent) }
+    }
+
     // Library & Layout
     fun setGridColumnCount(columns: Int) {
         viewModelScope.launch { appPreferencesRepository.setGridColumnCount(columns) }
@@ -228,18 +239,12 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setLyricsActiveStyle(style) }
     }
 
-    // Cache & Storage
     fun setMaxCacheSizeMb(sizeMb: Int) {
-        viewModelScope.launch {
-            appPreferencesRepository.setMaxCacheSizeMb(sizeMb)
-            downloadSettingsRepository.setMaxCacheBytes(sizeMb * 1024L * 1024L)
-        }
+        viewModelScope.launch { downloadSettingsRepository.setMaxCacheBytes(sizeMb * 1024L * 1024L) }
     }
 
-    fun setAutoCacheFavorites(enabled: Boolean) {
-        viewModelScope.launch {
-            appPreferencesRepository.setAutoCacheFavorites(enabled)
-            downloadSettingsRepository.setAutoDownloadFavorites(enabled)
-        }
+    fun setAutoDownloadFavorites(enabled: Boolean) {
+        viewModelScope.launch { downloadSettingsRepository.setAutoDownloadFavorites(enabled) }
     }
+
 }

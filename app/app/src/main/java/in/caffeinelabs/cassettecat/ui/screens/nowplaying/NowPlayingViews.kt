@@ -1,11 +1,14 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -13,9 +16,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
@@ -24,7 +29,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -36,11 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -73,14 +81,10 @@ internal fun NowPlayingPlayerView(
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp)
-    ) {
-        Spacer(Modifier.weight(4f))
+    val art: @Composable (Modifier) -> Unit = { modifier ->
         AlbumArtCarousel(
             currentSong = song,
             previousSong = state.previousInQueue,
@@ -95,11 +99,11 @@ internal fun NowPlayingPlayerView(
                 }
             },
             isPlaying = state.isPlaying,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .aspectRatio(1f)
+            modifier = modifier
         )
-        Spacer(Modifier.weight(3f))
+    }
+
+    val info: @Composable () -> Unit = {
         TitleRow(
             song = song,
             isFavorite = isFavorite,
@@ -142,14 +146,56 @@ internal fun NowPlayingPlayerView(
             onToggleShuffle = { playbackViewModel.toggleShuffle() },
             onSkipPrevious = onSkipPrevious,
             isPlaying = state.isPlaying,
+            playWhenReady = state.playWhenReady,
+            isRadio = song.source == MusicSource.Radio,
             onTogglePlayPause = { playbackViewModel.togglePlayPause() },
             onSkipNext = onSkipNext,
             repeatMode = state.repeatMode,
             onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
             modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
         )
-        Spacer(Modifier.height(64.dp))
-        LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+    }
+
+    if (isLandscape) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            art(
+                Modifier
+                    .fillMaxHeight(0.85f)
+                    .aspectRatio(1f, matchHeightConstraintsFirst = true)
+            )
+            Spacer(Modifier.width(28.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                info()
+                Spacer(Modifier.height(24.dp))
+                LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+        ) {
+            Spacer(Modifier.weight(4f))
+            art(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .aspectRatio(1f)
+            )
+            Spacer(Modifier.weight(3f))
+            info()
+            Spacer(Modifier.height(64.dp))
+            LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+        }
     }
 }
 
@@ -177,6 +223,10 @@ internal fun NowPlayingQueueView(
     onQueueScrollDelta: (Float) -> Unit
 ) {
     val density = LocalDensity.current
+    LaunchedEffect(Unit) {
+        val upNextHeaderIndex = if (state.history.isNotEmpty()) state.history.size + 1 else 0
+        queueListState.scrollToItem(upNextHeaderIndex)
+    }
     Column(modifier = Modifier.fillMaxSize()) {
         TitleRow(
             song = song,
@@ -252,6 +302,8 @@ internal fun NowPlayingQueueView(
                             onToggleShuffle = { playbackViewModel.toggleShuffle() },
                             onSkipPrevious = onSkipPrevious,
                             isPlaying = state.isPlaying,
+                            playWhenReady = state.playWhenReady,
+                            isRadio = song.source == MusicSource.Radio,
                             onTogglePlayPause = { playbackViewModel.togglePlayPause() },
                             onSkipNext = onSkipNext,
                             repeatMode = state.repeatMode,
@@ -389,6 +441,7 @@ internal fun NowPlayingLyricsView(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 24.dp)
                 )
             } else {
@@ -441,6 +494,8 @@ internal fun NowPlayingLyricsView(
                                 onToggleShuffle = { playbackViewModel.toggleShuffle() },
                                 onSkipPrevious = onSkipPrevious,
                                 isPlaying = state.isPlaying,
+                                playWhenReady = state.playWhenReady,
+                                isRadio = song.source == MusicSource.Radio,
                                 onTogglePlayPause = { playbackViewModel.togglePlayPause() },
                                 onSkipNext = onSkipNext,
                                 repeatMode = state.repeatMode,

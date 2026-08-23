@@ -5,11 +5,13 @@
         <exclude domain="root" path="cache" />
         <exclude domain="file" path="crash_log.txt" />
         <exclude domain="file" path="datastore/onboarding.preferences_pb" />
+        <exclude domain="file" path="datastore/scrobble_settings.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="credentials.xml" />
         <exclude domain="root" path="cache" />
         <exclude domain="file" path="crash_log.txt" />
         <exclude domain="file" path="datastore/onboarding.preferences_pb" />
+        <exclude domain="file" path="datastore/scrobble_settings.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>

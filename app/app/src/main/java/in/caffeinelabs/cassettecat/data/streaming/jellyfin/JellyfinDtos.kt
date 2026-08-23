@@ -12,7 +12,16 @@ data class JellyfinAuthRequest(val Username: String, val Pw: String)
 data class JellyfinAuthResult(val User: JellyfinUser, val AccessToken: String)
 
 @Serializable
-data class JellyfinUser(val Id: String)
+data class JellyfinUser(val Id: String, val Name: String = "")
+
+@Serializable
+data class QuickConnectInitiateResult(val Secret: String, val Code: String)
+
+@Serializable
+data class QuickConnectStateResult(val Authenticated: Boolean)
+
+@Serializable
+data class QuickConnectAuthRequest(val Secret: String)
 
 @Serializable
 data class JellyfinItemsResponse(val Items: List<JellyfinItem> = emptyList())

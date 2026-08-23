@@ -21,6 +21,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CommandButton
@@ -65,16 +66,29 @@ class PlaybackService : MediaLibraryService() {
         libraryTree = MediaLibraryTree(this)
 
         val directFactory = DefaultDataSource.Factory(this)
+        // Read-only: DownloadManager is the only intended writer to this cache; a concurrent
+        // write from playback stalls the download instead of erroring.
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(DownloadCache.get(this))
             .setCacheKeyFactory(StreamCacheKeyFactory)
             .setUpstreamDataSourceFactory(directFactory)
+            .setCacheWriteDataSinkFactory(null)
         val routedFactory = DataSource.Factory {
             StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
         }
 
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(routedFactory))
+            .setLoadControl(
+                DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(
+                        DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                        DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                        500,
+                        DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                    )
+                    .build()
+            )
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)

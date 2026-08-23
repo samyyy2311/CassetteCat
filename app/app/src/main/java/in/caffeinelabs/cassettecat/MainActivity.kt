@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -23,9 +23,13 @@ import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
 
 class MainActivity : ComponentActivity() {
-    private val screenshotCallback = Activity.ScreenCaptureCallback {
-        ScreenshotCaptureEvents.notifyCaptured()
-    }
+    // Initializer must be SDK-gated too, not just the register/unregister calls, or this crashes pre-14.
+    private val screenshotCallback: Activity.ScreenCaptureCallback? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Activity.ScreenCaptureCallback { ScreenshotCaptureEvents.notifyCaptured() }
+        } else {
+            null
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,16 +40,10 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            @Suppress("DEPRECATION")
-            window.isStatusBarContrastEnforced = false
-            @Suppress("DEPRECATION")
-            window.isNavigationBarContrastEnforced = false
-        }
         setContent {
             val context = LocalContext.current
             val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-            val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+            val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
 
             CassetteCatTheme(
                 accent = preferences.themeAccent,
@@ -70,15 +68,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            runCatching { registerScreenCaptureCallback(mainExecutor, screenshotCallback) }
-        }
+        screenshotCallback?.let { runCatching { registerScreenCaptureCallback(mainExecutor, it) } }
     }
 
     override fun onStop() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            runCatching { unregisterScreenCaptureCallback(screenshotCallback) }
-        }
+        screenshotCallback?.let { runCatching { unregisterScreenCaptureCallback(it) } }
         super.onStop()
     }
 }

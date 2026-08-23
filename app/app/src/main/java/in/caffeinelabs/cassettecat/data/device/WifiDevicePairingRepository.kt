@@ -17,6 +17,8 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +33,7 @@ class WifiDevicePairingRepository(private val context: Context) {
     private val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val apiClient = CompanionApiClient()
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _pairingState = MutableStateFlow<DevicePairingState>(DevicePairingState.SelectingMode)
     val pairingState: StateFlow<DevicePairingState> = _pairingState.asStateFlow()
@@ -137,7 +139,16 @@ class WifiDevicePairingRepository(private val context: Context) {
         _pairingState.value = DevicePairingState.Connecting(device)
         val network = boundNetwork.takeIf { device.connectionType == DeviceConnectionType.SOFT_AP }
         val status = apiClient.getStatus(device.host, device.port, network)
-        _pairingState.value = DevicePairingState.Connected(if (status != null) device.copy(status = status) else device)
+        _pairingState.value = if (status != null) {
+            DevicePairingState.Connected(device.copy(status = status))
+        } else {
+            DevicePairingState.Failed(device.connectionType, "The player stopped responding.")
+        }
+    }
+
+    suspend fun provisionWifi(device: DiscoveredDevice, ssid: String, passphrase: String): Boolean {
+        val network = boundNetwork.takeIf { device.connectionType == DeviceConnectionType.SOFT_AP }
+        return apiClient.provisionWifi(device.host, device.port, ssid, passphrase, network)
     }
 
     private fun startMdnsDiscovery() {
@@ -193,5 +204,10 @@ class WifiDevicePairingRepository(private val context: Context) {
             runCatching { nsdManager?.stopServiceDiscovery(listener) }
         }
         discoveryListener = null
+    }
+
+    fun release() {
+        stopDiscovery()
+        scope.cancel()
     }
 }

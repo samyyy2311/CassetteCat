@@ -81,7 +81,6 @@ internal fun NowPlayingActionsSheet(
     onOpenListeningRoom: () -> Unit,
     onOpenPlaybackSpeed: () -> Unit,
     onOpenSleepTimer: () -> Unit,
-    onOpenTagEditor: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val sleepTimerSubtitle = if (sleepTimerEndMs != null) {
@@ -150,15 +149,6 @@ internal fun NowPlayingActionsSheet(
                     label = "Download",
                     accented = false,
                     onClick = { onDownload(); onDismiss() }
-                )
-            }
-            if (song.source == MusicSource.Local && onOpenTagEditor != null) {
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                    label = "Edit Track Metadata",
-                    subtitle = "Modify title, artist, album, and year tags",
-                    accented = false,
-                    onClick = { onOpenTagEditor(); onDismiss() }
                 )
             }
             HorizontalDivider(
@@ -358,7 +348,7 @@ internal fun ListeningRoomSheet(
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 4.dp)
                     )
                     Text(
-                        "Can't find the room automatically? Ask the host for the address on their screen.",
+                        "Can't find the room automatically? Ask the host for the address and code shown on their screen.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
@@ -368,7 +358,7 @@ internal fun ListeningRoomSheet(
                         OutlinedTextField(
                             value = manualAddress,
                             onValueChange = { manualAddress = it },
-                            placeholder = { Text("192.168.1.1:12345") },
+                            placeholder = { Text("192.168.1.1:12345#ABC123") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )

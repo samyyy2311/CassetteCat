@@ -11,8 +11,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-// Secrets only; everything else lives in StreamingServerRepository. Plain SharedPreferences,
-// not DataStore: read rarely (login time), doesn't benefit from the reactive-Flow treatment.
+// Secrets only; encrypted values live in private SharedPreferences and the key stays in Android Keystore.
 class CredentialStore(context: Context) {
     private val prefs = context.getSharedPreferences("credentials", Context.MODE_PRIVATE)
 
@@ -21,6 +20,13 @@ class CredentialStore(context: Context) {
 
     fun saveJellyfinAccessToken(token: String) = save(KEY_JELLYFIN_TOKEN, token)
     fun getJellyfinAccessToken(): String? = load(KEY_JELLYFIN_TOKEN)
+
+    fun saveListenBrainzToken(token: String) = save(KEY_LISTENBRAINZ_TOKEN, token)
+    fun getListenBrainzToken(): String? = load(KEY_LISTENBRAINZ_TOKEN)
+    fun saveLibreFmSessionKey(key: String) = save(KEY_LIBREFM_SESSION, key)
+    fun getLibreFmSessionKey(): String? = load(KEY_LIBREFM_SESSION)
+    fun clearListenBrainzToken() = prefs.edit { remove(KEY_LISTENBRAINZ_TOKEN) }
+    fun clearLibreFmSessionKey() = prefs.edit { remove(KEY_LIBREFM_SESSION) }
 
     fun clear(protocol: StreamingProtocol) {
         val key = when (protocol) {
@@ -39,11 +45,14 @@ class CredentialStore(context: Context) {
 
     private fun load(key: String): String? {
         val encoded = prefs.getString(key, null) ?: return null
-        val (ivPart, ciphertextPart) = encoded.split(":", limit = 2).let { it[0] to it[1] }
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(GCM_TAG_BITS, ivPart.fromBase64()))
-        }
-        return cipher.doFinal(ciphertextPart.fromBase64()).toString(Charsets.UTF_8)
+        return runCatching {
+            val parts = encoded.split(":", limit = 2)
+            require(parts.size == 2)
+            val cipher = Cipher.getInstance(TRANSFORMATION).apply {
+                init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(GCM_TAG_BITS, parts[0].fromBase64()))
+            }
+            cipher.doFinal(parts[1].fromBase64()).toString(Charsets.UTF_8)
+        }.getOrNull()
     }
 
     private fun secretKey(): SecretKey {
@@ -71,5 +80,7 @@ class CredentialStore(context: Context) {
         const val GCM_TAG_BITS = 128
         const val KEY_SUBSONIC_PASSWORD = "subsonic_password"
         const val KEY_JELLYFIN_TOKEN = "jellyfin_access_token"
+        const val KEY_LISTENBRAINZ_TOKEN = "listenbrainz_token"
+        const val KEY_LIBREFM_SESSION = "librefm_session_key"
     }
 }

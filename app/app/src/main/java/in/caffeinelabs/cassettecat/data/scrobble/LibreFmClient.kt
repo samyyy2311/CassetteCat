@@ -43,7 +43,6 @@ class LibreFmClient {
 
             val request = Request.Builder()
                 .url(LIBREFM_API_URL)
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .post(formBuilder.build())
                 .build()
 
@@ -82,7 +81,6 @@ class LibreFmClient {
 
             val request = Request.Builder()
                 .url(LIBREFM_API_URL)
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .post(formBuilder.build())
                 .build()
 
@@ -113,7 +111,6 @@ class LibreFmClient {
 
             val request = Request.Builder()
                 .url(LIBREFM_API_URL)
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .post(formBuilder.build())
                 .build()
 

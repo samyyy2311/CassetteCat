@@ -25,7 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -65,13 +65,13 @@ fun HomeScreen(
     onNavigateToArtist: (String) -> Unit = {},
     listBottomPadding: Dp = 0.dp
 ) {
-    val playbackState by playbackViewModel.playbackState.collectAsState()
-    val libraryState by libraryViewModel.uiState.collectAsState()
-    val monthlyStats by playbackViewModel.monthlyStats.collectAsState()
+    val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val monthlyStats by playbackViewModel.monthlyStats.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
 
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val recentlyPlayed = playbackState.history

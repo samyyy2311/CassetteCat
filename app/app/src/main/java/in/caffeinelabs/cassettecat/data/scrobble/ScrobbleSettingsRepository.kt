@@ -5,7 +5,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 private val Context.scrobbleDataStore by preferencesDataStore(name = "scrobble_settings")
@@ -18,25 +22,34 @@ private val LIBREFM_ENABLED = booleanPreferencesKey("librefm_enabled")
 private val LIBREFM_USERNAME = stringPreferencesKey("librefm_username")
 private val LIBREFM_SESSION_KEY = stringPreferencesKey("librefm_session_key")
 
+internal fun credentialToMigrate(legacy: String?, encrypted: String?): String? =
+    legacy?.takeIf { it.isNotEmpty() && encrypted.isNullOrEmpty() }
+
 class ScrobbleSettingsRepository(private val context: Context) {
-    val settings: Flow<ScrobbleSettings> = context.scrobbleDataStore.data.map { prefs ->
-        ScrobbleSettings(
-            listenBrainz = ListenBrainzConfig(
-                enabled = prefs[LISTENBRAINZ_ENABLED] ?: false,
-                userToken = prefs[LISTENBRAINZ_TOKEN] ?: "",
-                userName = prefs[LISTENBRAINZ_USER] ?: ""
-            ),
-            libreFm = LibreFmConfig(
-                enabled = prefs[LIBREFM_ENABLED] ?: false,
-                username = prefs[LIBREFM_USERNAME] ?: "",
-                sessionKey = prefs[LIBREFM_SESSION_KEY] ?: ""
+    private val credentialStore = CredentialStore(context)
+
+    val settings: Flow<ScrobbleSettings> = flow {
+        migrateLegacyCredentials()
+        emitAll(context.scrobbleDataStore.data.map { prefs ->
+            ScrobbleSettings(
+                listenBrainz = ListenBrainzConfig(
+                    enabled = prefs[LISTENBRAINZ_ENABLED] ?: false,
+                    userToken = credentialStore.getListenBrainzToken().orEmpty(),
+                    userName = prefs[LISTENBRAINZ_USER] ?: ""
+                ),
+                libreFm = LibreFmConfig(
+                    enabled = prefs[LIBREFM_ENABLED] ?: false,
+                    username = prefs[LIBREFM_USERNAME] ?: "",
+                    sessionKey = credentialStore.getLibreFmSessionKey().orEmpty()
+                )
             )
-        )
+        })
     }
 
     suspend fun saveListenBrainz(token: String, userName: String, enabled: Boolean = true) {
+        credentialStore.saveListenBrainzToken(token)
         context.scrobbleDataStore.edit { prefs ->
-            prefs[LISTENBRAINZ_TOKEN] = token
+            prefs.remove(LISTENBRAINZ_TOKEN)
             prefs[LISTENBRAINZ_USER] = userName
             prefs[LISTENBRAINZ_ENABLED] = enabled
         }
@@ -49,17 +62,19 @@ class ScrobbleSettingsRepository(private val context: Context) {
     }
 
     suspend fun disconnectListenBrainz() {
+        credentialStore.clearListenBrainzToken()
         context.scrobbleDataStore.edit { prefs ->
-            prefs[LISTENBRAINZ_TOKEN] = ""
+            prefs.remove(LISTENBRAINZ_TOKEN)
             prefs[LISTENBRAINZ_USER] = ""
             prefs[LISTENBRAINZ_ENABLED] = false
         }
     }
 
     suspend fun saveLibreFm(username: String, sessionKey: String, enabled: Boolean = true) {
+        credentialStore.saveLibreFmSessionKey(sessionKey)
         context.scrobbleDataStore.edit { prefs ->
             prefs[LIBREFM_USERNAME] = username
-            prefs[LIBREFM_SESSION_KEY] = sessionKey
+            prefs.remove(LIBREFM_SESSION_KEY)
             prefs[LIBREFM_ENABLED] = enabled
         }
     }
@@ -71,10 +86,26 @@ class ScrobbleSettingsRepository(private val context: Context) {
     }
 
     suspend fun disconnectLibreFm() {
+        credentialStore.clearLibreFmSessionKey()
         context.scrobbleDataStore.edit { prefs ->
             prefs[LIBREFM_USERNAME] = ""
-            prefs[LIBREFM_SESSION_KEY] = ""
+            prefs.remove(LIBREFM_SESSION_KEY)
             prefs[LIBREFM_ENABLED] = false
+        }
+    }
+
+    private suspend fun migrateLegacyCredentials() {
+        val prefs = context.scrobbleDataStore.data.first()
+        val listenBrainzToken = prefs[LISTENBRAINZ_TOKEN]
+        val libreFmSession = prefs[LIBREFM_SESSION_KEY]
+        if (listenBrainzToken.isNullOrEmpty() && libreFmSession.isNullOrEmpty()) return
+        credentialToMigrate(listenBrainzToken, credentialStore.getListenBrainzToken())
+            ?.let(credentialStore::saveListenBrainzToken)
+        credentialToMigrate(libreFmSession, credentialStore.getLibreFmSessionKey())
+            ?.let(credentialStore::saveLibreFmSessionKey)
+        context.scrobbleDataStore.edit {
+            it.remove(LISTENBRAINZ_TOKEN)
+            it.remove(LIBREFM_SESSION_KEY)
         }
     }
 }

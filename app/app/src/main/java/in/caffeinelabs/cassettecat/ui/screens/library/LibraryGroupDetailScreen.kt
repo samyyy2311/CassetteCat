@@ -29,7 +29,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +78,7 @@ fun ArtistDetailScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
-    val uiState by libraryViewModel.uiState.collectAsState()
+    val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { artist in it.artist.splitArtists() }.orEmpty()
 
     ArtistCatalogScreen(
@@ -416,7 +416,7 @@ fun AlbumDetailScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
-    val uiState by libraryViewModel.uiState.collectAsState()
+    val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { it.albumId == albumId }.orEmpty()
 
     LibraryGroupDetailScreen(
@@ -447,7 +447,7 @@ fun GenreDetailScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
-    val uiState by libraryViewModel.uiState.collectAsState()
+    val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { genre in it.effectiveGenres() }.orEmpty()
 
     LibraryGroupDetailScreen(
@@ -486,7 +486,7 @@ private fun LibraryGroupDetailScreen(
     val context = LocalContext.current
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
-    val playlists = playlistViewModel?.playlists?.collectAsState()?.value.orEmpty()
+    val playlists = playlistViewModel?.playlists?.collectAsStateWithLifecycle()?.value.orEmpty()
     val loader = remember { WikipediaInfoLoader() }
     val settingsRepo = remember { ServiceSettingsRepository(context) }
     var about by remember(wikipediaQuery) { mutableStateOf<String?>(null) }

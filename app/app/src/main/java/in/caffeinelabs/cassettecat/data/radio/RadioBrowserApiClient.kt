@@ -12,7 +12,6 @@ import kotlinx.serialization.Serializable
 import okhttp3.Request
 
 private const val DISCOVERY_HOST = "all.api.radio-browser.info"
-private const val USER_AGENT = "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)"
 
 @Serializable
 private data class RadioBrowserStationResponse(
@@ -140,7 +139,6 @@ class RadioBrowserApiClient {
         for (server in RadioBrowserServers.list()) {
             val request = Request.Builder()
                 .url("https://$server$path")
-                .header("User-Agent", USER_AGENT)
                 .build()
             val result = runCatching {
                 val body = sharedHttpClient.newCall(request).execute().use {

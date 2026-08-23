@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.3.1-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.3.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.4.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.4.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -44,14 +44,16 @@
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/01_home.png" width="30%" alt="Home Screen" />
-  <img src="assets/screenshots/06_now_playing.png" width="30%" alt="Now Playing" />
-  <img src="assets/screenshots/03_library.png" width="30%" alt="Library" />
+  <img src="assets/screenshots/01_home.png" width="23%" alt="Home Screen" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/02_library_albums.png" width="23%" alt="Library" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/03_library_artists.png" width="23%" alt="Artists" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/04_radio.png" width="23%" alt="Radio" style="border: 1px solid #30363d; border-radius: 8px;" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/04_artists.png" width="30%" alt="Artists" />
-  <img src="assets/screenshots/08_queue.png" width="30%" alt="Up Next Queue" />
-  <img src="assets/screenshots/05_settings.png" width="30%" alt="Settings" />
+  <img src="assets/screenshots/05_instrumental.png" width="23%" alt="Lyrics (Instrumental)" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/06_now_playing.png" width="23%" alt="Now Playing" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/07_queue.png" width="23%" alt="Up Next Queue" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/08_settings.png" width="23%" alt="Settings" style="border: 1px solid #30363d; border-radius: 8px;" />
 </p>
 
 ---
@@ -67,6 +69,8 @@
   [AutoEq](https://github.com/jaakkopasanen/AutoEq).
 - **Volume Normalization (ReplayGain)**: Automatic track volume balancing to
   avoid sudden loudness spikes.
+- **Volume Limit (Ear Protection)**: Optional hard cap on maximum output level,
+  independent of system volume.
 - **Synchronized Lyrics**: Real-time karaoke-style lyrics via
   [LRCLIB](https://lrclib.net), embedded ID3 tags, and local `.lrc` sidecars
   with configurable typography scaling and keep-screen-awake mode.
@@ -84,7 +88,7 @@
 - **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token
   authentication.
 - **Jellyfin**: Direct streaming and music library browsing from your Jellyfin
-  server.
+  server, with Quick Connect sign-in support.
 - **Internet Radio**: Search and browse tens of thousands of live stations from
   [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with
   favorites and Android Auto support.
@@ -95,7 +99,11 @@
   artists, and albums.
 - **Listening Room**: Sync playback with nearby devices over your local Wi-Fi.
 
-### Companion Hardware
+### Planned Companion Hardware
+
+> The companion protocol is present in the Android app, but the `firmware/`
+> and `hardware/` directories currently contain design placeholders rather
+> than buildable firmware or fabrication files.
 
 - **Wireless Pairing**: Connect to a standalone ESP32 CassetteCat player over a
   direct SoftAP hotspot or your local Wi-Fi network via mDNS. On Android 13+,
@@ -194,13 +202,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
   Music metadata and encyclopedia.
 - <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a>
   Open scrobbling.
+- <a href="https://www.radio-browser.info"><img src="https://img.shields.io/badge/Radio%20Browser-1C1917?style=flat-square" alt="Radio Browser" /></a>
+  Internet radio station directory.
 - <a href="https://libre.fm"><img src="https://img.shields.io/badge/Libre.fm-990000?style=flat-square&logo=gnu&logoColor=white" alt="Libre.fm" /></a>
   Free software scrobbling (GNU FM).
 - <a href="https://wikipedia.org"><img src="https://img.shields.io/badge/Wikipedia-000000?style=flat-square&logo=wikipedia&logoColor=white" alt="Wikipedia" /></a>
   Artist biographies (CC BY-SA 4.0).
 - <a href="https://deezer.com"><img src="https://img.shields.io/badge/Deezer-FEAA2D?style=flat-square&logo=deezer&logoColor=white" alt="Deezer" /></a>
-  <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-242424?style=flat-square" alt="TheAudioDB" /></a>
+  <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-6599CD?style=flat-square" alt="TheAudioDB" /></a>
   Artist imagery and metadata.
+- <a href="https://github.com"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" /></a>
+  Release update checks.
 
 ### Libraries & Design
 

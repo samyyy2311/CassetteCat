@@ -20,7 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +40,7 @@ fun LibraryScanScreen(
     modifier: Modifier = Modifier,
     viewModel: LibraryScanViewModel = viewModel()
 ) {
-    val config by viewModel.config.collectAsState()
+    val config by viewModel.config.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
         OnboardingProgressDots(currentStep = 1)

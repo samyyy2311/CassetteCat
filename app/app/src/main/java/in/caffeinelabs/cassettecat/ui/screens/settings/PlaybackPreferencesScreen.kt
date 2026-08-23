@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,10 +27,10 @@ fun PlaybackPreferencesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsState()
-    val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsState()
-    val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsState()
-    val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsState()
+    val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsStateWithLifecycle()
+    val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsStateWithLifecycle()
+    val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsStateWithLifecycle()
+    val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(

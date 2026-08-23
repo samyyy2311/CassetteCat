@@ -90,8 +90,8 @@ class SongDownloadRepository private constructor(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
-    @android.annotation.SuppressLint("StaticFieldLeak")
     companion object {
+        @android.annotation.SuppressLint("StaticFieldLeak")
         @Volatile private var instance: SongDownloadRepository? = null
 
         fun getInstance(context: Context): SongDownloadRepository =

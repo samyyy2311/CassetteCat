@@ -27,7 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,15 +76,15 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = viewModel(),
     playlistViewModel: PlaylistViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val sortOrder by viewModel.sortOrder.collectAsState()
-    val sortDirection by viewModel.sortDirection.collectAsState()
-    val playlists by playlistViewModel.playlists.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+    val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val loadedState = uiState as? LibraryUiState.Loaded
     val isRefreshing = uiState is LibraryUiState.Loading
     val context = LocalContext.current
     val appPreferencesRepository = remember { `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
 
     var showSortSheet by remember { mutableStateOf(false) }
     var sortTarget by remember { mutableStateOf(LibraryViewMode.SONGS) }
@@ -102,26 +102,25 @@ fun LibraryScreen(
     val genreListState = rememberLazyListState()
     val playlistListState = rememberLazyListState()
     val viewMode = LibraryViewMode.entries[pagerState.currentPage]
-    val collectionLayout by viewModel.collectionLayout.collectAsState()
-    val artistSortOrder by viewModel.artistSortOrder.collectAsState()
-    val artistSortDirection by viewModel.artistSortDirection.collectAsState()
-    val albumSortOrder by viewModel.albumSortOrder.collectAsState()
-    val albumSortDirection by viewModel.albumSortDirection.collectAsState()
-    val genreSortOrder by viewModel.genreSortOrder.collectAsState()
-    val genreSortDirection by viewModel.genreSortDirection.collectAsState()
+    val collectionLayout by viewModel.collectionLayout.collectAsStateWithLifecycle()
+    val artistSortOrder by viewModel.artistSortOrder.collectAsStateWithLifecycle()
+    val artistSortDirection by viewModel.artistSortDirection.collectAsStateWithLifecycle()
+    val albumSortOrder by viewModel.albumSortOrder.collectAsStateWithLifecycle()
+    val albumSortDirection by viewModel.albumSortDirection.collectAsStateWithLifecycle()
+    val genreSortOrder by viewModel.genreSortOrder.collectAsStateWithLifecycle()
+    val genreSortDirection by viewModel.genreSortDirection.collectAsStateWithLifecycle()
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    val songFilter by viewModel.songFilter.collectAsState()
+    val songFilter by viewModel.songFilter.collectAsStateWithLifecycle()
     var showPlaylistPicker by remember { mutableStateOf(false) }
-    var editingSong by remember { mutableStateOf<Song?>(null) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     BackHandler(enabled = selectionMode) {
         selectedIds = emptySet()
     }
     val favoritesRepository = remember { FavoritesRepository(context) }
-    val favoriteIds by favoritesRepository.favoriteIds.collectAsState(initial = emptySet())
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
-    val downloads by downloadRepository.downloads.collectAsState()
+    val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
     val favoriteSongs = remember(loadedState?.songs, favoriteIds) {
         loadedState?.songs.orEmpty().filter { it.isFavorite || it.id in favoriteIds }
     }
@@ -224,17 +223,6 @@ fun LibraryScreen(
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f).padding(start = 8.dp)
                     )
-                    val singleLocalSong = if (selectedIds.size == 1) {
-                        loadedState?.songs?.find { it.id == selectedIds.first() && it.source == MusicSource.Local }
-                    } else null
-
-                    if (singleLocalSong != null) {
-                        PressDepthIconButton(
-                            iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                            contentDescription = "Edit metadata",
-                            onClick = { editingSong = singleLocalSong }
-                        )
-                    }
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_list_plus,
                         contentDescription = "Add to playlist",
@@ -269,7 +257,7 @@ fun LibraryScreen(
                                 LibraryViewMode.PLAYLISTS -> "collection"
                             }
                             val baseCountText = if (count == 1) "1 $noun" else "$count ${noun}s"
-                            val isOffline by viewModel.isOfflineMode.collectAsState()
+                            val isOffline by viewModel.isOfflineMode.collectAsStateWithLifecycle()
                             Text(
                                 if (isOffline) "$baseCountText . Offline" else baseCountText,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -551,14 +539,4 @@ fun LibraryScreen(
         )
     }
 
-    editingSong?.let { songToEdit ->
-        TagEditorSheet(
-            song = songToEdit,
-            onDismiss = { editingSong = null },
-            onSaved = {
-                viewModel.refresh()
-                selectedIds = emptySet()
-            }
-        )
-    }
 }

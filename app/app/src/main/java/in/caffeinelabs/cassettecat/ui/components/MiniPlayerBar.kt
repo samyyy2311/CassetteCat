@@ -22,7 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -59,15 +59,15 @@ fun MiniPlayerRow(
     // collapse instead of cross-fading. No-op by default.
     onThumbnailBoundsChange: (Rect) -> Unit = {}
 ) {
-    val state by playbackViewModel.playbackState.collectAsState()
+    val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val song = state.currentSong ?: return
     val previousSong = state.previousInQueue
     val nextSong = state.upNext.firstOrNull()
-    val positionMs by playbackViewModel.positionMs.collectAsState()
+    val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsState(initial = AppPreferences())
+    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
 
     Box(modifier = modifier) {
         Row(
@@ -94,11 +94,11 @@ fun MiniPlayerRow(
             }
             Spacer(Modifier.width(12.dp))
             TransportButton(
-                iconRes = if (state.isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
+                iconRes = if (state.playWhenReady) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
                 size = 44.dp,
                 tint = MaterialTheme.colorScheme.tertiary,
                 onClick = { playbackViewModel.togglePlayPause() },
-                accented = state.isPlaying
+                accented = state.playWhenReady
             )
             Spacer(Modifier.width(12.dp))
             TransportButton(

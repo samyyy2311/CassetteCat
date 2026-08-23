@@ -23,7 +23,6 @@ class GitHubUpdateChecker {
         runCatching {
             val request = Request.Builder()
                 .url(RELEASES_URL)
-                .header("User-Agent", "CassetteCat/0.1.0 (https://github.com/samyyy2311/CassetteCat)")
                 .build()
             val body = sharedHttpClient.newCall(request).execute().use {
                 if (!it.isSuccessful) return@runCatching UpdateCheckResult.Error
@@ -40,7 +39,7 @@ class GitHubUpdateChecker {
     }
 }
 
-private fun isNewer(latest: String, current: String): Boolean {
+internal fun isNewer(latest: String, current: String): Boolean {
     val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
     val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
     for (i in 0 until maxOf(latestParts.size, currentParts.size)) {

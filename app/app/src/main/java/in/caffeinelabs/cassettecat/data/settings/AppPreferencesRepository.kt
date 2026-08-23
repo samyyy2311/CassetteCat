@@ -27,6 +27,8 @@ private val REPLAY_GAIN_PRE_AMP_DB = intPreferencesKey("replay_gain_pre_amp_db")
 private val MONO_AUDIO = booleanPreferencesKey("mono_audio")
 private val SKIP_SILENCE_ENABLED = booleanPreferencesKey("skip_silence_enabled")
 private val AUTOPLAY_ENABLED = booleanPreferencesKey("autoplay_enabled")
+private val VOLUME_LIMIT_ENABLED = booleanPreferencesKey("volume_limit_enabled")
+private val MAX_VOLUME_PERCENT = intPreferencesKey("max_volume_percent")
 
 // Library & Layout
 private val GRID_COLUMNS = intPreferencesKey("grid_columns")
@@ -51,10 +53,6 @@ private val SWIPE_UP_LYRICS_ENABLED = booleanPreferencesKey("swipe_up_lyrics_ena
 // Lyrics Customization
 private val LYRICS_ALIGNMENT = stringPreferencesKey("lyrics_alignment")
 private val LYRICS_ACTIVE_STYLE = stringPreferencesKey("lyrics_active_style")
-
-// Cache & Storage
-private val MAX_CACHE_SIZE_MB = intPreferencesKey("max_cache_size_mb")
-private val AUTO_CACHE_FAVORITES = booleanPreferencesKey("auto_cache_favorites")
 
 private val WIFI_ONLY_DOWNLOADS = booleanPreferencesKey("wifi_only_downloads")
 private val LISTENING_STATS_ENABLED = booleanPreferencesKey("listening_stats_enabled")
@@ -154,6 +152,8 @@ data class AppPreferences(
     val monoAudio: Boolean = false,
     val skipSilenceEnabled: Boolean = false,
     val autoplayEnabled: Boolean = false,
+    val volumeLimitEnabled: Boolean = false,
+    val maxVolumePercent: Int = 80,
     // Library & Layout
     val gridColumnCount: Int = 2,
     val trackRowDensity: TrackRowDensity = TrackRowDensity.DETAILED,
@@ -174,9 +174,6 @@ data class AppPreferences(
     // Lyrics Customization
     val lyricsAlignment: LyricsAlignment = LyricsAlignment.CENTER,
     val lyricsActiveStyle: LyricsActiveStyle = LyricsActiveStyle.ACCENT_GLOW,
-    // Cache & Storage
-    val maxCacheSizeMb: Int = 2048,
-    val autoCacheFavorites: Boolean = false,
     // Standard
     val wifiOnlyDownloads: Boolean = false,
     val listeningStatsEnabled: Boolean = true,
@@ -229,6 +226,8 @@ class AppPreferencesRepository(private val context: Context) {
             monoAudio = prefs[MONO_AUDIO] ?: false,
             skipSilenceEnabled = prefs[SKIP_SILENCE_ENABLED] ?: false,
             autoplayEnabled = prefs[AUTOPLAY_ENABLED] ?: false,
+            volumeLimitEnabled = prefs[VOLUME_LIMIT_ENABLED] ?: false,
+            maxVolumePercent = (prefs[MAX_VOLUME_PERCENT] ?: 80).coerceIn(10, 100),
             // Library & Layout
             gridColumnCount = (prefs[GRID_COLUMNS] ?: 2).coerceIn(2, 4),
             trackRowDensity = try {
@@ -266,8 +265,6 @@ class AppPreferencesRepository(private val context: Context) {
                 LyricsActiveStyle.ACCENT_GLOW
             },
             // Cache & Storage
-            maxCacheSizeMb = prefs[MAX_CACHE_SIZE_MB] ?: 2048,
-            autoCacheFavorites = prefs[AUTO_CACHE_FAVORITES] ?: false,
             // Standard
             wifiOnlyDownloads = prefs[WIFI_ONLY_DOWNLOADS] ?: false,
             listeningStatsEnabled = prefs[LISTENING_STATS_ENABLED] ?: true,
@@ -364,6 +361,14 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[AUTOPLAY_ENABLED] = enabled }
     }
 
+    suspend fun setVolumeLimitEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[VOLUME_LIMIT_ENABLED] = enabled }
+    }
+
+    suspend fun setMaxVolumePercent(percent: Int) {
+        context.appPreferencesDataStore.edit { it[MAX_VOLUME_PERCENT] = percent.coerceIn(10, 100) }
+    }
+
     // Library & Layout
     suspend fun setGridColumnCount(columns: Int) {
         context.appPreferencesDataStore.edit { it[GRID_COLUMNS] = columns }
@@ -436,14 +441,6 @@ class AppPreferencesRepository(private val context: Context) {
     }
 
     // Cache & Storage
-    suspend fun setMaxCacheSizeMb(sizeMb: Int) {
-        context.appPreferencesDataStore.edit { it[MAX_CACHE_SIZE_MB] = sizeMb }
-    }
-
-    suspend fun setAutoCacheFavorites(enabled: Boolean) {
-        context.appPreferencesDataStore.edit { it[AUTO_CACHE_FAVORITES] = enabled }
-    }
-
     // Standard
     suspend fun setWifiOnlyDownloads(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[WIFI_ONLY_DOWNLOADS] = enabled }

@@ -48,7 +48,6 @@ class ListenBrainzClient {
             val request = Request.Builder()
                 .url("$API_BASE/validate-token")
                 .header("Authorization", "Token ${token.trim()}")
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .get()
                 .build()
 
@@ -81,7 +80,6 @@ class ListenBrainzClient {
             val request = Request.Builder()
                 .url("$API_BASE/submit-listens")
                 .header("Authorization", "Token ${token.trim()}")
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
                 .build()
 
@@ -109,7 +107,6 @@ class ListenBrainzClient {
             val request = Request.Builder()
                 .url("$API_BASE/submit-listens")
                 .header("Authorization", "Token ${token.trim()}")
-                .header("User-Agent", "CassetteCat/1.0.0")
                 .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
                 .build()
 

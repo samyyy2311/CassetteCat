@@ -13,6 +13,7 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
+import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,11 @@ private const val NO_JOIN_TIMEOUT_MS = 120_000L
 private const val CONNECT_TIMEOUT_MS = 6_000
 private const val MAX_RECONNECT_ATTEMPTS = 3
 private const val RECONNECT_DELAY_MS = 2_000L
+internal const val MAX_LISTENING_ROOM_GUESTS = 8
+
+private class HostGuest(val socket: Socket) {
+    @Volatile var writer: BufferedWriter? = null
+}
 
 @Serializable
 data class RoomTrack(
@@ -52,14 +58,16 @@ data class RoomSnapshot(
     val tracks: List<RoomTrack>,
     val positionMs: Long,
     val isPlaying: Boolean,
-    val audioPort: Int? = null
+    val audioPort: Int? = null,
+    val roomToken: String? = null
 )
 
 data class NearbyListeningRoom(
     val id: String,
     val name: String,
     val host: String,
-    val port: Int
+    val port: Int,
+    val roomCode: String
 )
 
 enum class ListeningRoomRole { NONE, HOST, GUEST }
@@ -96,7 +104,8 @@ class LocalListeningRoomRepository(context: Context) {
     private val nsdManager = appContext.getSystemService(NsdManager::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private val writers = CopyOnWriteArrayList<BufferedWriter>()
+    private val hostGuests = CopyOnWriteArrayList<HostGuest>()
+    private val guestSlots = java.util.concurrent.Semaphore(MAX_LISTENING_ROOM_GUESTS)
     private val discovered = linkedMapOf<String, NearbyListeningRoom>()
     private val rng = SecureRandom()
 
@@ -125,14 +134,14 @@ class LocalListeningRoomRepository(context: Context) {
                 val name = "Listening Room $code"
                 registerHost(name, code, server.localPort)
                 val ip = localIpAddress()
-                val relay = RoomAudioServer(appContext, queueProvider)
+                val relay = RoomAudioServer(appContext, code, queueProvider)
                 audioServer = relay
                 audioPort = relay.start()
                 _state.value = ListeningRoomState(
                     role = ListeningRoomRole.HOST,
                     roomName = name,
                     roomCode = code,
-                    hostAddress = ip?.let { "$it:${server.localPort}" },
+                    hostAddress = ip?.let { "$it:${server.localPort}#$code" },
                     participantCount = 0
                 )
                 scope.launch {
@@ -141,7 +150,7 @@ class LocalListeningRoomRepository(context: Context) {
                         stopRoom("No one joined within 2 minutes. Room closed.")
                     }
                 }
-                acceptGuests(server)
+                acceptGuests(server, code)
             }.onFailure { error ->
                 stopRoom("Couldn’t start a nearby room: ${error.message ?: "network unavailable"}")
             }
@@ -163,8 +172,10 @@ class LocalListeningRoomRepository(context: Context) {
                             id = "$hostAddress:${info.port}:${info.serviceName}",
                             name = info.serviceName,
                             host = hostAddress,
-                            port = info.port
+                            port = info.port,
+                            roomCode = info.attributes["room"]?.toString(Charsets.UTF_8).orEmpty()
                         )
+                        if (room.roomCode.isBlank()) return
                         discovered[room.id] = room
                         _state.value = _state.value.copy(nearbyRooms = discovered.values.toList(), notice = null)
                     }
@@ -193,47 +204,61 @@ class LocalListeningRoomRepository(context: Context) {
     fun joinRoom(room: NearbyListeningRoom) {
         if (_state.value.role != ListeningRoomRole.NONE) return
         stopDiscovery()
-        connectToHost(room.host, room.port, room.name)
+        connectToHost(room.host, room.port, room.name, room.roomCode)
     }
 
     fun joinRoomManually(address: String) {
         if (_state.value.role != ListeningRoomRole.NONE) return
-        val (host, portText) = address.trim().split(":", limit = 2).let {
+        val (endpoint, code) = address.trim().split("#", limit = 2).let {
+            if (it.size == 2) it[0] to it[1] else return stopRoom("Enter the address and room code as shown by the host.")
+        }
+        val (host, portText) = endpoint.split(":", limit = 2).let {
             if (it.size == 2) it[0] to it[1] else return stopRoom("Enter the address as shown on the host: 192.168.1.1:12345")
         }
         val port = portText.toIntOrNull()
-        if (host.isBlank() || port == null) {
-            stopRoom("Enter the address as shown on the host: 192.168.1.1:12345")
+        if (host.isBlank() || port == null || code.isBlank()) {
+            stopRoom("Enter the address and room code as shown by the host.")
             return
         }
         stopDiscovery()
-        connectToHost(host, port, "Listening Room")
+        connectToHost(host, port, "Listening Room", code)
     }
 
-    private fun connectToHost(host: String, port: Int, roomName: String) {
+    private fun connectToHost(host: String, port: Int, roomName: String, roomCode: String) {
         scope.launch {
-            val connected = runCatching { openGuestSocket(host, port, roomName) }
+            val connected = runCatching { openGuestSocket(host, port, roomName, roomCode) }
                 .onFailure { error -> stopRoom("Couldn’t join this room: ${error.message ?: "connection failed"}") }
                 .isSuccess
-            if (connected) maintainGuestConnection(host, port, roomName)
+            if (connected) maintainGuestConnection(host, port, roomName, roomCode)
         }
     }
 
-    private fun openGuestSocket(host: String, port: Int, roomName: String) {
+    private fun openGuestSocket(host: String, port: Int, roomName: String, roomCode: String) {
         val socket = Socket()
-        socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
-        guestSocket = socket
-        val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
-        guestWriter = writer
-        _state.value = ListeningRoomState(
-            role = ListeningRoomRole.GUEST,
-            roomName = roomName,
-            participantCount = 1,
-            notice = "Following the host on this Wi-Fi network."
-        )
+        var writer: BufferedWriter? = null
+        try {
+            socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+            writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+            writer.write(roomCode)
+            writer.newLine()
+            writer.flush()
+            guestSocket = socket
+            guestWriter = writer
+            _state.value = ListeningRoomState(
+                role = ListeningRoomRole.GUEST,
+                roomName = roomName,
+                roomCode = roomCode,
+                participantCount = 1,
+                notice = "Following the host on this Wi-Fi network."
+            )
+        } catch (error: Throwable) {
+            writer?.let(::closeQuietly)
+            runCatching { socket.close() }
+            throw error
+        }
     }
 
-    private suspend fun maintainGuestConnection(host: String, port: Int, roomName: String) {
+    private suspend fun maintainGuestConnection(host: String, port: Int, roomName: String, roomCode: String) {
         while (true) {
             val socket = guestSocket ?: return
             runCatching { readGuestMessages(socket) }
@@ -243,7 +268,7 @@ class LocalListeningRoomRepository(context: Context) {
             for (attempt in 1..MAX_RECONNECT_ATTEMPTS) {
                 _state.value = _state.value.copy(notice = "Reconnecting…")
                 delay(RECONNECT_DELAY_MS)
-                if (runCatching { openGuestSocket(host, port, roomName) }.isSuccess) {
+                if (runCatching { openGuestSocket(host, port, roomName, roomCode) }.isSuccess) {
                     reconnected = true
                     break
                 }
@@ -258,13 +283,16 @@ class LocalListeningRoomRepository(context: Context) {
     /** Hosts publish the current track, queue and position directly to every joined guest. */
     fun publish(snapshot: RoomSnapshot) {
         if (_state.value.role != ListeningRoomRole.HOST) return
-        val line = json.encodeToString(WireMessage(type = "snapshot", snapshot = snapshot.copy(audioPort = audioPort))) + "\n"
+        val line = json.encodeToString(
+            WireMessage(type = "snapshot", snapshot = snapshot.copy(audioPort = audioPort, roomToken = _state.value.roomCode))
+        ) + "\n"
         scope.launch {
-            writers.toList().forEach { writer ->
+            hostGuests.toList().forEach { guest ->
+                val writer = guest.writer ?: return@forEach
                 runCatching { writer.write(line); writer.flush() }
-                    .onFailure { writers.remove(writer); closeQuietly(writer) }
+                    .onFailure { removeHostGuest(guest) }
             }
-            _state.value = _state.value.copy(participantCount = writers.size)
+            updateParticipantCount()
         }
     }
 
@@ -288,30 +316,35 @@ class LocalListeningRoomRepository(context: Context) {
         nsdManager.registerService(service, NsdManager.PROTOCOL_DNS_SD, listener)
     }
 
-    private fun acceptGuests(server: ServerSocket) {
+    private fun acceptGuests(server: ServerSocket, roomCode: String) {
         while (!server.isClosed) {
             runCatching { server.accept() }.getOrNull()?.let { socket ->
-                val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
-                writers += writer
-                _state.value = _state.value.copy(participantCount = writers.size)
-                scope.launch {
-                    // Guests are followers. Keep the socket open solely for host snapshots;
-                    // no guest command or listening data is collected.
-                    runCatching { BufferedReader(InputStreamReader(socket.getInputStream())).readLines() }
-                    writers.remove(writer)
-                    closeQuietly(writer)
+                if (!guestSlots.tryAcquire()) {
                     runCatching { socket.close() }
-                    _state.value = _state.value.copy(participantCount = writers.size)
+                    return@let
+                }
+                val guest = HostGuest(socket)
+                hostGuests += guest
+                scope.launch {
+                    runCatching {
+                        socket.soTimeout = CONNECT_TIMEOUT_MS
+                        val suppliedCode = BufferedReader(InputStreamReader(socket.getInputStream()))
+                            .readLineBounded(64)
+                        if (suppliedCode != roomCode) throw IOException("Invalid room code")
+                        socket.soTimeout = 0
+                        guest.writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+                        updateParticipantCount()
+                    }.onFailure { removeHostGuest(guest) }
                 }
             }
         }
     }
 
     private fun readGuestMessages(socket: Socket) {
-        BufferedReader(InputStreamReader(socket.getInputStream())).useLines { lines ->
-            lines.forEach { line ->
-                if (line.length > MAX_WIRE_LINE_LENGTH) return@forEach
-                val message = runCatching { json.decodeFromString<WireMessage>(line) }.getOrNull() ?: return@forEach
+        BufferedReader(InputStreamReader(socket.getInputStream())).use { reader ->
+            while (true) {
+                val line = reader.readLineBounded(MAX_WIRE_LINE_LENGTH) ?: return
+                val message = runCatching { json.decodeFromString<WireMessage>(line) }.getOrNull() ?: continue
                 if (message.type == "snapshot") message.snapshot?.let(_snapshots::tryEmit)
             }
         }
@@ -324,8 +357,7 @@ class LocalListeningRoomRepository(context: Context) {
         audioServer?.stop()
         audioServer = null
         audioPort = null
-        writers.forEach(::closeQuietly)
-        writers.clear()
+        hostGuests.toList().forEach(::removeHostGuest)
         guestWriter?.let(::closeQuietly)
         guestWriter = null
         guestSocket?.let { runCatching { it.close() } }
@@ -361,4 +393,32 @@ class LocalListeningRoomRepository(context: Context) {
     }.getOrNull()
 
     private fun closeQuietly(writer: BufferedWriter) = runCatching { writer.close() }
+
+    private fun removeHostGuest(guest: HostGuest) {
+        if (!hostGuests.remove(guest)) return
+        guest.writer?.let(::closeQuietly)
+        runCatching { guest.socket.close() }
+        guestSlots.release()
+        updateParticipantCount()
+    }
+
+    private fun updateParticipantCount() {
+        if (_state.value.role == ListeningRoomRole.HOST) {
+            _state.value = _state.value.copy(participantCount = hostGuests.count { it.writer != null })
+        }
+    }
+}
+
+internal fun BufferedReader.readLineBounded(maxLength: Int): String? {
+    val result = StringBuilder()
+    while (true) {
+        when (val char = read()) {
+            -1 -> return result.takeIf { it.isNotEmpty() }?.toString()
+            '\n'.code -> return result.toString().removeSuffix("\r")
+            else -> {
+                if (result.length >= maxLength) throw IOException("Line exceeds $maxLength characters")
+                result.append(char.toChar())
+            }
+        }
+    }
 }

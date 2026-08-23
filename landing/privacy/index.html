@@ -94,8 +94,9 @@
 
         <section id="data">
           <h2><span class="sec-num">02.</span>Data We Collect</h2>
-          <p><strong>We collect zero personally identifiable information (PII).</strong></p>
-          <p>We do not collect names, email addresses, device identifiers (IMEI / Android ID), location data, contact lists, or audio recordings. Playback history, playlists, and listening statistics are stored entirely in your device's local database and are never transmitted to CaffeineLabs.</p>
+          <p><strong>CaffeineLabs does not receive or store personally identifiable information (PII) from CassetteCat.</strong></p>
+          <p>The app does not access names, email addresses, device identifiers (IMEI / Android ID), location data, contact lists, or audio recordings. Playback history, playlists, and listening statistics are stored entirely in your device's local database and are never transmitted to CaffeineLabs.</p>
+          <p>If you enable an optional online service, CassetteCat sends only the information needed for that request. This may include artist, album, and track names for artwork, metadata, lyrics, or scrobbling; a station query for internet radio; or credentials for a server or scrobbling service you configure.</p>
         </section>
 
         <section id="storage">
@@ -111,7 +112,7 @@
               <div class="doc-data-val">Used to display the system media notification and lock screen playback controls while audio plays in the background.</div>
             </div>
           </div>
-          <p class="doc-note">Your audio files and metadata tags are never uploaded or synced to external servers by CassetteCat.</p>
+          <p class="doc-note">CassetteCat does not upload your audio files to CaffeineLabs or metadata providers. When you use an optional online service, descriptive track metadata may be sent as explained in Section 5. Audio is transferred only when you use a server or radio stream that you selected.</p>
         </section>
 
         <section id="credentials">
@@ -119,8 +120,8 @@
           <p>If you connect the app to a self-hosted media server (Subsonic, Navidrome, Gonic, Airsonic, or Jellyfin):</p>
           <ul>
             <li>Your server endpoint URL, username, and authentication token/password are saved locally.</li>
-            <li>All credentials are encrypted using hardware-backed encryption via the <strong>Android KeyStore with AES-256-GCM</strong>.</li>
-            <li>Credentials are transmitted only to your designated self-hosted server endpoint over HTTPS to fetch your music stream.</li>
+            <li>Saved secrets are encrypted using <strong>AES-256-GCM with a key held in Android Keystore</strong>. Android may protect that key in secure hardware when the device supports it.</li>
+            <li>Credentials are transmitted only to the server or scrobbling service you configure. HTTPS connections encrypt data in transit. CassetteCat also permits HTTP for user-managed servers and companion hardware on trusted local networks; HTTP does not provide transport encryption.</li>
           </ul>
         </section>
 
@@ -145,6 +146,10 @@
               <div class="doc-data-val">Looks up open music metadata and archival CD/vinyl cover artwork.</div>
             </div>
             <div class="doc-data-row">
+              <div class="doc-data-key">Radio Browser</div>
+              <div class="doc-data-val">Searches for internet radio stations using the filters or query you enter and retrieves the selected station stream.</div>
+            </div>
+            <div class="doc-data-row">
               <div class="doc-data-key">Wikipedia & Wikimedia</div>
               <div class="doc-data-val">Fetches "About" descriptions for artists and albums using their names.</div>
             </div>
@@ -157,7 +162,7 @@
               <div class="doc-data-val">Off by default. Only activates if you enter your own user token in Settings, after which playback logs are submitted to your chosen scrobbling profile.</div>
             </div>
           </div>
-          <p>You can enable <strong>Offline Blackout Mode</strong> in Settings at any time to immediately disable all outbound network requests across the app, overriding every toggle above.</p>
+          <p>These services receive the request data described above and handle it under their own privacy policies. You can enable <strong>Offline Blackout Mode</strong> in Settings at any time to immediately disable all outbound network requests across the app, overriding every toggle above.</p>
         </section>
 
         <section id="tracking">

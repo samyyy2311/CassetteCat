@@ -3,6 +3,8 @@ package `in`.caffeinelabs.cassettecat.data.streaming.subsonic
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -69,7 +71,7 @@ class SubsonicApiClient(
             .addQueryParameter("c", CLIENT_NAME)
             .addQueryParameter("f", "json")
 
-    private suspend fun get(path: String, configure: HttpUrl.Builder.() -> Unit = {}): SubsonicResponse {
+    private suspend fun get(path: String, configure: HttpUrl.Builder.() -> Unit = {}): SubsonicResponse = withContext(Dispatchers.IO) {
         val url = urlBuilder(path).apply(configure).build()
         val response = sharedHttpClient.newCall(Request.Builder().url(url).build()).await()
         val body = response.use { it.body.string() }
@@ -77,7 +79,7 @@ class SubsonicApiClient(
         if (result.status != "ok") {
             throw SubsonicApiException(result.error?.message ?: "Subsonic request to $path failed")
         }
-        return result
+        result
     }
 
     private fun md5Hex(input: String): String =

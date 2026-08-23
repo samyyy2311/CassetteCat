@@ -17,8 +17,10 @@ import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -114,6 +116,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val songDownloadRepository = SongDownloadRepository.getInstance(app)
     private val favoritesRepository = FavoritesRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
+    private var refreshJob: Job? = null
 
     val isOfflineMode: StateFlow<Boolean> = serviceSettingsRepository.settings
         .map { it.offlineBlackoutMode }
@@ -176,34 +179,34 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             _albumSortDirection.value = enumFromNameOrDefault(prefs.libraryAlbumSortDirection, SortDirection.ASCENDING)
             _genreSortOrder.value = enumFromNameOrDefault(prefs.libraryGenreSortOrder, GenreSortOrder.NAME)
             _genreSortDirection.value = enumFromNameOrDefault(prefs.libraryGenreSortDirection, SortDirection.ASCENDING)
-            isOfflineMode.collect {
-                refresh()
-            }
+            isOfflineMode.collect { refresh() }
         }
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            _uiState.value = LibraryUiState.Loading
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch { loadSongs() }
+    }
 
-            val activeSources = if (isOfflineMode.value) {
-                sources.filter { it.label == "Local" }
-            } else {
-                sources
-            }
+    private suspend fun loadSongs() {
+        _uiState.value = LibraryUiState.Loading
+        val offline = isOfflineMode.value
+        val activeSources = if (offline) sources.filter { it.label == "Local" } else sources
 
-            // per-source, so one dead server doesn't blank out the others
-            val results = coroutineScope {
-                activeSources.map { source -> async { source.label to runCatching { source.repository.getSongs() } } }
-                    .map { it.await() }
-            }
-
-            loadedSongs = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
-            loadedWarnings = if (isOfflineMode.value) emptyList() else results.mapNotNull { (label, result) ->
-                result.exceptionOrNull()?.let { "$label: couldn't connect" }
-            }
-            publishLoadedSongs()
+        // per-source, so one dead server doesn't blank out the others
+        val results = coroutineScope {
+            activeSources.map { source -> async {
+                source.label to runCatching { source.repository.getSongs() }
+                    .onFailure { if (it is CancellationException) throw it }
+            } }
+                .map { it.await() }
         }
+
+        loadedSongs = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
+        loadedWarnings = results.mapNotNull { (label, result) ->
+            result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
+        }
+        publishLoadedSongs()
     }
 
     // re-tapping the active field flips direction instead of no-op
