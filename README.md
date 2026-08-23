@@ -44,16 +44,16 @@
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/01_home.png" width="23%" alt="Home Screen" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/02_library_albums.png" width="23%" alt="Library" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/03_library_artists.png" width="23%" alt="Artists" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/04_radio.png" width="23%" alt="Radio" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/framed/01_home.png" width="23%" alt="Home Screen" />
+  <img src="assets/screenshots/framed/02_library_albums.png" width="23%" alt="Library" />
+  <img src="assets/screenshots/framed/03_library_artists.png" width="23%" alt="Artists" />
+  <img src="assets/screenshots/framed/04_radio.png" width="23%" alt="Radio" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/05_instrumental.png" width="23%" alt="Lyrics (Instrumental)" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/06_now_playing.png" width="23%" alt="Now Playing" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/07_queue.png" width="23%" alt="Up Next Queue" style="border: 1px solid #30363d; border-radius: 8px;" />
-  <img src="assets/screenshots/08_settings.png" width="23%" alt="Settings" style="border: 1px solid #30363d; border-radius: 8px;" />
+  <img src="assets/screenshots/framed/05_instrumental.png" width="23%" alt="Lyrics (Instrumental)" />
+  <img src="assets/screenshots/framed/06_now_playing.png" width="23%" alt="Now Playing" />
+  <img src="assets/screenshots/framed/07_queue.png" width="23%" alt="Up Next Queue" />
+  <img src="assets/screenshots/framed/08_settings.png" width="23%" alt="Settings" />
 </p>
 
 ---
