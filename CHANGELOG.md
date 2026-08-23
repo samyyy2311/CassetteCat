@@ -2,6 +2,26 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.4.0] - Jellyfin Quick Connect & Playback Fixes
+
+### Streaming
+* **Jellyfin Quick Connect**: Sign in without typing a password by approving a code from an already-signed-in client.
+* Fixed Jellyfin and Subsonic libraries sometimes failing to load songs.
+
+### Playback
+* Fixed a brief pause when skipping to the next track.
+* Fixed Autoplay replaying the song that just ended before moving to the next pick, and fixed manually pressing Next at the end of the queue not triggering Autoplay.
+* **Volume Limit (Ear Protection)**: optional hard cap on maximum output level, independent of system volume.
+* External media button presses (e.g. from a swipe-to-skip widget) now reach the app even when it isn't in the foreground.
+
+### Display
+* Now Playing screen supports landscape orientation.
+* Fixed the app restarting itself on screen rotation.
+* Fixed the bottom navigation bar and Now Playing controls being covered on phones with a taller system navigation bar.
+
+### Fixes
+* Fixed a crash on launch affecting devices running Android 13 and below.
+
 ## [1.3.1] - Performance & Reliability
 
 ### Performance

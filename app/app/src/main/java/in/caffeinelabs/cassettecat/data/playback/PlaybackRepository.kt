@@ -424,7 +424,7 @@ class PlaybackRepository(private val context: Context) {
             currentSong = currentQueue.getOrNull(index),
             isPlaying = c.isPlaying,
             isBuffering = c.playbackState == Player.STATE_BUFFERING,
-            playWhenReady = c.playWhenReady,
+            playWhenReady = c.playWhenReady && c.playbackState != Player.STATE_ENDED,
             durationMs = c.duration.coerceAtLeast(0L),
             isShuffleEnabled = shuffleEnabled,
             repeatMode = c.repeatMode,

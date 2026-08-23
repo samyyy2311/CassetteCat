@@ -37,6 +37,7 @@ sealed interface QuickConnectState {
 }
 
 private const val QUICK_CONNECT_POLL_INTERVAL_MS = 3000L
+private const val QUICK_CONNECT_TIMEOUT_MS = 300_000L
 
 // protocol is passed per-call rather than injected into the constructor, so this
 // stays a zero-arg-Application AndroidViewModel, no custom ViewModelProvider.Factory.
@@ -81,19 +82,30 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun startQuickConnect(serverUrl: String) {
+        val attempt: suspend () -> ConnectionState = {
+            val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
+            val initiate = client.initiateQuickConnect()
+            _quickConnectState.value = QuickConnectState.AwaitingApproval(initiate.Code)
+            val deadline = System.currentTimeMillis() + QUICK_CONNECT_TIMEOUT_MS
+            fun checkNotExpired() {
+                if (System.currentTimeMillis() >= deadline) {
+                    throw IllegalStateException("Quick Connect code expired. Try again.")
+                }
+            }
+            while (true) {
+                checkNotExpired()
+                if (client.isQuickConnectAuthenticated(initiate.Secret)) break
+                delay(QUICK_CONNECT_POLL_INTERVAL_MS)
+            }
+            checkNotExpired()
+            finalizeJellyfinLogin(serverUrl, client.authenticateWithQuickConnect(initiate.Secret))
+        }
+        pendingAttempt = attempt
         quickConnectJob?.cancel()
         quickConnectJob = viewModelScope.launch {
             _quickConnectState.value = QuickConnectState.Idle
             _connectionState.value = ConnectionState.Connecting
-            _connectionState.value = runCatching {
-                val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
-                val initiate = client.initiateQuickConnect()
-                _quickConnectState.value = QuickConnectState.AwaitingApproval(initiate.Code)
-                while (!client.isQuickConnectAuthenticated(initiate.Secret)) {
-                    delay(QUICK_CONNECT_POLL_INTERVAL_MS)
-                }
-                finalizeJellyfinLogin(serverUrl, client.authenticateWithQuickConnect(initiate.Secret))
-            }.getOrElse {
+            _connectionState.value = runCatching { attempt() }.getOrElse {
                 if (it is CancellationException) throw it
                 it.toConnectionState()
             }

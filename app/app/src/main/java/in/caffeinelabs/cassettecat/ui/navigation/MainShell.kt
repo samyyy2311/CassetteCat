@@ -613,7 +613,8 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                             onDone = {
                                 libraryViewModel.refresh()
                                 navController.popBackStack()
-                            }
+                            },
+                            onCancel = { navController.popBackStack() }
                         )
                     }
                 }

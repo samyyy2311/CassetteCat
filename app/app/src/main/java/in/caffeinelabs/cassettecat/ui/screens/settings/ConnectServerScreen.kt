@@ -38,6 +38,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 fun ConnectServerScreen(
     protocol: StreamingProtocol,
     onDone: () -> Unit,
+    onCancel: () -> Unit = onDone,
     modifier: Modifier = Modifier,
     viewModel: ConnectServerViewModel = viewModel()
 ) {
@@ -166,7 +167,7 @@ fun ConnectServerScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                TextButton(onClick = hapticClick(onDone), modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = hapticClick(onCancel), modifier = Modifier.fillMaxWidth()) {
                     Text("Cancel")
                 }
             }

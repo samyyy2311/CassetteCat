@@ -328,13 +328,17 @@ class LocalListeningRoomRepository(context: Context) {
                 scope.launch {
                     runCatching {
                         socket.soTimeout = CONNECT_TIMEOUT_MS
-                        val suppliedCode = BufferedReader(InputStreamReader(socket.getInputStream()))
-                            .readLineBounded(64)
+                        val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+                        val suppliedCode = reader.readLineBounded(64)
                         if (suppliedCode != roomCode) throw IOException("Invalid room code")
                         socket.soTimeout = 0
                         guest.writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
                         updateParticipantCount()
-                    }.onFailure { removeHostGuest(guest) }
+                        // Guests never send anything after the room code; this just blocks
+                        // until the socket closes, so disconnects are noticed immediately.
+                        while (reader.readLineBounded(MAX_WIRE_LINE_LENGTH) != null) { /* discard */ }
+                    }
+                    removeHostGuest(guest)
                 }
             }
         }
