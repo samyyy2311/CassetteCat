@@ -68,7 +68,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        screenshotCallback?.let { runCatching { registerScreenCaptureCallback(mainExecutor, it) } }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            screenshotCallback?.let { runCatching { registerScreenCaptureCallback(mainExecutor, it) } }
+        }
     }
 
     override fun onStop() {
