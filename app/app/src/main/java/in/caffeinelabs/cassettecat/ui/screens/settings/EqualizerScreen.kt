@@ -304,8 +304,9 @@ fun EqualizerScreen(
                             title = "Loudness Normalization",
                             subtitle = "Balance output volume across diverse audio sources",
                             checked = levels.loudnessNormalization,
-                            onCheckedChange = { if (isEnabled) viewModel.setLoudnessNormalization(it) },
-                            iconRes = R.drawable.lucide_ic_volume_2
+                            onCheckedChange = { viewModel.setLoudnessNormalization(it) },
+                            iconRes = R.drawable.lucide_ic_volume_2,
+                            enabled = isEnabled
                         )
                     }
                 }

@@ -26,7 +26,22 @@ fun RadioStation.toSong(): Song = Song(
     durationMs = 0L,
     contentUri = streamUrl.toUri(),
     source = MusicSource.Radio,
-    artUri = favicon?.takeIf { it.isNotBlank() }?.let { it.toUri() }
+    artUri = favicon?.takeIf { it.isNotBlank() }?.let { it.toUri() },
+    genres = tags.split(",").map { it.trim() }.filter { it.isNotBlank() },
+    bitrateKbps = bitrate,
+    country = country
+)
+
+// Reverse of toSong(), needed to persist a station favorited from Now Playing
+// (which only has the generic Song, not the original RadioStation).
+fun Song.toRadioStation(): RadioStation = RadioStation(
+    uuid = id.removePrefix("radio:"),
+    name = title,
+    streamUrl = contentUri.toString(),
+    favicon = artUri?.toString(),
+    tags = genres.joinToString(","),
+    country = country,
+    bitrate = bitrateKbps
 )
 
 fun customRadioStation(name: String, streamUrl: String): RadioStation = RadioStation(

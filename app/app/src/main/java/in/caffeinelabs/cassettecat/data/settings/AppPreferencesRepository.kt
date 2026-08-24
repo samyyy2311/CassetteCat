@@ -36,6 +36,8 @@ private val TRACK_ROW_DENSITY = stringPreferencesKey("track_row_density")
 private val DEFAULT_SORT_METRIC = stringPreferencesKey("default_sort_metric")
 private val SHOW_AUDIO_QUALITY_BADGE = booleanPreferencesKey("show_audio_quality_badge")
 private val SHOW_NOW_PLAYING_BLUR = booleanPreferencesKey("show_now_playing_blur")
+private val LIBRARY_TAB_ORDER = stringPreferencesKey("library_tab_order")
+private val HIDDEN_LIBRARY_TABS = stringPreferencesKey("hidden_library_tabs")
 
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
 private val LIBRARY_COLLECTION_LAYOUT = stringPreferencesKey("library_collection_layout")
@@ -69,7 +71,10 @@ private val SHOW_HOME_RECENTLY_PLAYED = booleanPreferencesKey("show_home_recentl
 private val SHOW_HOME_HEAVY_ROTATION = booleanPreferencesKey("show_home_heavy_rotation")
 private val SHOW_HOME_RECENTLY_ADDED = booleanPreferencesKey("show_home_recently_added")
 private val SHOW_HOME_FORGOTTEN_FAVORITES = booleanPreferencesKey("show_home_forgotten_favorites")
+private val HOME_SECTION_ORDER = stringPreferencesKey("home_section_order")
 private val SHOW_MINI_PLAYER_PROGRESS = booleanPreferencesKey("show_mini_player_progress")
+private val MINI_PLAYER_ACTION = stringPreferencesKey("mini_player_action")
+private val ARTWORK_ACCENT_ENABLED = booleanPreferencesKey("artwork_accent_enabled")
 
 // Radio
 private val RADIO_SORT_ORDER = stringPreferencesKey("radio_sort_order")
@@ -90,12 +95,27 @@ enum class ThemeAccent(val label: String, val colorValue: Long, val containerVal
     CUSTOM("Custom", 0xFFC23B30, 0xFF3A1512)
 }
 
-enum class DefaultLibraryTab(val label: String, val pageIndex: Int) {
-    SONGS("Songs", 0),
-    ARTISTS("Artists", 1),
-    ALBUMS("Albums", 2),
-    GENRES("Genres", 3),
-    PLAYLISTS("Playlists", 4)
+enum class DefaultLibraryTab(val label: String) {
+    SONGS("Songs"),
+    ARTISTS("Artists"),
+    ALBUMS("Albums"),
+    GENRES("Genres"),
+    PLAYLISTS("Playlists")
+}
+
+enum class HomeSection(val label: String) {
+    HEAVY_ROTATION("Heavy Rotation"),
+    RECENTLY_PLAYED("Recently Played"),
+    RECENTLY_ADDED("Recently Added"),
+    FORGOTTEN_FAVORITES("Forgotten Favorites")
+}
+
+enum class MiniPlayerAction(val label: String) {
+    NEXT("Next track"),
+    PREVIOUS("Previous track"),
+    FAVORITE("Favorite"),
+    QUEUE("Queue"),
+    REPEAT("Repeat mode")
 }
 
 enum class AlbumArtCornerStyle(val label: String, val radiusDp: Int) {
@@ -160,6 +180,8 @@ data class AppPreferences(
     val defaultSortMetric: DefaultSortMetric = DefaultSortMetric.TITLE,
     val showAudioQualityBadge: Boolean = true,
     val showNowPlayingBlur: Boolean = true,
+    val libraryTabOrder: List<DefaultLibraryTab> = DefaultLibraryTab.entries,
+    val hiddenLibraryTabs: Set<DefaultLibraryTab> = emptySet(),
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",
@@ -190,7 +212,10 @@ data class AppPreferences(
     val showHomeHeavyRotation: Boolean = true,
     val showHomeRecentlyAdded: Boolean = true,
     val showHomeForgottenFavorites: Boolean = true,
+    val homeSectionOrder: List<HomeSection> = HomeSection.entries,
     val showMiniPlayerProgress: Boolean = true,
+    val miniPlayerAction: MiniPlayerAction = MiniPlayerAction.NEXT,
+    val artworkAccentEnabled: Boolean = false,
     // Radio
     val radioSortOrder: String = "POPULARITY",
     val radioSortDirection: String = "DESCENDING",
@@ -242,6 +267,8 @@ class AppPreferencesRepository(private val context: Context) {
             },
             showAudioQualityBadge = prefs[SHOW_AUDIO_QUALITY_BADGE] ?: true,
             showNowPlayingBlur = prefs[SHOW_NOW_PLAYING_BLUR] ?: true,
+            libraryTabOrder = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries),
+            hiddenLibraryTabs = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries),
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
             librarySongFilter = prefs[LIBRARY_SONG_FILTER] ?: "ALL",
@@ -289,7 +316,10 @@ class AppPreferencesRepository(private val context: Context) {
             showHomeHeavyRotation = prefs[SHOW_HOME_HEAVY_ROTATION] ?: true,
             showHomeRecentlyAdded = prefs[SHOW_HOME_RECENTLY_ADDED] ?: true,
             showHomeForgottenFavorites = prefs[SHOW_HOME_FORGOTTEN_FAVORITES] ?: true,
+            homeSectionOrder = orderedEnumValues(prefs[HOME_SECTION_ORDER], HomeSection.entries),
             showMiniPlayerProgress = prefs[SHOW_MINI_PLAYER_PROGRESS] ?: true,
+            miniPlayerAction = enumValueOrDefault(prefs[MINI_PLAYER_ACTION], MiniPlayerAction.NEXT),
+            artworkAccentEnabled = prefs[ARTWORK_ACCENT_ENABLED] ?: false,
             // Radio
             radioSortOrder = prefs[RADIO_SORT_ORDER] ?: "POPULARITY",
             radioSortDirection = prefs[RADIO_SORT_DIRECTION] ?: "DESCENDING",
@@ -303,10 +333,6 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setThemeAccent(accent: ThemeAccent) {
         context.appPreferencesDataStore.edit { it[THEME_ACCENT] = accent.name }
-    }
-
-    suspend fun setCustomAccentColor(colorValue: Long) {
-        context.appPreferencesDataStore.edit { it[THEME_ACCENT_CUSTOM_COLOR] = colorValue }
     }
 
     suspend fun setCustomAccentColorAndAccent(colorValue: Long) {
@@ -388,6 +414,27 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setShowNowPlayingBlur(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SHOW_NOW_PLAYING_BLUR] = enabled }
+    }
+
+    suspend fun setLibraryTabOrder(tabs: List<DefaultLibraryTab>) {
+        context.appPreferencesDataStore.edit { it[LIBRARY_TAB_ORDER] = tabs.joinToString(",") { tab -> tab.name } }
+    }
+
+    suspend fun setLibraryTabVisible(tab: DefaultLibraryTab, visible: Boolean) {
+        context.appPreferencesDataStore.edit { prefs ->
+            val hidden = enumValueSet(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries).toMutableSet()
+            if (visible) {
+                hidden -= tab
+            } else if (DefaultLibraryTab.entries.count { it !in hidden } > 1) {
+                hidden += tab
+            }
+            prefs[HIDDEN_LIBRARY_TABS] = hidden.joinToString(",") { it.name }
+            if (tab in hidden && enumValueOrDefault(prefs[DEFAULT_LIBRARY_TAB], DefaultLibraryTab.SONGS) == tab) {
+                prefs[DEFAULT_LIBRARY_TAB] = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries)
+                    .first { it !in hidden }
+                    .name
+            }
+        }
     }
 
     suspend fun setLibrarySortDirection(direction: String) {
@@ -506,6 +553,18 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[SHOW_MINI_PLAYER_PROGRESS] = enabled }
     }
 
+    suspend fun setHomeSectionOrder(sections: List<HomeSection>) {
+        context.appPreferencesDataStore.edit { it[HOME_SECTION_ORDER] = sections.joinToString(",") { section -> section.name } }
+    }
+
+    suspend fun setMiniPlayerAction(action: MiniPlayerAction) {
+        context.appPreferencesDataStore.edit { it[MINI_PLAYER_ACTION] = action.name }
+    }
+
+    suspend fun setArtworkAccentEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[ARTWORK_ACCENT_ENABLED] = enabled }
+    }
+
     // Radio
     suspend fun setRadioSortOrder(order: String) {
         context.appPreferencesDataStore.edit { it[RADIO_SORT_ORDER] = order }
@@ -535,3 +594,19 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[RADIO_DEFAULT_COUNTRY_APPLIED] = applied }
     }
 }
+
+internal fun <T : Enum<T>> orderedEnumValues(raw: String?, entries: List<T>): List<T> {
+    val byName = entries.associateBy { it.name }
+    return (raw.orEmpty().split(',').mapNotNull(byName::get) + entries).distinct()
+}
+
+private fun <T : Enum<T>> enumValueSet(raw: String?, entries: List<T>): Set<T> {
+    val byName = entries.associateBy { it.name }
+    return raw.orEmpty().split(',').mapNotNull(byName::get).toSet()
+}
+
+private fun <T : Enum<T>> safeHiddenEnumValues(raw: String?, entries: List<T>): Set<T> =
+    enumValueSet(raw, entries).let { if (it.size == entries.size) it - entries.first() else it }
+
+private fun <T : Enum<T>> enumValueOrDefault(raw: String?, default: T): T =
+    default.declaringJavaClass.enumConstants.orEmpty().firstOrNull { it.name == raw } ?: default

@@ -48,7 +48,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
-import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -114,26 +113,7 @@ internal fun NowPlayingPlayerView(
         )
         if (listeningRoomState.role != ListeningRoomRole.NONE) {
             Spacer(Modifier.height(8.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_users),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.height(14.dp).width(14.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    listeningRoomState.statusSubtitle(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
+            ListeningRoomStatusPill(listeningRoomState)
         }
         Spacer(Modifier.height(20.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
@@ -147,7 +127,6 @@ internal fun NowPlayingPlayerView(
             onSkipPrevious = onSkipPrevious,
             isPlaying = state.isPlaying,
             playWhenReady = state.playWhenReady,
-            isRadio = song.source == MusicSource.Radio,
             onTogglePlayPause = { playbackViewModel.togglePlayPause() },
             onSkipNext = onSkipNext,
             repeatMode = state.repeatMode,
@@ -200,6 +179,30 @@ internal fun NowPlayingPlayerView(
 }
 
 @Composable
+internal fun ListeningRoomStatusPill(listeningRoomState: ListeningRoomState) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_users),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.height(14.dp).width(14.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            listeningRoomState.statusSubtitle(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.tertiary
+        )
+    }
+}
+
+@Composable
 internal fun NowPlayingQueueView(
     song: Song,
     state: PlaybackUiState,
@@ -219,6 +222,7 @@ internal fun NowPlayingQueueView(
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     onPlaySong: (Song) -> Unit,
+    onSaveQueue: (() -> Unit)?,
     onQueueInteraction: () -> Unit,
     onQueueScrollDelta: (Float) -> Unit
 ) {
@@ -256,6 +260,7 @@ internal fun NowPlayingQueueView(
                 onReorderUpNext = { from, to -> playbackViewModel.moveInUpNext(from, to) },
                 onRemoveUpNext = { playbackViewModel.removeFromUpNext(it.id) },
                 onClearHistory = { playbackViewModel.clearHistory() },
+                onSaveQueue = onSaveQueue,
                 onScrollDelta = onQueueScrollDelta,
                 bottomPaddingDp = queueBottomPadDp,
                 controlsVisible = chromeVisible,
@@ -303,7 +308,6 @@ internal fun NowPlayingQueueView(
                             onSkipPrevious = onSkipPrevious,
                             isPlaying = state.isPlaying,
                             playWhenReady = state.playWhenReady,
-                            isRadio = song.source == MusicSource.Radio,
                             onTogglePlayPause = { playbackViewModel.togglePlayPause() },
                             onSkipNext = onSkipNext,
                             repeatMode = state.repeatMode,
@@ -495,7 +499,6 @@ internal fun NowPlayingLyricsView(
                                 onSkipPrevious = onSkipPrevious,
                                 isPlaying = state.isPlaying,
                                 playWhenReady = state.playWhenReady,
-                                isRadio = song.source == MusicSource.Radio,
                                 onTogglePlayPause = { playbackViewModel.togglePlayPause() },
                                 onSkipNext = onSkipNext,
                                 repeatMode = state.repeatMode,

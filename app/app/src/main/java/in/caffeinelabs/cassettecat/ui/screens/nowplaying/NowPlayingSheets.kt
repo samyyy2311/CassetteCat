@@ -75,6 +75,7 @@ internal fun NowPlayingActionsSheet(
     onShare: () -> Unit,
     onShareFile: () -> Unit,
     onAddToQueue: () -> Unit,
+    onStartInstantMix: () -> Unit,
     onDownload: () -> Unit,
     onOpenCredits: () -> Unit,
     onOpenOutputPicker: () -> Unit,
@@ -136,13 +137,24 @@ internal fun NowPlayingActionsSheet(
                     onClick = { onShareFile(); onDismiss() }
                 )
             }
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_list_plus,
-                label = "Add to Up Next",
-                subtitle = "Plays after the current queue",
-                accented = false,
-                onClick = { onAddToQueue(); onDismiss() }
-            )
+            if (song.source != MusicSource.Radio) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_list_plus,
+                    label = "Add to Up Next",
+                    subtitle = "Plays after the current queue",
+                    accented = false,
+                    onClick = { onAddToQueue(); onDismiss() }
+                )
+            }
+            if (song.source != MusicSource.Radio && song.source != MusicSource.ListeningRoomHost) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_sparkles,
+                    label = "Start Instant Mix",
+                    subtitle = "Build a local mix from this track",
+                    accented = false,
+                    onClick = { onStartInstantMix(); onDismiss() }
+                )
+            }
             if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_download,

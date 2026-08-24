@@ -75,7 +75,7 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
 
         Text(
-            "Includes playlists, favorites, listening stats, folder filters, and settings. " +
+            "Includes playlists, favorites, listening stats, folder filters, and settings. Listening records are also queued for Android backup when system backup is enabled. " +
                 "Server passwords aren't included because they're encrypted with a device-only key that " +
                 "can't be exported, so you'll need to re-enter them after a restore.",
             style = MaterialTheme.typography.bodyMedium,

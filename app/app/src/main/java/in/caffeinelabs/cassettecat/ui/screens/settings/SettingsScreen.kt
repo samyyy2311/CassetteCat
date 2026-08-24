@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
+import android.text.format.DateFormat
 import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -37,23 +38,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
+import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import java.util.Date
 
 val externalServices = ExternalService.entries.filter { it != ExternalService.GITHUB_UPDATES }
 
 @Composable
 fun SettingsScreen(
     playbackViewModel: PlaybackViewModel,
+    libraryViewModel: LibraryViewModel,
     onConnectServer: (StreamingProtocol) -> Unit,
     onNavigateToStats: () -> Unit,
     onManageScanFolders: () -> Unit,
@@ -79,7 +85,23 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val lastRefreshAtMs by libraryViewModel.lastRefreshAtMs.collectAsStateWithLifecycle()
     var showListeningRoom by remember { mutableStateOf(false) }
+
+    fun serverStatus(config: StreamingServerConfig, source: MusicSource, label: String): String {
+        if (uiState.services.offlineBlackoutMode) return "Paused by Offline Blackout Mode"
+        if (libraryState is LibraryUiState.Loading) return "Checking connection…"
+        val loaded = libraryState as? LibraryUiState.Loaded
+        val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$label:") }
+        val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }
+        return if (warning != null) {
+            "Unavailable · ${warning.substringAfter(':').trim()}${checkedAt?.let { " · checked $it" }.orEmpty()}"
+        } else {
+            val count = loaded?.songs?.count { it.source == source } ?: 0
+            "${config.username} · $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " · refreshed $it" }.orEmpty()}"
+        }
+    }
 
     Column(
         modifier = modifier
@@ -177,6 +199,9 @@ fun SettingsScreen(
                 title = "Subsonic",
                 subtitle = "Navidrome, gonic, and other Subsonic servers",
                 config = uiState.subsonic,
+                status = serverStatus(uiState.subsonic, MusicSource.Subsonic, "Subsonic"),
+                isChecking = uiState.services.offlineBlackoutMode || libraryState is LibraryUiState.Loading,
+                onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_subsonic,
                 iconTint = Color.Unspecified,
                 onConnect = { onConnectServer(StreamingProtocol.SUBSONIC) },
@@ -187,6 +212,9 @@ fun SettingsScreen(
                 title = "Jellyfin",
                 subtitle = "Connect to a Jellyfin media server",
                 config = uiState.jellyfin,
+                status = serverStatus(uiState.jellyfin, MusicSource.Jellyfin, "Jellyfin"),
+                isChecking = uiState.services.offlineBlackoutMode || libraryState is LibraryUiState.Loading,
+                onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_jellyfin,
                 iconTint = Color.Unspecified,
                 onConnect = { onConnectServer(StreamingProtocol.JELLYFIN) },
@@ -276,6 +304,14 @@ fun SettingsScreen(
             )
             SettingsDivider()
             NavigationRow(
+                title = "GitHub Sponsors",
+                subtitle = "Support development on GitHub Sponsors",
+                iconRes = AppR.drawable.ic_logo_github,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://github.com/sponsors/samyyy2311") }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = "Ko-fi",
                 subtitle = "Support development on Ko-fi",
                 iconRes = AppR.drawable.ic_logo_kofi,
@@ -285,7 +321,7 @@ fun SettingsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "Buy Me a Coffee",
-                subtitle = "Support Samarth on Buy Me a Coffee",
+                subtitle = "Support development on Buy Me a Coffee",
                 iconRes = AppR.drawable.ic_logo_buymeacoffee,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://buymeacoffee.com/samyyy2311") }

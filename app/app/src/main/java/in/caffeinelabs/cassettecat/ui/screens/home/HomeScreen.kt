@@ -40,6 +40,7 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
@@ -184,56 +185,32 @@ fun HomeScreen(
                     }
                     item { Spacer(Modifier.height(32.dp)) }
                 }
-                    if (preferences.showHomeHeavyRotation && heavyRotation.isNotEmpty()) {
-                        item {
-                            HomeSongSection(
-                                title = "Heavy Rotation",
-                                subtitle = "Your most played tracks",
-                                songs = heavyRotation,
-                                onSongClick = { play(heavyRotation, it) },
-                                onPlay = { playAll(heavyRotation, shuffle = false) },
-                                onShuffle = { playAll(heavyRotation, shuffle = true) }
-                            )
-                            Spacer(Modifier.height(32.dp))
-                        }
-                    }
-                    if (preferences.showHomeRecentlyPlayed && recentlyPlayed.isNotEmpty()) {
-                        item {
-                            HomeSongSection(
-                                title = "Recently Played",
-                                subtitle = "Pick up where you left off",
-                                songs = recentlyPlayed,
-                                onSongClick = { play(recentlyPlayed, it) },
-                                onPlay = { playAll(recentlyPlayed, shuffle = false) },
-                                onShuffle = { playAll(recentlyPlayed, shuffle = true) }
-                            )
-                            Spacer(Modifier.height(32.dp))
-                        }
-                    }
-                    if (preferences.showHomeRecentlyAdded && recentlyAdded.isNotEmpty()) {
-                        item {
-                            HomeSongSection(
-                                title = "Recently Added",
-                                subtitle = "Fresh in your library",
-                                songs = recentlyAdded,
-                                onSongClick = { play(recentlyAdded, it) },
-                                onPlay = { playAll(recentlyAdded, shuffle = false) },
-                                onShuffle = { playAll(recentlyAdded, shuffle = true) }
-                            )
-                            Spacer(Modifier.height(32.dp))
-                        }
-                    }
-                    if (preferences.showHomeForgottenFavorites && forgottenFavorites.isNotEmpty() && forgottenFavorites.size >= 3) {
-                        item {
-                            HomeSongSection(
-                                title = "Forgotten Favorites",
-                                subtitle = "Rediscover what you loved",
-                                songs = forgottenFavorites,
-                                onSongClick = { play(forgottenFavorites, it) },
-                                onPlay = { playAll(forgottenFavorites, shuffle = false) },
-                                onShuffle = { playAll(forgottenFavorites, shuffle = true) }
-                            )
-                            Spacer(Modifier.height(32.dp))
+                    preferences.homeSectionOrder.forEach { section ->
+                        val songs = when (section) {
+                            HomeSection.HEAVY_ROTATION -> heavyRotation.takeIf { preferences.showHomeHeavyRotation }
+                            HomeSection.RECENTLY_PLAYED -> recentlyPlayed.takeIf { preferences.showHomeRecentlyPlayed }
+                            HomeSection.RECENTLY_ADDED -> recentlyAdded.takeIf { preferences.showHomeRecentlyAdded }
+                            HomeSection.FORGOTTEN_FAVORITES -> forgottenFavorites.takeIf {
+                                preferences.showHomeForgottenFavorites && it.size >= 3
+                            }
+                        }.orEmpty()
+                        if (songs.isNotEmpty()) {
+                            item(key = "home_${section.name}") {
+                                HomeSongSection(
+                                    title = section.label,
+                                    subtitle = when (section) {
+                                        HomeSection.HEAVY_ROTATION -> "Your most played tracks"
+                                        HomeSection.RECENTLY_PLAYED -> "Pick up where you left off"
+                                        HomeSection.RECENTLY_ADDED -> "Fresh in your library"
+                                        HomeSection.FORGOTTEN_FAVORITES -> "Rediscover what you loved"
+                                    },
+                                    songs = songs,
+                                    onSongClick = { play(songs, it) },
+                                    onPlay = { playAll(songs, shuffle = false) },
+                                    onShuffle = { playAll(songs, shuffle = true) }
+                                )
+                                Spacer(Modifier.height(32.dp))
+                            }
                         }
                     }
                     if (favorites.isNotEmpty()) {

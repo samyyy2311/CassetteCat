@@ -31,6 +31,7 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.util.BluetoothOutputLabel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
@@ -122,6 +123,7 @@ internal fun TitleRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.tapScale(onArtistClick)
             )
+            BluetoothOutputLabel()
         }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_heart,

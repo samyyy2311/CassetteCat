@@ -93,6 +93,7 @@ fun QueueList(
     onReorderUpNext: (fromIndex: Int, toIndex: Int) -> Unit,
     onRemoveUpNext: (Song) -> Unit,
     onClearHistory: () -> Unit,
+    onSaveQueue: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onScrollDelta: (Float) -> Unit = {},
     bottomPaddingDp: Dp = 240.dp,
@@ -196,8 +197,19 @@ fun QueueList(
                 )
             }
         }
+        item(key = "up-next-header") {
+            SectionHeader("Playing Next") {
+                onSaveQueue?.let { save ->
+                    Text(
+                        "Save",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, fontSize = 14.sp),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.clickable(onClick = hapticClick(save)).padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
         if (order.isNotEmpty()) {
-            item(key = "up-next-header") { SectionHeader("Playing Next") }
             itemsIndexed(order, key = { index, song -> "next:${song.id}_$index" }) { index, song ->
                 val isDragging = index == draggingIndex
                 // Per-item dismissed flag: set to true on swipe confirm to trigger the

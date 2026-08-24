@@ -7,6 +7,10 @@ import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
+import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.data.settings.orderedEnumValues
+import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
+import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -52,5 +56,25 @@ class CoreLogicTest {
         assertFalse(ByteArrayInputStream(byteArrayOf(1, 2, 3)).skipFully(4))
         assertEquals("legacy", credentialToMigrate("legacy", null))
         assertNull(credentialToMigrate("legacy", "encrypted"))
+    }
+
+    @Test
+    fun restoresPersistedCustomizationOrderAndArtworkAccent() {
+        assertEquals(
+            listOf(DefaultLibraryTab.ALBUMS, DefaultLibraryTab.SONGS, DefaultLibraryTab.ARTISTS, DefaultLibraryTab.GENRES, DefaultLibraryTab.PLAYLISTS),
+            orderedEnumValues("ALBUMS,SONGS,ALBUMS,REMOVED", DefaultLibraryTab.entries)
+        )
+
+        val accent = artworkAccentFromPixels(IntArray(16) { 0xFFFF3020.toInt() })
+        assertTrue(accent != null && (accent shr 16 and 0xFF) > (accent and 0xFF))
+        assertNull(artworkAccentFromPixels(IntArray(16) { 0xFF777777.toInt() }))
+    }
+
+    @Test
+    fun ranksInstantMixCandidatesByLocalMetadata() {
+        assertEquals(3, instantMixAffinity("Seed", listOf("Rock"), "Other", listOf("rock")))
+        assertEquals(2, instantMixAffinity("Seed", listOf("Rock"), "seed", listOf("Jazz")))
+        assertEquals(5, instantMixAffinity("Seed", listOf("Rock"), "Seed", listOf("Rock")))
+        assertEquals(0, instantMixAffinity("Seed", listOf("Rock"), "Other", listOf("Jazz")))
     }
 }

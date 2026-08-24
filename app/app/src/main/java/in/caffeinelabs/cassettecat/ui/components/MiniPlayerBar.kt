@@ -39,9 +39,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -54,6 +56,7 @@ private val SmoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 fun MiniPlayerRow(
     playbackViewModel: PlaybackViewModel,
     onExpand: () -> Unit,
+    onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
     // Reports thumbnail bounds so NowPlayingContent can morph art into this spot on
     // collapse instead of cross-fading. No-op by default.
@@ -64,10 +67,30 @@ fun MiniPlayerRow(
     val previousSong = state.previousInQueue
     val nextSong = state.upNext.firstOrNull()
     val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
+    val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val actionIcon = when (preferences.miniPlayerAction) {
+        MiniPlayerAction.NEXT -> R.drawable.lucide_ic_skip_forward
+        MiniPlayerAction.PREVIOUS -> R.drawable.lucide_ic_skip_back
+        MiniPlayerAction.FAVORITE -> R.drawable.lucide_ic_heart
+        MiniPlayerAction.QUEUE -> R.drawable.lucide_ic_list_music
+        MiniPlayerAction.REPEAT -> if (state.repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat
+    }
+    val actionSelected = when (preferences.miniPlayerAction) {
+        MiniPlayerAction.FAVORITE -> isFavorite
+        MiniPlayerAction.REPEAT -> state.repeatMode != Player.REPEAT_MODE_OFF
+        else -> false
+    }
+    val actionClick = when (preferences.miniPlayerAction) {
+        MiniPlayerAction.NEXT -> playbackViewModel::skipNext
+        MiniPlayerAction.PREVIOUS -> playbackViewModel::skipPrevious
+        MiniPlayerAction.FAVORITE -> playbackViewModel::toggleFavoriteForCurrentSong
+        MiniPlayerAction.QUEUE -> onOpenQueue
+        MiniPlayerAction.REPEAT -> playbackViewModel::cycleRepeatMode
+    }
 
     Box(modifier = modifier) {
         Row(
@@ -102,10 +125,11 @@ fun MiniPlayerRow(
             )
             Spacer(Modifier.width(12.dp))
             TransportButton(
-                iconRes = R.drawable.lucide_ic_skip_forward,
+                iconRes = actionIcon,
                 size = 40.dp,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = { playbackViewModel.skipNext() }
+                tint = if (actionSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = actionClick,
+                accented = actionSelected
             )
         }
 

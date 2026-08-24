@@ -6,6 +6,9 @@
     <string name="widget_previous">Previous</string>
     <string name="widget_play_pause">Play/Pause</string>
     <string name="widget_next">Next</string>
+    <string name="shortcut_shuffle_all">Shuffle all</string>
+    <string name="shortcut_play_favorites">Play favorites</string>
+    <string name="shortcut_radio_favorites">Radio favorites</string>
     <string name="poster_period_annual">ANNUAL / %1$s</string>
     <string name="poster_period_month">%1$s / %2$s</string>
     <string name="poster_year_in_music">YOUR YEAR IN MUSIC</string>

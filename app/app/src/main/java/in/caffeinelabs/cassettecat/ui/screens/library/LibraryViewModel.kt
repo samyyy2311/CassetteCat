@@ -3,9 +3,6 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
-import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
-import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -112,9 +109,6 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val serverRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
     private val serviceSettingsRepository = ServiceSettingsRepository(app)
-    private val downloadSettingsRepository = DownloadSettingsRepository(app)
-    private val songDownloadRepository = SongDownloadRepository.getInstance(app)
-    private val favoritesRepository = FavoritesRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
     private var refreshJob: Job? = null
 
@@ -165,6 +159,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _uiState = MutableStateFlow<LibraryUiState>(LibraryUiState.Loading)
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
+    private val _lastRefreshAtMs = MutableStateFlow<Long?>(null)
+    val lastRefreshAtMs: StateFlow<Long?> = _lastRefreshAtMs.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -207,6 +203,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
         }
         publishLoadedSongs()
+        _lastRefreshAtMs.value = System.currentTimeMillis()
     }
 
     // re-tapping the active field flips direction instead of no-op

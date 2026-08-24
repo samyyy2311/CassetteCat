@@ -11,8 +11,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
 
-private const val TRANSITION_MS = 220
-private val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+internal const val TRANSITION_MS = 220
+internal val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 
 private fun slideEnter(fromRight: Boolean): EnterTransition = slideInHorizontally(
     animationSpec = tween(TRANSITION_MS, easing = SmoothEasing),

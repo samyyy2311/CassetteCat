@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.stats
 
 import android.content.Context
+import android.app.backup.BackupManager
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -70,11 +71,13 @@ class ListeningStatsRepository(private val context: Context) {
 
     suspend fun clearAll() {
         context.statsDataStore.edit { it.remove(STATS_KEY) }
+        BackupManager(context).dataChanged()
     }
 
     // backup restore only: full replace, not a merge
     suspend fun replaceAll(monthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
         context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(monthly, milestones)) }
+        BackupManager(context).dataChanged()
     }
 
     private fun withNewMilestones(
@@ -90,6 +93,7 @@ class ListeningStatsRepository(private val context: Context) {
 
     private suspend fun update(transform: (StatsData) -> StatsData) {
         context.statsDataStore.edit { prefs -> prefs[STATS_KEY] = sharedJson.encodeToString(transform(prefs.decode())) }
+        BackupManager(context).dataChanged()
     }
 
     private fun Preferences.decode(): StatsData =

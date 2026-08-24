@@ -18,12 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,9 +47,11 @@ import `in`.caffeinelabs.cassettecat.data.settings.AlbumArtCornerStyle
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
+import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
+import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -139,6 +143,7 @@ fun CustomizationScreen(
 object CustomizationRoute {
     const val THEME = "main/settings/customization/theme"
     const val STARTUP_LIBRARY = "main/settings/customization/startup_library"
+    const val LIBRARY_TABS = "main/settings/customization/library_tabs"
     const val NOW_PLAYING = "main/settings/customization/now_playing"
     const val AUDIO_ENGINE = "main/settings/customization/audio_engine"
     const val LYRICS = "main/settings/customization/lyrics"
@@ -236,11 +241,29 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
         )
         SettingsDivider()
         ToggleRow(
+            title = "Artwork Accent",
+            subtitle = "Use the current album artwork colour while music is playing",
+            checked = prefs.artworkAccentEnabled,
+            onCheckedChange = viewModel::setArtworkAccentEnabled,
+            iconRes = R.drawable.lucide_ic_sparkles,
+        )
+        SettingsDivider()
+        ToggleRow(
             title = "Mini-Player Progress",
             subtitle = "Show a thin progress line on the mini-player",
             checked = prefs.showMiniPlayerProgress,
             onCheckedChange = viewModel::setShowMiniPlayerProgress,
             iconRes = R.drawable.lucide_ic_activity,
+        )
+        SettingsDivider()
+        SheetPickerRow(
+            title = "Mini-Player Action",
+            subtitle = "Choose the button shown beside play and pause",
+            iconRes = R.drawable.lucide_ic_mouse_pointer_click,
+            options = MiniPlayerAction.entries,
+            selected = prefs.miniPlayerAction,
+            label = { it.label },
+            onSelect = viewModel::setMiniPlayerAction
         )
         }
     }
@@ -343,52 +366,45 @@ private fun CustomAccentColorSheet(
 }
 
 @Composable
-fun CustomizationStartupLibraryScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+fun CustomizationStartupLibraryScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    onNavigateToLibraryTabs: () -> Unit,
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
+    val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Startup & Library", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
-        DefaultStartScreen.entries.forEachIndexed { index, option ->
-            val isSelected = prefs.defaultStartScreen == option
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setDefaultStartScreen(option) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = isSelected,
-                    onClick = null,
-                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.tertiary)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(option.label, style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        when (option) {
-                            DefaultStartScreen.HOME -> "Open to your personalized Home dashboard"
-                            DefaultStartScreen.LIBRARY -> "Open directly to your music Library"
-                            DefaultStartScreen.LAST_OPENED -> "Resume on whichever tab you used last"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (index != DefaultStartScreen.entries.lastIndex) SettingsDivider(startPadding = 56.dp)
-        }
+        SheetPickerRow(
+            title = "Start Screen",
+            subtitle = "Choose where CassetteCat opens",
+            iconRes = R.drawable.lucide_ic_house,
+            options = DefaultStartScreen.entries,
+            selected = prefs.defaultStartScreen,
+            label = { it.label },
+            onSelect = viewModel::setDefaultStartScreen
+        )
         SettingsDivider()
         SheetPickerRow(
             title = "Default Library Tab",
             subtitle = "Which section to show when opening the Library",
             iconRes = R.drawable.lucide_ic_library,
-            options = DefaultLibraryTab.entries,
-            selected = prefs.defaultLibraryTab,
+            options = visibleTabs,
+            selected = prefs.defaultLibraryTab.takeIf { it in visibleTabs } ?: visibleTabs.first(),
             label = { it.label },
             onSelect = viewModel::setDefaultLibraryTab
+        )
+        SettingsDivider()
+        NavigationRow(
+            title = "Library Tabs",
+            subtitle = "${visibleTabs.size} of ${prefs.libraryTabOrder.size} shown · Reorder and visibility",
+            iconRes = R.drawable.lucide_ic_list,
+            onClick = onNavigateToLibraryTabs
         )
         SettingsDivider()
         SheetPickerRow(
@@ -696,38 +712,104 @@ fun CustomizationHomeFeedScreen(viewModel: SettingsViewModel, onBack: () -> Unit
         CategoryHeader("Home Feed", onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
-        ToggleRow(
-            title = "Recently Played",
-            subtitle = "Surface tracks you recently listened to",
-            checked = prefs.showHomeRecentlyPlayed,
-            onCheckedChange = viewModel::setShowHomeRecentlyPlayed,
-            iconRes = R.drawable.lucide_ic_history,
-        )
-        SettingsDivider()
-        ToggleRow(
-            title = "Heavy Rotation",
-            subtitle = "Your top played tracks this month",
-            checked = prefs.showHomeHeavyRotation,
-            onCheckedChange = viewModel::setShowHomeHeavyRotation,
-            iconRes = R.drawable.lucide_ic_flame,
-        )
-        SettingsDivider()
-        ToggleRow(
-            title = "Recently Added",
-            subtitle = "New tracks imported to your library",
-            checked = prefs.showHomeRecentlyAdded,
-            onCheckedChange = viewModel::setShowHomeRecentlyAdded,
-            iconRes = R.drawable.lucide_ic_clock_plus,
-        )
-        SettingsDivider()
-        ToggleRow(
-            title = "Forgotten Favourites",
-            subtitle = "Loved tracks you haven't played in a while",
-            checked = prefs.showHomeForgottenFavorites,
-            onCheckedChange = viewModel::setShowHomeForgottenFavorites,
-            iconRes = R.drawable.lucide_ic_heart,
-        )
+            prefs.homeSectionOrder.forEachIndexed { index, section ->
+                val checked = when (section) {
+                    HomeSection.HEAVY_ROTATION -> prefs.showHomeHeavyRotation
+                    HomeSection.RECENTLY_PLAYED -> prefs.showHomeRecentlyPlayed
+                    HomeSection.RECENTLY_ADDED -> prefs.showHomeRecentlyAdded
+                    HomeSection.FORGOTTEN_FAVORITES -> prefs.showHomeForgottenFavorites
+                }
+                OrderableToggleRow(
+                    title = section.label,
+                    checked = checked,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < prefs.homeSectionOrder.lastIndex,
+                    onCheckedChange = { enabled ->
+                        when (section) {
+                            HomeSection.HEAVY_ROTATION -> viewModel.setShowHomeHeavyRotation(enabled)
+                            HomeSection.RECENTLY_PLAYED -> viewModel.setShowHomeRecentlyPlayed(enabled)
+                            HomeSection.RECENTLY_ADDED -> viewModel.setShowHomeRecentlyAdded(enabled)
+                            HomeSection.FORGOTTEN_FAVORITES -> viewModel.setShowHomeForgottenFavorites(enabled)
+                        }
+                    },
+                    onMoveUp = { viewModel.moveHomeSection(section, -1) },
+                    onMoveDown = { viewModel.moveHomeSection(section, 1) }
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun CustomizationLibraryTabsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val prefs = uiState.preferences
+    val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
+        CategoryHeader("Library Tabs", onBack)
+        Spacer(Modifier.height(16.dp))
+        SettingsSection {
+            prefs.libraryTabOrder.forEachIndexed { index, tab ->
+                OrderableToggleRow(
+                    title = tab.label,
+                    checked = tab !in prefs.hiddenLibraryTabs,
+                    canDisable = visibleTabs.size > 1 || tab in prefs.hiddenLibraryTabs,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < prefs.libraryTabOrder.lastIndex,
+                    onCheckedChange = { viewModel.setLibraryTabVisible(tab, it) },
+                    onMoveUp = { viewModel.moveLibraryTab(tab, -1) },
+                    onMoveDown = { viewModel.moveLibraryTab(tab, 1) }
+                )
+                if (index != prefs.libraryTabOrder.lastIndex) SettingsDivider(startPadding = 24.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderableToggleRow(
+    title: String,
+    checked: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    canDisable: Boolean = true
+) {
+    var showMoveMenu by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).padding(start = 12.dp))
+        Box {
+            PressDepthIconButton(R.drawable.lucide_ic_ellipsis_vertical, "Reorder $title", { showMoveMenu = true })
+            DropdownMenu(expanded = showMoveMenu, onDismissRequest = { showMoveMenu = false }) {
+                if (canMoveUp) {
+                    DropdownMenuItem(
+                        text = { Text("Move up") },
+                        onClick = { showMoveMenu = false; onMoveUp() }
+                    )
+                }
+                if (canMoveDown) {
+                    DropdownMenuItem(
+                        text = { Text("Move down") },
+                        onClick = { showMoveMenu = false; onMoveDown() }
+                    )
+                }
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = canDisable,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
+                checkedBorderColor = MaterialTheme.colorScheme.tertiary
+            )
+        )
     }
 }
 

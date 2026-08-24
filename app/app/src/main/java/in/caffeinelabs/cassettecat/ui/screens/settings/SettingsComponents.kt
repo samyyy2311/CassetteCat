@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -21,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -114,13 +116,15 @@ fun ToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     iconRes: Int,
-    iconTint: Color = MaterialTheme.colorScheme.secondary
+    iconTint: Color = MaterialTheme.colorScheme.secondary,
+    enabled: Boolean = true
 ) {
     val onSwitchToggle = hapticClick { onCheckedChange(!checked) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .tapScale { onCheckedChange(!checked) }
+            .alpha(if (enabled) 1f else 0.38f)
+            .then(if (enabled) Modifier.tapScale { onCheckedChange(!checked) } else Modifier)
             .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -143,6 +147,7 @@ fun ToggleRow(
         Switch(
             checked = checked,
             onCheckedChange = { onSwitchToggle() },
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.tertiary,
                 checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
@@ -190,6 +195,9 @@ fun ServerRow(
     title: String,
     subtitle: String,
     config: StreamingServerConfig,
+    status: String? = null,
+    isChecking: Boolean = false,
+    onRetry: () -> Unit = {},
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     iconRes: Int = R.drawable.lucide_ic_server,
@@ -212,12 +220,19 @@ fun ServerRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
-                if (config.connected) "Connected as ${config.username}" else subtitle,
+                if (config.connected) status ?: "Connected as ${config.username}" else subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         if (config.connected) {
+            IconButton(onClick = hapticClick(onRetry), enabled = !isChecking) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_refresh_cw),
+                    contentDescription = "Retry $title",
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+            }
             TextButton(onClick = hapticClick(onDisconnect)) { Text("Disconnect") }
         } else {
             Icon(

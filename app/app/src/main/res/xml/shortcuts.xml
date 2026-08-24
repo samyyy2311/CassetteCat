@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shuffle_all"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_shuffle"
+        android:shortcutShortLabel="@string/shortcut_shuffle_all">
+        <intent
+            android:action="in.caffeinelabs.cassettecat.action.SHUFFLE_ALL"
+            android:targetPackage="in.caffeinelabs.cassettecat"
+            android:targetClass="in.caffeinelabs.cassettecat.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="play_favorites"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_heart"
+        android:shortcutShortLabel="@string/shortcut_play_favorites">
+        <intent
+            android:action="in.caffeinelabs.cassettecat.action.PLAY_FAVORITES"
+            android:targetPackage="in.caffeinelabs.cassettecat"
+            android:targetClass="in.caffeinelabs.cassettecat.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="radio_favorites"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_radio"
+        android:shortcutShortLabel="@string/shortcut_radio_favorites">
+        <intent
+            android:action="in.caffeinelabs.cassettecat.action.PLAY_RADIO_FAVORITES"
+            android:targetPackage="in.caffeinelabs.cassettecat"
+            android:targetClass="in.caffeinelabs.cassettecat.MainActivity" />
+    </shortcut>
+</shortcuts>

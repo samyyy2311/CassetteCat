@@ -193,8 +193,14 @@ fun AboutLegalScreen(
                     PermissionRow(
                         iconRes = R.drawable.lucide_ic_radio,
                         iconTint = Color(0xFF10B981),
-                        title = "Nearby Devices & Bluetooth",
-                        description = "Optional. Used for CassetteCat companion physical player hardware sync."
+                        title = "Nearby Wi-Fi Devices",
+                        description = "Optional. Used to find the CassetteCat companion player on your Wi-Fi network."
+                    )
+                    PermissionRow(
+                        iconRes = R.drawable.lucide_ic_bluetooth_connected,
+                        iconTint = Color(0xFF10B981),
+                        title = "Bluetooth",
+                        description = "Optional. Used only to show the name of the Bluetooth speaker or headphones you're playing to."
                     )
                 }
             }

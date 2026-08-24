@@ -37,5 +37,8 @@ data class Song(
     val dateAddedMs: Long = 0L,
     // Local only: on-device file path (MediaStore DATA column), used to look up sidecar
     // .lrc files. Always null for streamed sources.
-    val filePath: String? = null
+    val filePath: String? = null,
+    // Radio only: stream bitrate in kbps and station country, 0/blank for other sources.
+    val bitrateKbps: Int = 0,
+    val country: String = ""
 )

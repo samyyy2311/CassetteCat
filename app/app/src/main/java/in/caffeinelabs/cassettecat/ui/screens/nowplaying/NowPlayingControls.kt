@@ -103,7 +103,6 @@ internal fun PlaybackControlsRow(
     onSkipPrevious: () -> Unit,
     isPlaying: Boolean,
     playWhenReady: Boolean = isPlaying,
-    isRadio: Boolean = false,
     onTogglePlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     repeatMode: Int,
@@ -111,7 +110,7 @@ internal fun PlaybackControlsRow(
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
-        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, isPlaying = isPlaying, isRadio = isRadio)
+        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -195,15 +194,8 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
 private fun ScrubberControl(
     positionMs: Long,
     durationMs: Long,
-    onSeek: (Long) -> Unit,
-    isPlaying: Boolean = true,
-    isRadio: Boolean = false
+    onSeek: (Long) -> Unit
 ) {
-    if (isRadio) {
-        LiveIndicator(isPlaying = isPlaying)
-        return
-    }
-
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
@@ -256,15 +248,22 @@ private fun ScrubberControl(
 }
 
 @Composable
-private fun LiveIndicator(isPlaying: Boolean = true) {
+internal fun LiveIndicator(isPlaying: Boolean = true, isBuffering: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth().height(28.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LiveWaveform(isPlaying = isPlaying)
+        LiveWaveform(isPlaying = isPlaying && !isBuffering)
         Spacer(Modifier.width(10.dp))
-        Text(if (isPlaying) "LIVE" else "PAUSED", style = readoutStyle())
+        Text(
+            when {
+                isBuffering -> "CONNECTING…"
+                isPlaying -> "LIVE"
+                else -> "PAUSED"
+            },
+            style = readoutStyle()
+        )
     }
 }
 
@@ -345,7 +344,7 @@ private fun FaderThumb() {
 }
 
 @Composable
-private fun readoutStyle() = MaterialTheme.typography.bodyMedium.copy(
+internal fun readoutStyle() = MaterialTheme.typography.bodyMedium.copy(
     fontFamily = IbmPlexMonoFontFamily,
     color = MaterialTheme.colorScheme.onSurfaceVariant
 )

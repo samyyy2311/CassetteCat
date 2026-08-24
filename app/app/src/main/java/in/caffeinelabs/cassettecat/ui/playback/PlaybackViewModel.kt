@@ -28,6 +28,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackStateRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
+import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
@@ -60,6 +61,30 @@ private const val AUTOPLAY_BATCH_SIZE = 20
 private data class ListeningBucket(val monthKey: String, val songId: String)
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
 
+internal fun instantMixAffinity(
+    seedArtist: String,
+    seedGenres: List<String>,
+    candidateArtist: String,
+    candidateGenres: List<String>
+): Int {
+    val normalizedSeedGenres = seedGenres.map { it.lowercase() }.toSet()
+    val sharedGenres = candidateGenres.map { it.lowercase() }.toSet().count { it in normalizedSeedGenres }
+    return sharedGenres * 3 + if (candidateArtist.equals(seedArtist, ignoreCase = true)) 2 else 0
+}
+
+internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): List<Song> {
+    if (limit <= 0) return emptyList()
+    val candidates = library.distinctBy { it.id }.filter {
+        it.id != seed.id && it.source != MusicSource.Radio && it.source != MusicSource.ListeningRoomHost
+    }
+    val ranked = candidates.sortedWith(
+        compareByDescending<Song> { candidate ->
+            instantMixAffinity(seed.artist, seed.genres, candidate.artist, candidate.genres)
+        }.thenBy { (seed.id + it.id).hashCode() }
+    )
+    return (listOf(seed) + ranked).take(limit)
+}
+
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = PlaybackRepository(app)
@@ -80,6 +105,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
+    // Radio favorites live in their own store (station objects, not song ids) since
+    // MusicSource.Radio has no LibraryRepository above to route setFavorite() through.
+    private val radioFavoritesRepository = `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository(app)
 
     private val _isCurrentSongFavorite = MutableStateFlow(false)
     val isCurrentSongFavorite: StateFlow<Boolean> = _isCurrentSongFavorite.asStateFlow()
@@ -141,7 +169,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch {
             playbackState.map { it.currentSong }.distinctUntilChanged().collect { song ->
-                _isCurrentSongFavorite.value = song?.isFavorite ?: false
+                _isCurrentSongFavorite.value = if (song?.source == MusicSource.Radio) {
+                    val uuid = song.id.removePrefix("radio:")
+                    radioFavoritesRepository.favoriteStations.first().any { it.uuid == uuid }
+                } else {
+                    song?.isFavorite ?: false
+                }
                 if (song != null) {
                     scrobbleManager.onTrackStarted(song)
                     savePlaybackState()
@@ -234,6 +267,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun playQueue(songs: List<Song>, startIndex: Int) {
         if (isFollowingRoomHost()) return
         viewModelScope.launch { repository.playQueue(songs, startIndex) }
+    }
+
+    fun playInstantMix(seed: Song, library: List<Song>) {
+        playQueue(buildInstantMix(seed, library), 0)
     }
 
     // once per process, and only into an idle session
@@ -371,9 +408,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _isCurrentSongFavorite.value = newValue
         viewModelScope.launch {
             runCatching {
-                librariesBySource[song.source]?.setFavorite(song.id, newValue)
-                if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
-                    `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
+                if (song.source == MusicSource.Radio) {
+                    if (newValue) {
+                        radioFavoritesRepository.add(song.toRadioStation())
+                    } else {
+                        radioFavoritesRepository.remove(song.id.removePrefix("radio:"))
+                    }
+                } else {
+                    librariesBySource[song.source]?.setFavorite(song.id, newValue)
+                    if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
+                        `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
+                    }
                 }
             }.onFailure { _isCurrentSongFavorite.value = !newValue }
         }

@@ -259,7 +259,7 @@ fun StatsScreen(
             }
             Spacer(Modifier.height(if (availableYears.size > 1 || monthsInYear.size > 1) 16.dp else 8.dp))
 
-            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding)) {
+            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)) {
                 item {
                     ListeningRecordReadout(
                         month = month,

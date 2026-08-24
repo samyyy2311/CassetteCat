@@ -20,6 +20,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistNameSheet
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ internal class NowPlayingSheetState {
     var showListeningRoom by mutableStateOf(false)
     var showPlaybackSpeed by mutableStateOf(false)
     var showScreenshotSuggestion by mutableStateOf(false)
+    var showSaveQueue by mutableStateOf(false)
 }
 
 @Composable
@@ -47,6 +49,8 @@ internal fun NowPlayingScreenSheetsHost(
     isFavorite: Boolean,
     sleepTimerEndMs: Long?,
     playlists: List<Playlist>,
+    allSongs: List<Song>,
+    queueSongs: List<Song>,
     listeningRoom: ListeningRoomState,
     playbackViewModel: PlaybackViewModel,
     downloadRepository: SongDownloadRepository,
@@ -55,6 +59,7 @@ internal fun NowPlayingScreenSheetsHost(
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: (String) -> Unit,
     onNavigateToPlaylist: (String) -> Unit,
+    onSaveQueue: (String, List<String>) -> Unit,
     syncedLyrics: List<LyricLine>? = null,
     fallbackLyrics: String? = null,
     currentPositionMs: Long = 0L
@@ -74,6 +79,7 @@ internal fun NowPlayingScreenSheetsHost(
                 onShare = { sheetState.showScreenshotSuggestion = true },
                 onShareFile = { scope.launch { shareAudioFile(context, currentSong) } },
                 onAddToQueue = { playbackViewModel.addToUpNext(listOf(currentSong)) },
+                onStartInstantMix = { playbackViewModel.playInstantMix(currentSong, allSongs) },
                 onDownload = { downloadRepository.download(currentSong) },
                 onOpenCredits = { sheetState.showCredits = true },
                 onOpenOutputPicker = { sheetState.showOutputPicker = true },
@@ -83,6 +89,17 @@ internal fun NowPlayingScreenSheetsHost(
                 onDismiss = { sheetState.showMenu = false }
             )
         }
+    }
+    if (sheetState.showSaveQueue) {
+        PlaylistNameSheet(
+            title = "Save Queue as Playlist",
+            initialName = "",
+            onConfirm = { name ->
+                onSaveQueue(name, queueSongs.map { it.id })
+                sheetState.showSaveQueue = false
+            },
+            onDismiss = { sheetState.showSaveQueue = false }
+        )
     }
     if (sheetState.showPlaybackSpeed) {
         val playbackSpeed by playbackViewModel.playbackSpeed.collectAsStateWithLifecycle()

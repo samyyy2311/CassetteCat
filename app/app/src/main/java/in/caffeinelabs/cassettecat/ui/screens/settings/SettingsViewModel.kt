@@ -13,9 +13,11 @@ import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
+import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
+import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
@@ -143,6 +145,24 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setShowMiniPlayerProgress(enabled) }
     }
 
+    fun moveHomeSection(section: HomeSection, offset: Int) {
+        val order = uiState.value.preferences.homeSectionOrder.toMutableList()
+        val from = order.indexOf(section)
+        val to = (from + offset).coerceIn(order.indices)
+        if (from != -1 && from != to) {
+            order.add(to, order.removeAt(from))
+            viewModelScope.launch { appPreferencesRepository.setHomeSectionOrder(order) }
+        }
+    }
+
+    fun setMiniPlayerAction(action: MiniPlayerAction) {
+        viewModelScope.launch { appPreferencesRepository.setMiniPlayerAction(action) }
+    }
+
+    fun setArtworkAccentEnabled(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setArtworkAccentEnabled(enabled) }
+    }
+
     fun setThemeAccent(accent: ThemeAccent) {
         viewModelScope.launch { appPreferencesRepository.setThemeAccent(accent) }
     }
@@ -157,6 +177,20 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setDefaultLibraryTab(tab: DefaultLibraryTab) {
         viewModelScope.launch { appPreferencesRepository.setDefaultLibraryTab(tab) }
+    }
+
+    fun moveLibraryTab(tab: DefaultLibraryTab, offset: Int) {
+        val order = uiState.value.preferences.libraryTabOrder.toMutableList()
+        val from = order.indexOf(tab)
+        val to = (from + offset).coerceIn(order.indices)
+        if (from != -1 && from != to) {
+            order.add(to, order.removeAt(from))
+            viewModelScope.launch { appPreferencesRepository.setLibraryTabOrder(order) }
+        }
+    }
+
+    fun setLibraryTabVisible(tab: DefaultLibraryTab, visible: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setLibraryTabVisible(tab, visible) }
     }
 
     fun setAlbumArtCornerRadiusDp(radius: Int) {

@@ -44,12 +44,16 @@ import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun LibraryViewModeTabs(selected: LibraryViewMode, onSelect: (LibraryViewMode) -> Unit) {
+internal fun LibraryViewModeTabs(
+    modes: List<LibraryViewMode>,
+    selected: LibraryViewMode,
+    onSelect: (LibraryViewMode) -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        LibraryViewMode.entries.forEach { mode ->
+        modes.forEach { mode ->
             val isSelected = mode == selected
             val tint = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
             Column(
@@ -173,7 +177,9 @@ internal fun ArtistsTabContent(
     listState: LazyListState,
     listBottomPadding: Dp,
     onNavigateToArtist: (String) -> Unit,
-    onPlayGroup: (List<Song>) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -206,8 +212,9 @@ internal fun ArtistsTabContent(
                 items(artists, key = { it.artist }) { group ->
                     ArtistCard(
                         group = group,
-                        onClick = { onNavigateToArtist(group.artist) },
-                        onPlay = { onPlayGroup(group.songs) }
+                        selected = group.artist in selectedIds,
+                        onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
+                        onLongClick = { onToggleSelect(group.artist) }
                     )
                 }
             }
@@ -220,8 +227,10 @@ internal fun ArtistsTabContent(
                 items(artists, key = { it.artist }) { group ->
                     ArtistListRow(
                         group = group,
-                        onClick = { onNavigateToArtist(group.artist) },
-                        onPlay = { onPlayGroup(group.songs) }
+                        selected = group.artist in selectedIds,
+                        selectionMode = selectionMode,
+                        onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
+                        onLongClick = { onToggleSelect(group.artist) }
                     )
                 }
             }
@@ -257,7 +266,9 @@ internal fun AlbumsTabContent(
     listState: LazyListState,
     listBottomPadding: Dp,
     onNavigateToAlbum: (String) -> Unit,
-    onPlayGroup: (List<Song>) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -290,8 +301,9 @@ internal fun AlbumsTabContent(
                 items(albums, key = { it.albumId }) { group ->
                     AlbumCard(
                         group = group,
-                        onClick = { onNavigateToAlbum(group.albumId) },
-                        onPlay = { onPlayGroup(group.songs) }
+                        selected = group.albumId in selectedIds,
+                        onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
+                        onLongClick = { onToggleSelect(group.albumId) }
                     )
                 }
             }
@@ -304,8 +316,10 @@ internal fun AlbumsTabContent(
                 items(albums, key = { it.albumId }) { group ->
                     AlbumListRow(
                         group = group,
-                        onClick = { onNavigateToAlbum(group.albumId) },
-                        onPlay = { onPlayGroup(group.songs) }
+                        selected = group.albumId in selectedIds,
+                        selectionMode = selectionMode,
+                        onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
+                        onLongClick = { onToggleSelect(group.albumId) }
                     )
                 }
             }
@@ -342,6 +356,9 @@ internal fun GenresTabContent(
     listBottomPadding: Dp,
     onNavigateToGenre: (String) -> Unit,
     onPlayGroup: (List<Song>) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -374,7 +391,9 @@ internal fun GenresTabContent(
                 items(genres, key = { it.genre }) { group ->
                     GenreCard(
                         group = group,
-                        onClick = { onNavigateToGenre(group.genre) },
+                        selected = group.genre in selectedIds,
+                        onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
+                        onLongClick = { onToggleSelect(group.genre) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }
@@ -388,7 +407,10 @@ internal fun GenresTabContent(
                 items(genres, key = { it.genre }) { group ->
                     GenreListRow(
                         group = group,
-                        onClick = { onNavigateToGenre(group.genre) },
+                        selected = group.genre in selectedIds,
+                        selectionMode = selectionMode,
+                        onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
+                        onLongClick = { onToggleSelect(group.genre) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }

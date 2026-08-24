@@ -2,6 +2,19 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.4.1] - Shortcuts & Playback Polish
+
+### Playback
+* Save the current queue as a playlist and start an Instant Mix from Now Playing.
+* See the connected Bluetooth audio device and jump directly to Bluetooth settings.
+
+### Library & Streaming
+* Refine library views with clearer sorting and filtering controls.
+* See Subsonic and Jellyfin library status, song counts, and refresh failures in Settings.
+
+### Launcher
+* Added shortcuts for Shuffle All, Play Favorites, and Radio Favorites with distinct icons.
+
 ## [1.4.0] - Jellyfin Quick Connect & Playback Fixes
 
 ### Streaming

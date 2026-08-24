@@ -3,6 +3,7 @@
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Box
@@ -53,7 +54,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
+import `in`.caffeinelabs.cassettecat.AppShortcutAction
+import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.radio.toSong
 import `in`.caffeinelabs.cassettecat.ui.components.MiniPlayerRow
+import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.home.HomeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumDetailScreen
@@ -88,9 +93,11 @@ import `in`.caffeinelabs.cassettecat.ui.screens.stats.StatsScreen
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationAudioEngineScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLibraryTabsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationRoute
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
@@ -99,8 +106,13 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStorageScr
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationThemeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsViewModel
 import androidx.compose.ui.platform.LocalContext
+import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
+import `in`.caffeinelabs.cassettecat.ui.theme.dominantArtworkAccent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object MainRoute {
     const val HOME = "main/home"
@@ -146,7 +158,12 @@ private val NAV_BAR_TOTAL_HEIGHT = 68.dp
 // nav bar is a fixed overlay, not a layout sibling (avoids a stutter-causing measurement loop)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifier) {
+fun MainShell(
+    playbackViewModel: PlaybackViewModel,
+    modifier: Modifier = Modifier,
+    shortcutAction: String? = null,
+    onShortcutHandled: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val context = LocalContext.current
@@ -200,10 +217,15 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     // shared across Library/Home/Search to avoid redundant refetches
     val libraryViewModel: LibraryViewModel = viewModel()
     val playlistViewModel: PlaylistViewModel = viewModel()
+    val radioFavoritesRepository = remember { RadioFavoritesRepository(context) }
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val librarySongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val skipRestoreForLaunchShortcut = remember { shortcutAction != null }
     LaunchedEffect(libraryState) {
-        (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
+        if (!skipRestoreForLaunchShortcut) {
+            (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
+        }
     }
     // Artist art deliberately extends behind the transparent status bar. Other routes retain
     // their normal safe-area layout so ordinary screen headers are never pushed under system UI.
@@ -212,6 +234,20 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null
+    var artworkAccent by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(preferences.artworkAccentEnabled, playbackState.currentSong?.id) {
+        artworkAccent = if (preferences.artworkAccentEnabled) {
+            playbackState.currentSong?.let { song ->
+                runCatching {
+                    loadSongArtwork(context, song)?.let { bitmap ->
+                        withContext(Dispatchers.Default) { dominantArtworkAccent(bitmap) }
+                    }
+                }.getOrNull()
+            }
+        } else {
+            null
+        }
+    }
     val density = LocalDensity.current
     // The custom bottom bar is an app overlay, so it must explicitly yield to the IME.
     // Otherwise its labels are left hovering below/over the keyboard on text-entry screens.
@@ -230,6 +266,25 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
     var nowPlayingView by remember { mutableStateOf(NowPlayingView.PLAYER) }
     var searchFocusRequestId by remember { mutableIntStateOf(0) }
 
+    LaunchedEffect(shortcutAction, libraryState) {
+        val action = shortcutAction ?: return@LaunchedEffect
+        if (libraryState is LibraryUiState.Loading) return@LaunchedEffect
+        val songs = when (action) {
+            AppShortcutAction.SHUFFLE_ALL -> librarySongs.shuffled()
+            AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite }
+            AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() }
+            else -> emptyList()
+        }
+        onShortcutHandled()
+        if (songs.isEmpty()) {
+            Toast.makeText(context, "Nothing to play yet", Toast.LENGTH_SHORT).show()
+        } else {
+            playbackViewModel.playQueue(songs, 0)
+            nowPlayingView = NowPlayingView.PLAYER
+            scaffoldState.bottomSheetState.expand()
+        }
+    }
+
     // fades the sheet fill in Queue/Lyrics mode, where the real sheet doesn't move
     var headerDragRevealFraction by remember { mutableFloatStateOf(0f) }
 
@@ -244,6 +299,11 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
         }
     }
 
+    CassetteCatTheme(
+        accent = if (artworkAccent != null) ThemeAccent.CUSTOM else preferences.themeAccent,
+        customAccentColor = artworkAccent ?: preferences.customAccentColor,
+        isAmoled = preferences.amoledDarkTheme
+    ) {
     Box(modifier.fillMaxSize()) {
         // The library and sheet remain within the system safe area. Lyrics is added below as
         // a root-level layer so it can use the entire display without becoming a "box".
@@ -293,6 +353,10 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                                 MiniPlayerRow(
                                     playbackViewModel = playbackViewModel,
                                     onExpand = { scope.launch { scaffoldState.bottomSheetState.expand() } },
+                                    onOpenQueue = {
+                                        nowPlayingView = NowPlayingView.QUEUE
+                                        scope.launch { scaffoldState.bottomSheetState.expand() }
+                                    },
                                     onThumbnailBoundsChange = { collapsedArtRect.value = it }
                                 )
                             }
@@ -318,6 +382,11 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                                     onNavigateToArtist = { artist -> navigateFromNowPlaying(MainRoute.artistDetail(artist)) },
                                     onNavigateToAlbum = { albumId -> navigateFromNowPlaying(MainRoute.albumDetail(albumId)) },
                                     playlists = playlists,
+                                    allSongs = librarySongs,
+                                    onSaveQueue = { name, songIds ->
+                                        playlistViewModel.create(name, songIds)
+                                        Toast.makeText(context, "Queue saved to $name", Toast.LENGTH_SHORT).show()
+                                    },
                                     onNavigateToPlaylist = { playlistId -> navigateFromNowPlaying(MainRoute.playlistDetail(playlistId)) },
                                     onHeaderDragProgressChange = { headerDragRevealFraction = it }
                                 )
@@ -463,6 +532,7 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     composable(MainRoute.SETTINGS) {
                         SettingsScreen(
                             playbackViewModel = playbackViewModel,
+                            libraryViewModel = libraryViewModel,
                             onConnectServer = { protocol -> navController.navigate(MainRoute.connectServer(protocol)) },
                             onNavigateToStats = { navController.navigate(MainRoute.STATS) },
                             onManageScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
@@ -497,6 +567,14 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
                     }
                     composable(CustomizationRoute.STARTUP_LIBRARY) {
                         CustomizationStartupLibraryScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            onNavigateToLibraryTabs = { navController.navigate(CustomizationRoute.LIBRARY_TABS) },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.LIBRARY_TABS) {
+                        CustomizationLibraryTabsScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -658,5 +736,6 @@ fun MainShell(playbackViewModel: PlaybackViewModel, modifier: Modifier = Modifie
             backDispatcher.addCallback(callback)
             onDispose { callback.remove() }
         }
+    }
     }
 }

@@ -2,11 +2,6 @@ package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import kotlinx.serialization.Serializable
 
-enum class ScrobbleProvider(val label: String, val website: String) {
-    LISTENBRAINZ("ListenBrainz", "https://listenbrainz.org"),
-    LIBRE_FM("Libre.fm", "https://libre.fm")
-}
-
 @Serializable
 data class ListenBrainzConfig(
     val enabled: Boolean = false,

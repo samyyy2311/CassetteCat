@@ -21,6 +21,10 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { onCreated(repository.create(name)) }
     }
 
+    fun create(name: String, songIds: List<String>, onCreated: (Playlist) -> Unit = {}) {
+        viewModelScope.launch { onCreated(repository.create(name, songIds)) }
+    }
+
     fun rename(id: String, name: String) {
         viewModelScope.launch { repository.rename(id, name) }
     }

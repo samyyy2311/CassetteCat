@@ -33,8 +33,8 @@ class PlaylistRepository(private val context: Context) {
 
     val playlists: Flow<List<Playlist>> = context.playlistDataStore.data.map { prefs -> prefs.decode() }
 
-    suspend fun create(name: String): Playlist {
-        val playlist = Playlist(name = name)
+    suspend fun create(name: String, songIds: List<String> = emptyList()): Playlist {
+        val playlist = Playlist(name = name, songIds = songIds.distinct())
         update { it + playlist }
         return playlist
     }

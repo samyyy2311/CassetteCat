@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,28 +26,44 @@ import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SongFilterSheet(
-    selected: SongFilter,
-    onSelect: (SongFilter) -> Unit,
+internal fun <T> LibraryRefineSheet(
+    filter: SongFilter,
+    onFilterSelect: (SongFilter) -> Unit,
+    sortOptions: List<T>,
+    sortLabelOf: (T) -> String,
+    selectedSort: T,
+    sortDirection: SortDirection,
+    onSortSelect: (T) -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp)
+        ) {
             Text(
-                "Filter songs",
+                "Refine",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
-            SongFilter.entries.forEach { filter ->
+            Text(
+                "Filter",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+            SongFilter.entries.forEach { option ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .tapScale { onSelect(filter) }
+                        .tapScale { onFilterSelect(option) }
                         .padding(horizontal = 24.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(filter.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    if (filter == selected) {
+                    Text(option.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    if (option == filter) {
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_check),
                             contentDescription = "Selected",
@@ -54,6 +72,24 @@ internal fun SongFilterSheet(
                         )
                     }
                 }
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            Text(
+                "Sort by",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+            sortOptions.forEach { option ->
+                SortOptionRow(
+                    label = sortLabelOf(option),
+                    selected = option == selectedSort,
+                    direction = sortDirection,
+                    onClick = { onSortSelect(option) }
+                )
             }
         }
     }

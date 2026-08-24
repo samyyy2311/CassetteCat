@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -192,6 +193,34 @@ fun LibrarySongRow(song: Song, onClick: () -> Unit) {
 fun SongRow(song: Song, onClick: () -> Unit) = LibrarySongRow(song, onClick)
 
 @Composable
+internal fun SelectionCheckboxIcon(selected: Boolean, modifier: Modifier = Modifier) {
+    Icon(
+        painter = painterResource(
+            if (selected) R.drawable.lucide_ic_square_check_big else R.drawable.lucide_ic_square
+        ),
+        contentDescription = null,
+        tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+    )
+}
+
+@Composable
+internal fun BoxScope.SelectionOverlay(selected: Boolean) {
+    if (!selected) return
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.26f))
+    )
+    Icon(
+        painter = painterResource(R.drawable.lucide_ic_square_check_big),
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onTertiary,
+        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(22.dp)
+    )
+}
+
+@Composable
 internal fun SelectableSongRow(
     song: Song,
     selected: Boolean,
@@ -210,13 +239,7 @@ internal fun SelectableSongRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (selectionMode) {
-                Icon(
-                    painter = painterResource(
-                        if (selected) R.drawable.lucide_ic_square_check_big else R.drawable.lucide_ic_square
-                    ),
-                    contentDescription = null,
-                    tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                SelectionCheckboxIcon(selected)
                 Spacer(Modifier.width(16.dp))
             }
             SongListRowContent(song)
@@ -247,19 +270,7 @@ internal fun SongGridCard(
                 .clip(RoundedCornerShape(12.dp))
         ) {
             AlbumArt(song = song, modifier = Modifier.fillMaxSize())
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.26f))
-                )
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_square_check_big),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiary,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(22.dp)
-                )
-            }
+            SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
         Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -274,18 +285,16 @@ internal fun SongGridCard(
 }
 
 @Composable
-internal fun AlbumCard(group: AlbumGroup, onClick: () -> Unit, onPlay: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().tapScale(onClick)) {
+internal fun AlbumCard(
+    group: AlbumGroup,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+    onLongClick: () -> Unit = {}
+) {
+    Column(modifier = Modifier.fillMaxWidth().tapScaleSelectable(onClick, onLongClick)) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp))) {
             AlbumArt(song = group.songs.first(), modifier = Modifier.fillMaxSize())
-            TransportButton(
-                iconRes = R.drawable.lucide_ic_play,
-                size = 36.dp,
-                tint = MaterialTheme.colorScheme.tertiary,
-                accented = true,
-                onClick = onPlay,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
-            )
+            SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
         Text(group.album, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -305,8 +314,13 @@ internal fun AlbumCard(group: AlbumGroup, onClick: () -> Unit, onPlay: () -> Uni
 }
 
 @Composable
-internal fun ArtistCard(group: ArtistGroup, onClick: () -> Unit, onPlay: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().tapScale(onClick)) {
+internal fun ArtistCard(
+    group: ArtistGroup,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+    onLongClick: () -> Unit = {}
+) {
+    Column(modifier = Modifier.fillMaxWidth().tapScaleSelectable(onClick, onLongClick)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -316,14 +330,7 @@ internal fun ArtistCard(group: ArtistGroup, onClick: () -> Unit, onPlay: () -> U
             contentAlignment = Alignment.Center
         ) {
             ArtistImage(artist = group.artist, modifier = Modifier.fillMaxSize())
-            TransportButton(
-                iconRes = R.drawable.lucide_ic_play,
-                size = 36.dp,
-                tint = MaterialTheme.colorScheme.tertiary,
-                accented = true,
-                onClick = onPlay,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
-            )
+            SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
         Text(group.artist, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -336,7 +343,13 @@ internal fun ArtistCard(group: ArtistGroup, onClick: () -> Unit, onPlay: () -> U
 }
 
 @Composable
-internal fun GenreCard(group: GenreGroup, onClick: () -> Unit, onPlay: () -> Unit) {
+internal fun GenreCard(
+    group: GenreGroup,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    selected: Boolean = false,
+    onLongClick: () -> Unit = {}
+) {
     val rule = genreRuleFor(group.genre)
     val accent = rule?.color ?: MaterialTheme.colorScheme.tertiary
     Box(
@@ -352,7 +365,7 @@ internal fun GenreCard(group: GenreGroup, onClick: () -> Unit, onPlay: () -> Uni
                     )
                 )
             )
-            .tapScale(onClick)
+            .tapScaleSelectable(onClick, onLongClick)
     ) {
         Icon(
             painter = painterResource(rule?.iconRes ?: R.drawable.lucide_ic_cassette_tape),
@@ -381,6 +394,7 @@ internal fun GenreCard(group: GenreGroup, onClick: () -> Unit, onPlay: () -> Uni
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
             )
         }
+        SelectionOverlay(selected)
     }
 }
 
@@ -389,17 +403,24 @@ internal fun CollectionListRow(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    onPlay: () -> Unit,
+    onPlay: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    selectionMode: Boolean = false,
     artwork: @Composable () -> Unit
 ) {
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .tapScale(onClick)
+                .let { if (onLongClick != null) it.tapScaleSelectable(onClick, onLongClick) else it.tapScale(onClick) }
                 .padding(horizontal = 24.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (selectionMode) {
+                SelectionCheckboxIcon(selected)
+                Spacer(Modifier.width(16.dp))
+            }
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -420,14 +441,16 @@ internal fun CollectionListRow(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(Modifier.width(8.dp))
-            TransportButton(
-                iconRes = R.drawable.lucide_ic_play,
-                size = 36.dp,
-                tint = MaterialTheme.colorScheme.tertiary,
-                accented = true,
-                onClick = onPlay
-            )
+            if (onPlay != null) {
+                Spacer(Modifier.width(8.dp))
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_play,
+                    size = 36.dp,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    accented = true,
+                    onClick = onPlay
+                )
+            }
         }
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.48f),
@@ -437,37 +460,63 @@ internal fun CollectionListRow(
 }
 
 @Composable
-internal fun ArtistListRow(group: ArtistGroup, onClick: () -> Unit, onPlay: () -> Unit) {
+internal fun ArtistListRow(
+    group: ArtistGroup,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    selectionMode: Boolean = false
+) {
     CollectionListRow(
         title = group.artist,
         subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
         onClick = onClick,
-        onPlay = onPlay
+        onLongClick = onLongClick,
+        selected = selected,
+        selectionMode = selectionMode
     ) {
         ArtistImage(artist = group.artist, modifier = Modifier.fillMaxSize())
     }
 }
 
 @Composable
-internal fun AlbumListRow(group: AlbumGroup, onClick: () -> Unit, onPlay: () -> Unit) {
+internal fun AlbumListRow(
+    group: AlbumGroup,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    selectionMode: Boolean = false
+) {
     CollectionListRow(
         title = group.album,
         subtitle = "${group.artist} · ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
         onClick = onClick,
-        onPlay = onPlay
+        onLongClick = onLongClick,
+        selected = selected,
+        selectionMode = selectionMode
     ) {
         AlbumArt(song = group.songs.first(), modifier = Modifier.fillMaxSize())
     }
 }
 
 @Composable
-internal fun GenreListRow(group: GenreGroup, onClick: () -> Unit, onPlay: () -> Unit) {
+internal fun GenreListRow(
+    group: GenreGroup,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    selectionMode: Boolean = false
+) {
     val rule = genreRuleFor(group.genre)
     CollectionListRow(
         title = group.genre,
         subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
         onClick = onClick,
-        onPlay = onPlay
+        onPlay = onPlay,
+        onLongClick = onLongClick,
+        selected = selected,
+        selectionMode = selectionMode
     ) {
         Icon(
             painter = painterResource(rule?.iconRes ?: R.drawable.lucide_ic_cassette_tape),
@@ -517,8 +566,15 @@ internal fun LikedSongsCard(songs: List<Song>, onClick: () -> Unit, onPlay: () -
 }
 
 @Composable
-internal fun PlaylistCard(playlist: Playlist, songs: List<Song>, onClick: () -> Unit, onPlay: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().tapScale(onClick)) {
+internal fun PlaylistCard(
+    playlist: Playlist,
+    songs: List<Song>,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    selected: Boolean = false,
+    onLongClick: () -> Unit = {}
+) {
+    Column(modifier = Modifier.fillMaxWidth().tapScaleSelectable(onClick, onLongClick)) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp))) {
             PlaylistCoverArt(playlist = playlist, fallbackSong = songs.firstOrNull(), modifier = Modifier.fillMaxSize())
             if (songs.isNotEmpty()) {
@@ -531,6 +587,7 @@ internal fun PlaylistCard(playlist: Playlist, songs: List<Song>, onClick: () -> 
                     modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
                 )
             }
+            SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
         Text(playlist.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -552,6 +609,9 @@ internal fun PlaylistGrid(
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
     onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -564,14 +624,14 @@ internal fun PlaylistGrid(
         item(key = "liked-songs") {
             LikedSongsCard(
                 songs = likedSongs,
-                onClick = onOpenLikedSongs,
+                onClick = { if (!selectionMode) onOpenLikedSongs() },
                 onPlay = { if (likedSongs.isNotEmpty()) onPlay(likedSongs) }
             )
         }
         items(SmartPlaylistType.entries.toTypedArray(), key = { "smart-${it.id}" }) { type ->
             SmartPlaylistCard(
                 type = type,
-                onClick = { onOpenSmartPlaylist(type) }
+                onClick = { if (!selectionMode) onOpenSmartPlaylist(type) }
             )
         }
         items(playlists, key = { it.id }) { playlist ->
@@ -581,7 +641,9 @@ internal fun PlaylistGrid(
             PlaylistCard(
                 playlist = playlist,
                 songs = songs,
-                onClick = { onClick(playlist.id) },
+                selected = playlist.id in selectedIds,
+                onClick = { if (selectionMode) onToggleSelect(playlist.id) else onClick(playlist.id) },
+                onLongClick = { onToggleSelect(playlist.id) },
                 onPlay = { if (songs.isNotEmpty()) onPlay(songs) }
             )
         }
@@ -632,6 +694,9 @@ internal fun PlaylistList(
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
     onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -643,7 +708,7 @@ internal fun PlaylistList(
             CollectionListRow(
                 title = "Liked Songs",
                 subtitle = if (likedSongs.size == 1) "1 song" else "${likedSongs.size} songs",
-                onClick = onOpenLikedSongs,
+                onClick = { if (!selectionMode) onOpenLikedSongs() },
                 onPlay = { if (likedSongs.isNotEmpty()) onPlay(likedSongs) }
             ) {
                 Icon(
@@ -658,7 +723,7 @@ internal fun PlaylistList(
             CollectionListRow(
                 title = type.title,
                 subtitle = type.description,
-                onClick = { onOpenSmartPlaylist(type) },
+                onClick = { if (!selectionMode) onOpenSmartPlaylist(type) },
                 onPlay = { onOpenSmartPlaylist(type) }
             ) {
                 Icon(
@@ -676,8 +741,11 @@ internal fun PlaylistList(
             CollectionListRow(
                 title = playlist.name,
                 subtitle = if (songs.size == 1) "1 song" else "${songs.size} songs",
-                onClick = { onClick(playlist.id) },
-                onPlay = { if (songs.isNotEmpty()) onPlay(songs) }
+                onClick = { if (selectionMode) onToggleSelect(playlist.id) else onClick(playlist.id) },
+                onPlay = { if (songs.isNotEmpty()) onPlay(songs) },
+                onLongClick = { onToggleSelect(playlist.id) },
+                selected = playlist.id in selectedIds,
+                selectionMode = selectionMode
             ) {
                 PlaylistCoverArt(
                     playlist = playlist,

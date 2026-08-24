@@ -1,0 +1,8 @@
+What's new in 1.4.1:
+
+- Save the current queue as a playlist
+- Start an Instant Mix from Now Playing
+- See the connected Bluetooth audio device
+- Refine library sorting and filtering
+- Check Subsonic and Jellyfin library status in Settings
+- Use launcher shortcuts for Shuffle All, Favorites, and Radio Favorites

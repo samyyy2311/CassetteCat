@@ -1,7 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
@@ -43,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
+import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
@@ -66,6 +67,8 @@ fun NowPlayingContent(
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToAlbum: (String) -> Unit = {},
     playlists: List<Playlist> = emptyList(),
+    allSongs: List<Song> = emptyList(),
+    onSaveQueue: (String, List<String>) -> Unit = { _, _ -> },
     onNavigateToPlaylist: (String) -> Unit = {},
     drawBehindSystemBars: Boolean = false,
     onHeaderDragProgressChange: (Float) -> Unit = {}
@@ -194,6 +197,21 @@ fun NowPlayingContent(
                 return@Column
             }
 
+            if (song.source == MusicSource.Radio) {
+                RadioNowPlayingView(
+                    song = song,
+                    state = state,
+                    isFavorite = isFavorite,
+                    listeningRoomState = listeningRoom,
+                    expandFraction = fraction,
+                    collapsedArtRect = collapsedArtRect,
+                    onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
+                    onShowMenu = { sheetState.showMenu = true },
+                    onTogglePlayPause = { playbackViewModel.togglePlayPause() }
+                )
+                return@Column
+            }
+
             Crossfade(
                 targetState = activeView,
                 modifier = Modifier.fillMaxSize(),
@@ -223,6 +241,11 @@ fun NowPlayingContent(
                             playbackViewModel.playFromQueue(it)
                             queueControlsVisible = true
                             userInteractionCounter++
+                        },
+                        onSaveQueue = if (song.source != MusicSource.ListeningRoomHost) {
+                            { sheetState.showSaveQueue = true }
+                        } else {
+                            null
                         },
                         onQueueInteraction = {
                             queueControlsVisible = !queueControlsVisible
@@ -301,6 +324,10 @@ fun NowPlayingContent(
         isFavorite = isFavorite,
         sleepTimerEndMs = sleepTimerEndMs,
         playlists = playlists,
+        allSongs = allSongs,
+        queueSongs = (listOfNotNull(state.currentSong) + state.upNext)
+            .filter { it.source != MusicSource.ListeningRoomHost && it.source != MusicSource.Radio }
+            .distinctBy { it.id },
         listeningRoom = listeningRoom,
         playbackViewModel = playbackViewModel,
         downloadRepository = downloadRepository,
@@ -309,6 +336,7 @@ fun NowPlayingContent(
         onNavigateToArtist = onNavigateToArtist,
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToPlaylist = onNavigateToPlaylist,
+        onSaveQueue = onSaveQueue,
         syncedLyrics = syncedLyrics,
         fallbackLyrics = fallbackLyrics,
         currentPositionMs = positionMs
@@ -324,8 +352,3 @@ private const val VIEW_TRANSITION_MS = 550
 internal const val CHROME_DRAG_FADE_FLOOR = 0.6f
 
 internal val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-private val sharedElementBoundsTransform = BoundsTransform { _, _ ->
-    tween(VIEW_TRANSITION_MS, easing = SmoothEasing)
-}

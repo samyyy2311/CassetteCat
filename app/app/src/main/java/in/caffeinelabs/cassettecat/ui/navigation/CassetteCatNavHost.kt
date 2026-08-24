@@ -43,7 +43,11 @@ private object OnboardingRoute {
 }
 
 @Composable
-fun CassetteCatNavHost(modifier: Modifier = Modifier) {
+fun CassetteCatNavHost(
+    shortcutAction: String? = null,
+    onShortcutHandled: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val repository = remember { OnboardingRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
@@ -80,7 +84,7 @@ fun CassetteCatNavHost(modifier: Modifier = Modifier) {
         onboardingGraph(navController, onOnboardingFinished)
         composable(Graph.MAIN) { entry ->
             val playbackViewModel: PlaybackViewModel = viewModel(entry)
-            MainShell(playbackViewModel)
+            MainShell(playbackViewModel, shortcutAction = shortcutAction, onShortcutHandled = onShortcutHandled)
         }
     }
 }
