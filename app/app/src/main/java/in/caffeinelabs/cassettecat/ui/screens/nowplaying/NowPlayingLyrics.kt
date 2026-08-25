@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -69,6 +70,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -82,6 +84,10 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexSansFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.InterFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.OutfitFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.PlusJakartaSansFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.SilkscreenFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Locale
@@ -122,6 +128,7 @@ internal fun LyricsView(
     onStartSelection: (Int) -> Unit = {},
     onSeekToLine: (Long) -> Unit = {},
     onScrollDelta: (Float) -> Unit = {},
+    onSearchLyrics: () -> Unit = {},
     onReturnToPlayer: () -> Unit = onInteraction
 ) {
     val haptic = LocalHapticFeedback.current
@@ -162,8 +169,8 @@ internal fun LyricsView(
             val displayItems: List<LyricDisplayItem> = remember(effectiveSyncedLyrics, durationMs) {
                 buildList {
                     val firstMs = effectiveSyncedLyrics.first().timestampMs
-                    if (firstMs >= 2_500L) {
-                        add(LyricDisplayItem.Gap(fromMs = 0L, toMs = (firstMs - 120L).coerceAtLeast(0L)))
+                    if (firstMs >= 4_500L) {
+                        add(LyricDisplayItem.Gap(fromMs = 0L, toMs = (firstMs - 150L).coerceAtLeast(0L)))
                     }
 
                     effectiveSyncedLyrics.forEachIndexed { i, line ->
@@ -171,20 +178,20 @@ internal fun LyricsView(
                         val words = line.text.split(" ").filter { it.isNotBlank() }
                         if (nextMs != null) {
                             val lineInterval = (nextMs - line.timestampMs).coerceAtLeast(100L)
-                            if (lineInterval >= 5_500L) {
-                                val maxBreak = (lineInterval - 1_500L).coerceAtLeast(1_200L)
-                                val vocalDuration = minOf(words.size * 280L + 600L, 4_200L)
-                                    .coerceAtLeast(1_200L)
+                            if (lineInterval >= 8_000L) {
+                                val maxBreak = (lineInterval - 2_000L).coerceAtLeast(1_500L)
+                                val vocalDuration = minOf(words.size * 280L + 600L, 5_000L)
+                                    .coerceAtLeast(1_500L)
                                     .coerceAtMost(maxBreak)
                                 add(LyricDisplayItem.Line(line, i, vocalDuration))
 
-                                val gapStart = line.timestampMs + vocalDuration + 250L
-                                val gapEnd = nextMs - 120L
-                                if (gapEnd - gapStart >= 1_500L) {
+                                val gapStart = line.timestampMs + vocalDuration + 300L
+                                val gapEnd = nextMs - 150L
+                                if (gapEnd - gapStart >= 4_000L) {
                                     add(LyricDisplayItem.Gap(fromMs = gapStart, toMs = gapEnd))
                                 }
                             } else {
-                                val maxAllowed = maxOf(350L, lineInterval - 120L)
+                                val maxAllowed = maxOf(400L, lineInterval - 120L)
                                 val minTarget = (words.size * 180L).coerceAtLeast(250L)
                                 val rawCalculated = (lineInterval * 0.84f).toLong()
                                 val vocalDuration = if (maxAllowed >= minTarget) {
@@ -199,9 +206,9 @@ internal fun LyricsView(
                             add(LyricDisplayItem.Line(line, i, vocalMs))
 
                             if (durationMs > 0L) {
-                                val outroStart = line.timestampMs + vocalMs + 300L
+                                val outroStart = line.timestampMs + vocalMs + 400L
                                 val outroEnd = durationMs - 500L
-                                if (outroEnd - outroStart >= 2_500L) {
+                                if (outroEnd - outroStart >= 6_000L) {
                                     add(LyricDisplayItem.Gap(fromMs = outroStart, toMs = outroEnd))
                                 }
                             }
@@ -210,7 +217,7 @@ internal fun LyricsView(
                 }
             }
 
-            val effectivePositionMs = positionMs + 90L
+            val effectivePositionMs = positionMs
 
             val activeDisplayIndex by remember(displayItems, effectivePositionMs) {
                 derivedStateOf {
@@ -269,8 +276,18 @@ internal fun LyricsView(
             val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) TextAlign.Center else TextAlign.Start
             val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) Alignment.CenterHorizontally else Alignment.Start
             val fontScale = preferences.lyricsFontSize.scaleMultiplier
+            val lyricsFont = when (preferences.lyricsFontFamily) {
+                LyricsFontFamily.SPACE_GROTESK -> SpaceGroteskFontFamily
+                LyricsFontFamily.OUTFIT -> OutfitFontFamily
+                LyricsFontFamily.INTER -> InterFontFamily
+                LyricsFontFamily.PLUS_JAKARTA_SANS -> PlusJakartaSansFontFamily
+                LyricsFontFamily.IBM_PLEX_SANS -> IbmPlexSansFontFamily
+                LyricsFontFamily.IBM_PLEX_MONO -> IbmPlexMonoFontFamily
+                LyricsFontFamily.SILKSCREEN -> SilkscreenFontFamily
+                LyricsFontFamily.SYSTEM -> MaterialTheme.typography.headlineMedium.fontFamily
+            }
             val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = SpaceGroteskFontFamily,
+                fontFamily = lyricsFont,
                 fontWeight = FontWeight.Bold,
                 fontSize = (28 * fontScale).sp,
                 lineHeight = (38 * fontScale).sp,
@@ -333,6 +350,7 @@ internal fun LyricsView(
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
                             GapItemView(
                                 isInGap = isInGap,
+                                isCenterAligned = lyricsTextAlign == TextAlign.Center,
                                 onClick = {
                                     userIsDragging = false
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -449,6 +467,27 @@ internal fun LyricsView(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                             )
                         }
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onSearchLyrics() }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_search),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Search & match different lyrics",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
                     }
                 }
             }
@@ -492,6 +531,27 @@ internal fun LyricsView(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                     )
                 }
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onSearchLyrics() }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_search),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "Search & match different lyrics",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
                 Spacer(Modifier.height(lyricBottomPadDp))
             }
         }
@@ -511,6 +571,7 @@ internal fun LyricsView(
                 artist = artist,
                 isPlaying = isPlaying,
                 onReturnToPlayer = onReturnToPlayer,
+                onSearchLyrics = onSearchLyrics,
                 modifier = modifier
             )
         }
@@ -520,110 +581,73 @@ internal fun LyricsView(
 @Composable
 private fun GapItemView(
     isInGap: Boolean,
+    isCenterAligned: Boolean = true,
     onClick: () -> Unit
 ) {
     val dotsAlpha by animateFloatAsState(
-        targetValue = if (isInGap) 1.0f else 0.22f,
-        animationSpec = tween(220, easing = SmoothEasing),
+        targetValue = if (isInGap) 1.0f else 0.20f,
+        animationSpec = tween(260, easing = SmoothEasing),
         label = "gapDotsAlpha"
     )
     val onSurface = MaterialTheme.colorScheme.onSurface
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = if (isCenterAligned) Arrangement.Center else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .graphicsLayer { alpha = dotsAlpha }
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = if (isInGap) 20.dp else 12.dp)
     ) {
         if (isInGap) {
-            val infiniteTransition = rememberInfiniteTransition(label = "dots")
-            val dot1Scale by infiniteTransition.animateFloat(
-                initialValue = 0.85f, targetValue = 1.35f,
-                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot1Scale"
-            )
-            val dot1Alpha by infiniteTransition.animateFloat(
-                initialValue = 0.35f, targetValue = 1.0f,
-                animationSpec = infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot1Alpha"
-            )
-            val dot2Scale by infiniteTransition.animateFloat(
-                initialValue = 0.85f, targetValue = 1.35f,
-                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot2Scale"
-            )
-            val dot2Alpha by infiniteTransition.animateFloat(
-                initialValue = 0.35f, targetValue = 1.0f,
-                animationSpec = infiniteRepeatable(tween(550, 180, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot2Alpha"
-            )
-            val dot3Scale by infiniteTransition.animateFloat(
-                initialValue = 0.85f, targetValue = 1.35f,
-                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot3Scale"
-            )
-            val dot3Alpha by infiniteTransition.animateFloat(
-                initialValue = 0.35f, targetValue = 1.0f,
-                animationSpec = infiniteRepeatable(tween(550, 360, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-                label = "dot3Alpha"
+            val infiniteTransition = rememberInfiniteTransition(label = "dotsWave")
+            val wavePhase by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = (2 * Math.PI).toFloat(),
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dotsWavePhase"
             )
 
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer {
-                        scaleX = dot1Scale
-                        scaleY = dot1Scale
-                        alpha = dot1Alpha
-                    }
-                    .background(onSurface, CircleShape)
-            )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer {
-                        scaleX = dot2Scale
-                        scaleY = dot2Scale
-                        alpha = dot2Alpha
-                    }
-                    .background(onSurface, CircleShape)
-            )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer {
-                        scaleX = dot3Scale
-                        scaleY = dot3Scale
-                        alpha = dot3Alpha
-                    }
-                    .background(onSurface, CircleShape)
-            )
+            val dotOffsets = listOf(0f, 0.9f, 1.8f)
+            dotOffsets.forEachIndexed { index, phaseOffset ->
+                val wave = kotlin.math.sin(wavePhase + phaseOffset)
+                val norm = (wave + 1f) / 2f
+                val scale = 0.85f + 0.40f * norm
+                val alpha = 0.45f + 0.55f * norm
+                val translateY = -5f * norm
+
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                            translationY = translateY
+                        }
+                        .background(primaryColor, CircleShape)
+                )
+                if (index < dotOffsets.lastIndex) {
+                    Spacer(Modifier.width(10.dp))
+                }
+            }
         } else {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer { alpha = 0.3f }
-                    .background(onSurface, CircleShape)
-            )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer { alpha = 0.3f }
-                    .background(onSurface, CircleShape)
-            )
-            Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer { alpha = 0.3f }
-                    .background(onSurface, CircleShape)
-            )
+            repeat(3) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .graphicsLayer { alpha = 0.25f }
+                        .background(onSurface, CircleShape)
+                )
+                if (index < 2) {
+                    Spacer(Modifier.width(9.dp))
+                }
+            }
         }
     }
 }
@@ -650,8 +674,8 @@ private fun ActiveLyricLine(
 
     val progressAnim = remember { Animatable(0f) }
 
-    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying) {
-        val effectivePositionMs = positionMs + 90L
+    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying, positionMs) {
+        val effectivePositionMs = positionMs
         val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
         val currentElapsed = (effectivePositionMs - line.timestampMs).coerceIn(0L, safeDuration)
         val initialProgress = (currentElapsed.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
@@ -670,9 +694,7 @@ private fun ActiveLyricLine(
 
     val progress = progressAnim.value
     val onSurface = MaterialTheme.colorScheme.onSurface
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val activeWordColor = if (preferences.lyricsActiveStyle == `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle.ACCENT_GLOW) {
         MaterialTheme.colorScheme.tertiary
     } else {
@@ -865,6 +887,7 @@ internal fun InstrumentalWaveformView(
     artist: String?,
     isPlaying: Boolean,
     onReturnToPlayer: () -> Unit,
+    onSearchLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "waveformPulse")
@@ -910,7 +933,7 @@ internal fun InstrumentalWaveformView(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -954,32 +977,65 @@ internal fun InstrumentalWaveformView(
             textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
 
-        // Return to Album Art Pill Button
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .tapScale(onClick = onReturnToPlayer)
-                .padding(horizontal = 20.dp, vertical = 10.dp)
+        // Action Buttons Row
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Search Online Lyrics Button
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiary)
+                    .tapScale(onClick = onSearchLyrics)
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_disc_3),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = "View Album Art",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_search),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "Search Online",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiary
+                    )
+                }
+            }
+
+            // Return to Album Art Button
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .tapScale(onClick = onReturnToPlayer)
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_disc_3),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "Album Art",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }

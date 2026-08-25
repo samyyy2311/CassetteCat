@@ -13,6 +13,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.net.Uri
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -67,7 +68,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.scale
@@ -82,9 +82,12 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.loadCanvasTypefaces
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class ShareCardMode(val label: String) {
     SONG("Song"),
@@ -180,20 +183,22 @@ internal fun ScreenshotShareSheet(
                         ) {
                             Text(
                                 text = entry.label,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
                 Spacer(Modifier.height(16.dp))
+            } else {
+                Spacer(Modifier.height(4.dp))
             }
 
-            // Fixed-Ratio Card Preview Area (Exactly same height for both Song and Lyrics)
+            // Fixed 4:5 Aspect Ratio In-App Preview Area
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.90f)
+                    .fillMaxWidth(0.92f)
                     .aspectRatio(4f / 5f)
                     .clip(RoundedCornerShape(20.dp))
             ) {
@@ -219,7 +224,7 @@ internal fun ScreenshotShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // Theme Pills (Atmosphere vs Obsidian)
+            // Theme Selection Pills (Atmosphere vs Obsidian)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -227,13 +232,18 @@ internal fun ScreenshotShareSheet(
             ) {
                 LyricCardTheme.entries.forEach { theme ->
                     val isSelected = selectedTheme == theme
+                    val bgColor by animateColorAsState(
+                        if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        animationSpec = tween(200),
+                        label = "themeBg"
+                    )
                     Box(
                         modifier = Modifier
                             .padding(horizontal = 6.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .background(bgColor)
                             .clickable { selectedTheme = theme }
-                            .padding(horizontal = 18.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = theme.label,
@@ -279,7 +289,9 @@ internal fun ScreenshotShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                            val bitmap = withContext(Dispatchers.Default) {
+                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                            }
                             val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
                                 runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
                             } ?: "com.whatsapp"
@@ -299,8 +311,10 @@ internal fun ScreenshotShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", "com.instagram.android")
+                            val bitmap = withContext(Dispatchers.Default) {
+                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                            }
+                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}")
                         }
                     }
                 )
@@ -313,7 +327,9 @@ internal fun ScreenshotShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                            val bitmap = withContext(Dispatchers.Default) {
+                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                            }
                             shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", null)
                         }
                     }
@@ -485,6 +501,7 @@ private fun LyricSharePreviewCard(
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -492,7 +509,7 @@ private fun LyricSharePreviewCard(
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.70f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -529,12 +546,18 @@ private fun LyricSharePreviewCard(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_quote),
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.40f),
+                    modifier = Modifier.size(24.dp)
+                )
                 lines.forEach { line ->
                     Text(
                         text = line,
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = if (lines.size <= 2) 20.sp else 16.sp,
-                            lineHeight = if (lines.size <= 2) 26.sp else 22.sp,
+                            fontSize = if (lines.size <= 2) 21.sp else 17.5.sp,
+                            lineHeight = if (lines.size <= 2) 28.sp else 24.sp,
                             fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold
                         ),
@@ -600,22 +623,34 @@ internal fun ShareActionPill(
                     .size(48.dp)
                     .clip(CircleShape)
             )
-        } else {
+        } else if (backgroundBrush != null) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .then(
-                        if (backgroundBrush != null) Modifier.background(backgroundBrush)
-                        else Modifier.background(backgroundColor)
-                    ),
+                    .background(backgroundBrush),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = label,
                     tint = iconTint,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(backgroundColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = label,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -641,11 +676,7 @@ private fun generateSharePoster(
     val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
-    val spaceGroteskBold = runCatching {
-        val font = ResourcesCompat.getFont(context, AppR.font.space_grotesk_variable)
-        Typeface.create(font ?: Typeface.DEFAULT_BOLD, Typeface.BOLD)
-    }.getOrNull() ?: Typeface.DEFAULT_BOLD
-    val ibmPlexMono = runCatching { ResourcesCompat.getFont(context, AppR.font.ibm_plex_mono_regular) }.getOrNull() ?: Typeface.MONOSPACE
+    val (spaceGroteskBold, _, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
     // Background
@@ -781,11 +812,10 @@ private fun generateSharePoster(
         canvas.drawText(footerText, footerStartX + tapeSize + tapeSpacing, footerY, footerPaint)
 
     } else {
-        // LYRICS Mode
-        // Top Header Thumbnail (220x220)
-        val thumbSize = 220f
+        // Top Header Thumbnail (240x240)
+        val thumbSize = 240f
         val thumbLeft = 180f
-        val thumbTop = 180f
+        val thumbTop = 160f
         val thumbRect = RectF(thumbLeft, thumbTop, thumbLeft + thumbSize, thumbTop + thumbSize)
 
         if (artBitmap != null) {
@@ -803,53 +833,38 @@ private fun generateSharePoster(
                 isFilterBitmap = true
                 isDither = true
             }
-            canvas.drawRoundRect(thumbRect, 40f, 40f, thumbPaint)
+            canvas.drawRoundRect(thumbRect, 44f, 44f, thumbPaint)
         } else {
             val placeholderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = "#221F1D".toColorInt()
             }
-            canvas.drawRoundRect(thumbRect, 40f, 40f, placeholderPaint)
+            canvas.drawRoundRect(thumbRect, 44f, 44f, placeholderPaint)
         }
 
         // Header Title & Artist
         val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.WHITE
-            textSize = 76f
+            textSize = 84f
             typeface = spaceGroteskBold
             fontVariationSettings = "'wght' 700"
         }
-        val safeHeaderTitle = if (song.title.length > 28) song.title.take(26) + "…" else song.title
-        canvas.drawText(safeHeaderTitle, 450f, thumbTop + 96f, headerTitlePaint)
+        val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
+        canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
 
         val headerArtistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(180, 255, 255, 255)
-            textSize = 56f
+            textSize = 58f
             typeface = Typeface.DEFAULT
         }
-        val safeHeaderArtist = if (song.artist.length > 34) song.artist.take(32) + "…" else song.artist
-        canvas.drawText(safeHeaderArtist, 450f, thumbTop + 184f, headerArtistPaint)
+        val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
+        canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
-        // Quote Icon
-        val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
-        if (quoteDrawable != null) {
-            quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
-            val qSize = 96
-            quoteDrawable.setBounds(180, 480, 180 + qSize, 480 + qSize)
-            quoteDrawable.draw(canvas)
-        }
-
-        // Lyrics Text Layout
+        // Lyrics Text Layout (Perfect proportion and spacing without overlap)
         val validLines = lines.filter { it.isNotBlank() }
-        val fontSize = when {
-            validLines.size <= 1 -> 116f
-            validLines.size <= 2 -> 104f
-            validLines.size <= 4 -> 90f
-            else -> 72f
-        }
-        val lineSpacingMult = when {
-            validLines.size <= 2 -> 1.30f
-            validLines.size <= 4 -> 1.25f
-            else -> 1.18f
+        val (fontSize, lineSpacingMult, extraSpacing, qSize, spacingBetween) = when {
+            validLines.size <= 2 -> listOf(124f, 1.26f, 20f, 120f, 32f)
+            validLines.size <= 5 -> listOf(104f, 1.22f, 16f, 106f, 28f)
+            else -> listOf(92f, 1.20f, 12f, 96f, 24f)
         }
 
         val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -860,38 +875,165 @@ private fun generateSharePoster(
         }
 
         val textToDraw = validLines.joinToString("\n")
-        val textWidth = width - 360
+        val textMargin = 180f
+        val textWidth = (width - (textMargin * 2f)).toInt()
         val staticLayout = StaticLayout.Builder.obtain(textToDraw, 0, textToDraw.length, lyricPaint, textWidth)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(24f, lineSpacingMult)
+            .setLineSpacing(extraSpacing, lineSpacingMult)
             .build()
 
-        canvas.withTranslation(180f, 620f) {
+        val availableTop = thumbTop + thumbSize + 60f
+        val availableBottom = height - 220f
+        val availableHeight = availableBottom - availableTop
+        val totalBlockHeight = qSize + spacingBetween + staticLayout.height
+        val blockStartY = maxOf(availableTop, availableTop + ((availableHeight - totalBlockHeight) / 2f).coerceAtLeast(0f))
+
+        // Quote Icon
+        val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
+        if (quoteDrawable != null) {
+            quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
+            quoteDrawable.setBounds(textMargin.toInt(), blockStartY.toInt(), (textMargin + qSize).toInt(), (blockStartY + qSize).toInt())
+            quoteDrawable.draw(canvas)
+        }
+
+        val textStartY = blockStartY + qSize + spacingBetween
+        canvas.withTranslation(textMargin, textStartY) {
             staticLayout.draw(this)
         }
 
         // Footer
         val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(128, 255, 255, 255)
-            textSize = 56f
+            textSize = 58f
             typeface = ibmPlexMono
         }
-        canvas.drawText("CassetteCat", 180f, height - 180f, footerPaint)
+        canvas.drawText("CassetteCat", 180f, height - 160f, footerPaint)
 
-        val tapeSize = 72
+        val tapeSize = 78
         if (tapeDrawable != null) {
             tapeDrawable.setTint(android.graphics.Color.argb(128, 255, 255, 255))
             tapeDrawable.setBounds(
                 (width - 180 - tapeSize),
-                (height - 232),
+                (height - 216),
                 (width - 180),
-                (height - 232 + tapeSize)
+                (height - 216 + tapeSize)
             )
             tapeDrawable.draw(canvas)
         }
     }
 
     return bitmap
+}
+
+private suspend fun cacheBitmapAndGetUri(context: Context, bitmap: Bitmap, filenamePrefix: String): Uri =
+    withContext(Dispatchers.IO) {
+        val cacheDir = File(context.cacheDir, "shared_images").apply { mkdirs() }
+        val file = File(cacheDir, "${filenamePrefix}_${System.currentTimeMillis()}.png")
+        file.outputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+internal suspend fun shareImageToInstagramStories(
+    context: Context,
+    bitmap: Bitmap,
+    title: String
+) {
+    val uri = cacheBitmapAndGetUri(context, bitmap, "story")
+
+    // Grant permission to Instagram package specifically
+    context.grantUriPermission(
+        "com.instagram.android",
+        uri,
+        Intent.FLAG_GRANT_READ_URI_PERMISSION
+    )
+
+    // 1. Direct Instagram Stories Intent API (Sticker card on gradient background - standard music share format)
+    val storiesIntent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+        type = "image/png"
+        putExtra("interactive_asset_uri", uri)
+        putExtra("top_background_color", "#1A1715")
+        putExtra("bottom_background_color", "#0A0908")
+        putExtra("source_application", context.packageName)
+        setPackage("com.instagram.android")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    val canHandleStories = runCatching {
+        context.packageManager.resolveActivity(storiesIntent, 0) != null
+    }.getOrDefault(false)
+
+    if (canHandleStories) {
+        val launched = runCatching {
+            context.startActivity(storiesIntent)
+            true
+        }.getOrDefault(false)
+        if (launched) return
+    }
+
+    // 2. Direct component intent for Instagram Stories camera
+    val directStoriesIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        setClassName("com.instagram.android", "com.instagram.share.handler.ShareHandlerActivity")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val canHandleDirect = runCatching {
+        context.packageManager.resolveActivity(directStoriesIntent, 0) != null
+    }.getOrDefault(false)
+
+    if (canHandleDirect) {
+        val launched = runCatching {
+            context.startActivity(directStoriesIntent)
+            true
+        }.getOrDefault(false)
+        if (launched) return
+    }
+
+    // 3. Fallback to package send
+    val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, title)
+        setPackage("com.instagram.android")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    runCatching {
+        context.startActivity(fallbackIntent)
+    }.onFailure {
+        val chooserIntent = Intent(fallbackIntent).apply { setPackage(null) }
+        runCatching { context.startActivity(Intent.createChooser(chooserIntent, "Share to Stories")) }
+    }
+}
+
+internal suspend fun shareImageWithApp(
+    context: Context,
+    bitmap: Bitmap,
+    title: String,
+    targetPackage: String?
+) {
+    val uri = cacheBitmapAndGetUri(context, bitmap, "share_card")
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, title)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (targetPackage != null) {
+            setPackage(targetPackage)
+        }
+    }
+
+    runCatching {
+        if (targetPackage != null) {
+            context.startActivity(intent)
+        } else {
+            context.startActivity(Intent.createChooser(intent, "Share Card"))
+        }
+    }.onFailure {
+        val chooserIntent = Intent(intent).apply { setPackage(null) }
+        runCatching { context.startActivity(Intent.createChooser(chooserIntent, "Share Card")) }
+    }
 }
 
 private fun createFastBlurredBitmap(src: Bitmap): Bitmap {
@@ -937,38 +1079,5 @@ private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
             }
             pixels[y * w + x] = (0xFF shl 24) or ((r / count) shl 16) or ((g / count) shl 8) or (b / count)
         }
-    }
-}
-
-internal fun shareImageWithApp(
-    context: Context,
-    bitmap: Bitmap,
-    title: String,
-    targetPackage: String?
-) {
-    val cacheDir = File(context.cacheDir, "shared_images").apply { mkdirs() }
-    val file = File(cacheDir, "share_card_${System.currentTimeMillis()}.png")
-    file.outputStream().use { out ->
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-    }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "image/png"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, title)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        if (targetPackage != null) {
-            setPackage(targetPackage)
-        }
-    }
-
-    runCatching {
-        if (targetPackage != null) {
-            context.startActivity(intent)
-        } else {
-            context.startActivity(Intent.createChooser(intent, "Share Card"))
-        }
-    }.onFailure {
-        context.startActivity(Intent.createChooser(intent, "Share Card"))
     }
 }

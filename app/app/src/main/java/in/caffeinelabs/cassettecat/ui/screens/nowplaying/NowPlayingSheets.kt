@@ -2,9 +2,12 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -47,7 +53,11 @@ import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +89,8 @@ internal fun NowPlayingActionsSheet(
     onDownload: () -> Unit,
     onOpenCredits: () -> Unit,
     onOpenOutputPicker: () -> Unit,
+    onOpenEqualizer: () -> Unit = {},
+    onOpenTagEditor: () -> Unit = {},
     onOpenListeningRoom: () -> Unit,
     onOpenPlaybackSpeed: () -> Unit,
     onOpenSleepTimer: () -> Unit,
@@ -148,7 +160,7 @@ internal fun NowPlayingActionsSheet(
             }
             if (song.source != MusicSource.Radio && song.source != MusicSource.ListeningRoomHost) {
                 SongActionRow(
-                    iconRes = R.drawable.lucide_ic_sparkles,
+                    iconRes = R.drawable.lucide_ic_audio_lines,
                     label = "Start Instant Mix",
                     subtitle = "Build a local mix from this track",
                     accented = false,
@@ -161,6 +173,15 @@ internal fun NowPlayingActionsSheet(
                     label = "Download",
                     accented = false,
                     onClick = { onDownload(); onDismiss() }
+                )
+            }
+            if (song.source == MusicSource.Local) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_pencil,
+                    label = "Edit Song Tags",
+                    subtitle = "Title, artist, album & year",
+                    accented = false,
+                    onClick = { onOpenTagEditor(); onDismiss() }
                 )
             }
             HorizontalDivider(
@@ -180,6 +201,13 @@ internal fun NowPlayingActionsSheet(
                 subtitle = "This phone",
                 accented = false,
                 onClick = { onOpenOutputPicker(); onDismiss() }
+            )
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                label = "Equalizer",
+                subtitle = "Bass boost & audio effects",
+                accented = false,
+                onClick = { onOpenEqualizer(); onDismiss() }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_gauge,
@@ -215,22 +243,87 @@ private val PLAYBACK_SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 @Composable
 internal fun PlaybackSpeedSheet(
     currentSpeed: Float,
-    onSelect: (Float) -> Unit,
+    currentPitch: Float = 1f,
+    onSelectSpeed: (Float) -> Unit,
+    onSelectPitch: (Float) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
             Text(
-                "Playback Speed",
+                "Tempo & Pitch Tuning",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
-            PLAYBACK_SPEEDS.forEach { speed ->
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_gauge,
-                    label = if (speed == 1f) "Normal" else "${speed}x",
-                    accented = speed == currentSpeed,
-                    onClick = { onSelect(speed); onDismiss() }
+
+            Text(
+                "PLAYBACK SPEED",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+            )
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(PLAYBACK_SPEEDS) { speed ->
+                    val isSelected = abs(speed - currentSpeed) < 0.01f
+                    val bg = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                    val fg = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(bg)
+                            .clickable { onSelectSpeed(speed) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (speed == 1f) "1.0x (Normal)" else "${speed}x",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = fg
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                "PITCH SHIFT",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+            )
+
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val semitones = (12 * (kotlin.math.ln(currentPitch.toDouble()) / kotlin.math.ln(2.0))).roundToInt()
+                    Text(
+                        "Pitch Multiplier",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = if (semitones == 0) "Normal (1.0x)" else String.format(Locale.US, "%+d semitones (%.2fx)", semitones, currentPitch),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                        color = if (semitones != 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { onSelectPitch(1.0f) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = currentPitch,
+                    onValueChange = { onSelectPitch(it) },
+                    valueRange = 0.75f..1.25f,
+                    steps = 10
                 )
             }
         }

@@ -7,6 +7,7 @@ import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.LibraryFolderRepository
+import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
@@ -16,8 +17,10 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
+import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -88,6 +92,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun checkForUpdate() {
         viewModelScope.launch {
+            if (!serviceSettingsRepository.settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
+                _updateCheckResult.value = UpdateCheckResult.UpToDate
+                return@launch
+            }
             _updateCheckResult.value = null
             _updateCheckResult.value = updateChecker.checkForUpdate(currentVersion)
         }
@@ -264,6 +272,26 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setSwipeUpLyricsEnabled(enabled) }
     }
 
+    fun setShakeToSkipEnabled(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setShakeToSkipEnabled(enabled) }
+    }
+
+    fun setShakeSensitivity(sensitivity: Int) {
+        viewModelScope.launch { appPreferencesRepository.setShakeSensitivity(sensitivity) }
+    }
+
+    fun setFlipToPauseEnabled(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setFlipToPauseEnabled(enabled) }
+    }
+
+    fun setMiniPlayerSwipeToSkip(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setMiniPlayerSwipeToSkip(enabled) }
+    }
+
+    fun setNowPlayingBackdropStyle(style: NowPlayingBackdropStyle) {
+        viewModelScope.launch { appPreferencesRepository.setNowPlayingBackdropStyle(style) }
+    }
+
     // Lyrics Customization
     fun setLyricsAlignment(alignment: LyricsAlignment) {
         viewModelScope.launch { appPreferencesRepository.setLyricsAlignment(alignment) }
@@ -273,6 +301,14 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setLyricsActiveStyle(style) }
     }
 
+    fun setLyricsFontFamily(fontFamily: LyricsFontFamily) {
+        viewModelScope.launch { appPreferencesRepository.setLyricsFontFamily(fontFamily) }
+    }
+
+    fun setAppFontFamily(fontFamily: AppFontFamily) {
+        viewModelScope.launch { appPreferencesRepository.setAppFontFamily(fontFamily) }
+    }
+
     fun setMaxCacheSizeMb(sizeMb: Int) {
         viewModelScope.launch { downloadSettingsRepository.setMaxCacheBytes(sizeMb * 1024L * 1024L) }
     }
@@ -280,5 +316,4 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setAutoDownloadFavorites(enabled: Boolean) {
         viewModelScope.launch { downloadSettingsRepository.setAutoDownloadFavorites(enabled) }
     }
-
 }

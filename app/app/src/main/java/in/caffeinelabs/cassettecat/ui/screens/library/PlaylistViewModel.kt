@@ -25,6 +25,10 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { onCreated(repository.create(name, songIds)) }
     }
 
+    fun createSmartPlaylist(name: String, criteria: `in`.caffeinelabs.cassettecat.data.library.SmartPlaylistCriteria, onCreated: (Playlist) -> Unit = {}) {
+        viewModelScope.launch { onCreated(repository.createSmartPlaylist(name, criteria)) }
+    }
+
     fun rename(id: String, name: String) {
         viewModelScope.launch { repository.rename(id, name) }
     }

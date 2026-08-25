@@ -10,12 +10,31 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 private val Context.playlistDataStore by preferencesDataStore(name = "playlists")
 private val PLAYLISTS_KEY = stringPreferencesKey("playlists_json")
 
 enum class PlaylistCoverType { NONE, IMAGE, ICON, EMOJI }
+
+@Serializable
+enum class SmartRuleType(val label: String) {
+    RECENTLY_ADDED("Recently Added (Last 30 Days)"),
+    FAVORITES_ONLY("Favorited Tracks Only"),
+    MIN_DURATION("Long Jams (> 5 min)"),
+    MAX_DURATION("Quick Bites (< 3 min)"),
+    DECADE_90S("90s Throwback"),
+    DECADE_2000S("2000s Hits"),
+    DECADE_2010S("2010s Hits"),
+    DECADE_2020S("2020s Contemporary")
+}
+
+@Serializable
+data class SmartPlaylistCriteria(
+    val rules: List<SmartRuleType> = emptyList(),
+    val maxSongs: Int = 100
+)
 
 @Serializable
 data class Playlist(
@@ -25,7 +44,9 @@ data class Playlist(
     val coverType: PlaylistCoverType = PlaylistCoverType.NONE,
     // interpreted per coverType: app-private file path (IMAGE), a key into
     // PLAYLIST_ICON_OPTIONS (ICON), or the raw emoji character (EMOJI)
-    val coverValue: String? = null
+    val coverValue: String? = null,
+    val isSmart: Boolean = false,
+    val smartCriteria: SmartPlaylistCriteria? = null
 )
 
 class PlaylistRepository(private val context: Context) {
@@ -35,6 +56,18 @@ class PlaylistRepository(private val context: Context) {
 
     suspend fun create(name: String, songIds: List<String> = emptyList()): Playlist {
         val playlist = Playlist(name = name, songIds = songIds.distinct())
+        update { it + playlist }
+        return playlist
+    }
+
+    suspend fun createSmartPlaylist(name: String, criteria: SmartPlaylistCriteria): Playlist {
+        val playlist = Playlist(
+            name = name,
+            isSmart = true,
+            smartCriteria = criteria,
+            coverType = PlaylistCoverType.ICON,
+            coverValue = "sparkles"
+        )
         update { it + playlist }
         return playlist
     }
@@ -76,4 +109,24 @@ class PlaylistRepository(private val context: Context) {
 
     private fun Preferences.decode(): List<Playlist> =
         this[PLAYLISTS_KEY]?.let { runCatching { sharedJson.decodeFromString<List<Playlist>>(it) }.getOrNull() } ?: emptyList()
+}
+
+fun filterSongsForSmartCriteria(songs: List<Song>, favorites: Set<String>, criteria: SmartPlaylistCriteria): List<Song> {
+    var filtered = songs
+    for (rule in criteria.rules) {
+        filtered = when (rule) {
+            SmartRuleType.FAVORITES_ONLY -> filtered.filter { it.id in favorites }
+            SmartRuleType.RECENTLY_ADDED -> {
+                val thirtyDaysAgoMs = System.currentTimeMillis() - (30L * 86400_000L)
+                filtered.filter { it.dateAddedMs >= thirtyDaysAgoMs }
+            }
+            SmartRuleType.MIN_DURATION -> filtered.filter { it.durationMs >= 300_000L }
+            SmartRuleType.MAX_DURATION -> filtered.filter { it.durationMs in 1..180_000L }
+            SmartRuleType.DECADE_90S -> filtered.filter { (it.releaseYear ?: 0) in 1990..1999 }
+            SmartRuleType.DECADE_2000S -> filtered.filter { (it.releaseYear ?: 0) in 2000..2009 }
+            SmartRuleType.DECADE_2010S -> filtered.filter { (it.releaseYear ?: 0) in 2010..2019 }
+            SmartRuleType.DECADE_2020S -> filtered.filter { (it.releaseYear ?: 0) >= 2020 }
+        }
+    }
+    return filtered.take(criteria.maxSongs)
 }

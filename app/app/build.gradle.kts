@@ -12,11 +12,11 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.4.1"
+        ?: "1.5.0"
 
     val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
         ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
-        ?: 8
+        ?: 9
 
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"
@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.icons.lucide.android)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

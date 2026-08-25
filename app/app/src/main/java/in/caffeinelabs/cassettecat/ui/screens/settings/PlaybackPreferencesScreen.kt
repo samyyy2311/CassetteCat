@@ -2,9 +2,13 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -25,14 +30,20 @@ private val sleepDurations = listOf(5L, 10L, 15L, 30L, 45L, 60L)
 fun PlaybackPreferencesScreen(
     playbackViewModel: PlaybackViewModel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
 ) {
     val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsStateWithLifecycle()
     val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsStateWithLifecycle()
     val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsStateWithLifecycle()
     val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsStateWithLifecycle()
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(top = 8.dp, bottom = listBottomPadding + 40.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,6 +114,8 @@ fun PlaybackPreferencesScreen(
                 )
             }
         }
+
+        Spacer(Modifier.height(16.dp))
     }
 }
 

@@ -27,6 +27,18 @@ data class CachedLyrics(
 data class LyricsLookupResult(val syncedLyrics: List<LyricLine>? = null, val plainLyrics: String? = null)
 
 @Serializable
+data class LrcLibSearchResultItem(
+    val id: Long? = null,
+    val trackName: String? = null,
+    val artistName: String? = null,
+    val albumName: String? = null,
+    val duration: Double? = null,
+    val instrumental: Boolean = false,
+    val plainLyrics: String? = null,
+    val syncedLyrics: String? = null
+)
+
+@Serializable
 private data class LrcLibResponse(
     val syncedLyrics: String? = null,
     val plainLyrics: String? = null,
@@ -37,6 +49,25 @@ private data class LrcLibResponse(
 class LrcLibClient(private val cacheDir: File? = null) {
     private val lyricsCacheDir by lazy {
         cacheDir?.let { File(it, "lyrics").apply { mkdirs() } }
+    }
+
+    suspend fun search(query: String): List<LrcLibSearchResultItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://lrclib.net/api/search?q=${query.urlEncode()}"
+            val response = sharedHttpClient.newCall(Request.Builder().url(url).build()).execute()
+            response.use {
+                if (!it.isSuccessful) emptyList()
+                else {
+                    val body = it.body.string()
+                    sharedJson.decodeFromString<List<LrcLibSearchResultItem>>(body)
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun saveLyricsToCache(artist: String, title: String, album: String, syncedLyrics: String?, plainLyrics: String?) {
+        val cacheKey = hashKey("$artist|$title|$album".lowercase())
+        writeToCache(cacheKey, syncedLyrics, plainLyrics)
     }
 
     suspend fun fetchLyrics(artist: String, title: String, album: String): LyricsLookupResult? =

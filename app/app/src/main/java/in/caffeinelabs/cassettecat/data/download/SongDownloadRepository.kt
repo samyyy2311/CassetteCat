@@ -12,15 +12,18 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.Requirements
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import java.util.concurrent.Executor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class SongDownloadRepository private constructor(private val context: Context) {
@@ -36,6 +39,7 @@ class SongDownloadRepository private constructor(private val context: Context) {
     private val _downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
     val downloads: StateFlow<Map<String, Download>> = _downloads.asStateFlow()
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceSettingsRepository = ServiceSettingsRepository(context)
 
     init {
         refreshFromIndex()
@@ -48,6 +52,18 @@ class SongDownloadRepository private constructor(private val context: Context) {
                 refreshFromIndex()
             }
         })
+        repositoryScope.launch {
+            serviceSettingsRepository.settings
+                .map { it.offlineBlackoutMode }
+                .distinctUntilChanged()
+                .collect { offline ->
+                    if (offline) {
+                        DownloadService.sendPauseDownloads(context, SongDownloadService::class.java, false)
+                    } else {
+                        DownloadService.sendResumeDownloads(context, SongDownloadService::class.java, false)
+                    }
+                }
+        }
     }
 
     fun download(song: Song) {
@@ -56,6 +72,9 @@ class SongDownloadRepository private constructor(private val context: Context) {
             return
         }
         repositoryScope.launch {
+            if (serviceSettingsRepository.settings.first().offlineBlackoutMode) {
+                return@launch
+            }
             runCatching {
                 val wifiOnly = AppPreferencesRepository(context).preferences.first().wifiOnlyDownloads
                 val requirements = Requirements(

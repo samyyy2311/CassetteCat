@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +20,12 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -32,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -49,9 +53,24 @@ internal fun LibraryViewModeTabs(
     selected: LibraryViewMode,
     onSelect: (LibraryViewMode) -> Unit
 ) {
+    val scrollState = rememberScrollState()
+    val selectedIndex = modes.indexOf(selected).coerceAtLeast(0)
+
+    LaunchedEffect(selectedIndex) {
+        if (modes.size > 4) {
+            // Smoothly scroll active tab into view with nice padding
+            val targetOffset = (selectedIndex * 180 - 100).coerceAtLeast(0)
+            scrollState.animateScrollTo(targetOffset)
+        }
+    }
+
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(22.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         modes.forEach { mode ->
             val isSelected = mode == selected
@@ -62,12 +81,18 @@ internal fun LibraryViewModeTabs(
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(mode.label, style = MaterialTheme.typography.titleMedium, color = tint)
+                Text(
+                    text = mode.label,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    ),
+                    color = tint
+                )
                 Spacer(Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
                         .height(2.dp)
-                        .width(if (isSelected) 20.dp else 0.dp)
+                        .width(if (isSelected) 22.dp else 0.dp)
                         .clip(RoundedCornerShape(1.dp))
                         .background(tint)
                 )
@@ -88,6 +113,7 @@ internal fun SongsTabContent(
     listBottomPadding: Dp,
     onPlayOrSelect: (Song) -> Unit,
     onToggleSelect: (String) -> Unit,
+    onSongMore: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -139,6 +165,7 @@ internal fun SongsTabContent(
                             song = song,
                             selected = song.id in selectedIds,
                             selectionMode = selectionMode,
+                            onMoreClick = if (onSongMore != null && !selectionMode) { { onSongMore(song) } } else null,
                             onClick = { onPlayOrSelect(song) },
                             onLongClick = { onToggleSelect(song.id) }
                         )
@@ -421,6 +448,90 @@ internal fun GenresTabContent(
             items = genres,
             labelExtractor = { it.genre },
             itemNoun = "genre",
+            bottomPadding = listBottomPadding,
+            firstVisibleIndex = firstVisibleIndex,
+            onScrollToIndex = { index ->
+                coroutineScope.launch {
+                    if (collectionLayout == CollectionLayout.GRID) {
+                        gridState.scrollToItem(index)
+                    } else {
+                        listState.scrollToItem(index)
+                    }
+                }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
+    }
+}
+
+@Composable
+internal fun FoldersTab(
+    folders: List<FolderGroup>,
+    collectionLayout: CollectionLayout,
+    gridColumns: Int = 2,
+    gridState: LazyGridState,
+    listState: LazyListState,
+    listBottomPadding: Dp,
+    onNavigateToFolder: (String) -> Unit,
+    onPlayGroup: (List<Song>) -> Unit,
+    selectedIds: Set<String> = emptySet(),
+    selectionMode: Boolean = false,
+    onToggleSelect: (String) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val firstVisibleIndex by remember {
+        derivedStateOf {
+            if (collectionLayout == CollectionLayout.GRID) {
+                gridState.firstVisibleItemIndex
+            } else {
+                listState.firstVisibleItemIndex
+            }
+        }
+    }
+    Box(modifier = modifier.fillMaxSize()) {
+        if (collectionLayout == CollectionLayout.GRID) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                modifier = Modifier.fillMaxSize(),
+                state = gridState,
+                contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(folders, key = { it.folderPath }) { group ->
+                    FolderCard(
+                        group = group,
+                        selected = group.folderPath in selectedIds,
+                        onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
+                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onPlay = { onPlayGroup(group.songs) }
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
+            ) {
+                items(folders, key = { it.folderPath }) { group ->
+                    FolderListRow(
+                        group = group,
+                        selected = group.folderPath in selectedIds,
+                        selectionMode = selectionMode,
+                        onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
+                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onPlay = { onPlayGroup(group.songs) }
+                    )
+                }
+            }
+        }
+
+        FastScrollIndexRail(
+            items = folders,
+            labelExtractor = { it.folderName },
+            itemNoun = "folder",
             bottomPadding = listBottomPadding,
             firstVisibleIndex = firstVisibleIndex,
             onScrollToIndex = { index ->

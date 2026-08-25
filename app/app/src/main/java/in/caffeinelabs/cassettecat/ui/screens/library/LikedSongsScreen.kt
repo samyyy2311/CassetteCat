@@ -57,9 +57,12 @@ fun LikedSongsScreen(
 
     fun playAll(shuffle: Boolean) {
         if (songs.isEmpty()) return
-        val queue = if (shuffle) songs.shuffled() else songs
         val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        playbackViewModel.playQueue(queue, 0)
+        if (shuffle) {
+            playbackViewModel.shuffleAll(songs)
+        } else {
+            playbackViewModel.playQueue(songs, 0, shuffle = false)
+        }
         if (wasIdle) onNavigateToNowPlaying()
     }
 

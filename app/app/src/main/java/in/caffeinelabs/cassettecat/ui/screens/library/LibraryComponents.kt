@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,24 +44,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
+import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -110,12 +114,15 @@ internal fun GridCardSkeleton() {
 }
 
 @Composable
-internal fun RowScope.SongListRowContent(song: Song) {
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+internal fun RowScope.SongListRowContent(
+    song: Song,
+    isCurrentSong: Boolean = false,
+    isPlaying: Boolean = false,
+    onMoreClick: (() -> Unit)? = null
+) {
+    val preferences = LocalAppPreferences.current
     val isCompact = preferences.trackRowDensity == TrackRowDensity.COMPACT
-    val artSize = if (isCompact) 40.dp else 48.dp
+    val artSize = if (isCompact) 42.dp else 48.dp
 
     val audioFormat = remember(song.filePath, song.source) {
         val ext = song.filePath?.substringAfterLast('.', "")?.uppercase().orEmpty()
@@ -128,69 +135,149 @@ internal fun RowScope.SongListRowContent(song: Song) {
         }
     }
 
-    Box(modifier = Modifier.size(artSize).clip(RoundedCornerShape(6.dp))) {
-        AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+    val durationText = remember(song.durationMs) {
+        if (song.durationMs > 0) {
+            val totalSeconds = song.durationMs / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            "%d:%02d".format(minutes, seconds)
+        } else ""
     }
-    Spacer(Modifier.width(14.dp))
-    Column(modifier = Modifier.weight(1f)) {
-        Text(
-            song.title,
-            style = if (isCompact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                song.artist,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            if (preferences.showAudioQualityBadge && audioFormat != null) {
-                Spacer(Modifier.width(6.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        audioFormat,
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                        color = if (audioFormat == "FLAC") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+
+    Box(
+        modifier = Modifier
+            .size(artSize)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+        if (isCurrentSong) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(if (isPlaying) R.drawable.lucide_ic_audio_lines else R.drawable.lucide_ic_play),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
-    DownloadStatusIcon(song = song, modifier = Modifier.padding(start = 8.dp))
-}
 
-@Composable
-fun LibrarySongRow(song: Song, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .tapScale(onClick)
-            .padding(start = 24.dp, end = 16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SongListRowContent(song)
-        }
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            modifier = Modifier.padding(start = 64.dp)
+    Spacer(Modifier.width(14.dp))
+
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = song.title,
+            style = (if (isCompact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge).copy(
+                fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Medium
+            ),
+            color = if (isCurrentSong) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = if (song.album.isNotEmpty() && song.album != song.title) "${song.artist} • ${song.album}" else song.artist,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+
+    // Trailing metadata section (Format pill, Duration, Download icon, More button)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+        modifier = Modifier.padding(start = 8.dp)
+    ) {
+        if (preferences.showAudioQualityBadge && audioFormat != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f))
+                    .padding(horizontal = 4.dp, vertical = 1.5.dp)
+            ) {
+                Text(
+                    text = audioFormat,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = IbmPlexMonoFontFamily,
+                        fontSize = 9.sp
+                    ),
+                    color = if (audioFormat == "FLAC") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+        }
+
+        if (durationText.isNotEmpty()) {
+            Text(
+                text = durationText,
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = if (isCurrentSong) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        DownloadStatusIcon(song = song, modifier = Modifier.padding(start = 6.dp))
+
+        if (onMoreClick != null) {
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_ellipsis_vertical,
+                contentDescription = "Song options",
+                onClick = onMoreClick,
+                modifier = Modifier.padding(start = 4.dp).size(30.dp)
+            )
+        }
     }
 }
 
 @Composable
-fun SongRow(song: Song, onClick: () -> Unit) = LibrarySongRow(song, onClick)
+fun LibrarySongRow(
+    song: Song,
+    isCurrentSong: Boolean = false,
+    isPlaying: Boolean = false,
+    onMoreClick: (() -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .tapScale(onClick)
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SongListRowContent(
+                song = song,
+                isCurrentSong = isCurrentSong,
+                isPlaying = isPlaying,
+                onMoreClick = onMoreClick
+            )
+        }
+    }
+}
+
+@Composable
+fun SongRow(
+    song: Song,
+    isCurrentSong: Boolean = false,
+    isPlaying: Boolean = false,
+    onMoreClick: (() -> Unit)? = null,
+    onClick: () -> Unit
+) = LibrarySongRow(
+    song = song,
+    isCurrentSong = isCurrentSong,
+    isPlaying = isPlaying,
+    onMoreClick = onMoreClick,
+    onClick = onClick
+)
 
 @Composable
 internal fun SelectionCheckboxIcon(selected: Boolean, modifier: Modifier = Modifier) {
@@ -225,29 +312,33 @@ internal fun SelectableSongRow(
     song: Song,
     selected: Boolean,
     selectionMode: Boolean,
+    isCurrentSong: Boolean = false,
+    isPlaying: Boolean = false,
+    onMoreClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .tapScaleSelectable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 24.dp, end = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 4.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (selectionMode) {
                 SelectionCheckboxIcon(selected)
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(14.dp))
             }
-            SongListRowContent(song)
+            SongListRowContent(
+                song = song,
+                isCurrentSong = isCurrentSong,
+                isPlaying = isPlaying,
+                onMoreClick = onMoreClick
+            )
         }
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            modifier = Modifier.padding(start = if (selectionMode) 96.dp else 64.dp)
-        )
     }
 }
 
@@ -351,49 +442,110 @@ internal fun GenreCard(
     onLongClick: () -> Unit = {}
 ) {
     val rule = genreRuleFor(group.genre)
-    val accent = rule?.color ?: MaterialTheme.colorScheme.tertiary
+    val color = rule.color
+    val iconRes = rule.iconRes
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.2f)
-            .clip(RoundedCornerShape(20.dp))
+            .aspectRatio(1.55f)
+            .clip(RoundedCornerShape(12.dp))
             .background(
                 Brush.linearGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surfaceContainerHigh,
-                        accent.copy(alpha = 0.22f)
-                    )
+                    colors = listOf(
+                        color,
+                        color.copy(alpha = 0.72f)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
                 )
             )
             .tapScaleSelectable(onClick, onLongClick)
+            .padding(14.dp)
     ) {
-        Icon(
-            painter = painterResource(rule?.iconRes ?: R.drawable.lucide_ic_cassette_tape),
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.align(Alignment.TopStart).padding(18.dp).size(34.dp)
-        )
-        TransportButton(
-            iconRes = R.drawable.lucide_ic_play,
-            size = 40.dp,
-            tint = accent,
-            accented = true,
-            onClick = onPlay,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp)
-        )
-        Column(modifier = Modifier.align(Alignment.BottomStart).padding(18.dp, 0.dp, 62.dp, 18.dp)) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth(0.72f)
+        ) {
             Text(
-                group.genre,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
+                text = group.genre,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.White,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            Spacer(Modifier.height(2.dp))
             Text(
-                if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
-                style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
+                text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = Color.White.copy(alpha = 0.82f)
             )
         }
+
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.88f),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(34.dp)
+        )
+
+        SelectionOverlay(selected)
+    }
+}
+
+@Composable
+internal fun FolderCard(
+    group: FolderGroup,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    selected: Boolean = false,
+    onLongClick: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.55f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                RoundedCornerShape(12.dp)
+            )
+            .tapScaleSelectable(onClick, onLongClick)
+            .padding(14.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth(0.72f)
+        ) {
+            Text(
+                text = group.folderName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_folder),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(34.dp)
+        )
+
         SelectionOverlay(selected)
     }
 }
@@ -519,9 +671,36 @@ internal fun GenreListRow(
         selectionMode = selectionMode
     ) {
         Icon(
-            painter = painterResource(rule?.iconRes ?: R.drawable.lucide_ic_cassette_tape),
+            painter = painterResource(rule.iconRes),
             contentDescription = null,
-            tint = rule?.color ?: MaterialTheme.colorScheme.tertiary,
+            tint = rule.color,
+            modifier = Modifier.size(28.dp)
+        )
+    }
+}
+
+@Composable
+internal fun FolderListRow(
+    group: FolderGroup,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    selectionMode: Boolean = false
+) {
+    CollectionListRow(
+        title = group.folderName,
+        subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+        onClick = onClick,
+        onPlay = onPlay,
+        onLongClick = onLongClick,
+        selected = selected,
+        selectionMode = selectionMode
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_folder),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.size(28.dp)
         )
     }
@@ -542,8 +721,9 @@ internal fun LikedSongsCard(songs: List<Song>, onClick: () -> Unit, onPlay: () -
                 painter = painterResource(R.drawable.lucide_ic_heart),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(44.dp)
             )
+
             if (songs.isNotEmpty()) {
                 TransportButton(
                     iconRes = R.drawable.lucide_ic_play,
@@ -556,7 +736,7 @@ internal fun LikedSongsCard(songs: List<Song>, onClick: () -> Unit, onPlay: () -
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text("Liked Songs", style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+        Text("Liked Songs", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
         Text(
             if (songs.size == 1) "1 song" else "${songs.size} songs",
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -575,7 +755,13 @@ internal fun PlaylistCard(
     onLongClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth().tapScaleSelectable(onClick, onLongClick)) {
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp))) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
             PlaylistCoverArt(playlist = playlist, fallbackSong = songs.firstOrNull(), modifier = Modifier.fillMaxSize())
             if (songs.isNotEmpty()) {
                 TransportButton(
@@ -590,7 +776,7 @@ internal fun PlaylistCard(
             SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
-        Text(playlist.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(playlist.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
             if (songs.size == 1) "1 song" else "${songs.size} songs",
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -619,7 +805,7 @@ internal fun PlaylistGrid(
         modifier = modifier,
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item(key = "liked-songs") {
             LikedSongsCard(
@@ -661,21 +847,27 @@ internal fun SmartPlaylistCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                .background(
+                    Brush.linearGradient(
+                        colors = type.gradient,
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(type.iconRes),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(52.dp)
+                tint = Color.White,
+                modifier = Modifier.size(42.dp)
             )
         }
         Spacer(Modifier.height(8.dp))
-        Text(type.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(type.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
             type.description,
-            style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

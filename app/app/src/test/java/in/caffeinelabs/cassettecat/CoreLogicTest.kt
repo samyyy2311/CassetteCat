@@ -8,9 +8,13 @@ import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.orderedEnumValues
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
+import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
+import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -68,6 +72,9 @@ class CoreLogicTest {
         val accent = artworkAccentFromPixels(IntArray(16) { 0xFFFF3020.toInt() })
         assertTrue(accent != null && (accent shr 16 and 0xFF) > (accent and 0xFF))
         assertNull(artworkAccentFromPixels(IntArray(16) { 0xFF777777.toInt() }))
+        assertEquals(ThemeAccent.RECORD_RED.colorValue, normalizeArtworkAccent(0.5, 0.5, 0.5))
+        assertFalse(isSeekablePlayback(0L))
+        assertTrue(isSeekablePlayback(1L))
     }
 
     @Test
@@ -76,5 +83,12 @@ class CoreLogicTest {
         assertEquals(2, instantMixAffinity("Seed", listOf("Rock"), "seed", listOf("Jazz")))
         assertEquals(5, instantMixAffinity("Seed", listOf("Rock"), "Seed", listOf("Rock")))
         assertEquals(0, instantMixAffinity("Seed", listOf("Rock"), "Other", listOf("Jazz")))
+    }
+
+    @Test
+    fun classifiesExtendedCutsAtFiveMinuteBoundary() {
+        assertFalse(isExtendedCut(4 * 60_000L + 59_000L))
+        assertFalse(isExtendedCut(5 * 60_000L))
+        assertTrue(isExtendedCut(5 * 60_000L + 1_000L))
     }
 }

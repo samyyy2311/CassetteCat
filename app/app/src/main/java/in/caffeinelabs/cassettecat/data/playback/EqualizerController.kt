@@ -29,14 +29,34 @@ object EqualizerController {
     val isLoudnessEnhancerSupported: StateFlow<Boolean> = _isLoudnessEnhancerSupported.asStateFlow()
 
     val levelRangeMb: IntRange
-        get() = equalizer?.bandLevelRange?.let { it[0].toInt()..it[1].toInt() } ?: 0..0
+        get() = equalizer?.bandLevelRange?.let {
+            val min = it[0].toInt()
+            val max = it[1].toInt()
+            if (min < max) min..max else -1500..1500
+        } ?: -1500..1500
 
     // Device/DSP-dependent - commonly 5 or 6 on real hardware, not a fixed count.
     val numberOfBands: Int
         get() = equalizer?.numberOfBands?.toInt() ?: 0
 
-    val presetNames: List<String>
-        get() = equalizer?.let { eq -> (0 until eq.numberOfPresets).map { eq.getPresetName(it.toShort()) } } ?: emptyList()
+    private val KNOWN_PRESETS = listOf(
+        "Normal", "Classical", "Dance", "Flat", "Folk", "Heavy Metal",
+        "Hip Hop", "Jazz", "Pop", "Rock", "Acoustic", "Bass Boost",
+        "Treble Boost", "Vocal", "Electronic", "Latin", "R&B", "Lounge",
+        "Piano", "Spoken Word"
+    )
+
+    private var _presetNames: List<String> = emptyList()
+    val presetNames: List<String> get() = _presetNames
+
+    private fun computePresetNames(eq: Equalizer): List<String> =
+            (0 until eq.numberOfPresets).map { index ->
+                val raw = runCatching { eq.getPresetName(index.toShort()) }.getOrNull() ?: ""
+                val nullIdx = raw.indexOf('\u0000')
+                val clean = (if (nullIdx >= 0) raw.substring(0, nullIdx) else raw).trim()
+                val matched = KNOWN_PRESETS.firstOrNull { preset -> clean.startsWith(preset, ignoreCase = true) }
+                (matched ?: clean).ifBlank { "Preset ${index + 1}" }
+            }
 
     fun attach(audioSessionId: Int) {
         runCatching {
@@ -52,6 +72,7 @@ object EqualizerController {
                 }.getOrNull()
             }
             _isAvailable.value = equalizer != null
+            _presetNames = equalizer?.let { computePresetNames(it) } ?: emptyList()
 
             if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_BASS_BOOST)) {
                 bassBoost = runCatching {
@@ -81,6 +102,7 @@ object EqualizerController {
             _isBassBoostSupported.value = false
             _isVirtualizerSupported.value = false
             _isLoudnessEnhancerSupported.value = false
+            _presetNames = emptyList()
         }
     }
 
@@ -161,5 +183,6 @@ object EqualizerController {
         _isBassBoostSupported.value = false
         _isVirtualizerSupported.value = false
         _isLoudnessEnhancerSupported.value = false
+        _presetNames = emptyList()
     }
 }

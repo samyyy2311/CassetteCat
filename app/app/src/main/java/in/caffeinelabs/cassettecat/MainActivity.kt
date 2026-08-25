@@ -12,6 +12,7 @@ import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.navigation.CassetteCatNavHost
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
 
 object AppShortcutAction {
@@ -43,7 +45,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        shortcutAction.value = intent?.action?.takeIf { it in AppShortcutAction.all }
+        handleShortcutIntent(intent)
         requestHighestRefreshRate()
         // The app draws the artist/album hero behind the status bar. A transparent dark style
         // lets that artwork continue to the very top while retaining readable light icons.
@@ -56,19 +58,22 @@ class MainActivity : ComponentActivity() {
             val appPreferencesRepository = remember { AppPreferencesRepository(context) }
             val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
 
-            CassetteCatTheme(
-                accent = preferences.themeAccent,
-                customAccentColor = preferences.customAccentColor,
-                isAmoled = preferences.amoledDarkTheme
-            ) {
-                // Navigation owns safe insets per surface so immersive views can intentionally
-                // draw behind the system bars without changing ordinary screens.
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    CassetteCatNavHost(
-                        shortcutAction = shortcutAction.value,
-                        onShortcutHandled = { shortcutAction.value = null },
-                        modifier = Modifier.fillMaxSize()
-                    )
+            CompositionLocalProvider(LocalAppPreferences provides preferences) {
+                CassetteCatTheme(
+                    accent = preferences.themeAccent,
+                    customAccentColor = preferences.customAccentColor,
+                    isAmoled = preferences.amoledDarkTheme,
+                    appFontFamily = preferences.appFontFamily
+                ) {
+                    // Navigation owns safe insets per surface so immersive views can intentionally
+                    // draw behind the system bars without changing ordinary screens.
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        CassetteCatNavHost(
+                            shortcutAction = shortcutAction.value,
+                            onShortcutHandled = { shortcutAction.value = null },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -76,8 +81,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
-        shortcutAction.value = intent.action?.takeIf { it in AppShortcutAction.all }
+        handleShortcutIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
+        shortcutAction.value = intent?.action?.takeIf { it in AppShortcutAction.all }
     }
 
     private fun requestHighestRefreshRate() {

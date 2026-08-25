@@ -29,6 +29,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackStateRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
@@ -38,6 +39,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import java.time.YearMonth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 private const val POSITION_TICK_MS = 500L
@@ -181,11 +184,24 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
+        viewModelScope.launch {
+            serviceSettingsRepository.settings
+                .map { it.offlineBlackoutMode }
+                .distinctUntilChanged()
+                .collect { offline ->
+                    if (offline) {
+                        val current = playbackState.value.currentSong
+                        if (current != null && current.source != MusicSource.Local) {
+                            pause()
+                        }
+                    }
+                }
+        }
         // only when there's no embedded lyrics for the current song
         viewModelScope.launch {
             playbackState.map { it.currentSong to it.currentLyrics }
                 .combine(serviceSettingsRepository.settings) { (song, embedded), settings ->
-                    LyricsRequest(song, embedded, settings.lrcLibEnabled)
+                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB))
                 }
                 .distinctUntilChanged()
                 .collectLatest { request ->
@@ -264,9 +280,14 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun playQueue(songs: List<Song>, startIndex: Int) {
+    fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
         if (isFollowingRoomHost()) return
-        viewModelScope.launch { repository.playQueue(songs, startIndex) }
+        viewModelScope.launch { repository.playQueue(songs, startIndex, shuffle) }
+    }
+
+    fun shuffleAll(songs: List<Song>) {
+        if (isFollowingRoomHost() || songs.isEmpty()) return
+        viewModelScope.launch { repository.shuffleAll(songs) }
     }
 
     fun playInstantMix(seed: Song, library: List<Song>) {
@@ -311,9 +332,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _playbackSpeed = MutableStateFlow(1f)
     val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
 
+    private val _playbackPitch = MutableStateFlow(1f)
+    val playbackPitch: StateFlow<Float> = _playbackPitch.asStateFlow()
+
     fun setPlaybackSpeed(speed: Float) {
         _playbackSpeed.value = speed
         repository.setPlaybackSpeed(speed)
+    }
+
+    fun setPlaybackPitch(pitch: Float) {
+        _playbackPitch.value = pitch
+        repository.setPlaybackPitch(pitch)
     }
 
     fun setSleepTimerFadeOut(enabled: Boolean) {
@@ -342,30 +371,41 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         _sleepTimerEndMs.value = SystemClock.elapsedRealtime() + effectiveDurationMs
         sleepTimerJob = viewModelScope.launch {
-            val fadeMs = if (fadeOut) (fadeSeconds * 1000L).coerceAtMost(effectiveDurationMs / 2) else 0L
-            val preFadeMs = (effectiveDurationMs - fadeMs).coerceAtLeast(0L)
-            if (preFadeMs > 0) {
-                delay(preFadeMs)
-            }
-            if (fadeOut && fadeMs > 0) {
-                sleepFading = true
-                repository.setVolumeOverrideActive(true)
-                val initialVol = repository.getVolume()
-                val steps = 20
-                val stepDelay = fadeMs / steps
-                for (i in 1..steps) {
-                    delay(stepDelay)
-                    val factor = 1f - (i.toFloat() / steps.toFloat())
-                    repository.setVolume(initialVol * factor)
+            var fadeStarted = false
+            var initialVol = 0f
+            try {
+                val fadeMs = if (fadeOut) (fadeSeconds * 1000L).coerceAtMost(effectiveDurationMs / 2) else 0L
+                val preFadeMs = (effectiveDurationMs - fadeMs).coerceAtLeast(0L)
+                if (preFadeMs > 0) {
+                    delay(preFadeMs)
                 }
-                if (playbackState.value.isPlaying) togglePlayPause()
-                repository.setVolume(initialVol)
-                repository.setVolumeOverrideActive(false)
-                sleepFading = false
-            } else {
-                if (playbackState.value.isPlaying) togglePlayPause()
+                if (fadeOut && fadeMs > 0) {
+                    sleepFading = true
+                    repository.setVolumeOverrideActive(true)
+                    initialVol = repository.getVolume()
+                    fadeStarted = true
+                    val steps = 20
+                    val stepDelay = fadeMs / steps
+                    for (i in 1..steps) {
+                        delay(stepDelay)
+                        val factor = 1f - (i.toFloat() / steps.toFloat())
+                        repository.setVolume(initialVol * factor)
+                    }
+                    if (playbackState.value.isPlaying) togglePlayPause()
+                } else {
+                    if (playbackState.value.isPlaying) togglePlayPause()
+                }
+            } finally {
+                if (fadeStarted) {
+                    repository.setVolume(initialVol)
+                    repository.setVolumeOverrideActive(false)
+                    sleepFading = false
+                }
+                if (coroutineContext[Job] === sleepTimerJob) {
+                    sleepTimerJob = null
+                    _sleepTimerEndMs.value = null
+                }
             }
-            _sleepTimerEndMs.value = null
         }
     }
 
@@ -375,6 +415,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerEndMs.value = null
     }
 
+    fun pause() { if (!isFollowingRoomHost()) repository.pause() }
     fun togglePlayPause() { if (!isFollowingRoomHost()) repository.togglePlayPause() }
     fun skipNext() { if (!isFollowingRoomHost()) repository.skipNext() }
     fun skipPrevious() { if (!isFollowingRoomHost()) repository.skipPrevious() }
@@ -383,6 +424,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun playFromQueue(song: Song) { if (!isFollowingRoomHost()) repository.playFromQueue(song) }
     fun moveInUpNext(fromIndex: Int, toIndex: Int) { if (!isFollowingRoomHost()) repository.moveInUpNext(fromIndex, toIndex) }
     fun addToUpNext(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToUpNext(songs) }
+    fun addToEndOfQueue(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToEndOfQueue(songs) }
     fun removeFromUpNext(songId: String) { if (!isFollowingRoomHost()) repository.removeFromUpNext(songId) }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {
@@ -547,6 +589,25 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun isFollowingRoomHost(): Boolean = listeningRoom.value.role == ListeningRoomRole.GUEST
+
+    fun updateSongMetadata(updatedSong: Song) = repository.updateSongMetadata(updatedSong)
+
+    fun applyManualLyrics(song: Song, synced: List<LyricLine>?, plain: String?, provider: String = "LRCLIB") {
+        if (playbackState.value.currentSong?.id == song.id) {
+            _syncedLyrics.value = synced
+            _fallbackLyrics.value = plain
+            _lyricsProvider.value = provider
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val lrcString = synced?.joinToString("\n") { line ->
+                val min = line.timestampMs / 60_000
+                val sec = (line.timestampMs % 60_000) / 1000
+                val ms = (line.timestampMs % 1000) / 10
+                "[%02d:%02d.%02d]%s".format(java.util.Locale.US, min, sec, ms, line.text)
+            }
+            lrcLibClient.saveLyricsToCache(song.artist, song.title, song.album, lrcString, plain)
+        }
+    }
 
     override fun onCleared() {
         stopTicker()

@@ -9,6 +9,7 @@ import `in`.caffeinelabs.cassettecat.data.library.LibraryFolderRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
 import `in`.caffeinelabs.cassettecat.data.library.matchesFolderFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -19,6 +20,7 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
     private val folderRepository = LibraryFolderRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
     private val appPreferencesRepository = `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context)
+    private val overridesRepository = SongMetadataOverridesRepository.getInstance(context)
 
     override suspend fun getSongs(): List<Song> = withContext(Dispatchers.IO) {
         val folderConfig = folderRepository.folderFilterConfig.first()
@@ -109,7 +111,7 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
                 )
             }
         }
-        songs
+        overridesRepository.applyTo(songs)
     }
 
     private fun loadGenresByAudioId(): Map<Long, String> {

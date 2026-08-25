@@ -70,9 +70,19 @@ fun ExternalServicesScreen(
                     ExternalService.GITHUB_UPDATES -> AppR.drawable.ic_logo_github to Color.Unspecified
                     ExternalService.RADIO_BROWSER -> R.drawable.lucide_ic_radio to MaterialTheme.colorScheme.secondary
                 }
+                val rawEnabled = when (service) {
+                    ExternalService.DEEZER -> uiState.services.deezerEnabled
+                    ExternalService.AUDIODB -> uiState.services.audioDbEnabled
+                    ExternalService.LRCLIB -> uiState.services.lrcLibEnabled
+                    ExternalService.COVER_ART_ARCHIVE -> uiState.services.coverArtArchiveEnabled
+                    ExternalService.WIKIPEDIA -> uiState.services.wikipediaEnabled
+                    ExternalService.GITHUB_UPDATES -> uiState.services.githubUpdatesEnabled
+                    ExternalService.RADIO_BROWSER -> uiState.services.radioBrowserEnabled
+                }
                 ServiceToggleRow(
                     service = service,
-                    enabled = uiState.services.isEnabled(service),
+                    enabled = rawEnabled,
+                    isBlackedOut = uiState.services.offlineBlackoutMode,
                     iconRes = iconRes,
                     iconTint = iconTint,
                     onToggle = { enabled -> viewModel.setServiceEnabled(service, enabled) }

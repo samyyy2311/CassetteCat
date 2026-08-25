@@ -14,11 +14,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalContext
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
-
 // scale-down press feedback, no default ripple (avoids the rectangular bounds on block-shaped rows/cards)
 fun Modifier.tapScale(onClick: () -> Unit): Modifier = pressScale(onClick = onClick)
 
@@ -37,10 +32,7 @@ private fun Modifier.pressScale(onClick: () -> Unit, onLongClick: (() -> Unit)? 
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, tween(100), label = "tapScale")
     val haptics = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val hapticEnabled = preferences.hapticFeedbackEnabled
+    val hapticEnabled = LocalAppPreferences.current.hapticFeedbackEnabled
 
     graphicsLayer { scaleX = scale; scaleY = scale }
         .combinedClickable(

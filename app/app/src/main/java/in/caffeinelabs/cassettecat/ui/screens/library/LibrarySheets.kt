@@ -20,8 +20,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
+import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,5 +227,94 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SongOptionsSheet(
+    song: Song,
+    isFavorite: Boolean = false,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    AlbumArt(
+                        song = song,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        song.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        song.artist,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            SongOptionRow(R.drawable.lucide_ic_play, "Play Next", onPlayNext)
+            SongOptionRow(R.drawable.lucide_ic_list_plus, "Add to Up Next", onAddToQueue)
+            SongOptionRow(R.drawable.lucide_ic_list_music, "Add to Playlist", onAddToPlaylist)
+            SongOptionRow(
+                R.drawable.lucide_ic_heart,
+                if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                onToggleFavorite,
+                accented = isFavorite
+            )
+            SongOptionRow(R.drawable.lucide_ic_share_2, "Share", onShare)
+        }
+    }
+}
+
+@Composable
+private fun SongOptionRow(iconRes: Int, label: String, onClick: () -> Unit, accented: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .tapScale(onClick)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+        )
     }
 }

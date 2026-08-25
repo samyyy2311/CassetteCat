@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -73,6 +75,7 @@ fun LibraryScreen(
     onNavigateToLikedSongs: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp,
+    onNavigateToFolder: (String) -> Unit = {},
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     viewModel: LibraryViewModel = viewModel(),
     playlistViewModel: PlaylistViewModel = viewModel()
@@ -89,10 +92,14 @@ fun LibraryScreen(
 
     var showRefineSheet by remember { mutableStateOf(false) }
     var showNewPlaylistSheet by remember { mutableStateOf(false) }
-    val visibleModes = preferences.libraryTabOrder
-        .filterNot { it in preferences.hiddenLibraryTabs }
-        .map { LibraryViewMode.valueOf(it.name) }
-    val defaultPage = visibleModes.indexOfFirst { it.name == preferences.defaultLibraryTab.name }.coerceAtLeast(0)
+    val visibleModes = remember(preferences.libraryTabOrder, preferences.hiddenLibraryTabs) {
+        preferences.libraryTabOrder
+            .filterNot { it in preferences.hiddenLibraryTabs }
+            .map { LibraryViewMode.valueOf(it.name) }
+    }
+    val defaultPage = remember(visibleModes, preferences.defaultLibraryTab) {
+        visibleModes.indexOfFirst { it.name == preferences.defaultLibraryTab.name }.coerceAtLeast(0)
+    }
     val pagerState = rememberPagerState(initialPage = defaultPage) { visibleModes.size }
     val pagerScope = rememberCoroutineScope()
     val songListState = rememberLazyListState()
@@ -100,9 +107,11 @@ fun LibraryScreen(
     val artistGridState = rememberLazyGridState()
     val albumGridState = rememberLazyGridState()
     val genreGridState = rememberLazyGridState()
+    val folderGridState = rememberLazyGridState()
     val artistListState = rememberLazyListState()
     val albumListState = rememberLazyListState()
     val genreListState = rememberLazyListState()
+    val folderListState = rememberLazyListState()
     val playlistListState = rememberLazyListState()
     val viewMode = visibleModes.getOrElse(pagerState.currentPage) { visibleModes.first() }
     val collectionLayout by viewModel.collectionLayout.collectAsStateWithLifecycle()
@@ -112,16 +121,16 @@ fun LibraryScreen(
     val albumSortDirection by viewModel.albumSortDirection.collectAsStateWithLifecycle()
     val genreSortOrder by viewModel.genreSortOrder.collectAsStateWithLifecycle()
     val genreSortDirection by viewModel.genreSortDirection.collectAsStateWithLifecycle()
+    val folderSortOrder by viewModel.folderSortOrder.collectAsStateWithLifecycle()
+    val folderSortDirection by viewModel.folderSortDirection.collectAsStateWithLifecycle()
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     val songFilter by viewModel.songFilter.collectAsStateWithLifecycle()
     var showPlaylistPicker by remember { mutableStateOf(false) }
+    var songForMenu by remember { mutableStateOf<Song?>(null) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     BackHandler(enabled = selectionMode) {
         selectedIds = emptySet()
-    }
-    LaunchedEffect(defaultPage, visibleModes) {
-        if (pagerState.currentPage != defaultPage) pagerState.scrollToPage(defaultPage)
     }
     val favoritesRepository = remember { FavoritesRepository(context) }
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -171,6 +180,7 @@ fun LibraryScreen(
         LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().filter { it.artist in selectedIds }.flatMap { it.songs }
         LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().filter { it.albumId in selectedIds }.flatMap { it.songs }
         LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().filter { it.genre in selectedIds }.flatMap { it.songs }
+        LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().filter { it.folderPath in selectedIds }.flatMap { it.songs }
         LibraryViewMode.PLAYLISTS -> {
             val allSongs = loadedState?.songs.orEmpty()
             playlists.filter { it.id in selectedIds }.flatMap { it.songIds }.distinct()
@@ -184,6 +194,7 @@ fun LibraryScreen(
         LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().map { it.albumId }.toSet()
         LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().map { it.genre }.toSet()
         LibraryViewMode.PLAYLISTS -> playlists.map { it.id }.toSet()
+        LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().map { it.folderPath }.toSet()
     }
 
     fun shareSelected(songs: List<Song>) {
@@ -221,6 +232,7 @@ fun LibraryScreen(
                 LibraryViewMode.ARTISTS -> if (collectionLayout == CollectionLayout.GRID) artistGridState.scrollToItem(0) else artistListState.scrollToItem(0)
                 LibraryViewMode.ALBUMS -> if (collectionLayout == CollectionLayout.GRID) albumGridState.scrollToItem(0) else albumListState.scrollToItem(0)
                 LibraryViewMode.GENRES -> if (collectionLayout == CollectionLayout.GRID) genreGridState.scrollToItem(0) else genreListState.scrollToItem(0)
+                LibraryViewMode.FOLDERS -> if (collectionLayout == CollectionLayout.GRID) folderGridState.scrollToItem(0) else folderListState.scrollToItem(0)
                 LibraryViewMode.PLAYLISTS -> Unit
             }
         }
@@ -231,11 +243,11 @@ fun LibraryScreen(
         onRefresh = { viewModel.refresh() },
         modifier = modifier.fillMaxSize()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
+                    .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (selectionMode) {
@@ -278,6 +290,7 @@ fun LibraryScreen(
                                 LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().size
                                 LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().size
                                 LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().size
+                                LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().size
                                 LibraryViewMode.PLAYLISTS -> playlists.size + 1 + SmartPlaylistType.entries.size
                             }
                             val noun = when (viewMode) {
@@ -285,46 +298,54 @@ fun LibraryScreen(
                                 LibraryViewMode.ARTISTS -> "artist"
                                 LibraryViewMode.ALBUMS -> "album"
                                 LibraryViewMode.GENRES -> "genre"
+                                LibraryViewMode.FOLDERS -> "folder"
                                 LibraryViewMode.PLAYLISTS -> "collection"
                             }
                             val baseCountText = if (count == 1) "1 $noun" else "$count ${noun}s"
                             val isOffline by viewModel.isOfflineMode.collectAsStateWithLifecycle()
                             Text(
-                                if (isOffline) "$baseCountText . Offline" else baseCountText,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                                color = if (isOffline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                                if (isOffline) "$baseCountText · Offline" else baseCountText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isOffline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 2.dp)
                             )
                         }
                     }
-                    if (viewMode == LibraryViewMode.PLAYLISTS) {
-                        PressDepthIconButton(
-                            iconRes = R.drawable.lucide_ic_import,
-                            contentDescription = "Import playlist",
-                            onClick = { importLauncher.launch(arrayOf("*/*")) }
-                        )
-                        PressDepthIconButton(
-                            iconRes = R.drawable.lucide_ic_plus,
-                            contentDescription = "New playlist",
-                            onClick = { showNewPlaylistSheet = true }
-                        )
-                    }
-                    PressDepthIconButton(
-                        iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
-                        contentDescription = if (collectionLayout == CollectionLayout.GRID) "Use list layout" else "Use artwork layout",
-                        onClick = {
-                            viewModel.setCollectionLayout(if (collectionLayout == CollectionLayout.GRID) CollectionLayout.LIST else CollectionLayout.GRID)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (viewMode == LibraryViewMode.PLAYLISTS) {
+                            PressDepthIconButton(
+                                iconRes = R.drawable.lucide_ic_import,
+                                contentDescription = "Import playlist",
+                                onClick = { importLauncher.launch(arrayOf("*/*")) }
+                            )
+                            PressDepthIconButton(
+                                iconRes = R.drawable.lucide_ic_plus,
+                                contentDescription = "New playlist",
+                                onClick = { showNewPlaylistSheet = true }
+                            )
                         }
-                    )
-                    if (viewMode != LibraryViewMode.PLAYLISTS && loadedState != null) {
                         PressDepthIconButton(
-                            iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                            contentDescription = "Refine library",
-                            tint = if (songFilter == SongFilter.ALL) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary,
-                            onClick = { showRefineSheet = true }
+                            iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
+                            contentDescription = if (collectionLayout == CollectionLayout.GRID) "Use list layout" else "Use artwork layout",
+                            onClick = {
+                                viewModel.setCollectionLayout(if (collectionLayout == CollectionLayout.GRID) CollectionLayout.LIST else CollectionLayout.GRID)
+                            }
                         )
+                        if (viewMode != LibraryViewMode.PLAYLISTS && loadedState != null) {
+                            PressDepthIconButton(
+                                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                                contentDescription = "Refine library",
+                                tint = if (songFilter == SongFilter.ALL) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary,
+                                onClick = { showRefineSheet = true }
+                            )
+                        }
                     }
                 }
             }
+            Spacer(Modifier.height(12.dp))
 
             LibraryViewModeTabs(
                 modes = visibleModes,
@@ -423,6 +444,7 @@ fun LibraryScreen(
                                         listBottomPadding = listBottomPadding,
                                         onPlayOrSelect = ::playOrSelectSong,
                                         onToggleSelect = ::toggleSelected,
+                                        onSongMore = { songForMenu = it },
                                         modifier = Modifier.weight(1f)
                                     )
                                     LibraryViewMode.ARTISTS -> ArtistsTabContent(
@@ -468,6 +490,25 @@ fun LibraryScreen(
                                         onToggleSelect = ::toggleSelected,
                                         modifier = Modifier.weight(1f)
                                     )
+                                    LibraryViewMode.FOLDERS -> {
+                                        val folders = filteredSongs.groupedByFolder().let { list ->
+                                            val sorted = list.sortedWith(folderSortOrder.comparator())
+                                            if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted
+                                        }
+                                        FoldersTab(
+                                            folders = folders,
+                                            collectionLayout = collectionLayout,
+                                            gridState = folderGridState,
+                                            listState = folderListState,
+                                            listBottomPadding = listBottomPadding,
+                                            onNavigateToFolder = onNavigateToFolder,
+                                            onPlayGroup = ::playGroup,
+                                            selectedIds = selectedIds,
+                                            selectionMode = selectionMode,
+                                            onToggleSelect = ::toggleSelected,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                     LibraryViewMode.PLAYLISTS -> Unit
                                 }
                             }
@@ -536,6 +577,20 @@ fun LibraryScreen(
                 onDismiss = { showRefineSheet = false }
             )
 
+            LibraryViewMode.FOLDERS -> LibraryRefineSheet(
+                filter = songFilter,
+                onFilterSelect = viewModel::setSongFilter,
+                sortOptions = FolderSortOrder.entries,
+                sortLabelOf = { it.label },
+                selectedSort = folderSortOrder,
+                sortDirection = folderSortDirection,
+                onSortSelect = { order ->
+                    viewModel.setFolderSortOrder(order)
+                    moveSortedListToStart(LibraryViewMode.FOLDERS)
+                },
+                onDismiss = { showRefineSheet = false }
+            )
+
             LibraryViewMode.PLAYLISTS -> Unit
         }
     }
@@ -548,6 +603,10 @@ fun LibraryScreen(
                 showNewPlaylistSheet = false
                 playlistViewModel.create(name) { playlist -> onNavigateToPlaylist(playlist.id) }
             },
+            onConfirmSmart = { name, criteria ->
+                showNewPlaylistSheet = false
+                playlistViewModel.createSmartPlaylist(name, criteria) { playlist -> onNavigateToPlaylist(playlist.id) }
+            },
             onDismiss = { showNewPlaylistSheet = false }
         )
     }
@@ -556,11 +615,46 @@ fun LibraryScreen(
         PlaylistPickerSheet(
             playlists = playlists,
             onSelect = { playlist ->
-                playlistViewModel.addSongs(playlist.id, selectedSongs().map { it.id })
+                val idsToAdd = if (songForMenu != null) listOf(songForMenu!!.id) else selectedSongs().map { it.id }
+                playlistViewModel.addSongs(playlist.id, idsToAdd)
                 selectedIds = emptySet()
                 showPlaylistPicker = false
+                songForMenu = null
             },
-            onDismiss = { showPlaylistPicker = false }
+            onDismiss = {
+                showPlaylistPicker = false
+                songForMenu = null
+            }
+        )
+    }
+
+    songForMenu?.let { song ->
+        SongOptionsSheet(
+            song = song,
+            isFavorite = song.isFavorite || song.id in favoriteIds,
+            onPlayNext = {
+                playbackViewModel.addToUpNext(listOf(song))
+                songForMenu = null
+            },
+            onAddToQueue = {
+                playbackViewModel.addToEndOfQueue(listOf(song))
+                songForMenu = null
+            },
+            onAddToPlaylist = {
+                showPlaylistPicker = true
+            },
+            onToggleFavorite = {
+                val isFav = song.isFavorite || song.id in favoriteIds
+                pagerScope.launch {
+                    favoritesRepository.setFavorite(song.id, !isFav)
+                }
+                songForMenu = null
+            },
+            onShare = {
+                shareSongs(context, listOf(song))
+                songForMenu = null
+            },
+            onDismiss = { songForMenu = null }
         )
     }
 
@@ -575,5 +669,4 @@ fun LibraryScreen(
             }
         )
     }
-
 }

@@ -2,6 +2,40 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.5.0] - Gestures, Smart Playlists & Custom Fonts
+
+### Playback
+* **Shake to Skip**: Shake your phone to skip to the next track, with adjustable sensitivity.
+* **Flip to Pause**: Flip your phone face-down to pause, flip it back up to resume.
+* Mini player swipe-to-skip can now be turned off in Settings.
+
+### Library
+* **Smart Playlists**: Auto-populated playlists built from rules like Recently Added, Favorites Only, song length, or decade, instead of a manually curated song list.
+* **Edit Song Tags**: Override a local song's title, artist, album, or release year from Now Playing, without touching the file on disk.
+* Recent searches are now remembered and quickly reselectable.
+
+### Lyrics
+* **Manual Lyrics Search**: Search LRCLIB directly and pick a specific match when the automatic lookup finds the wrong song.
+
+### Customization
+* **Choose Your Font**: Pick from Space Grotesk, IBM Plex Sans, Outfit, Inter, Plus Jakarta Sans, or Silkscreen for the UI, with a separate font choice for lyrics.
+* **Now Playing Backdrop Style**: Choose between AMOLED Pure Black, Ambient Glow, or Liquid Gradient.
+
+## [1.4.5] - Fixes & Reliability
+
+### Fixes
+* Fixed shuffle sometimes duplicating songs already in the queue.
+* Fixed "Add to Queue" behaving identically to "Play Next" instead of appending to the end of the queue.
+* Fixed the back button collapsing the whole Now Playing sheet instead of returning to the Player view from Lyrics/Queue.
+* Fixed equalizer presets sometimes applying the wrong preset on devices with an unnamed preset slot.
+* Fixed a brief "Connecting…" flash when changing local tracks.
+* Fixed a potential resource leak from rapidly tapping "Find Nearby Rooms" in Listening Room.
+* Fixed the playback notification's icon.
+
+### Performance
+* Smoother scrolling through long song lists and search results.
+* Faster equalizer preset loading.
+
 ## [1.4.1] - Shortcuts & Playback Polish
 
 ### Playback

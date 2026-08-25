@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.graphics.Bitmap
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -33,12 +35,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -60,12 +62,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.components.prefetchAlbumArt
+import `in`.caffeinelabs.cassettecat.ui.theme.ArtworkAtmospherePalette
+import `in`.caffeinelabs.cassettecat.ui.theme.extractArtworkAtmospherePalette
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val CAROUSEL_SNAP_MS = 380
 private const val SWIPE_UP_TRIGGER_DISTANCE = 80f
@@ -196,7 +205,17 @@ internal fun AlbumArtCard(
                 transformOrigin = TransformOrigin(0f, 0f)
             }
     ) {
-        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(cornerRadius))) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .shadow(
+                    elevation = 20.dp,
+                    shape = RoundedCornerShape(cornerRadius),
+                    ambientColor = Color.Black.copy(alpha = 0.45f),
+                    spotColor = Color.Black.copy(alpha = 0.70f)
+                )
+                .clip(RoundedCornerShape(cornerRadius))
+        ) {
             if (song.source == MusicSource.Radio) {
                 var artwork by remember(song.id) { mutableStateOf<Bitmap?>(null) }
                 LaunchedEffect(song.id) { artwork = loadSongArtwork(context, song) }
@@ -219,9 +238,23 @@ internal fun AlbumArtCard(
                     Brush.verticalGradient(
                         0f to Color.Black.copy(alpha = 0.12f),
                         0.68f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.10f)
+                        1f to Color.Black.copy(alpha = 0.45f)
                     )
                 )
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        1.dp,
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.18f),
+                                Color.White.copy(alpha = 0.04f)
+                            )
+                        ),
+                        RoundedCornerShape(cornerRadius)
+                    )
             )
         }
     }
@@ -311,51 +344,165 @@ internal fun NowPlayingBackdrop(song: Song) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val transition = rememberInfiniteTransition(label = "artworkAtmosphere")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(22_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "artworkDrift"
+    val backdropStyle = preferences.nowPlayingBackdropStyle
+
+    var palette by remember(song.id) { mutableStateOf<ArtworkAtmospherePalette?>(null) }
+
+    LaunchedEffect(song.id) {
+        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, song) }
+        if (bitmap != null) {
+            val extracted = withContext(Dispatchers.Default) { extractArtworkAtmospherePalette(bitmap) }
+            palette = extracted
+        } else {
+            palette = null
+        }
+    }
+
+    val topColorTarget = palette?.topColor ?: Color(0xFF1E1E24)
+    val centerColorTarget = palette?.centerColor ?: Color(0xFF141418)
+    val accentColorTarget = palette?.accentColor ?: Color(0xFF282832)
+    val darkBaseTarget = palette?.darkBase ?: Color(0xFF08080A)
+
+    val animatedTopColor by animateColorAsState(
+        targetValue = topColorTarget,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "ambientTopColor"
     )
-    val density = LocalDensity.current
-    val horizontalDrift = with(density) { 22.dp.toPx() }
-    val verticalDrift = with(density) { 14.dp.toPx() }
+    val animatedCenterColor by animateColorAsState(
+        targetValue = centerColorTarget,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "ambientCenterColor"
+    )
+    val animatedAccentColor by animateColorAsState(
+        targetValue = accentColorTarget,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "ambientAccentColor"
+    )
+    val animatedDarkBase by animateColorAsState(
+        targetValue = darkBaseTarget,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "ambientDarkBase"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0E0D10))
+            .clipToBounds()
+            .background(animatedDarkBase)
     ) {
-        if (preferences.showNowPlayingBlur) {
-            AlbumArt(
-                song = song,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(72.dp)
-                    .graphicsLayer {
-                        alpha = 0.68f
-                        scaleX = 2.2f
-                        scaleY = 2.2f
-                        translationX = (drift - 0.5f) * horizontalDrift
-                        translationY = (0.5f - drift) * verticalDrift
-                    }
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.38f),
-                            Color.Black.copy(alpha = 0.62f),
-                            Color.Black.copy(alpha = 0.86f)
-                        )
-                    )
+        when (if (preferences.showNowPlayingBlur) backdropStyle else NowPlayingBackdropStyle.OLED_BLACK) {
+            NowPlayingBackdropStyle.OLED_BLACK -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF000000))
                 )
-        )
+            }
+            NowPlayingBackdropStyle.AMBIENT_GLOW,
+            NowPlayingBackdropStyle.LIQUID_GRADIENT -> {
+                val transition = rememberInfiniteTransition(label = "ambientAtmosphere")
+                val pulse by transition.animateFloat(
+                    initialValue = 0.94f,
+                    targetValue = 1.06f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(8_000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "ambientPulse"
+                )
+
+                // Layer 1: Velvet Atmospheric Base Gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.00f to animatedTopColor.copy(alpha = 0.50f),
+                                0.36f to animatedCenterColor.copy(alpha = 0.32f),
+                                0.72f to animatedDarkBase,
+                                1.00f to animatedDarkBase
+                            )
+                        )
+                )
+
+                // Layer 2: 3-Node Seamless Atmospheric Mesh Glow
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = pulse }
+                ) {
+                    val w = size.width
+                    val h = size.height
+
+                    // Main upper aura directly behind album art
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                animatedTopColor.copy(alpha = 0.55f),
+                                animatedTopColor.copy(alpha = 0.18f),
+                                Color.Transparent
+                            ),
+                            center = Offset(w * 0.50f, h * 0.28f),
+                            radius = w * 1.05f
+                        ),
+                        center = Offset(w * 0.50f, h * 0.28f),
+                        radius = w * 1.05f
+                    )
+
+                    // Secondary harmonic tone off-center right
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                animatedCenterColor.copy(alpha = 0.40f),
+                                Color.Transparent
+                            ),
+                            center = Offset(w * 0.82f, h * 0.50f),
+                            radius = w * 0.90f
+                        ),
+                        center = Offset(w * 0.82f, h * 0.50f),
+                        radius = w * 0.90f
+                    )
+
+                    // Tertiary accent tone off-center left
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                animatedAccentColor.copy(alpha = 0.32f),
+                                Color.Transparent
+                            ),
+                            center = Offset(w * 0.18f, h * 0.42f),
+                            radius = w * 0.80f
+                        ),
+                        center = Offset(w * 0.18f, h * 0.42f),
+                        radius = w * 0.80f
+                    )
+                }
+
+                // Layer 3: Top Status-Bar Scrim (Clean, legible system icons)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.00f to Color.Black.copy(alpha = 0.36f),
+                                0.15f to Color.Transparent
+                            )
+                        )
+                )
+
+                // Layer 4: Bottom Transport Contrast Scrim (Deep contrast for controls & track details)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.46f to Color.Transparent,
+                                0.72f to Color.Black.copy(alpha = 0.35f),
+                                1.00f to Color.Black.copy(alpha = 0.88f)
+                            )
+                        )
+                )
+            }
+        }
     }
 }

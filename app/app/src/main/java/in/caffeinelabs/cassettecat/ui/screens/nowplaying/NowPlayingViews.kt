@@ -9,8 +9,10 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,8 +24,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,9 +42,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import java.util.Locale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -351,9 +361,11 @@ internal fun NowPlayingLyricsView(
 ) {
     val density = LocalDensity.current
     var syncOffsetMs by remember(song.id, syncedLyrics) { mutableLongStateOf(0L) }
+    var showSyncTuner by remember(song.id) { mutableStateOf(false) }
     var selectionMode by remember(song.id) { mutableStateOf(false) }
     var selectedIndices by remember(song.id) { mutableStateOf(setOf<Int>()) }
     var showShareSheet by remember { mutableStateOf(false) }
+    var showLrcLibSearchSheet by remember { mutableStateOf(false) }
 
     BackHandler(enabled = selectionMode) {
         selectionMode = false
@@ -375,7 +387,47 @@ internal fun NowPlayingLyricsView(
             enableHeaderDrag = true,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Spacer(Modifier.height(8.dp))
+        if (!syncedLyrics.isNullOrEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showSyncTuner) {
+                    LyricsSyncTunerBar(
+                        syncOffsetMs = syncOffsetMs,
+                        onNudge = { delta -> syncOffsetMs = (syncOffsetMs + delta).coerceIn(-10_000L, 10_000L) },
+                        onReset = { syncOffsetMs = 0L },
+                        onClose = { showSyncTuner = false }
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f))
+                            .clickable { showSyncTuner = true }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.lucide_ic_timer),
+                            contentDescription = "Tune Lyrics Sync",
+                            tint = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = if (syncOffsetMs == 0L) "Sync" else String.format(Locale.US, "%+dms", syncOffsetMs),
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                            color = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             LyricsView(
                 lyrics = state.currentLyrics ?: fallbackLyrics,
@@ -426,6 +478,7 @@ internal fun NowPlayingLyricsView(
                     }
                 },
                 onScrollDelta = onScrollDelta,
+                onSearchLyrics = { showLrcLibSearchSheet = true },
                 onReturnToPlayer = { onActiveViewChange(NowPlayingView.PLAYER) },
                 modifier = Modifier.fillMaxSize()
             )
@@ -480,16 +533,6 @@ internal fun NowPlayingLyricsView(
                             )
                     ) {
                         Column(Modifier.fillMaxWidth()) {
-                            if (!syncedLyrics.isNullOrEmpty()) {
-                                LyricsSyncOffsetPill(
-                                    syncOffsetMs = syncOffsetMs,
-                                    onAdjust = { deltaMs -> syncOffsetMs += deltaMs },
-                                    onReset = { syncOffsetMs = 0L },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterHorizontally)
-                                        .padding(bottom = 12.dp)
-                                )
-                            }
                             PlaybackControlsRow(
                                 positionMs = positionMs,
                                 durationMs = state.durationMs,
@@ -532,5 +575,92 @@ internal fun NowPlayingLyricsView(
                 selectedIndices = emptySet()
             }
         )
+    }
+
+    if (showLrcLibSearchSheet) {
+        LrcLibSearchSheet(
+            song = song,
+            playbackViewModel = playbackViewModel,
+            onDismiss = { showLrcLibSearchSheet = false }
+        )
+    }
+}
+
+@Composable
+private fun LyricsSyncTunerBar(
+    syncOffsetMs: Long,
+    onNudge: (Long) -> Unit,
+    onReset: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onNudge(-100L)
+                }
+                .padding(horizontal = 8.dp, vertical = 5.dp)
+        ) {
+            Text("-100ms", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+        }
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onReset()
+                }
+                .padding(horizontal = 8.dp, vertical = 5.dp)
+        ) {
+            val text = if (syncOffsetMs == 0L) "Sync: 0ms" else String.format(Locale.US, "Sync: %+dms", syncOffsetMs)
+            Text(
+                text,
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onNudge(100L)
+                }
+                .padding(horizontal = 8.dp, vertical = 5.dp)
+        ) {
+            Text("+100ms", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+        }
+
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClose),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_x),
+                contentDescription = "Close Sync Tuner",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(13.dp)
+            )
+        }
     }
 }

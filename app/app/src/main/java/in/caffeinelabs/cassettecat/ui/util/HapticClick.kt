@@ -1,24 +1,15 @@
 package `in`.caffeinelabs.cassettecat.ui.util
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalContext
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 
 // Compose buttons don't haptic by default (unlike some platform Views); wrap click
 // handlers with this for a consistent light tap.
 @Composable
 fun hapticClick(onClick: () -> Unit): () -> Unit {
     val haptics = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val hapticEnabled = preferences.hapticFeedbackEnabled
+    val hapticEnabled = LocalAppPreferences.current.hapticFeedbackEnabled
     return {
         if (hapticEnabled) {
             haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
@@ -30,10 +21,7 @@ fun hapticClick(onClick: () -> Unit): () -> Unit {
 @Composable
 fun hapticToggle(onCheckedChange: (Boolean) -> Unit): (Boolean) -> Unit {
     val haptics = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val hapticEnabled = preferences.hapticFeedbackEnabled
+    val hapticEnabled = LocalAppPreferences.current.hapticFeedbackEnabled
     return { checked ->
         if (hapticEnabled) {
             haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)

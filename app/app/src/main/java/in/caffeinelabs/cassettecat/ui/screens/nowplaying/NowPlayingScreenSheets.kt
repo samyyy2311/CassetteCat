@@ -21,6 +21,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistNameSheet
+import `in`.caffeinelabs.cassettecat.ui.screens.library.SongTagEditorSheet
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ internal class NowPlayingSheetState {
     var showPlaybackSpeed by mutableStateOf(false)
     var showScreenshotSuggestion by mutableStateOf(false)
     var showSaveQueue by mutableStateOf(false)
+    var showTagEditor by mutableStateOf(false)
 }
 
 @Composable
@@ -59,6 +61,7 @@ internal fun NowPlayingScreenSheetsHost(
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: (String) -> Unit,
     onNavigateToPlaylist: (String) -> Unit,
+    onNavigateToEqualizer: () -> Unit = {},
     onSaveQueue: (String, List<String>) -> Unit,
     syncedLyrics: List<LyricLine>? = null,
     fallbackLyrics: String? = null,
@@ -83,6 +86,8 @@ internal fun NowPlayingScreenSheetsHost(
                 onDownload = { downloadRepository.download(currentSong) },
                 onOpenCredits = { sheetState.showCredits = true },
                 onOpenOutputPicker = { sheetState.showOutputPicker = true },
+                onOpenEqualizer = onNavigateToEqualizer,
+                onOpenTagEditor = { sheetState.showTagEditor = true },
                 onOpenListeningRoom = { sheetState.showListeningRoom = true },
                 onOpenPlaybackSpeed = { sheetState.showPlaybackSpeed = true },
                 onOpenSleepTimer = { sheetState.showSleepTimerPicker = true },
@@ -103,9 +108,12 @@ internal fun NowPlayingScreenSheetsHost(
     }
     if (sheetState.showPlaybackSpeed) {
         val playbackSpeed by playbackViewModel.playbackSpeed.collectAsStateWithLifecycle()
+        val playbackPitch by playbackViewModel.playbackPitch.collectAsStateWithLifecycle()
         PlaybackSpeedSheet(
             currentSpeed = playbackSpeed,
-            onSelect = { playbackViewModel.setPlaybackSpeed(it) },
+            currentPitch = playbackPitch,
+            onSelectSpeed = { playbackViewModel.setPlaybackSpeed(it) },
+            onSelectPitch = { playbackViewModel.setPlaybackPitch(it) },
             onDismiss = { sheetState.showPlaybackSpeed = false }
         )
     }
@@ -191,6 +199,15 @@ internal fun NowPlayingScreenSheetsHost(
                 fallbackLyrics = fallbackLyrics,
                 currentPositionMs = currentPositionMs,
                 onDismiss = { sheetState.showScreenshotSuggestion = false }
+            )
+        }
+    }
+    if (sheetState.showTagEditor) {
+        song?.let { currentSong ->
+            SongTagEditorSheet(
+                song = currentSong,
+                onDismiss = { sheetState.showTagEditor = false },
+                onSaved = { updated -> playbackViewModel.updateSongMetadata(updated) }
             )
         }
     }

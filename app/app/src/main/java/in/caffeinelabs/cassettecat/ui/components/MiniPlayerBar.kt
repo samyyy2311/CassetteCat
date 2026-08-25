@@ -110,6 +110,7 @@ fun MiniPlayerRow(
                     currentSong = song,
                     previousSong = previousSong,
                     nextSong = nextSong,
+                    swipeEnabled = preferences.miniPlayerSwipeToSkip,
                     onSwipeNext = { playbackViewModel.skipNext() },
                     onSwipePrevious = { playbackViewModel.skipPrevious() },
                     onThumbnailBoundsChange = onThumbnailBoundsChange
@@ -153,6 +154,7 @@ private fun MiniPlayerArtRow(
     currentSong: Song,
     previousSong: Song?,
     nextSong: Song?,
+    swipeEnabled: Boolean,
     onSwipeNext: () -> Unit,
     onSwipePrevious: () -> Unit,
     onThumbnailBoundsChange: (Rect) -> Unit
@@ -182,6 +184,7 @@ private fun MiniPlayerArtRow(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
+            userScrollEnabled = swipeEnabled,
             flingBehavior = PagerDefaults.flingBehavior(
                 state = pagerState,
                 snapAnimationSpec = tween(MINI_PLAYER_SNAP_MS, easing = SmoothEasing)

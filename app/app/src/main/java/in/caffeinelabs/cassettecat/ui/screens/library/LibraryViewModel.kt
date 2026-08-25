@@ -74,6 +74,8 @@ data class ArtistGroup(val artist: String, val songs: List<Song>)
 data class AlbumGroup(val albumId: String, val album: String, val artist: String, val songs: List<Song>)
 data class GenreGroup(val genre: String, val songs: List<Song>)
 
+data class FolderGroup(val folderName: String, val folderPath: String, val songs: List<Song>)
+
 // misfires on stylized names like "Simon & Garfunkel": no way to tell those apart from credits
 private val ARTIST_SPLIT_REGEX = Regex("""\s*(?:,|&|;|/|\bfeat\.?\b|\bfeaturing\b|\bft\.?\b)\s*""", RegexOption.IGNORE_CASE)
 
@@ -98,6 +100,22 @@ fun List<Song>.groupedByGenre(): List<GenreGroup> {
     forEach { song -> song.effectiveGenres().forEach { genre -> byGenre.getOrPut(genre) { mutableListOf() }.add(song) } }
     return byGenre.map { (genre, songs) -> GenreGroup(genre, songs) }
         .sortedWith(compareBy<GenreGroup> { symbolOrNumberFirst(it.genre) }.thenBy { it.genre.sortKey() })
+}
+
+fun List<Song>.groupedByFolder(): List<FolderGroup> {
+    val byFolder = LinkedHashMap<String, MutableList<Song>>()
+    forEach { song ->
+        val path = song.filePath
+        if (path != null) {
+            val parentFile = java.io.File(path).parentFile
+            val folderPath = parentFile?.absolutePath ?: "Unknown"
+            byFolder.getOrPut(folderPath) { mutableListOf() }.add(song)
+        }
+    }
+    return byFolder.map { (path, songs) ->
+        val name = java.io.File(path).name.ifBlank { path }
+        FolderGroup(name, path, songs)
+    }.sortedWith(compareBy<FolderGroup> { symbolOrNumberFirst(it.folderName) }.thenBy { it.folderName.sortKey() })
 }
 
 private inline fun <reified T : Enum<T>> enumFromNameOrDefault(name: String, default: T): T =
@@ -156,6 +174,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _genreSortDirection = MutableStateFlow(SortDirection.ASCENDING)
     val genreSortDirection: StateFlow<SortDirection> = _genreSortDirection.asStateFlow()
+
+    private val _folderSortOrder = MutableStateFlow(FolderSortOrder.NAME)
+    val folderSortOrder: StateFlow<FolderSortOrder> = _folderSortOrder.asStateFlow()
+
+    private val _folderSortDirection = MutableStateFlow(SortDirection.ASCENDING)
+    val folderSortDirection: StateFlow<SortDirection> = _folderSortDirection.asStateFlow()
 
     private val _uiState = MutableStateFlow<LibraryUiState>(LibraryUiState.Loading)
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
@@ -267,6 +291,15 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             appPreferencesRepository.setLibraryGenreSortOrder(_genreSortOrder.value.name)
             appPreferencesRepository.setLibraryGenreSortDirection(_genreSortDirection.value.name)
+        }
+    }
+
+    fun setFolderSortOrder(order: FolderSortOrder) {
+        if (order == _folderSortOrder.value) {
+            _folderSortDirection.value = _folderSortDirection.value.flipped()
+        } else {
+            _folderSortOrder.value = order
+            _folderSortDirection.value = SortDirection.ASCENDING
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.ArtistImageLoader
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import kotlinx.coroutines.flow.first
 
@@ -46,7 +47,11 @@ fun ArtistImage(
     LaunchedEffect(artist) {
         if (bitmap == null) {
             val settings = ArtistImageLoaderHolder.settingsRepository(context).settings.first()
-            bitmap = ArtistImageLoaderHolder.loader.load(artist, settings.deezerEnabled, settings.audioDbEnabled)
+            bitmap = ArtistImageLoaderHolder.loader.load(
+                artist,
+                settings.isEnabled(ExternalService.DEEZER),
+                settings.isEnabled(ExternalService.AUDIODB)
+            )
         }
     }
 

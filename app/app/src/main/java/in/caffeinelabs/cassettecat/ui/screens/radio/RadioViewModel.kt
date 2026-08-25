@@ -95,13 +95,23 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
             } else {
                 prefs.radioSelectedCountry.ifBlank { null }
             }
-
-            if (isRadioEnabled()) {
-                refresh()
-                _countries.value = apiClient.countries()
-                _languages.value = apiClient.languages()
-                _tags.value = apiClient.tags()
-                _states.value = apiClient.states(_selectedCountry.value)
+        }
+        viewModelScope.launch {
+            serviceSettingsRepository.settings.collect { settings ->
+                val radioEnabled = settings.isEnabled(ExternalService.RADIO_BROWSER)
+                if (!radioEnabled) {
+                    _isOffline.value = true
+                    _topStations.value = emptyList()
+                    _searchResults.value = emptyList()
+                } else {
+                    refresh()
+                    if (_countries.value.isEmpty()) {
+                        _countries.value = apiClient.countries()
+                        _languages.value = apiClient.languages()
+                        _tags.value = apiClient.tags()
+                        _states.value = apiClient.states(_selectedCountry.value)
+                    }
+                }
             }
         }
     }
@@ -118,8 +128,13 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun refresh() {
-        _isOffline.value = !isOnline()
-        if (_isOffline.value) return
+        val radioEnabled = isRadioEnabled()
+        _isOffline.value = !radioEnabled || !isOnline()
+        if (_isOffline.value) {
+            _topStations.value = emptyList()
+            _searchResults.value = emptyList()
+            return
+        }
         val reverse = _sortDirection.value == SortDirection.DESCENDING
         val country = _selectedCountry.value
         val state = _selectedState.value

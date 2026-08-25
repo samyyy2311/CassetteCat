@@ -4,8 +4,7 @@ package `in`.caffeinelabs.cassettecat.ui.navigation
 
 import android.net.Uri
 import android.widget.Toast
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -53,8 +52,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.AppShortcutAction
+import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.radio.toSong
 import `in`.caffeinelabs.cassettecat.ui.components.MiniPlayerRow
@@ -63,6 +63,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.home.HomeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistDetailScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.library.FolderDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.GenreDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LikedSongsScreen
@@ -129,6 +130,8 @@ object MainRoute {
     fun albumDetail(albumId: String) = "main/library/album/${Uri.encode(albumId)}"
     const val GENRE_DETAIL = "main/library/genre/{genre}"
     fun genreDetail(genre: String) = "main/library/genre/${Uri.encode(genre)}"
+    const val FOLDER_DETAIL = "main/library/folder/{folderPath}"
+    fun folderDetail(folderPath: String) = "main/library/folder/${Uri.encode(folderPath)}"
     const val PLAYLIST_DETAIL = "main/library/playlist/{playlistId}"
     fun playlistDetail(playlistId: String) = "main/library/playlist/${Uri.encode(playlistId)}"
     const val SMART_PLAYLIST_DETAIL = "main/library/smart_playlist/{type}"
@@ -269,17 +272,21 @@ fun MainShell(
     LaunchedEffect(shortcutAction, libraryState) {
         val action = shortcutAction ?: return@LaunchedEffect
         if (libraryState is LibraryUiState.Loading) return@LaunchedEffect
-        val songs = when (action) {
-            AppShortcutAction.SHUFFLE_ALL -> librarySongs.shuffled()
-            AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite }
-            AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() }
-            else -> emptyList()
+        val (songs, isShuffle) = when (action) {
+            AppShortcutAction.SHUFFLE_ALL -> librarySongs to true
+            AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite } to false
+            AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() } to false
+            else -> emptyList<Song>() to false
         }
         onShortcutHandled()
         if (songs.isEmpty()) {
             Toast.makeText(context, "Nothing to play yet", Toast.LENGTH_SHORT).show()
         } else {
-            playbackViewModel.playQueue(songs, 0)
+            if (isShuffle) {
+                playbackViewModel.shuffleAll(songs)
+            } else {
+                playbackViewModel.playQueue(songs, 0, shuffle = false)
+            }
             nowPlayingView = NowPlayingView.PLAYER
             scaffoldState.bottomSheetState.expand()
         }
@@ -299,10 +306,21 @@ fun MainShell(
         }
     }
 
+    // 1. Back handler for Now Playing sub-views (Queue, Lyrics, Visualizer)
+    BackHandler(enabled = nowPlayingView != NowPlayingView.PLAYER) {
+        nowPlayingView = NowPlayingView.PLAYER
+    }
+
+    // 2. Back handler for expanded Now Playing bottom sheet -> collapses to mini-player
+    BackHandler(enabled = isSheetExpanded && nowPlayingView == NowPlayingView.PLAYER) {
+        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+    }
+
     CassetteCatTheme(
         accent = if (artworkAccent != null) ThemeAccent.CUSTOM else preferences.themeAccent,
         customAccentColor = artworkAccent ?: preferences.customAccentColor,
-        isAmoled = preferences.amoledDarkTheme
+        isAmoled = preferences.amoledDarkTheme,
+        appFontFamily = preferences.appFontFamily
     ) {
     Box(modifier.fillMaxSize()) {
         // The library and sheet remain within the system safe area. Lyrics is added below as
@@ -388,6 +406,7 @@ fun MainShell(
                                         Toast.makeText(context, "Queue saved to $name", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateToPlaylist = { playlistId -> navigateFromNowPlaying(MainRoute.playlistDetail(playlistId)) },
+                                    onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },
                                     onHeaderDragProgressChange = { headerDragRevealFraction = it }
                                 )
                             }
@@ -421,6 +440,7 @@ fun MainShell(
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },
                             onNavigateToGenre = { genre -> navController.navigate(MainRoute.genreDetail(genre)) },
+                            onNavigateToFolder = { folderPath -> navController.navigate(MainRoute.folderDetail(folderPath)) },
                             onNavigateToPlaylist = { playlistId -> navController.navigate(MainRoute.playlistDetail(playlistId)) },
                             onNavigateToLikedSongs = { navController.navigate(MainRoute.LIKED_SONGS) },
                             onNavigateToSmartPlaylist = { type -> navController.navigate(MainRoute.smartPlaylistDetail(type.id)) },
@@ -475,6 +495,21 @@ fun MainShell(
                         )
                     }
                     composable(
+                        MainRoute.FOLDER_DETAIL,
+                        arguments = listOf(navArgument("folderPath") { type = NavType.StringType })
+                    ) { entry ->
+                        val folderPath = Uri.decode(entry.arguments?.getString("folderPath").orEmpty())
+                        FolderDetailScreen(
+                            folderPath = folderPath,
+                            libraryViewModel = libraryViewModel,
+                            playbackViewModel = playbackViewModel,
+                            playlistViewModel = playlistViewModel,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(
                         MainRoute.PLAYLIST_DETAIL,
                         arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
                     ) { entry ->
@@ -518,6 +553,10 @@ fun MainShell(
                             playbackViewModel = playbackViewModel,
                             libraryViewModel = libraryViewModel,
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
+                            onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
+                            onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },
+                            onNavigateToGenre = { genre -> navController.navigate(MainRoute.genreDetail(genre)) },
+                            onNavigateToFolder = { folderPath -> navController.navigate(MainRoute.folderDetail(folderPath)) },
                             focusRequestId = searchFocusRequestId,
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
@@ -660,7 +699,8 @@ fun MainShell(
                     composable(MainRoute.SLEEP_TIMER) {
                         PlaybackPreferencesScreen(
                             playbackViewModel = playbackViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.PRIVACY) {
@@ -719,22 +759,6 @@ fun MainShell(
                     }
                 )
             }
-        }
-
-        val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-        DisposableEffect(isSheetExpanded, backDispatcher) {
-            if (!isSheetExpanded || backDispatcher == null) return@DisposableEffect onDispose {}
-            val callback = object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
-                    if (nowPlayingView != NowPlayingView.PLAYER) {
-                        nowPlayingView = NowPlayingView.PLAYER
-                    } else {
-                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                    }
-                }
-            }
-            backDispatcher.addCallback(callback)
-            onDispose { callback.remove() }
         }
     }
     }

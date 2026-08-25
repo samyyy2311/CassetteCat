@@ -61,6 +61,8 @@ import kotlin.math.abs
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
 
+internal fun isSeekablePlayback(durationMs: Long): Boolean = durationMs > 0L
+
 @Composable
 internal fun AppleMusicPillButton(
     iconRes: Int,
@@ -110,7 +112,11 @@ internal fun PlaybackControlsRow(
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
-        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
+        if (isSeekablePlayback(durationMs)) {
+            ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
+        } else {
+            LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
+        }
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -2,6 +2,8 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -37,19 +40,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.library.SmartPlaylistCriteria
+import `in`.caffeinelabs.cassettecat.data.library.SmartRuleType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.buildM3u
+import `in`.caffeinelabs.cassettecat.data.library.filterSongsForSmartCriteria
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -84,13 +94,19 @@ fun PlaylistDetailScreen(
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val favoritesRepository = remember { FavoritesRepository(context) }
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val playlist = playlists.find { it.id == playlistId }
         // transiently null right after delete, mid pop-back-stack transition
         ?: return
 
-    val songs = remember(playlist.songIds, allSongs) {
-        playlist.songIds.mapNotNull { id -> allSongs.find { it.id == id } }
+    val songs = remember(playlist, allSongs, favoriteIds) {
+        if (playlist.isSmart && playlist.smartCriteria != null) {
+            filterSongsForSmartCriteria(allSongs, favoriteIds, playlist.smartCriteria)
+        } else {
+            playlist.songIds.mapNotNull { id -> allSongs.find { it.id == id } }
+        }
     }
 
     var sortOrder by rememberSaveable { mutableStateOf(PlaylistSortOrder.PLAYLIST_ORDER) }
@@ -134,6 +150,29 @@ fun PlaylistDetailScreen(
                 )
             }
             if (songs.isNotEmpty()) {
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_play,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    accented = true,
+                    onClick = {
+                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                        playbackViewModel.playQueue(sortedSongs, 0, shuffle = false)
+                        if (wasIdle) onNavigateToNowPlaying()
+                    }
+                )
+                Spacer(Modifier.width(8.dp))
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_shuffle,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    onClick = {
+                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                        playbackViewModel.shuffleAll(sortedSongs)
+                        if (wasIdle) onNavigateToNowPlaying()
+                    }
+                )
+                Spacer(Modifier.width(4.dp))
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_arrow_up_down,
                     contentDescription = "Sort by",
@@ -147,21 +186,23 @@ fun PlaylistDetailScreen(
             )
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .tapScale { showAddSongsSheet = true }
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_plus),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(16.dp))
-            Text("Add Songs", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
+        if (!playlist.isSmart) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .tapScale { showAddSongsSheet = true }
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_plus),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(16.dp))
+                Text("Add Songs", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
+            }
         }
 
         if (songs.isEmpty()) {
@@ -326,25 +367,123 @@ private fun PlaylistActionRow(iconRes: Int, label: String, destructive: Boolean,
 // shared by "New Playlist" (LibraryScreen) and "Rename Playlist" (here): same field, same shape
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistNameSheet(title: String, initialName: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+fun PlaylistNameSheet(
+    title: String,
+    initialName: String,
+    onConfirm: (String) -> Unit,
+    onConfirmSmart: ((String, SmartPlaylistCriteria) -> Unit)? = null,
+    onDismiss: () -> Unit
+) {
     var name by remember { mutableStateOf(initialName) }
+    var isSmartMode by remember { mutableStateOf(false) }
+    var selectedRules by remember { mutableStateOf(setOf<SmartRuleType>()) }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 12.dp))
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 28.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 8.dp))
+
+            if (onConfirmSmart != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (!isSmartMode) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                            .clickable { isSmartMode = false }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Standard",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (!isSmartMode) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (!isSmartMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSmartMode) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                            .clickable { isSmartMode = true }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Smart Rules",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSmartMode) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSmartMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text("Playlist name") },
+                placeholder = { Text(if (isSmartMode) "Smart Playlist name (e.g. 90s Favorites)" else "Playlist name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(16.dp))
+
+            if (isSmartMode) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "AUTO-FILTER RULES",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(SmartRuleType.entries) { rule ->
+                        val selected = selectedRules.contains(rule)
+                        val bg = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                        val fg = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(bg)
+                                .clickable {
+                                    selectedRules = if (selected) selectedRules - rule else selectedRules + rule
+                                    if (name.isBlank() && selectedRules.isNotEmpty()) {
+                                        name = selectedRules.first().label
+                                    }
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(rule.label, style = MaterialTheme.typography.bodySmall, color = fg)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
             Button(
-                onClick = hapticClick { if (name.isNotBlank()) onConfirm(name.trim()) },
-                enabled = name.isNotBlank(),
+                onClick = hapticClick {
+                    if (name.isNotBlank()) {
+                        if (isSmartMode && onConfirmSmart != null) {
+                            onConfirmSmart(name.trim(), SmartPlaylistCriteria(rules = selectedRules.toList()))
+                        } else {
+                            onConfirm(name.trim())
+                        }
+                    }
+                },
+                enabled = name.isNotBlank() && (!isSmartMode || selectedRules.isNotEmpty()),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save")
+                Text(if (isSmartMode) "Create Smart Playlist" else "Save")
             }
         }
     }

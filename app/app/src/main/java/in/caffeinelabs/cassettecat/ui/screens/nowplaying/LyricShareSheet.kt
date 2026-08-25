@@ -17,6 +17,8 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,8 +63,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
@@ -75,9 +75,10 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
-import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-import java.io.File
+import `in`.caffeinelabs.cassettecat.ui.util.loadCanvasTypefaces
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class LyricCardTheme(val label: String) {
     ATMOSPHERE("Atmosphere"),
@@ -130,6 +131,7 @@ fun LyricShareSheet(
 
             Spacer(Modifier.height(16.dp))
 
+            // 4:5 In-App Lyric Quote Card Preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
@@ -145,6 +147,7 @@ fun LyricShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
+            // Theme Selection Pills
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -152,17 +155,23 @@ fun LyricShareSheet(
             ) {
                 LyricCardTheme.entries.forEach { theme ->
                     val isSelected = selectedTheme == theme
+                    val bgColor by animateColorAsState(
+                        if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        animationSpec = tween(200),
+                        label = "themeBg"
+                    )
                     Box(
                         modifier = Modifier
                             .padding(horizontal = 6.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .background(bgColor)
                             .clickable { selectedTheme = theme }
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = theme.label,
                             style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -191,7 +200,7 @@ fun LyricShareSheet(
                 )
 
                 ShareActionPill(
-                    iconRes = `in`.caffeinelabs.cassettecat.R.drawable.ic_logo_whatsapp,
+                    iconRes = AppR.drawable.ic_logo_whatsapp,
                     label = "WhatsApp",
                     packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
                     backgroundColor = Color(0xFF25D366),
@@ -199,17 +208,19 @@ fun LyricShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
+                            val bitmap = withContext(Dispatchers.Default) {
+                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
+                            }
                             val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
                                 runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
                             } ?: "com.whatsapp"
-                            shareLyricCardBitmap(context, bitmap, "${song.title} - ${song.artist}", targetPkg)
+                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", targetPkg)
                         }
                     }
                 )
 
                 ShareActionPill(
-                    iconRes = `in`.caffeinelabs.cassettecat.R.drawable.ic_logo_instagram,
+                    iconRes = AppR.drawable.ic_logo_instagram,
                     label = "Stories",
                     packageNames = listOf("com.instagram.android"),
                     backgroundBrush = Brush.linearGradient(
@@ -219,8 +230,10 @@ fun LyricShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            shareLyricCardBitmap(context, bitmap, "${song.title} - ${song.artist}", "com.instagram.android")
+                            val bitmap = withContext(Dispatchers.Default) {
+                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
+                            }
+                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}")
                         }
                     }
                 )
@@ -233,8 +246,10 @@ fun LyricShareSheet(
                     onClick = {
                         scope.launch {
                             val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            shareLyricCardBitmap(context, bitmap, "${song.title} - ${song.artist}", null)
+                            val bitmap = withContext(Dispatchers.Default) {
+                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
+                            }
+                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", null)
                         }
                     }
                 )
@@ -250,6 +265,9 @@ private fun LyricQuoteCard(
     theme: LyricCardTheme,
     modifier: Modifier = Modifier
 ) {
+    val fontSize = if (lines.size <= 2) 21.sp else 17.5.sp
+    val lineHeight = if (lines.size <= 2) 28.sp else 24.sp
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -288,9 +306,10 @@ private fun LyricQuoteCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(22.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Header Row (Album thumbnail + Title + Artist)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -307,6 +326,7 @@ private fun LyricQuoteCard(
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -314,39 +334,41 @@ private fun LyricQuoteCard(
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.70f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
+            // Lyric Text Body (With quote icon and bold typography)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_quote),
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.4f),
+                    tint = Color.White.copy(alpha = 0.40f),
                     modifier = Modifier.size(24.dp)
                 )
                 lines.forEach { line ->
                     Text(
                         text = line,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = if (lines.size <= 2) 22.sp else 18.sp,
-                            lineHeight = if (lines.size <= 2) 30.sp else 26.sp,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = fontSize,
+                            lineHeight = lineHeight,
                             fontFamily = SpaceGroteskFontFamily,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         ),
                         color = Color.White
                     )
                 }
             }
 
+            // Footer (CassetteCat + Tape Icon)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -380,11 +402,7 @@ private fun buildLyricCardPoster(
     val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
-    val spaceGroteskBold = runCatching {
-        val font = ResourcesCompat.getFont(context, AppR.font.space_grotesk_variable)
-        Typeface.create(font ?: Typeface.DEFAULT_BOLD, Typeface.BOLD)
-    }.getOrNull() ?: Typeface.DEFAULT_BOLD
-    val ibmPlexMono = runCatching { ResourcesCompat.getFont(context, AppR.font.ibm_plex_mono_regular) }.getOrNull() ?: Typeface.MONOSPACE
+    val (spaceGroteskBold, _, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
     // Background
@@ -398,7 +416,6 @@ private fun buildLyricCardPoster(
                 }
                 canvas.drawBitmap(blurred, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), filterPaint)
 
-                // Dark gradient scrim matching in-app Atmosphere theme
                 val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     shader = LinearGradient(
                         0f, 0f, 0f, height.toFloat(),
@@ -442,10 +459,10 @@ private fun buildLyricCardPoster(
         }
     }
 
-    // Top Header Thumbnail (220x220)
-    val thumbSize = 220f
+    // Top Header Thumbnail (240x240)
+    val thumbSize = 240f
     val thumbLeft = 180f
-    val thumbTop = 180f
+    val thumbTop = 160f
     val thumbRect = RectF(thumbLeft, thumbTop, thumbLeft + thumbSize, thumbTop + thumbSize)
 
     if (artBitmap != null) {
@@ -463,53 +480,38 @@ private fun buildLyricCardPoster(
             isFilterBitmap = true
             isDither = true
         }
-        canvas.drawRoundRect(thumbRect, 40f, 40f, thumbPaint)
+        canvas.drawRoundRect(thumbRect, 44f, 44f, thumbPaint)
     } else {
         val placeholderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = "#221F1D".toColorInt()
         }
-        canvas.drawRoundRect(thumbRect, 40f, 40f, placeholderPaint)
+        canvas.drawRoundRect(thumbRect, 44f, 44f, placeholderPaint)
     }
 
     // Header Title & Artist
     val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.WHITE
-        textSize = 76f
+        textSize = 84f
         typeface = spaceGroteskBold
         fontVariationSettings = "'wght' 700"
     }
-    val safeHeaderTitle = if (song.title.length > 28) song.title.take(26) + "…" else song.title
-    canvas.drawText(safeHeaderTitle, 450f, thumbTop + 96f, headerTitlePaint)
+    val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
+    canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
 
     val headerArtistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.argb(180, 255, 255, 255)
-        textSize = 56f
+        textSize = 58f
         typeface = Typeface.DEFAULT
     }
-    val safeHeaderArtist = if (song.artist.length > 34) song.artist.take(32) + "…" else song.artist
-    canvas.drawText(safeHeaderArtist, 450f, thumbTop + 184f, headerArtistPaint)
+    val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
+    canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
-    // Quote Icon
-    val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
-    if (quoteDrawable != null) {
-        quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
-        val qSize = 96
-        quoteDrawable.setBounds(180, 480, 180 + qSize, 480 + qSize)
-        quoteDrawable.draw(canvas)
-    }
-
-    // Lyrics Text Layout
+    // Lyrics Text Layout (Perfect proportion and spacing without overlap)
     val validLines = lines.filter { it.isNotBlank() }
-    val fontSize = when {
-        validLines.size <= 1 -> 116f
-        validLines.size <= 2 -> 104f
-        validLines.size <= 4 -> 90f
-        else -> 72f
-    }
-    val lineSpacingMult = when {
-        validLines.size <= 2 -> 1.30f
-        validLines.size <= 4 -> 1.25f
-        else -> 1.18f
+    val (fontSize, lineSpacingMult, extraSpacing, qSize, spacingBetween) = when {
+        validLines.size <= 2 -> listOf(124f, 1.26f, 20f, 120f, 32f)
+        validLines.size <= 5 -> listOf(104f, 1.22f, 16f, 106f, 28f)
+        else -> listOf(92f, 1.20f, 12f, 96f, 24f)
     }
 
     val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -520,32 +522,48 @@ private fun buildLyricCardPoster(
     }
 
     val textToDraw = validLines.joinToString("\n")
-    val textWidth = width - 360
+    val textMargin = 180f
+    val textWidth = (width - (textMargin * 2f)).toInt()
     val staticLayout = StaticLayout.Builder.obtain(textToDraw, 0, textToDraw.length, lyricPaint, textWidth)
         .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-        .setLineSpacing(24f, lineSpacingMult)
+        .setLineSpacing(extraSpacing, lineSpacingMult)
         .build()
 
-    canvas.withTranslation(180f, 620f) {
+    val availableTop = thumbTop + thumbSize + 60f
+    val availableBottom = height - 220f
+    val availableHeight = availableBottom - availableTop
+    val totalBlockHeight = qSize + spacingBetween + staticLayout.height
+    val blockStartY = maxOf(availableTop, availableTop + ((availableHeight - totalBlockHeight) / 2f).coerceAtLeast(0f))
+
+    // Quote Icon
+    val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
+    if (quoteDrawable != null) {
+        quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
+        quoteDrawable.setBounds(textMargin.toInt(), blockStartY.toInt(), (textMargin + qSize).toInt(), (blockStartY + qSize).toInt())
+        quoteDrawable.draw(canvas)
+    }
+
+    val textStartY = blockStartY + qSize + spacingBetween
+    canvas.withTranslation(textMargin, textStartY) {
         staticLayout.draw(this)
     }
 
     // Footer
     val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.argb(128, 255, 255, 255)
-        textSize = 56f
+        textSize = 58f
         typeface = ibmPlexMono
     }
-    canvas.drawText("CassetteCat", 180f, height - 180f, footerPaint)
+    canvas.drawText("CassetteCat", 180f, height - 160f, footerPaint)
 
-    val tapeSize = 72
+    val tapeSize = 78
     if (tapeDrawable != null) {
         tapeDrawable.setTint(android.graphics.Color.argb(128, 255, 255, 255))
         tapeDrawable.setBounds(
             (width - 180 - tapeSize),
-            (height - 232),
+            (height - 216),
             (width - 180),
-            (height - 232 + tapeSize)
+            (height - 216 + tapeSize)
         )
         tapeDrawable.draw(canvas)
     }
@@ -596,37 +614,5 @@ private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
             }
             pixels[y * w + x] = (0xFF shl 24) or ((r / count) shl 16) or ((g / count) shl 8) or (b / count)
         }
-    }
-}
-
-private fun shareLyricCardBitmap(
-    context: Context,
-    bitmap: Bitmap,
-    title: String,
-    targetPackage: String? = null
-) {
-    val cacheDir = File(context.cacheDir, "shared_images").apply { mkdirs() }
-    val file = File(cacheDir, "lyric_quote_${System.currentTimeMillis()}.png")
-    file.outputStream().use { out ->
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-    }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "image/png"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, title)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        if (targetPackage != null) {
-            setPackage(targetPackage)
-        }
-    }
-    runCatching {
-        if (targetPackage != null) {
-            context.startActivity(intent)
-        } else {
-            context.startActivity(Intent.createChooser(intent, "Share Lyric Card"))
-        }
-    }.onFailure {
-        context.startActivity(Intent.createChooser(intent, "Share Lyric Card"))
     }
 }

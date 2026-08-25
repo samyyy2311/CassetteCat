@@ -77,8 +77,17 @@ class PlaybackRepository(private val context: Context) {
                             c.play()
                         }
                         c != null && c.repeatMode == Player.REPEAT_MODE_ALL && currentQueue.isNotEmpty() -> {
-                            c.seekTo(0, 0L)
-                            c.play()
+                            if (shuffleEnabled && originalQueue.isNotEmpty()) {
+                                val freshShuffle = originalQueue.shuffled()
+                                currentQueue = freshShuffle
+                                val mediaItems = freshShuffle.map { it.toMediaItem() }
+                                c.setMediaItems(mediaItems, 0, 0L)
+                                c.prepare()
+                                c.play()
+                            } else {
+                                c.seekTo(0, 0L)
+                                c.play()
+                            }
                         }
                         c != null && c.hasNextMediaItem() -> {
                             c.seekToNextMediaItem()
@@ -121,18 +130,39 @@ class PlaybackRepository(private val context: Context) {
 
     // Offloads MediaItem mapping off the caller's thread (was a visible stall for large
     // libraries); controller calls stay on Main, which MediaController requires.
-    suspend fun playQueue(songs: List<Song>, startIndex: Int) {
-        currentQueue = songs
+    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
+        if (songs.isEmpty()) return
         originalQueue = songs
-        shuffleEnabled = false
-        songs.getOrNull(startIndex)?.let { recordPlayed(it) }
-        val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem() } }
+
+        val (finalQueue, targetIndex) = if (shuffle) {
+            if (startIndex in songs.indices) {
+                val chosenSong = songs[startIndex]
+                val otherSongs = songs.filterIndexed { idx, _ -> idx != startIndex }.shuffled()
+                (listOf(chosenSong) + otherSongs) to 0
+            } else {
+                songs.shuffled() to 0
+            }
+        } else {
+            songs to startIndex.coerceIn(0, songs.size - 1)
+        }
+
+        currentQueue = finalQueue
+        shuffleEnabled = shuffle
+        finalQueue.getOrNull(targetIndex)?.let { recordPlayed(it) }
+        val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem() } }
         controller?.apply {
-            setMediaItems(mediaItems, startIndex, 0L)
+            suppressShuffleSync = true
+            shuffleModeEnabled = shuffle
+            setMediaItems(mediaItems, targetIndex, 0L)
             prepare()
             play()
+            suppressShuffleSync = false
         }
+        updateState()
     }
+
+    /** Plays the provided collection fully randomized from a freshly shuffled queue. */
+    suspend fun shuffleAll(songs: List<Song>) = playQueue(songs, startIndex = songs.size, shuffle = true)
 
     // no play(): loads and seeks without auto-starting audio; no-ops if something's already loaded
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
@@ -197,6 +227,10 @@ class PlaybackRepository(private val context: Context) {
         )
     }
 
+    fun pause() {
+        controller?.pause()
+    }
+
     fun togglePlayPause() {
         controller?.let { c ->
             if (c.isPlaying) {
@@ -256,8 +290,17 @@ class PlaybackRepository(private val context: Context) {
         controller?.seekTo(positionMs)
     }
 
+    private var currentSpeed: Float = 1f
+    private var currentPitch: Float = 1f
+
     fun setPlaybackSpeed(speed: Float) {
-        controller?.setPlaybackSpeed(speed.coerceIn(0.5f, 2f))
+        currentSpeed = speed.coerceIn(0.5f, 2f)
+        controller?.playbackParameters = androidx.media3.common.PlaybackParameters(currentSpeed, currentPitch)
+    }
+
+    fun setPlaybackPitch(pitch: Float) {
+        currentPitch = pitch.coerceIn(0.7f, 1.3f)
+        controller?.playbackParameters = androidx.media3.common.PlaybackParameters(currentSpeed, currentPitch)
     }
 
     fun setVolume(volume: Float) {
@@ -287,14 +330,26 @@ class PlaybackRepository(private val context: Context) {
         val c = controller ?: return
         shuffleEnabled = !shuffleEnabled
         if (shuffleEnabled) shuffleUpNext(c) else restoreOriginalOrder(c)
+        suppressShuffleSync = true
+        c.shuffleModeEnabled = shuffleEnabled
+        suppressShuffleSync = false
         updateState()
     }
 
     private fun shuffleUpNext(c: MediaController) {
         val currentIndex = c.currentMediaItemIndex
         val queueSizeBefore = currentQueue.size
-        if (currentIndex == C.INDEX_UNSET || currentIndex >= queueSizeBefore - 1) return
-        val shuffledUpcoming = currentQueue.subList(currentIndex + 1, queueSizeBefore).shuffled()
+        if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty()) return
+        val currentSong = currentQueue.getOrNull(currentIndex) ?: return
+
+        val upcoming = if (originalQueue.isNotEmpty()) {
+            val originalIndex = originalQueue.indexOfFirst { it.id == currentSong.id }
+            if (originalIndex >= 0) originalQueue.drop(originalIndex + 1) else originalQueue.filter { it.id != currentSong.id }
+        } else {
+            currentQueue.drop(currentIndex + 1)
+        }
+
+        val shuffledUpcoming = upcoming.shuffled()
         currentQueue = currentQueue.subList(0, currentIndex + 1) + shuffledUpcoming
         c.replaceMediaItems(currentIndex + 1, queueSizeBefore, shuffledUpcoming.map { it.toMediaItem() })
     }
@@ -302,10 +357,16 @@ class PlaybackRepository(private val context: Context) {
     private fun restoreOriginalOrder(c: MediaController) {
         val currentIndex = c.currentMediaItemIndex
         val queueSizeBefore = currentQueue.size
-        if (currentIndex == C.INDEX_UNSET || currentIndex >= queueSizeBefore - 1) return
-        // Keep only songs still upcoming, in their original relative order.
-        val remainingIds = currentQueue.subList(currentIndex + 1, queueSizeBefore).map { it.id }.toSet()
-        val restoredUpcoming = originalQueue.filter { it.id in remainingIds }
+        if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty() || originalQueue.isEmpty()) return
+        val currentSong = currentQueue.getOrNull(currentIndex) ?: return
+
+        val originalIndex = originalQueue.indexOfFirst { it.id == currentSong.id }
+        val restoredUpcoming = if (originalIndex >= 0 && originalIndex < originalQueue.size - 1) {
+            originalQueue.subList(originalIndex + 1, originalQueue.size)
+        } else {
+            originalQueue.filter { it.id != currentSong.id }
+        }
+
         currentQueue = currentQueue.subList(0, currentIndex + 1) + restoredUpcoming
         c.replaceMediaItems(currentIndex + 1, queueSizeBefore, restoredUpcoming.map { it.toMediaItem() })
     }
@@ -336,6 +397,17 @@ class PlaybackRepository(private val context: Context) {
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
         // The explicit queue is now the source of truth. This also means turning shuffle
         // off preserves newly queued songs instead of silently dropping them.
+        originalQueue = currentQueue
+        updateState()
+    }
+
+    fun addToEndOfQueue(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        val c = controller ?: return
+        if (c.currentMediaItemIndex == C.INDEX_UNSET || currentQueue.isEmpty()) return
+
+        c.addMediaItems(songs.map { it.toMediaItem() })
+        currentQueue = currentQueue + songs
         originalQueue = currentQueue
         updateState()
     }
@@ -409,6 +481,15 @@ class PlaybackRepository(private val context: Context) {
         updateState()
     }
 
+    fun updateSongMetadata(updatedSong: Song) {
+        currentQueue = currentQueue.map { if (it.id == updatedSong.id) updatedSong else it }
+        originalQueue = originalQueue.map { if (it.id == updatedSong.id) updatedSong else it }
+        val patchedHistory = history.map { if (it.id == updatedSong.id) updatedSong else it }
+        history.clear()
+        history.addAll(patchedHistory)
+        updateState()
+    }
+
     fun release() {
         repositoryScope.cancel()
         controller?.release()
@@ -420,12 +501,13 @@ class PlaybackRepository(private val context: Context) {
     private fun updateState() {
         val c = controller ?: return
         val index = c.currentMediaItemIndex
+        val song = currentQueue.getOrNull(index)
         _state.value = PlaybackUiState(
-            currentSong = currentQueue.getOrNull(index),
+            currentSong = song,
             isPlaying = c.isPlaying,
             isBuffering = c.playbackState == Player.STATE_BUFFERING,
             playWhenReady = c.playWhenReady && c.playbackState != Player.STATE_ENDED,
-            durationMs = c.duration.coerceAtLeast(0L),
+            durationMs = c.duration.takeIf { it > 0L } ?: song?.durationMs ?: 0L,
             isShuffleEnabled = shuffleEnabled,
             repeatMode = c.repeatMode,
             audioSessionId = c.audioSessionId,

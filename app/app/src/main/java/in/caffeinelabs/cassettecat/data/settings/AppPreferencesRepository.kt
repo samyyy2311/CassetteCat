@@ -49,12 +49,19 @@ private val LIBRARY_ALBUM_SORT_DIRECTION = stringPreferencesKey("library_album_s
 private val LIBRARY_GENRE_SORT_ORDER = stringPreferencesKey("library_genre_sort_order")
 private val LIBRARY_GENRE_SORT_DIRECTION = stringPreferencesKey("library_genre_sort_direction")
 
-// Gestures
+// Gestures & Visuals
 private val SWIPE_UP_LYRICS_ENABLED = booleanPreferencesKey("swipe_up_lyrics_enabled")
+private val SHAKE_TO_SKIP_ENABLED = booleanPreferencesKey("shake_to_skip_enabled")
+private val SHAKE_SENSITIVITY = intPreferencesKey("shake_sensitivity")
+private val FLIP_TO_PAUSE_ENABLED = booleanPreferencesKey("flip_to_pause_enabled")
+private val MINI_PLAYER_SWIPE_TO_SKIP = booleanPreferencesKey("mini_player_swipe_to_skip")
+private val NOW_PLAYING_BACKDROP_STYLE = stringPreferencesKey("now_playing_backdrop_style")
+private val APP_FONT_FAMILY = stringPreferencesKey("app_font_family")
 
 // Lyrics Customization
 private val LYRICS_ALIGNMENT = stringPreferencesKey("lyrics_alignment")
 private val LYRICS_ACTIVE_STYLE = stringPreferencesKey("lyrics_active_style")
+private val LYRICS_FONT_FAMILY = stringPreferencesKey("lyrics_font_family")
 
 private val WIFI_ONLY_DOWNLOADS = booleanPreferencesKey("wifi_only_downloads")
 private val LISTENING_STATS_ENABLED = booleanPreferencesKey("listening_stats_enabled")
@@ -100,7 +107,8 @@ enum class DefaultLibraryTab(val label: String) {
     ARTISTS("Artists"),
     ALBUMS("Albums"),
     GENRES("Genres"),
-    PLAYLISTS("Playlists")
+    PLAYLISTS("Playlists"),
+    FOLDERS("Folders")
 }
 
 enum class HomeSection(val label: String) {
@@ -157,6 +165,34 @@ enum class LyricsActiveStyle(val label: String) {
     CLEAN_WHITE("Pure White")
 }
 
+enum class AppFontFamily(val label: String) {
+    SPACE_GROTESK("Space Grotesk (Default)"),
+    OUTFIT("Outfit (Modern Rounded)"),
+    INTER("Inter (Crisp Digital)"),
+    PLUS_JAKARTA_SANS("Plus Jakarta Sans (Contemporary)"),
+    IBM_PLEX_SANS("IBM Plex Sans (Clean)"),
+    IBM_PLEX_MONO("IBM Plex Mono (Retro Tech)"),
+    SILKSCREEN("Silkscreen (8-bit Pixel)"),
+    SYSTEM("System Default")
+}
+
+enum class LyricsFontFamily(val label: String) {
+    SPACE_GROTESK("Space Grotesk"),
+    OUTFIT("Outfit"),
+    INTER("Inter"),
+    PLUS_JAKARTA_SANS("Plus Jakarta Sans"),
+    IBM_PLEX_SANS("IBM Plex Sans"),
+    IBM_PLEX_MONO("IBM Plex Mono"),
+    SILKSCREEN("Silkscreen (8-bit Pixel)"),
+    SYSTEM("System Default")
+}
+
+enum class NowPlayingBackdropStyle(val label: String, val description: String) {
+    LIQUID_GRADIENT("Liquid Gradient", "Dynamic reactive mesh blur with organic drift"),
+    AMBIENT_GLOW("Ambient Glow", "Soft luminous aura centered behind artwork"),
+    OLED_BLACK("AMOLED Pure Black", "True black glass backdrop with subtle contrast")
+}
+
 data class AppPreferences(
     val themeAccent: ThemeAccent = ThemeAccent.RECORD_RED,
     val customAccentColor: Long = ThemeAccent.RECORD_RED.colorValue,
@@ -193,9 +229,17 @@ data class AppPreferences(
     val libraryGenreSortDirection: String = "ASCENDING",
     // Gestures
     val swipeUpLyricsEnabled: Boolean = true,
+    val shakeToSkipEnabled: Boolean = false,
+    val shakeSensitivity: Int = 2,
+    val flipToPauseEnabled: Boolean = false,
+    val miniPlayerSwipeToSkip: Boolean = true,
+    // Visual Styles
+    val nowPlayingBackdropStyle: NowPlayingBackdropStyle = NowPlayingBackdropStyle.OLED_BLACK,
+    val appFontFamily: AppFontFamily = AppFontFamily.SPACE_GROTESK,
     // Lyrics Customization
     val lyricsAlignment: LyricsAlignment = LyricsAlignment.CENTER,
     val lyricsActiveStyle: LyricsActiveStyle = LyricsActiveStyle.ACCENT_GLOW,
+    val lyricsFontFamily: LyricsFontFamily = LyricsFontFamily.SPACE_GROTESK,
     // Standard
     val wifiOnlyDownloads: Boolean = false,
     val listeningStatsEnabled: Boolean = true,
@@ -280,6 +324,12 @@ class AppPreferencesRepository(private val context: Context) {
             libraryGenreSortDirection = prefs[LIBRARY_GENRE_SORT_DIRECTION] ?: "ASCENDING",
             // Gestures
             swipeUpLyricsEnabled = prefs[SWIPE_UP_LYRICS_ENABLED] ?: true,
+            shakeToSkipEnabled = prefs[SHAKE_TO_SKIP_ENABLED] ?: false,
+            shakeSensitivity = prefs[SHAKE_SENSITIVITY] ?: 2,
+            flipToPauseEnabled = prefs[FLIP_TO_PAUSE_ENABLED] ?: false,
+            miniPlayerSwipeToSkip = prefs[MINI_PLAYER_SWIPE_TO_SKIP] ?: true,
+            nowPlayingBackdropStyle = enumValueOrDefault(prefs[NOW_PLAYING_BACKDROP_STYLE], NowPlayingBackdropStyle.OLED_BLACK),
+            appFontFamily = enumValueOrDefault(prefs[APP_FONT_FAMILY], AppFontFamily.SPACE_GROTESK),
             // Lyrics Customization
             lyricsAlignment = try {
                 LyricsAlignment.valueOf(prefs[LYRICS_ALIGNMENT] ?: LyricsAlignment.CENTER.name)
@@ -291,6 +341,7 @@ class AppPreferencesRepository(private val context: Context) {
             } catch (_: Exception) {
                 LyricsActiveStyle.ACCENT_GLOW
             },
+            lyricsFontFamily = enumValueOrDefault(prefs[LYRICS_FONT_FAMILY], LyricsFontFamily.SPACE_GROTESK),
             // Cache & Storage
             // Standard
             wifiOnlyDownloads = prefs[WIFI_ONLY_DOWNLOADS] ?: false,
@@ -422,7 +473,7 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setLibraryTabVisible(tab: DefaultLibraryTab, visible: Boolean) {
         context.appPreferencesDataStore.edit { prefs ->
-            val hidden = enumValueSet(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries).toMutableSet()
+            val hidden = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries).toMutableSet()
             if (visible) {
                 hidden -= tab
             } else if (DefaultLibraryTab.entries.count { it !in hidden } > 1) {
@@ -478,6 +529,18 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[SWIPE_UP_LYRICS_ENABLED] = enabled }
     }
 
+    suspend fun setShakeToSkipEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[SHAKE_TO_SKIP_ENABLED] = enabled }
+    }
+
+    suspend fun setShakeSensitivity(sensitivity: Int) {
+        context.appPreferencesDataStore.edit { it[SHAKE_SENSITIVITY] = sensitivity.coerceIn(1, 5) }
+    }
+
+    suspend fun setFlipToPauseEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[FLIP_TO_PAUSE_ENABLED] = enabled }
+    }
+
     // Lyrics Customization
     suspend fun setLyricsAlignment(alignment: LyricsAlignment) {
         context.appPreferencesDataStore.edit { it[LYRICS_ALIGNMENT] = alignment.name }
@@ -485,6 +548,14 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setLyricsActiveStyle(style: LyricsActiveStyle) {
         context.appPreferencesDataStore.edit { it[LYRICS_ACTIVE_STYLE] = style.name }
+    }
+
+    suspend fun setLyricsFontFamily(fontFamily: LyricsFontFamily) {
+        context.appPreferencesDataStore.edit { it[LYRICS_FONT_FAMILY] = fontFamily.name }
+    }
+
+    suspend fun setAppFontFamily(fontFamily: AppFontFamily) {
+        context.appPreferencesDataStore.edit { it[APP_FONT_FAMILY] = fontFamily.name }
     }
 
     // Cache & Storage
@@ -588,6 +659,14 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setRadioSelectedTag(tag: String) {
         context.appPreferencesDataStore.edit { it[RADIO_SELECTED_TAG] = tag }
+    }
+
+    suspend fun setNowPlayingBackdropStyle(style: NowPlayingBackdropStyle) {
+        context.appPreferencesDataStore.edit { it[NOW_PLAYING_BACKDROP_STYLE] = style.name }
+    }
+
+    suspend fun setMiniPlayerSwipeToSkip(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[MINI_PLAYER_SWIPE_TO_SKIP] = enabled }
     }
 
     suspend fun setRadioDefaultCountryApplied(applied: Boolean) {

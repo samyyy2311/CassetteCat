@@ -70,6 +70,7 @@ fun NowPlayingContent(
     allSongs: List<Song> = emptyList(),
     onSaveQueue: (String, List<String>) -> Unit = { _, _ -> },
     onNavigateToPlaylist: (String) -> Unit = {},
+    onNavigateToEqualizer: () -> Unit = {},
     drawBehindSystemBars: Boolean = false,
     onHeaderDragProgressChange: (Float) -> Unit = {}
 ) {
@@ -336,6 +337,7 @@ fun NowPlayingContent(
         onNavigateToArtist = onNavigateToArtist,
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToPlaylist = onNavigateToPlaylist,
+        onNavigateToEqualizer = onNavigateToEqualizer,
         onSaveQueue = onSaveQueue,
         syncedLyrics = syncedLyrics,
         fallbackLyrics = fallbackLyrics,

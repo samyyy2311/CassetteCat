@@ -40,6 +40,11 @@ import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.font.FontWeight
+import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import java.time.Instant
 import java.time.ZoneId
 import java.time.YearMonth
@@ -200,23 +205,20 @@ internal fun ListeningRecordReadout(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             RecordMetric(
                 label = "PLAYS",
-                value = totalPlays.toString().padStart(2, '0'),
-                modifier = Modifier.weight(1f)
+                value = totalPlays.toString().padStart(2, '0')
             )
             RecordMetric(
                 label = "TRACKS",
-                value = uniqueSongs.toString().padStart(2, '0'),
-                modifier = Modifier.weight(1f)
+                value = uniqueSongs.toString().padStart(2, '0')
             )
         }
     }
@@ -249,19 +251,21 @@ internal fun RankedCard(
     Column(modifier = Modifier.width(width).tapScale(onClick)) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp))) {
             art(Modifier.fillMaxSize())
-            Box(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    "$rank",
-                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            Text(
+                "$rank",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SpaceGroteskFontFamily,
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.75f),
+                        offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                        blurRadius = 8f
+                    )
+                ),
+                color = Color.White,
+                modifier = Modifier.padding(start = 10.dp, top = 6.dp)
+            )
         }
         Spacer(Modifier.height(8.dp))
         Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)

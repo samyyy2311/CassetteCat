@@ -54,6 +54,8 @@ import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
 import `in`.caffeinelabs.cassettecat.data.radio.toSong
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -76,7 +78,9 @@ fun RadioScreen(
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val serviceSettingsRepository = remember { ServiceSettingsRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val serviceSettings by serviceSettingsRepository.settings.collectAsStateWithLifecycle(initialValue = ServiceSettings())
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val favorites by viewModel.favoriteStations.collectAsStateWithLifecycle(initialValue = emptyList())
     val recentStations by viewModel.recentStations.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -115,39 +119,74 @@ fun RadioScreen(
         context.startActivity(Intent.createChooser(intent, null))
     }
 
+    val showingSearch = query.isNotBlank()
+    val stations = if (showingSearch) searchResults else topStations
+
     Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Radio", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                contentDescription = "Filter stations",
-                tint = if (anyFilterActive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = {
-                    filterCategory = null
-                    showFilterSheet = true
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Radio", style = MaterialTheme.typography.headlineSmall)
+                val subtitleText = when {
+                    serviceSettings.offlineBlackoutMode -> "Offline Blackout Mode"
+                    isOffline -> "Offline"
+                    anyFilterActive -> "Filtered stations"
+                    showingSearch -> "${stations.size} station(s) found"
+                    else -> "Explore worldwide stations & broadcasts"
                 }
-            )
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_arrow_up_down,
-                contentDescription = "Sort by",
-                onClick = { showSortSheet = true }
-            )
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_plus,
-                contentDescription = "Add custom station",
-                onClick = { showAddCustom = true }
-            )
+                Text(
+                    subtitleText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isOffline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                    contentDescription = "Filter stations",
+                    tint = if (anyFilterActive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = {
+                        filterCategory = null
+                        showFilterSheet = true
+                    }
+                )
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_arrow_up_down,
+                    contentDescription = "Sort by",
+                    onClick = { showSortSheet = true }
+                )
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_plus,
+                    contentDescription = "Add custom station",
+                    onClick = { showAddCustom = true }
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            label = { Text("Search stations") },
+            placeholder = { Text("Search stations") },
+            leadingIcon = {
+                Icon(painter = painterResource(R.drawable.lucide_ic_search), contentDescription = null)
+            },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    PressDepthIconButton(
+                        iconRes = R.drawable.lucide_ic_x,
+                        contentDescription = "Clear",
+                        onClick = { query = "" }
+                    )
+                }
+            },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
         )
         LaunchedEffect(query) {
             if (query.isNotBlank()) delay(SEARCH_DEBOUNCE_MS)
@@ -155,13 +194,11 @@ fun RadioScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        val showingSearch = query.isNotBlank()
-        val stations = if (showingSearch) searchResults else topStations
         if (isOffline) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_radio,
-                title = "You're offline",
-                message = "Connect to the internet to browse and play radio stations.",
+                title = if (serviceSettings.offlineBlackoutMode) "Offline Blackout Mode" else "You're offline",
+                message = if (serviceSettings.offlineBlackoutMode) "All network streaming and external radio lookups are disabled." else "Connect to the internet to browse and play radio stations.",
                 modifier = Modifier.weight(1f)
             )
         } else if (stations.isEmpty() && favorites.isEmpty() && recentStations.isEmpty()) {

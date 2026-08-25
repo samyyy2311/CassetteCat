@@ -45,6 +45,7 @@ import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
@@ -123,7 +124,11 @@ fun HomeScreen(
     fun playAll(songs: List<Song>, shuffle: Boolean) {
         if (songs.isEmpty()) return
         val wasIdle = playbackState.currentSong == null
-        playbackViewModel.playQueue(if (shuffle) songs.shuffled() else songs, 0)
+        if (shuffle) {
+            playbackViewModel.shuffleAll(songs)
+        } else {
+            playbackViewModel.playQueue(songs, 0, shuffle = false)
+        }
         if (wasIdle) onNavigateToNowPlaying()
     }
 
@@ -140,7 +145,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         if (libraryState is LibraryUiState.Loading) {
             HomeSkeletonContent(listBottomPadding = listBottomPadding)
@@ -336,8 +341,20 @@ private fun HomeSongSection(
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            PressDepthIconButton(iconRes = R.drawable.lucide_ic_play, contentDescription = "Play $title", onClick = onPlay)
-            PressDepthIconButton(iconRes = R.drawable.lucide_ic_shuffle, contentDescription = "Shuffle $title", onClick = onShuffle)
+            TransportButton(
+                iconRes = R.drawable.lucide_ic_play,
+                size = 38.dp,
+                tint = MaterialTheme.colorScheme.tertiary,
+                accented = true,
+                onClick = onPlay
+            )
+            Spacer(Modifier.width(8.dp))
+            TransportButton(
+                iconRes = R.drawable.lucide_ic_shuffle,
+                size = 38.dp,
+                tint = MaterialTheme.colorScheme.onSurface,
+                onClick = onShuffle
+            )
         }
         Spacer(Modifier.height(8.dp))
         LazyRow(

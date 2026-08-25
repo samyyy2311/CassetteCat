@@ -24,9 +24,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -44,14 +47,17 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.DEFAULT_MAX_CACHE_BYTES
 import `in`.caffeinelabs.cassettecat.data.download.DOWNLOAD_CACHE_LIMIT_OPTIONS_MB
 import `in`.caffeinelabs.cassettecat.data.settings.AlbumArtCornerStyle
+import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
+import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -245,7 +251,7 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
             subtitle = "Use the current album artwork colour while music is playing",
             checked = prefs.artworkAccentEnabled,
             onCheckedChange = viewModel::setArtworkAccentEnabled,
-            iconRes = R.drawable.lucide_ic_sparkles,
+            iconRes = R.drawable.lucide_ic_palette,
         )
         SettingsDivider()
         ToggleRow(
@@ -264,6 +270,16 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
             selected = prefs.miniPlayerAction,
             label = { it.label },
             onSelect = viewModel::setMiniPlayerAction
+        )
+        SettingsDivider()
+        SheetPickerRow(
+            title = "App Typography",
+            subtitle = "Choose the font family used throughout the app",
+            iconRes = R.drawable.lucide_ic_type,
+            options = AppFontFamily.entries,
+            selected = prefs.appFontFamily,
+            label = { it.label },
+            onSelect = viewModel::setAppFontFamily
         )
         }
     }
@@ -466,6 +482,16 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             onSelect = { viewModel.setAlbumArtCornerRadiusDp(it.radiusDp) }
         )
         SettingsDivider()
+        SheetPickerRow(
+            title = "Backdrop Style",
+            subtitle = prefs.nowPlayingBackdropStyle.description,
+            iconRes = R.drawable.lucide_ic_image,
+            options = NowPlayingBackdropStyle.entries,
+            selected = prefs.nowPlayingBackdropStyle,
+            label = { it.label },
+            onSelect = viewModel::setNowPlayingBackdropStyle
+        )
+        SettingsDivider()
         ToggleRow(
             title = "Blurred Background",
             subtitle = "Ambient blurred album art behind the Now Playing screen",
@@ -483,12 +509,55 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
         )
         SettingsDivider()
         ToggleRow(
+            title = "Mini-Player Swipe to Skip",
+            subtitle = "Swipe horizontally on the mini-player to quickly switch tracks",
+            checked = prefs.miniPlayerSwipeToSkip,
+            onCheckedChange = viewModel::setMiniPlayerSwipeToSkip,
+            iconRes = R.drawable.lucide_ic_move_horizontal,
+        )
+        SettingsDivider()
+        ToggleRow(
             title = "Swipe Up on Art for Lyrics",
             subtitle = "Quickly reveal synchronised lyrics with an upward swipe",
             checked = prefs.swipeUpLyricsEnabled,
             onCheckedChange = viewModel::setSwipeUpLyricsEnabled,
             iconRes = R.drawable.lucide_ic_chevrons_up,
         )
+        SettingsDivider()
+        ToggleRow(
+            title = "Flip to Pause",
+            subtitle = "Place your phone face-down to pause music, pick up to resume",
+            checked = prefs.flipToPauseEnabled,
+            onCheckedChange = viewModel::setFlipToPauseEnabled,
+            iconRes = R.drawable.lucide_ic_rotate_ccw,
+        )
+        SettingsDivider()
+        ToggleRow(
+            title = "Shake to Skip",
+            subtitle = "Quickly shake your phone to skip to the next track",
+            checked = prefs.shakeToSkipEnabled,
+            onCheckedChange = viewModel::setShakeToSkipEnabled,
+            iconRes = R.drawable.lucide_ic_smartphone,
+        )
+        if (prefs.shakeToSkipEnabled) {
+            SettingsDivider()
+            SettingsSliderRow(
+                title = "Shake Sensitivity",
+                subtitle = "Adjust how firmly you need to shake the device",
+                value = prefs.shakeSensitivity.toFloat(),
+                valueRange = 1f..5f,
+                steps = 3,
+                label = when (prefs.shakeSensitivity) {
+                    1 -> "Gentle"
+                    2 -> "Light"
+                    3 -> "Medium"
+                    4 -> "Firm"
+                    else -> "Strong"
+                },
+                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                onValueChange = { viewModel.setShakeSensitivity(it.roundToInt()) }
+            )
+        }
         }
     }
 }
@@ -624,6 +693,16 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
             selected = prefs.lyricsFontSize,
             label = { it.label },
             onSelect = viewModel::setLyricsFontSize
+        )
+        SettingsDivider()
+        SheetPickerRow(
+            title = "Lyrics Font Family",
+            subtitle = "Typography personality for karaoke lyrics",
+            iconRes = R.drawable.lucide_ic_type,
+            options = LyricsFontFamily.entries,
+            selected = prefs.lyricsFontFamily,
+            label = { it.label },
+            onSelect = viewModel::setLyricsFontFamily
         )
         SettingsDivider()
         SheetPickerRow(
@@ -897,3 +976,68 @@ fun <T> SheetPickerRow(
         }
     }
 }
+
+@Composable
+fun SettingsSliderRow(
+    title: String,
+    subtitle: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int = 0,
+    label: String,
+    iconRes: Int,
+    iconTint: Color = MaterialTheme.colorScheme.secondary,
+    onValueChange: (Float) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(20.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 40.dp)
+        )
+    }
+}
+

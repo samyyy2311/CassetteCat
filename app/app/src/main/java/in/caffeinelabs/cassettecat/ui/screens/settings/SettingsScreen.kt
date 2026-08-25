@@ -112,7 +112,7 @@ fun SettingsScreen(
         val enabledServices = externalServices.count { uiState.services.isEnabled(it) }
 
         SettingsHeader()
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         // 1. Audio & Playback
         SettingsSection(title = "Audio & Playback") {
@@ -200,7 +200,7 @@ fun SettingsScreen(
                 subtitle = "Navidrome, gonic, and other Subsonic servers",
                 config = uiState.subsonic,
                 status = serverStatus(uiState.subsonic, MusicSource.Subsonic, "Subsonic"),
-                isChecking = uiState.services.offlineBlackoutMode || libraryState is LibraryUiState.Loading,
+                isChecking = !uiState.services.offlineBlackoutMode && libraryState is LibraryUiState.Loading,
                 onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_subsonic,
                 iconTint = Color.Unspecified,
@@ -213,7 +213,7 @@ fun SettingsScreen(
                 subtitle = "Connect to a Jellyfin media server",
                 config = uiState.jellyfin,
                 status = serverStatus(uiState.jellyfin, MusicSource.Jellyfin, "Jellyfin"),
-                isChecking = uiState.services.offlineBlackoutMode || libraryState is LibraryUiState.Loading,
+                isChecking = !uiState.services.offlineBlackoutMode && libraryState is LibraryUiState.Loading,
                 onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_jellyfin,
                 iconTint = Color.Unspecified,
@@ -269,11 +269,12 @@ fun SettingsScreen(
             ServiceToggleRow(
                 service = ExternalService.GITHUB_UPDATES,
                 enabled = uiState.services.githubUpdatesEnabled,
+                isBlackedOut = uiState.services.offlineBlackoutMode,
                 onToggle = { enabled -> viewModel.setServiceEnabled(ExternalService.GITHUB_UPDATES, enabled) },
                 iconRes = AppR.drawable.ic_logo_github,
                 iconTint = Color.Unspecified
             )
-            if (uiState.services.githubUpdatesEnabled) {
+            if (uiState.services.isEnabled(ExternalService.GITHUB_UPDATES)) {
                 SettingsDivider(startPadding = 24.dp)
                 UpdateCheckRow(
                     result = updateCheckResult,
@@ -356,10 +357,10 @@ private fun SettingsHeader() {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Manage playback, library, hardware, services, and data.",
+            "Manage playback, library, hardware, services, and data",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 2.dp)
         )
     }
 }
@@ -369,6 +370,7 @@ fun ServiceToggleRow(
     service: ExternalService,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    isBlackedOut: Boolean = false,
     iconRes: Int? = null,
     iconTint: Color = MaterialTheme.colorScheme.secondary
 ) {
@@ -384,17 +386,21 @@ fun ServiceToggleRow(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
-                tint = iconTint,
+                tint = if (isBlackedOut) iconTint.copy(alpha = 0.5f) else iconTint,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(20.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(service.label, style = MaterialTheme.typography.bodyLarge)
             Text(
-                service.description,
+                service.label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isBlackedOut) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                if (isBlackedOut) "${service.description} · Paused by Offline Blackout Mode" else service.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isBlackedOut) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Spacer(Modifier.width(16.dp))

@@ -2,7 +2,9 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,19 +31,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,18 +56,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfile
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfiles
+import `in`.caffeinelabs.cassettecat.data.playback.CustomEqualizerPreset
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun EqualizerScreen(
@@ -80,6 +99,7 @@ fun EqualizerScreen(
 
     var showAutoEqPicker by remember { mutableStateOf(false) }
     var selectedAutoEqName by remember { mutableStateOf<String?>(null) }
+    var showSavePresetDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -198,32 +218,69 @@ fun EqualizerScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                if (presetNames.isNotEmpty()) {
-                    Text(
-                        "PRESETS",
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                    )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        itemsIndexed(presetNames) { index, name ->
-                            val isSelected = levels.selectedPresetIndex == index
-                            PresetChip(
-                                name = name,
-                                selected = isSelected,
-                                enabled = isEnabled,
-                                onClick = {
-                                    selectedAutoEqName = null
-                                    viewModel.applyPreset(index)
-                                }
+                Text(
+                    "PRESETS",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .clickable(enabled = isEnabled) { showSavePresetDialog = true }
+                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_plus),
+                                contentDescription = "Save Preset",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Save Preset",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.tertiary
                             )
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
+
+                    items(levels.customPresets, key = { it.id }) { preset ->
+                        val isSelected = levels.selectedCustomPresetId == preset.id
+                        CustomPresetChip(
+                            preset = preset,
+                            selected = isSelected,
+                            enabled = isEnabled,
+                            onClick = {
+                                selectedAutoEqName = null
+                                viewModel.applyCustomPreset(preset)
+                            },
+                            onDelete = { viewModel.deleteCustomPreset(preset.id) }
+                        )
+                    }
+
+                    itemsIndexed(presetNames) { index, name ->
+                        val isSelected = levels.selectedPresetIndex == index && levels.selectedCustomPresetId == null
+                        PresetChip(
+                            name = name,
+                            selected = isSelected,
+                            enabled = isEnabled,
+                            onClick = {
+                                selectedAutoEqName = null
+                                viewModel.applyPreset(index)
+                            }
+                        )
+                    }
                 }
+                Spacer(Modifier.height(20.dp))
 
                 Text(
                     "FREQUENCY BANDS",
@@ -234,21 +291,22 @@ fun EqualizerScreen(
 
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     repeat(viewModel.numberOfBands) { band ->
-                        EqualizerBandSlider(
+                        BipolarEqualizerBandSlider(
                             label = formatFreqLabel(viewModel.centerFreqHz(band)),
                             valueMb = levels.bandLevelsMb.getOrElse(band) { 0 },
                             rangeMb = range,
                             enabled = isEnabled,
-                            onValueChange = { levelMb -> viewModel.setBandLevel(band, levelMb) }
+                            onValueLiveChange = { levelMb -> viewModel.setBandLevelLive(band, levelMb) },
+                            onValueCommit = { levelMb -> viewModel.setBandLevel(band, levelMb) }
                         )
                         if (band != viewModel.numberOfBands - 1) {
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(8.dp))
                         }
                     }
                 }
 
                 if (isBassBoostSupported || isVirtualizerSupported) {
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(20.dp))
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.padding(horizontal = 24.dp)
@@ -264,21 +322,27 @@ fun EqualizerScreen(
 
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         if (isBassBoostSupported) {
-                            EffectControlSlider(
+                            UnipolarAudioSlider(
                                 label = "Bass Boost",
-                                strength = levels.bassBoostStrength,
+                                value = levels.bassBoostStrength,
+                                maxVal = 1000,
                                 enabled = isEnabled,
-                                onValueChange = { viewModel.setBassBoostStrength(it) }
+                                displayFormatter = { "${(it / 10).coerceIn(0, 100)}%" },
+                                onValueLiveChange = { viewModel.setBassBoostStrengthLive(it) },
+                                onValueCommit = { viewModel.setBassBoostStrength(it) }
                             )
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(8.dp))
                         }
 
                         if (isVirtualizerSupported) {
-                            EffectControlSlider(
+                            UnipolarAudioSlider(
                                 label = "Surround Virtualizer",
-                                strength = levels.virtualizerStrength,
+                                value = levels.virtualizerStrength,
+                                maxVal = 1000,
                                 enabled = isEnabled,
-                                onValueChange = { viewModel.setVirtualizerStrength(it) }
+                                displayFormatter = { "${(it / 10).coerceIn(0, 100)}%" },
+                                onValueLiveChange = { viewModel.setVirtualizerStrengthLive(it) },
+                                onValueCommit = { viewModel.setVirtualizerStrength(it) }
                             )
                         }
                     }
@@ -293,11 +357,14 @@ fun EqualizerScreen(
                     )
 
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                        PreampGainSlider(
+                        UnipolarAudioSlider(
                             label = "Preamp Gain",
-                            gainMb = levels.preampGainMb,
+                            value = levels.preampGainMb,
+                            maxVal = 1200,
                             enabled = isEnabled,
-                            onValueChange = { viewModel.setPreampGainMb(it) }
+                            displayFormatter = { String.format(Locale.US, "%+.1f dB", it / 100f) },
+                            onValueLiveChange = { viewModel.setPreampGainMbLive(it) },
+                            onValueCommit = { viewModel.setPreampGainMb(it) }
                         )
                         Spacer(Modifier.height(16.dp))
                         ToggleRow(
@@ -322,6 +389,49 @@ fun EqualizerScreen(
                 selectedAutoEqName = "${profile.brand} ${profile.name}"
                 viewModel.applyAutoEq(profile)
                 showAutoEqPicker = false
+            }
+        )
+    }
+
+    if (showSavePresetDialog) {
+        var presetNameInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showSavePresetDialog = false },
+            title = { Text("Save Equalizer Preset") },
+            text = {
+                Column {
+                    Text(
+                        "Save the current band levels, bass boost, and preamp gain as a custom preset.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    TextField(
+                        value = presetNameInput,
+                        onValueChange = { presetNameInput = it },
+                        placeholder = { Text("e.g. Bass Boost Max, Vocal Clarity") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (presetNameInput.isNotBlank()) {
+                            viewModel.saveCurrentAsPreset(presetNameInput)
+                            showSavePresetDialog = false
+                        }
+                    },
+                    enabled = presetNameInput.isNotBlank()
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSavePresetDialog = false }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -470,91 +580,285 @@ private fun PresetChip(
 }
 
 @Composable
-private fun EqualizerBandSlider(
+private fun CustomPresetChip(
+    preset: CustomEqualizerPreset,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val bg = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    val fg = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(fg)
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            preset.name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = fg
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .clickable(enabled = enabled, onClick = onDelete),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_x),
+                contentDescription = "Delete Preset",
+                tint = fg.copy(alpha = 0.6f),
+                modifier = Modifier.size(13.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BipolarEqualizerBandSlider(
     label: String,
     valueMb: Int,
     rangeMb: IntRange,
     enabled: Boolean,
-    onValueChange: (Int) -> Unit
+    onValueLiveChange: (Int) -> Unit,
+    onValueCommit: (Int) -> Unit
 ) {
-    Column {
+    val haptics = LocalHapticFeedback.current
+    var dragValueMb by remember { mutableStateOf<Float?>(null) }
+    var previousSign by remember { mutableStateOf(if (valueMb >= 0) 1 else -1) }
+    val displayedValueMb = dragValueMb ?: valueMb.toFloat()
+    val min = rangeMb.first.toFloat()
+    val max = rangeMb.last.toFloat()
+    val validRange = if (max > min) min..max else -1500f..1500f
+
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(
-                String.format(Locale.US, "%+.1f dB", valueMb / 100f),
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = String.format(Locale.US, "%+.1f dB", displayedValueMb / 100f),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (valueMb != 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (displayedValueMb.roundToInt() != 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(enabled = enabled) {
+                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        dragValueMb = null
+                        onValueLiveChange(0)
+                        onValueCommit(0)
+                    }
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
             )
         }
+
         Slider(
-            value = valueMb.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            valueRange = rangeMb.first.toFloat()..rangeMb.last.toFloat(),
-            enabled = enabled
+            value = displayedValueMb.coerceIn(validRange),
+            onValueChange = { raw ->
+                val currentSign = if (raw >= 0) 1 else -1
+                if (currentSign != previousSign) {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    previousSign = currentSign
+                }
+                dragValueMb = raw
+                onValueLiveChange(raw.roundToInt())
+            },
+            onValueChangeFinished = {
+                val finalVal = (dragValueMb ?: valueMb.toFloat()).roundToInt()
+                onValueCommit(finalVal)
+                dragValueMb = null
+            },
+            valueRange = validRange,
+            enabled = enabled,
+            track = { sliderState -> BipolarEqTrack(sliderState) },
+            thumb = { EqFaderThumb() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnipolarAudioSlider(
+    label: String,
+    value: Int,
+    maxVal: Int,
+    enabled: Boolean,
+    displayFormatter: (Int) -> String,
+    onValueLiveChange: (Int) -> Unit,
+    onValueCommit: (Int) -> Unit
+) {
+    val haptics = LocalHapticFeedback.current
+    var dragValue by remember { mutableStateOf<Float?>(null) }
+    val displayedValue = dragValue ?: value.toFloat()
+    val validRange = 0f..maxVal.toFloat().coerceAtLeast(1f)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = displayFormatter(displayedValue.roundToInt()),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = if (displayedValue.roundToInt() > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(enabled = enabled) {
+                        haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        dragValue = null
+                        onValueLiveChange(0)
+                        onValueCommit(0)
+                    }
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+        }
+
+        Slider(
+            value = displayedValue.coerceIn(validRange),
+            onValueChange = { raw ->
+                dragValue = raw
+                onValueLiveChange(raw.roundToInt())
+            },
+            onValueChangeFinished = {
+                val finalVal = (dragValue ?: value.toFloat()).roundToInt()
+                onValueCommit(finalVal)
+                dragValue = null
+            },
+            valueRange = validRange,
+            enabled = enabled,
+            track = { sliderState -> UnipolarTrack(sliderState) },
+            thumb = { EqFaderThumb() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BipolarEqTrack(sliderState: SliderState) {
+    val grooveColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val activeColor = MaterialTheme.colorScheme.tertiary
+    val centerMarkColor = MaterialTheme.colorScheme.outlineVariant
+
+    val range = (sliderState.valueRange.endInclusive - sliderState.valueRange.start).coerceAtLeast(1f)
+    val fraction = ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
+    val centerFraction = 0.5f
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(grooveColor)
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val centerX = size.width * centerFraction
+            val thumbX = size.width * fraction
+
+            // Center zero notch
+            drawLine(
+                color = centerMarkColor,
+                start = Offset(centerX, -4.dp.toPx()),
+                end = Offset(centerX, size.height + 4.dp.toPx()),
+                strokeWidth = 2.dp.toPx()
+            )
+
+            // Active bar radiating from center to thumb
+            if (thumbX > centerX + 1f) {
+                drawRoundRect(
+                    color = activeColor,
+                    topLeft = Offset(centerX, 0f),
+                    size = Size(thumbX - centerX, size.height),
+                    cornerRadius = CornerRadius(3.dp.toPx())
+                )
+            } else if (thumbX < centerX - 1f) {
+                drawRoundRect(
+                    color = activeColor,
+                    topLeft = Offset(thumbX, 0f),
+                    size = Size(centerX - thumbX, size.height),
+                    cornerRadius = CornerRadius(3.dp.toPx())
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnipolarTrack(sliderState: SliderState) {
+    val grooveColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val activeColor = MaterialTheme.colorScheme.tertiary
+
+    val range = (sliderState.valueRange.endInclusive - sliderState.valueRange.start).coerceAtLeast(1f)
+    val fraction = ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(grooveColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction)
+                .fillMaxHeight()
+                .background(activeColor, RoundedCornerShape(3.dp))
         )
     }
 }
 
 @Composable
-private fun EffectControlSlider(
-    label: String,
-    strength: Int,
-    enabled: Boolean,
-    onValueChange: (Int) -> Unit
-) {
-    val percentage = (strength / 10).coerceIn(0, 100)
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                "$percentage%",
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (percentage > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+private fun EqFaderThumb() {
+    Box(
+        modifier = Modifier
+            .size(width = 12.dp, height = 24.dp)
+            .shadow(3.dp, RoundedCornerShape(3.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.tertiary,
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ),
+                RoundedCornerShape(3.dp)
             )
-        }
-        Slider(
-            value = strength.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            valueRange = 0f..1000f,
-            enabled = enabled
-        )
-    }
-}
-
-@Composable
-private fun PreampGainSlider(
-    label: String,
-    gainMb: Int,
-    enabled: Boolean,
-    onValueChange: (Int) -> Unit
-) {
-    val gainDb = gainMb / 100f
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                String.format(Locale.US, "%+.1f dB", gainDb),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (gainMb > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Slider(
-            value = gainMb.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            valueRange = 0f..1200f,
-            enabled = enabled
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(3.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .width(6.dp)
+                .height(2.dp)
+                .background(MaterialTheme.colorScheme.onTertiary, RoundedCornerShape(1.dp))
         )
     }
 }

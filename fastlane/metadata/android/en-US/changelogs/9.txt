@@ -1,0 +1,13 @@
+What's new in 1.5.0:
+
+- Shake to Skip: shake your phone to skip tracks
+- Flip to Pause: flip your phone face-down to pause
+- Smart Playlists built from rules like Recently Added or decade
+- Edit a local song's title, artist, album, or year from Now Playing
+- Search LRCLIB directly to manually match lyrics
+- Choose your app font: Space Grotesk, IBM Plex Sans, Outfit, Inter, Plus Jakarta Sans, or Silkscreen
+- Choose a Now Playing backdrop style: Pure Black, Ambient Glow, or Liquid Gradient
+- Fixed shuffle sometimes duplicating songs in the queue
+- Fixed edited song tags not showing up until a restart
+- Fixed Smart Playlists not letting you add songs
+- Smoother scrolling through long lists

@@ -34,10 +34,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -49,12 +51,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.ArtistBiography
 import `in`.caffeinelabs.cassettecat.data.library.WikipediaInfoLoader
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
@@ -66,6 +71,7 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun ArtistDetailScreen(
@@ -114,8 +120,8 @@ private fun ArtistCatalogScreen(
         val settings = serviceSettings.settings.first()
         about = wikipediaLoader.fetchArtistBiography(
             artist = artist,
-            wikipediaEnabled = settings.wikipediaEnabled,
-            audioDbEnabled = settings.audioDbEnabled
+            wikipediaEnabled = settings.isEnabled(ExternalService.WIKIPEDIA),
+            audioDbEnabled = settings.isEnabled(ExternalService.AUDIODB)
         )
     }
     val albums = remember(songs) {
@@ -170,7 +176,7 @@ private fun ArtistCatalogScreen(
     fun shuffleAll() {
         if (songs.isNotEmpty()) {
             val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-            playbackViewModel.playQueue(songs.shuffled(), 0)
+            playbackViewModel.shuffleAll(songs)
             if (wasIdle) onNavigateToNowPlaying()
         }
     }
@@ -183,7 +189,7 @@ private fun ArtistCatalogScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(state = listState, contentPadding = PaddingValues(bottom = listBottomPadding)) {
-            item(key = "hero") {
+            item(key = "hero", contentType = "hero") {
                 ArtistCatalogHero(
                     artist = artist,
                     songCount = songs.size,
@@ -195,11 +201,11 @@ private fun ArtistCatalogScreen(
                 )
             }
             if (recentTracks.isNotEmpty()) {
-                item(key = "recent-title") { ArtistSectionTitle("Recently added") }
-                items(recentTracks, key = { "recent:${it.id}" }) { song -> ArtistSongRow(song = song, onClick = { play(song) }) }
+                item(key = "recent-title", contentType = "section_title") { ArtistSectionTitle("Recently added") }
+                items(recentTracks, key = { "recent:${it.id}" }, contentType = { "song" }) { song -> ArtistSongRow(song = song, onClick = { play(song) }) }
             }
             if (albumsOnly.isNotEmpty()) {
-                item(key = "albums") {
+                item(key = "albums", contentType = "album_shelf") {
                     ArtistAlbumShelf(
                         title = "Albums",
                         albums = albumsOnly,
@@ -208,7 +214,7 @@ private fun ArtistCatalogScreen(
                 }
             }
             if (singles.isNotEmpty()) {
-                item(key = "singles") {
+                item(key = "singles", contentType = "album_shelf") {
                     ArtistAlbumShelf(
                         title = "Singles & EPs",
                         albums = singles,
@@ -217,7 +223,7 @@ private fun ArtistCatalogScreen(
                 }
             }
             if (appearsOn.isNotEmpty()) {
-                item(key = "appears") {
+                item(key = "appears", contentType = "album_shelf") {
                     ArtistAlbumShelf(
                         title = "Appears On",
                         albums = appearsOn,
@@ -227,7 +233,7 @@ private fun ArtistCatalogScreen(
             }
             // About is intentionally final: the library/catalog content comes first.
             about?.let { biography ->
-                item(key = "about") { ArtistAboutSection(biography) }
+                item(key = "about", contentType = "about") { ArtistAboutSection(biography) }
             }
         }
         // The compact title is not a second header. It fades in only as the hero title leaves,
@@ -467,6 +473,46 @@ fun GenreDetailScreen(
 }
 
 @Composable
+fun FolderDetailScreen(
+    folderPath: String,
+    libraryViewModel: LibraryViewModel,
+    playlistViewModel: PlaylistViewModel? = null,
+    playbackViewModel: PlaybackViewModel,
+    onBack: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit,
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
+) {
+    val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter {
+        it.filePath != null && (
+            java.io.File(it.filePath).parentFile?.absolutePath == folderPath ||
+            java.io.File(it.filePath).parent == folderPath ||
+            java.io.File(it.filePath).parentFile?.name == folderPath
+        )
+    }.orEmpty()
+
+    val folderName = java.io.File(folderPath).name.ifBlank { folderPath }
+
+    LibraryGroupDetailScreen(
+        title = folderName,
+        subtitle = if (songs.size == 1) "1 song" else "${songs.size} songs",
+        wikipediaQuery = null,
+        artistForHero = null,
+        albumHeroSong = null,
+        folderHeroPath = folderPath,
+        playlistViewModel = playlistViewModel,
+        metadata = emptyList(),
+        songs = songs,
+        playbackViewModel = playbackViewModel,
+        onBack = onBack,
+        onNavigateToNowPlaying = onNavigateToNowPlaying,
+        modifier = modifier,
+        listBottomPadding = listBottomPadding
+    )
+}
+
+@Composable
 private fun LibraryGroupDetailScreen(
     title: String,
     subtitle: String?,
@@ -479,6 +525,7 @@ private fun LibraryGroupDetailScreen(
     onBack: () -> Unit,
     onNavigateToNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
+    folderHeroPath: String? = null,
     wikipediaAlbumArtist: String? = null,
     playlistViewModel: PlaylistViewModel? = null,
     listBottomPadding: Dp = 0.dp
@@ -492,10 +539,13 @@ private fun LibraryGroupDetailScreen(
     var about by remember(wikipediaQuery) { mutableStateOf<String?>(null) }
     var showAlbumActions by remember { mutableStateOf(false) }
     var showPlaylistPicker by remember { mutableStateOf(false) }
+    var songForOptions by remember { mutableStateOf<Song?>(null) }
+    val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+
     LaunchedEffect(wikipediaQuery) {
         val settings = settingsRepo.settings.first()
         about = wikipediaQuery
-            ?.takeIf { settings.wikipediaEnabled }
+            ?.takeIf { settings.isEnabled(ExternalService.WIKIPEDIA) }
             ?.let { query ->
                 if (wikipediaAlbumArtist != null) loader.fetchAlbumSummary(query, wikipediaAlbumArtist)
                 else loader.fetchSummary(query)
@@ -513,7 +563,7 @@ private fun LibraryGroupDetailScreen(
         val shuffleAll = {
             if (songs.isNotEmpty()) {
                 val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                playbackViewModel.playQueue(songs.shuffled(), 0)
+                playbackViewModel.shuffleAll(songs)
                 if (wasIdle) onNavigateToNowPlaying()
             }
         }
@@ -529,12 +579,24 @@ private fun LibraryGroupDetailScreen(
         ) {
             // The complete detail header belongs to the scroll content. This lets artwork,
             // actions, and metadata move naturally out of the way as the song list takes over.
-            item(key = "header") {
+            item(key = "header", contentType = "header") {
                 if (artistForHero != null) {
                     ArtistDetailHeader(
                         artist = artistForHero,
                         songCount = songs.size,
                         albumCount = songs.map { it.albumId }.distinct().size,
+                        canDownload = downloadableSongs.isNotEmpty(),
+                        onBack = onBack,
+                        onPlayAll = playAll,
+                        onShuffleAll = shuffleAll,
+                        onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) }
+                    )
+                } else if (folderHeroPath != null) {
+                    FolderDetailHeader(
+                        folderName = title,
+                        folderPath = folderHeroPath,
+                        songCount = songs.size,
+                        sampleSong = songs.firstOrNull(),
                         canDownload = downloadableSongs.isNotEmpty(),
                         onBack = onBack,
                         onPlayAll = playAll,
@@ -564,26 +626,37 @@ private fun LibraryGroupDetailScreen(
                 }
             }
             if (metadata.isNotEmpty()) {
-                item { MusicMetadataBlock(metadata) }
+                item(contentType = "metadata") { MusicMetadataBlock(metadata) }
             }
             about?.let { aboutText ->
-                item { WikipediaAboutBlock(aboutText) }
+                item(contentType = "about") { WikipediaAboutBlock(aboutText) }
             }
-            if ((artistForHero != null || albumHeroSong != null) && songs.isNotEmpty()) {
-                item { SongSectionHeader(if (albumHeroSong != null) "Tracks" else "All songs") }
+            if (songs.isNotEmpty()) {
+                item(contentType = "songs_header") {
+                    SongSectionHeader(
+                        title = if (albumHeroSong != null) "Tracks" else if (artistForHero != null) "Popular Songs" else "Tracks",
+                        songs = songs,
+                        onPlayAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) playAll else null,
+                        onShuffleAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) shuffleAll else null
+                    )
+                }
             }
-            items(songs, key = { it.id }) { song ->
+            items(songs, key = { it.id }, contentType = { "song" }) { song ->
+                val isCurrentSong = playbackState.currentSong?.id == song.id
+                val isPlaying = playbackState.isPlaying
                 val onSongClick = {
                     val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                     val index = songs.indexOfFirst { it.id == song.id }
                     playbackViewModel.playQueue(songs, index)
                     if (wasIdle) onNavigateToNowPlaying()
                 }
-                if (artistForHero != null) {
-                    ArtistSongRow(song = song, onClick = onSongClick)
-                } else {
-                    SongRow(song = song, onClick = onSongClick)
-                }
+                SongRow(
+                    song = song,
+                    isCurrentSong = isCurrentSong,
+                    isPlaying = isPlaying,
+                    onMoreClick = { songForOptions = song },
+                    onClick = onSongClick
+                )
             }
         }
         if (showAlbumActions) {
@@ -599,10 +672,48 @@ private fun LibraryGroupDetailScreen(
             PlaylistPickerSheet(
                 playlists = playlists,
                 onSelect = { playlist ->
-                    playlistViewModel?.addSongs(playlist.id, songs.map { it.id })
+                    val idsToAdd = if (songForOptions != null) listOf(songForOptions!!.id) else songs.map { it.id }
+                    playlistViewModel?.addSongs(playlist.id, idsToAdd)
                     showPlaylistPicker = false
+                    songForOptions = null
                 },
-                onDismiss = { showPlaylistPicker = false }
+                onDismiss = {
+                    showPlaylistPicker = false
+                    songForOptions = null
+                }
+            )
+        }
+        songForOptions?.let { song ->
+            val favoritesRepository = remember { FavoritesRepository(context) }
+            val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
+            val isFav = song.isFavorite || song.id in favoriteIds
+            val coroutineScope = rememberCoroutineScope()
+
+            SongOptionsSheet(
+                song = song,
+                isFavorite = isFav,
+                onPlayNext = {
+                    playbackViewModel.addToUpNext(listOf(song))
+                    songForOptions = null
+                },
+                onAddToQueue = {
+                    playbackViewModel.addToEndOfQueue(listOf(song))
+                    songForOptions = null
+                },
+                onAddToPlaylist = {
+                    showPlaylistPicker = true
+                },
+                onToggleFavorite = {
+                    coroutineScope.launch {
+                        favoritesRepository.setFavorite(song.id, !isFav)
+                    }
+                    songForOptions = null
+                },
+                onShare = {
+                    shareSongs(context, listOf(song))
+                    songForOptions = null
+                },
+                onDismiss = { songForOptions = null }
             )
         }
     }
@@ -844,12 +955,117 @@ private fun AlbumActionRow(iconRes: Int, label: String, onClick: () -> Unit) {
 }
 
 @Composable
+private fun FolderDetailHeader(
+    folderName: String,
+    folderPath: String,
+    songCount: Int,
+    sampleSong: Song?,
+    canDownload: Boolean,
+    onBack: () -> Unit,
+    onPlayAll: () -> Unit,
+    onShuffleAll: () -> Unit,
+    onDownloadAll: () -> Unit
+) {
+    val displayPath = folderPath
+        .replace("/storage/emulated/0", "~")
+        .replace("/storage/emulated/legacy", "~")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+            Spacer(Modifier.weight(1f))
+            if (canDownload) {
+                PressDepthIconButton(R.drawable.lucide_ic_download, "Download folder", onDownloadAll)
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .shadow(16.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            if (sampleSong != null) {
+                AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.45f to Color.Black.copy(alpha = 0.45f),
+                                1f to Color.Black.copy(alpha = 0.85f)
+                            )
+                        )
+                )
+            }
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_folder),
+                contentDescription = null,
+                tint = if (sampleSong != null) Color.White.copy(alpha = 0.95f) else MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(56.dp)
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = folderName,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        Text(
+            text = displayPath,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 4.dp)
+        )
+
+        Text(
+            text = if (songCount == 1) "1 track" else "$songCount tracks",
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.tertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 4.dp)
+        )
+
+        CatalogPlaybackActions(
+            onPlay = onPlayAll,
+            onShuffle = onShuffleAll,
+            modifier = Modifier.padding(top = 20.dp)
+        )
+    }
+}
+
+@Composable
 private fun GroupDetailHeader(
     title: String,
     subtitle: String?,
     songCount: Int,
     canDownload: Boolean,
     onBack: () -> Unit,
+    onPlayAll: () -> Unit = {},
+    onShuffleAll: () -> Unit = {},
     onDownloadAll: () -> Unit
 ) {
     Row(
@@ -875,12 +1091,63 @@ private fun GroupDetailHeader(
 }
 
 @Composable
-private fun SongSectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 4.dp)
-    )
+private fun SongSectionHeader(
+    title: String,
+    songs: List<Song> = emptyList(),
+    onPlayAll: (() -> Unit)? = null,
+    onShuffleAll: (() -> Unit)? = null
+) {
+    val totalDurationText = remember(songs) {
+        if (songs.isEmpty()) "" else {
+            val totalMs = songs.sumOf { it.durationMs }
+            val totalMinutes = totalMs / (1000 * 60)
+            val hours = totalMinutes / 60
+            val minutes = totalMinutes % 60
+            if (hours > 0) "${songs.size} tracks • ${hours}h ${minutes}m" else "${songs.size} tracks • ${minutes} min"
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 24.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            if (totalDurationText.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    totalDurationText,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (onPlayAll != null && onShuffleAll != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_play,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    accented = true,
+                    onClick = onPlayAll
+                )
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_shuffle,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    onClick = onShuffleAll
+                )
+            }
+        }
+    }
 }
 
 @Composable

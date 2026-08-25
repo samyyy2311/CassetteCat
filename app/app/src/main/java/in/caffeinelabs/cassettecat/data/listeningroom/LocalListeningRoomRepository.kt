@@ -21,6 +21,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -117,6 +121,7 @@ class LocalListeningRoomRepository(context: Context) {
     private var serverSocket: ServerSocket? = null
     private var hostRegistration: NsdManager.RegistrationListener? = null
     private var discoveryListener: NsdManager.DiscoveryListener? = null
+    private var isStartingDiscovery = false
     private var guestSocket: Socket? = null
     private var guestWriter: BufferedWriter? = null
     private var audioServer: RoomAudioServer? = null
@@ -124,9 +129,29 @@ class LocalListeningRoomRepository(context: Context) {
 
     val guestHostAddress: String? get() = guestSocket?.inetAddress?.hostAddress
 
+    init {
+        scope.launch {
+            ServiceSettingsRepository(appContext).settings
+                .map { it.offlineBlackoutMode }
+                .distinctUntilChanged()
+                .collect { offline ->
+                    if (offline) {
+                        stopDiscovery()
+                        if (_state.value.role != ListeningRoomRole.NONE) {
+                            stopRoom("Offline Blackout Mode activated. Room closed.")
+                        }
+                    }
+                }
+        }
+    }
+
     fun startRoom(queueProvider: () -> List<Song>) {
         if (_state.value.role != ListeningRoomRole.NONE) return
         scope.launch {
+            if (ServiceSettingsRepository(appContext).settings.first().offlineBlackoutMode) {
+                _state.value = _state.value.copy(notice = "Listening Room is disabled while Offline Blackout Mode is active.")
+                return@launch
+            }
             runCatching {
                 val server = ServerSocket(0)
                 serverSocket = server
@@ -159,8 +184,15 @@ class LocalListeningRoomRepository(context: Context) {
 
     @Suppress("DEPRECATION")
     fun findNearbyRooms() {
-        if (_state.value.role != ListeningRoomRole.NONE || discoveryListener != null) return
-        val listener = object : NsdManager.DiscoveryListener {
+        if (_state.value.role != ListeningRoomRole.NONE || discoveryListener != null || isStartingDiscovery) return
+        isStartingDiscovery = true
+        scope.launch {
+            if (ServiceSettingsRepository(appContext).settings.first().offlineBlackoutMode) {
+                isStartingDiscovery = false
+                _state.value = _state.value.copy(notice = "Listening Room is disabled while Offline Blackout Mode is active.")
+                return@launch
+            }
+            val listener = object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(regType: String) = Unit
             override fun onServiceFound(serviceInfo: NsdServiceInfo) {
                 if (serviceInfo.serviceType != SERVICE_TYPE) return
@@ -194,11 +226,13 @@ class LocalListeningRoomRepository(context: Context) {
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
         }
         discoveryListener = listener
+        isStartingDiscovery = false
         runCatching { nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener) }
             .onFailure {
                 discoveryListener = null
                 _state.value = _state.value.copy(notice = "Nearby room discovery is unavailable on this network.")
             }
+        }
     }
 
     fun joinRoom(room: NearbyListeningRoom) {
@@ -226,6 +260,10 @@ class LocalListeningRoomRepository(context: Context) {
 
     private fun connectToHost(host: String, port: Int, roomName: String, roomCode: String) {
         scope.launch {
+            if (ServiceSettingsRepository(appContext).settings.first().offlineBlackoutMode) {
+                stopRoom("Listening Room is disabled while Offline Blackout Mode is active.")
+                return@launch
+            }
             val connected = runCatching { openGuestSocket(host, port, roomName, roomCode) }
                 .onFailure { error -> stopRoom("Couldn’t join this room: ${error.message ?: "connection failed"}") }
                 .isSuccess
