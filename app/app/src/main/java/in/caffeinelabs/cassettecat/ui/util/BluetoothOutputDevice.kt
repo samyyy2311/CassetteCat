@@ -1,6 +1,8 @@
 package `in`.caffeinelabs.cassettecat.ui.util
 
 import android.Manifest
+import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioDeviceCallback
@@ -37,7 +39,7 @@ private fun hasBluetoothConnectPermission(context: Context): Boolean =
 // Audio already plays to whatever device the system has active regardless of this permission,
 // this only affects whether we can show its real name instead of a generic label.
 @Composable
-private fun rememberConnectedBluetoothDevice(): AudioDeviceInfo? {
+internal fun rememberConnectedBluetoothDevice(): AudioDeviceInfo? {
     val context = LocalContext.current
     var device by remember { mutableStateOf<AudioDeviceInfo?>(null) }
 
@@ -63,6 +65,70 @@ private fun rememberConnectedBluetoothDevice(): AudioDeviceInfo? {
     return device
 }
 
+fun isCarAudioDevice(device: AudioDeviceInfo?, context: Context): Boolean {
+    if (device == null) return false
+
+    // 1. Direct hardware car audio output device type (Android Automotive audio bus)
+    if (device.type == AudioDeviceInfo.TYPE_BUS) return true
+
+    val rawName = device.productName?.toString()?.trim() ?: ""
+    val name = rawName.lowercase()
+
+    // 2. Filter out explicit personal audio devices (headphones, earbuds, speakers)
+    val personalAudioKeywords = listOf(
+        "airpod", "earbud", "earphone", "headphone", "headset", "buds",
+        "wh-1000", "wf-1000", "quietcomfort", "soundcore", "freebud",
+        "linkbud", "galaxy buds", "pixel buds", "ear (", "ear 1", "ear 2", "ear (a)", "openfit"
+    )
+    if (personalAudioKeywords.any { name.contains(it) }) {
+        return false
+    }
+
+    // 3. Check for car audio / infotainment / automotive keywords
+    val carKeywords = listOf(
+        "car", "auto", "carkit", "car kit", "sync", "uconnect", "infotainment",
+        "handsfree", "hands-free", "mmi", "entune", "carplay", "android auto",
+        "toyota", "honda", "ford", "bmw", "audi", "hyundai", "kia",
+        "mazda", "subaru", "nissan", "mercedes", "volkswagen", "vw",
+        "chevrolet", "chevy", "volvo", "skoda", "renault", "peugeot",
+        "pioneer", "kenwood", "alpine", "jvc", "clarion", "blaupunkt", "headunit"
+    )
+    if (carKeywords.any { keyword ->
+        name.contains(keyword) || name.split(" ", "-", "_", "/").contains(keyword)
+    }) {
+        return true
+    }
+
+    // 4. Inspect BluetoothDevice Class if BLUETOOTH_CONNECT permission is granted
+    if (hasBluetoothConnectPermission(context)) {
+        try {
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            val adapter = bluetoothManager?.adapter
+            val bondedDevices = adapter?.bondedDevices
+            val matchingDevice = bondedDevices?.firstOrNull {
+                it.name?.equals(rawName, ignoreCase = true) == true
+            }
+            if (matchingDevice != null) {
+                val btClass = matchingDevice.bluetoothClass
+                if (btClass != null) {
+                    val deviceClass = btClass.deviceClass
+                    if (deviceClass == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
+                        deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE
+                    ) {
+                        return true
+                    }
+                }
+            }
+        } catch (_: SecurityException) {
+            // Permission missing at runtime
+        } catch (_: Exception) {
+            // Fallback safely
+        }
+    }
+
+    return false
+}
+
 @Composable
 fun BluetoothOutputLabel(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -74,16 +140,16 @@ fun BluetoothOutputLabel(modifier: Modifier = Modifier) {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         modifier = modifier.tapScale {
             if (!hasPermission) launcher.launch(Manifest.permission.BLUETOOTH_CONNECT)
         }
     ) {
         Icon(
-            painter = painterResource(R.drawable.lucide_ic_bluetooth_connected),
+            painter = painterResource(R.drawable.lucide_ic_bluetooth),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(12.dp)
+            modifier = Modifier.size(13.dp)
         )
         Text(
             if (hasPermission) device.productName.toString() else "Bluetooth device",

@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,6 +69,7 @@ fun HomeScreen(
     onNavigateToLibrary: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToDriveMode: () -> Unit = {},
     listBottomPadding: Dp = 0.dp
 ) {
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -133,16 +138,29 @@ fun HomeScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Text(
-                greeting,
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                "Quick picks, recently played, and your favorites",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    greeting,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    "Quick picks, recently played, and your favorites",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_car,
+                contentDescription = "Drive Mode",
+                onClick = onNavigateToDriveMode
             )
         }
         Spacer(Modifier.height(12.dp))

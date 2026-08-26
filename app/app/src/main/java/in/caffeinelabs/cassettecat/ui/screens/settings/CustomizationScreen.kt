@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,14 +22,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -278,7 +285,8 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
             iconRes = R.drawable.lucide_ic_type,
             options = AppFontFamily.entries,
             selected = prefs.appFontFamily,
-            label = { it.label },
+            label = { it.shortName },
+            sheetLabel = { it.label },
             onSelect = viewModel::setAppFontFamily
         )
         }
@@ -478,17 +486,27 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             iconRes = R.drawable.lucide_ic_disc,
             options = AlbumArtCornerStyle.entries,
             selected = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp },
-            label = { it.label },
+            label = { it.shortName },
+            sheetLabel = { it.label },
+            sheetSubtitle = {
+                when (it) {
+                    AlbumArtCornerStyle.CURVED -> "Modern 16dp rounded squircle"
+                    AlbumArtCornerStyle.SOFT -> "Subtle 8dp softened corners"
+                    AlbumArtCornerStyle.SQUARE -> "Classic 0dp vinyl square edges"
+                }
+            },
             onSelect = { viewModel.setAlbumArtCornerRadiusDp(it.radiusDp) }
         )
         SettingsDivider()
         SheetPickerRow(
             title = "Backdrop Style",
-            subtitle = prefs.nowPlayingBackdropStyle.description,
+            subtitle = "Atmospheric visual theme for Now Playing",
             iconRes = R.drawable.lucide_ic_image,
             options = NowPlayingBackdropStyle.entries,
             selected = prefs.nowPlayingBackdropStyle,
             label = { it.label },
+            sheetSubtitle = { it.description },
+            optionLeading = { item, isSheet -> BackdropStylePreviewDot(item, size = if (isSheet) 24.dp else 12.dp) },
             onSelect = viewModel::setNowPlayingBackdropStyle
         )
         SettingsDivider()
@@ -530,6 +548,14 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             checked = prefs.flipToPauseEnabled,
             onCheckedChange = viewModel::setFlipToPauseEnabled,
             iconRes = R.drawable.lucide_ic_rotate_ccw,
+        )
+        SettingsDivider()
+        ToggleRow(
+            title = "Wave to Skip",
+            subtitle = "Wave your finger over the top proximity sensor to skip to the next track",
+            checked = prefs.proximityWaveSkipEnabled,
+            onCheckedChange = viewModel::setProximityWaveSkipEnabled,
+            iconRes = R.drawable.lucide_ic_hand,
         )
         SettingsDivider()
         ToggleRow(
@@ -586,14 +612,6 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
             checked = prefs.gaplessPlayback,
             onCheckedChange = viewModel::setGaplessPlayback,
             iconRes = R.drawable.lucide_ic_disc,
-        )
-        SettingsDivider()
-        ToggleRow(
-            title = "Skip Silence",
-            subtitle = "Automatically speed through quiet passages within a track",
-            checked = prefs.skipSilenceEnabled,
-            onCheckedChange = viewModel::setSkipSilenceEnabled,
-            iconRes = R.drawable.lucide_ic_scissors,
         )
         SettingsDivider()
         ToggleRow(
@@ -664,6 +682,14 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
             checked = prefs.pauseOnHeadphoneDisconnect,
             onCheckedChange = viewModel::setPauseOnHeadphoneDisconnect,
             iconRes = R.drawable.lucide_ic_headphones,
+        )
+        SettingsDivider()
+        ToggleRow(
+            title = "Auto Drive Mode",
+            subtitle = "Automatically open Drive Mode when connected to car Bluetooth audio",
+            checked = prefs.autoDriveModeBluetooth,
+            onCheckedChange = viewModel::setAutoDriveModeBluetooth,
+            iconRes = R.drawable.lucide_ic_car,
         )
         SettingsDivider()
         ToggleRow(
@@ -883,13 +909,59 @@ private fun OrderableToggleRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = canDisable,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                checkedBorderColor = MaterialTheme.colorScheme.tertiary
-            )
+            colors = appSwitchColors()
         )
     }
+}
+
+@Composable
+fun BackdropStylePreviewDot(
+    style: NowPlayingBackdropStyle,
+    size: Dp = 14.dp,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+            .then(
+                when (style) {
+                    NowPlayingBackdropStyle.ATMOSPHERE_BLUR -> Modifier.background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF4A2818),
+                                Color(0xFF1F120C),
+                                Color(0xFF0A0908)
+                            )
+                        )
+                    )
+                    NowPlayingBackdropStyle.LIQUID_GRADIENT -> Modifier.background(
+                        Brush.sweepGradient(
+                            listOf(
+                                Color(0xFFE53935),
+                                Color(0xFF8E24AA),
+                                Color(0xFF1E88E5),
+                                Color(0xFF43A047),
+                                Color(0xFFE53935)
+                            )
+                        )
+                    )
+                    NowPlayingBackdropStyle.AMBIENT_GLOW -> Modifier.background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFFE53935).copy(alpha = 0.85f),
+                                Color(0xFF2B1111),
+                                Color(0xFF000000)
+                            )
+                        )
+                    )
+                    NowPlayingBackdropStyle.OLED_BLACK -> Modifier
+                        .background(Color.Black)
+                        .border(1.dp, Color(0xFF333333), CircleShape)
+                }
+            )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -901,7 +973,10 @@ fun <T> SheetPickerRow(
     options: List<T>,
     selected: T,
     label: (T) -> String,
+    sheetLabel: ((T) -> String)? = null,
+    sheetSubtitle: ((T) -> String?)? = null,
     iconTint: Color = MaterialTheme.colorScheme.secondary,
+    optionLeading: (@Composable (item: T, isSheet: Boolean) -> Unit)? = null,
     onSelect: (T) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
@@ -918,61 +993,162 @@ fun <T> SheetPickerRow(
             tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
         Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+        }
+        Spacer(Modifier.width(10.dp))
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label(selected), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+            if (optionLeading != null) {
+                optionLeading(selected, false)
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = label(selected),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                maxLines = 1
+            )
             Spacer(Modifier.width(4.dp))
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_down),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(13.dp)
             )
         }
     }
     if (open) {
         FullOpenBottomSheet(onDismiss = { open = false }) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 12.dp)
-            )
-            options.forEach { option ->
-                val isSelected = option == selected
-                Row(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelect(option); open = false }
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        label(option),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
+                        title,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = SpaceGroteskFontFamily,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    if (isSelected) {
-                        Icon(
-                            painter = painterResource(R.drawable.lucide_ic_check),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary
-                        )
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Column {
+                        options.forEachIndexed { index, option ->
+                            val isSelected = option == selected
+                            val sub = sheetSubtitle?.invoke(option)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (isSelected) Modifier.background(
+                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
+                                        ) else Modifier
+                                    )
+                                    .clickable(onClick = hapticClick {
+                                        onSelect(option)
+                                        open = false
+                                    })
+                                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (optionLeading != null) {
+                                    optionLeading(option, true)
+                                    Spacer(Modifier.width(16.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        (sheetLabel ?: label)(option),
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        ),
+                                        color = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (sub != null) {
+                                        Text(
+                                            sub,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.tertiary
+                                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.lucide_ic_check),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onTertiary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            if (index < options.lastIndex) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                    modifier = Modifier.padding(
+                                        start = if (optionLeading != null) 54.dp else 18.dp,
+                                        end = 18.dp
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
         }
     }
 }

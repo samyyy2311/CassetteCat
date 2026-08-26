@@ -73,6 +73,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SmartPlaylistScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SmartPlaylistType
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.DriveModeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingContent
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingView
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
@@ -97,6 +98,8 @@ import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationAudioEngineScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedScreen
+import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
+import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLibraryTabsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
@@ -137,6 +140,7 @@ object MainRoute {
     const val SMART_PLAYLIST_DETAIL = "main/library/smart_playlist/{type}"
     fun smartPlaylistDetail(type: String) = "main/library/smart_playlist/$type"
     const val LIKED_SONGS = "main/library/liked"
+    const val DRIVE_MODE = "main/drive_mode"
     const val STATS = "main/stats"
     const val MANAGE_SCAN_FOLDERS = "main/settings/scan_folders"
     const val EXTERNAL_SERVICES = "main/settings/external_services"
@@ -230,11 +234,11 @@ fun MainShell(
             (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
         }
     }
-    // Artist art deliberately extends behind the transparent status bar. Other routes retain
+    // Artist, Album art & Drive Mode deliberately extend behind the transparent status bar. Other routes retain
     // their normal safe-area layout so ordinary screen headers are never pushed under system UI.
-    val artistHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL
-    // artist/album/playlist detail are playback-adjacent, unlike CONNECT_SERVER, so chrome stays visible
-    val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER
+    val isHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL || currentRoute == MainRoute.ALBUM_DETAIL || currentRoute == MainRoute.DRIVE_MODE
+    // artist/album/playlist detail are playback-adjacent, unlike CONNECT_SERVER or DRIVE_MODE, so chrome stays visible
+    val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER && currentRoute != MainRoute.DRIVE_MODE
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null
     var artworkAccent by remember { mutableStateOf<Long?>(null) }
@@ -268,6 +272,18 @@ fun MainShell(
     // hoisted so sheetSwipeEnabled can turn off during Queue/Lyrics
     var nowPlayingView by remember { mutableStateOf(NowPlayingView.PLAYER) }
     var searchFocusRequestId by remember { mutableIntStateOf(0) }
+
+    val btDevice = rememberConnectedBluetoothDevice()
+    val isCarConnected = remember(btDevice) { isCarAudioDevice(btDevice, context) }
+    var previousCarConnected by remember { mutableStateOf(isCarConnected) }
+    LaunchedEffect(isCarConnected, preferences.autoDriveModeBluetooth) {
+        if (preferences.autoDriveModeBluetooth && isCarConnected && !previousCarConnected) {
+            if (currentRoute != MainRoute.DRIVE_MODE) {
+                navController.navigate(MainRoute.DRIVE_MODE)
+            }
+        }
+        previousCarConnected = isCarConnected
+    }
 
     LaunchedEffect(shortcutAction, libraryState) {
         val action = shortcutAction ?: return@LaunchedEffect
@@ -407,6 +423,7 @@ fun MainShell(
                                     },
                                     onNavigateToPlaylist = { playlistId -> navigateFromNowPlaying(MainRoute.playlistDetail(playlistId)) },
                                     onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },
+                                    onNavigateToDriveMode = { navigateFromNowPlaying(MainRoute.DRIVE_MODE) },
                                     onHeaderDragProgressChange = { headerDragRevealFraction = it }
                                 )
                             }
@@ -419,7 +436,11 @@ fun MainShell(
                     startDestination = MainRoute.LIBRARY,
                     modifier = Modifier
                         .fillMaxSize()
-                        .then(if (artistHeroRoute) Modifier else Modifier.statusBarsPadding())
+                        .then(if (isHeroRoute) Modifier else Modifier.statusBarsPadding()),
+                    enterTransition = mechanicalEnter,
+                    exitTransition = mechanicalExit,
+                    popEnterTransition = mechanicalPopEnter,
+                    popExitTransition = mechanicalPopExit
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -428,6 +449,7 @@ fun MainShell(
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToLibrary = { navigateToTab(MainRoute.LIBRARY) },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
+                            onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
                             // The app navigation is a glass overlay.  Do not reserve an opaque
                             // blank strip under it: content should continue beneath the tabs.
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -531,6 +553,12 @@ fun MainShell(
                             onBack = { navController.popBackStack() },
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.DRIVE_MODE) {
+                        DriveModeScreen(
+                            playbackViewModel = playbackViewModel,
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(

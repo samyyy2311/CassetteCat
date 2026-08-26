@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,11 +14,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -39,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -54,6 +59,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Locale
 import kotlin.math.abs
@@ -94,85 +100,153 @@ internal fun NowPlayingActionsSheet(
     onOpenListeningRoom: () -> Unit,
     onOpenPlaybackSpeed: () -> Unit,
     onOpenSleepTimer: () -> Unit,
+    onOpenDriveMode: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    val btDevice = rememberConnectedBluetoothDevice()
+    val isBtConnected = btDevice != null
+    val outputLabel = if (isBtConnected) btDevice.productName.toString().ifEmpty { "Bluetooth" } else "Phone Speaker"
+    val outputIcon = if (isBtConnected) R.drawable.lucide_ic_bluetooth else R.drawable.lucide_ic_speaker
+
     val sleepTimerSubtitle = if (sleepTimerEndMs != null) {
         val remainingMin = ((sleepTimerEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0)
-        if (remainingMin < 1) "Less than 1 min remaining" else "$remainingMin min remaining"
+        if (remainingMin < 1) "< 1 min" else "${remainingMin}m remaining"
     } else {
         "Off"
     }
 
+    val sourceBadge = when (song.source) {
+        MusicSource.Local -> "Local"
+        MusicSource.Subsonic -> "Subsonic"
+        MusicSource.Jellyfin -> "Jellyfin"
+        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio · ${song.bitrateKbps}k" else "Radio"
+        MusicSource.ListeningRoomHost -> "Room"
+    }
+
     FullOpenBottomSheet(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
+        ) {
+            // 1. Song Header
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp))) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize())
                 }
                 Spacer(Modifier.width(16.dp))
-                Column {
-                    Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        song.artist,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        song.title,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 3.dp)
+                    ) {
+                        Text(
+                            song.artist,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh
+                        ) {
+                            Text(
+                                text = sourceBadge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
             }
+
+            // 2. Tactile Quick Actions Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                QuickActionButton(
+                    iconRes = R.drawable.lucide_ic_heart,
+                    label = if (isFavorite) "Liked" else "Favorite",
+                    accented = isFavorite,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onToggleFavorite() }
+                )
+                QuickActionButton(
+                    iconRes = R.drawable.lucide_ic_share_2,
+                    label = "Share",
+                    accented = false,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onShare(); onDismiss() }
+                )
+                if (song.source == MusicSource.Radio) {
+                    QuickActionButton(
+                        iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                        label = "Equalizer",
+                        accented = false,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onOpenEqualizer(); onDismiss() }
+                    )
+                    QuickActionButton(
+                        iconRes = R.drawable.lucide_ic_timer,
+                        label = "Sleep",
+                        accented = sleepTimerEndMs != null,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onOpenSleepTimer(); onDismiss() }
+                    )
+                } else {
+                    QuickActionButton(
+                        iconRes = R.drawable.lucide_ic_list_plus,
+                        label = "Up Next",
+                        accented = false,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onAddToQueue(); onDismiss() }
+                    )
+                    if (song.source != MusicSource.ListeningRoomHost) {
+                        QuickActionButton(
+                            iconRes = R.drawable.lucide_ic_audio_lines,
+                            label = "Mix",
+                            accented = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onStartInstantMix(); onDismiss() }
+                        )
+                    }
+                }
+            }
+
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
             )
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_heart,
-                label = if (isFavorite) "Unfavorite" else "Favorite",
-                accented = isFavorite,
-                onClick = { onToggleFavorite(); onDismiss() }
-            )
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_share_2,
-                label = "Share",
-                accented = false,
-                onClick = { onShare(); onDismiss() }
-            )
+
+            // 3. Track & Metadata Actions
             if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_file_music,
                     label = "Share Song File",
-                    subtitle = "Send the original audio file",
-                    accented = false,
+                    subtitle = "Send original audio",
                     onClick = { onShareFile(); onDismiss() }
-                )
-            }
-            if (song.source != MusicSource.Radio) {
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_list_plus,
-                    label = "Add to Up Next",
-                    subtitle = "Plays after the current queue",
-                    accented = false,
-                    onClick = { onAddToQueue(); onDismiss() }
-                )
-            }
-            if (song.source != MusicSource.Radio && song.source != MusicSource.ListeningRoomHost) {
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_audio_lines,
-                    label = "Start Instant Mix",
-                    subtitle = "Build a local mix from this track",
-                    accented = false,
-                    onClick = { onStartInstantMix(); onDismiss() }
-                )
-            }
-            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_download,
-                    label = "Download",
-                    accented = false,
-                    onClick = { onDownload(); onDismiss() }
                 )
             }
             if (song.source == MusicSource.Local) {
@@ -180,59 +254,77 @@ internal fun NowPlayingActionsSheet(
                     iconRes = R.drawable.lucide_ic_pencil,
                     label = "Edit Song Tags",
                     subtitle = "Title, artist, album & year",
-                    accented = false,
                     onClick = { onOpenTagEditor(); onDismiss() }
                 )
             }
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
-            )
+            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_download,
+                    label = "Download",
+                    subtitle = "Save for offline playback",
+                    onClick = { onDownload(); onDismiss() }
+                )
+            }
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_book_open,
                 label = "Credits & details",
                 subtitle = "Release and source metadata",
-                accented = false,
+                hasChevron = true,
                 onClick = { onOpenCredits(); onDismiss() }
             )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+            )
+
+            // 4. Playback & Audio Controls
             SongActionRow(
-                iconRes = R.drawable.lucide_ic_speaker,
+                iconRes = outputIcon,
                 label = "Audio output",
-                subtitle = "This phone",
-                accented = false,
+                badgeText = outputLabel,
+                accented = isBtConnected,
+                hasChevron = true,
                 onClick = { onOpenOutputPicker(); onDismiss() }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
                 label = "Equalizer",
-                subtitle = "Bass boost & audio effects",
-                accented = false,
+                badgeText = "EQ",
+                hasChevron = true,
                 onClick = { onOpenEqualizer(); onDismiss() }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_gauge,
                 label = "Playback Speed",
-                subtitle = if (playbackSpeed == 1f) "Normal" else "${playbackSpeed}x",
+                badgeText = if (playbackSpeed == 1f) "1.0x" else "${playbackSpeed}x",
                 accented = playbackSpeed != 1f,
+                hasChevron = true,
                 onClick = { onOpenPlaybackSpeed(); onDismiss() }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_users,
                 label = "Listening Room",
-                subtitle = listeningRoomState.statusSubtitle(),
+                badgeText = if (listeningRoomState.role != ListeningRoomRole.NONE) "Active" else null,
+                subtitle = if (listeningRoomState.role == ListeningRoomRole.NONE) "Wi-Fi audio sharing" else listeningRoomState.statusSubtitle(),
                 accented = listeningRoomState.role != ListeningRoomRole.NONE,
+                hasChevron = true,
                 onClick = { onOpenListeningRoom(); onDismiss() }
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_moon,
                 label = "Sleep Timer",
-                subtitle = sleepTimerSubtitle,
+                badgeText = sleepTimerSubtitle,
                 accented = sleepTimerEndMs != null,
+                hasChevron = true,
                 onClick = { onOpenSleepTimer(); onDismiss() }
+            )
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_car,
+                label = "Drive Mode",
+                subtitle = "Large touch HUD for safe driving",
+                hasChevron = true,
+                onClick = { onOpenDriveMode(); onDismiss() }
             )
         }
     }
@@ -269,19 +361,23 @@ internal fun PlaybackSpeedSheet(
             ) {
                 items(PLAYBACK_SPEEDS) { speed ->
                     val isSelected = abs(speed - currentSpeed) < 0.01f
-                    val bg = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-                    val fg = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                    val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    val fg = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(100.dp))
                             .background(bg)
-                            .clickable { onSelectSpeed(speed) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
+                            .tapScale { onSelectSpeed(speed) }
+                            .padding(horizontal = 16.dp, vertical = 9.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             if (speed == 1f) "1.0x (Normal)" else "${speed}x",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                            ),
                             color = fg
                         )
                     }
@@ -539,20 +635,37 @@ private fun CreditDetailRow(label: String, value: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AudioOutputSheet(onOpenBluetoothSettings: () -> Unit, onDismiss: () -> Unit) {
+    val btDevice = rememberConnectedBluetoothDevice()
+    val isBtConnected = btDevice != null
+    val btName = btDevice?.productName?.toString()?.ifEmpty { "Bluetooth Audio" } ?: "Bluetooth Device"
+
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
-            Text("Audio output", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_speaker,
-                label = "This phone",
-                subtitle = "Currently selected",
-                accented = true,
-                onClick = onDismiss
+            Text(
+                "Audio output",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             SongActionRow(
-                iconRes = R.drawable.lucide_ic_speaker,
-                label = "Bluetooth devices",
-                subtitle = "Choose or pair a playback device",
+                iconRes = R.drawable.lucide_ic_smartphone,
+                label = "Phone Speaker",
+                subtitle = if (!isBtConnected) "Currently active output" else "Built-in phone speaker",
+                accented = !isBtConnected,
+                onClick = onDismiss
+            )
+            if (isBtConnected) {
+                SongActionRow(
+                    iconRes = R.drawable.lucide_ic_bluetooth,
+                    label = btName,
+                    subtitle = "Currently active output",
+                    accented = true,
+                    onClick = onDismiss
+                )
+            }
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_bluetooth,
+                label = if (isBtConnected) "Bluetooth Settings" else "Connect Bluetooth Device",
+                subtitle = if (isBtConnected) "Manage paired headsets and speakers" else "Pair or connect a wireless device",
                 accented = false,
                 onClick = onOpenBluetoothSettings
             )
@@ -753,35 +866,117 @@ private fun GoToMusicDetailRow(
 }
 
 @Composable
-internal fun SongActionRow(
+private fun QuickActionButton(
     iconRes: Int,
     label: String,
     accented: Boolean,
-    onClick: () -> Unit,
-    subtitle: String? = null
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
-    val tint = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
+    val bg = if (accented) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainerHigh
+    val contentColor = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = bg,
+        modifier = modifier
             .tapScale(onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .height(58.dp)
     ) {
-        Icon(painter = painterResource(iconRes), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = if (accented) tint else MaterialTheme.colorScheme.onSurface)
-            if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor,
+                maxLines = 1
+            )
         }
     }
 }
 
-private val SLEEP_TIMER_OPTIONS_MIN = listOf(5, 10, 15, 30, 45, 60)
+@Composable
+internal fun SongActionRow(
+    iconRes: Int,
+    label: String,
+    onClick: () -> Unit,
+    subtitle: String? = null,
+    badgeText: String? = null,
+    accented: Boolean = false,
+    hasChevron: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .tapScale(onClick)
+            .padding(horizontal = 24.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        if (badgeText != null) {
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.padding(start = 4.dp)
+            ) {
+                Text(
+                    text = badgeText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+        if (hasChevron) {
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val SLEEP_TIMER_DURATIONS_MIN = listOf(5, 10, 15, 30, 45, 60, 90, 120)
+
 @Composable
 internal fun SleepTimerPickerSheet(
     currentEndMs: Long?,
@@ -789,38 +984,164 @@ internal fun SleepTimerPickerSheet(
     onCancel: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isEndOfTrack = currentEndMs == -1L
+    val remainingMinutes = if (currentEndMs != null && currentEndMs > 0L) {
+        ((currentEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0)
+    } else null
+
     FullOpenBottomSheet(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            Text(
-                "Sleep Timer",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-            )
-            if (currentEndMs != null) {
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_timer_off,
-                    label = "Turn Off",
-                    accented = false,
-                    onClick = onCancel
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 28.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Sleep Timer",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
+                if (currentEndMs != null) {
+                    Text(
+                        "Turn Off",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onCancel)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_disc_3,
-                label = "End of current song",
-                accented = false,
-                onClick = { onSelect(-1L) }
-            )
-            SLEEP_TIMER_OPTIONS_MIN.forEach { minutes ->
-                SongActionRow(
-                    iconRes = R.drawable.lucide_ic_moon,
-                    label = "$minutes minutes",
-                    accented = false,
-                    onClick = { onSelect(minutes * 60_000L) }
+
+            if (currentEndMs != null) {
+                val statusText = if (isEndOfTrack) "Stopping after current song finishes" else "$remainingMinutes minutes remaining"
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(if (isEndOfTrack) R.drawable.lucide_ic_disc_3 else R.drawable.lucide_ic_moon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            // 1. END OF CURRENT TRACK CARD
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isEndOfTrack) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow)
+                    .border(
+                        1.dp,
+                        if (isEndOfTrack) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .tapScale { onSelect(-1L) }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_disc_3),
+                    contentDescription = null,
+                    tint = if (isEndOfTrack) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(22.dp)
                 )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "End of current song",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = if (isEndOfTrack) FontWeight.SemiBold else FontWeight.Medium
+                        ),
+                        color = if (isEndOfTrack) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Stop playback after this song completes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (isEndOfTrack) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_check),
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // 2. DURATION CAPSULE PILLS (HORIZONTAL ROW)
+            Text(
+                "DURATION",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 6.dp)
+            ) {
+                items(SLEEP_TIMER_DURATIONS_MIN) { minutes ->
+                    val isSelected = remainingMinutes != null && remainingMinutes == minutes.toLong()
+                    val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                    val border = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    val textTint = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(bg)
+                            .border(1.dp, border, RoundedCornerShape(100.dp))
+                            .tapScale { onSelect(minutes * 60_000L) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$minutes min",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                            ),
+                            color = textTint
+                        )
+                    }
+                }
             }
         }
     }

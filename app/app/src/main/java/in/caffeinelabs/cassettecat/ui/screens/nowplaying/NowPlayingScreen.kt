@@ -71,6 +71,7 @@ fun NowPlayingContent(
     onSaveQueue: (String, List<String>) -> Unit = { _, _ -> },
     onNavigateToPlaylist: (String) -> Unit = {},
     onNavigateToEqualizer: () -> Unit = {},
+    onNavigateToDriveMode: () -> Unit = {},
     drawBehindSystemBars: Boolean = false,
     onHeaderDragProgressChange: (Float) -> Unit = {}
 ) {
@@ -111,14 +112,14 @@ fun NowPlayingContent(
     val lyricsListState = rememberLazyListState()
     val density = LocalDensity.current
 
-    var lyricsControlsVisible by remember(song?.id, activeView) { mutableStateOf(false) }
-    var queueControlsVisible by remember(song?.id, activeView) { mutableStateOf(false) }
+    var lyricsControlsVisible by remember(activeView) { mutableStateOf(false) }
+    var queueControlsVisible by remember(activeView) { mutableStateOf(false) }
     var userInteractionCounter by remember { mutableIntStateOf(0) }
 
     val chromeVisible = when (activeView) {
         NowPlayingView.PLAYER -> true
-        NowPlayingView.QUEUE -> queueControlsVisible || !state.isPlaying
-        NowPlayingView.LYRICS -> lyricsControlsVisible || !state.isPlaying
+        NowPlayingView.QUEUE -> queueControlsVisible || !state.playWhenReady
+        NowPlayingView.LYRICS -> lyricsControlsVisible || !state.playWhenReady
     }
 
     LaunchedEffect(userInteractionCounter, state.isPlaying, activeView, queueControlsVisible, lyricsControlsVisible) {
@@ -240,8 +241,6 @@ fun NowPlayingContent(
                         onSkipPrevious = skipPrevious,
                         onPlaySong = {
                             playbackViewModel.playFromQueue(it)
-                            queueControlsVisible = true
-                            userInteractionCounter++
                         },
                         onSaveQueue = if (song.source != MusicSource.ListeningRoomHost) {
                             { sheetState.showSaveQueue = true }
@@ -341,7 +340,9 @@ fun NowPlayingContent(
         onSaveQueue = onSaveQueue,
         syncedLyrics = syncedLyrics,
         fallbackLyrics = fallbackLyrics,
-        currentPositionMs = positionMs
+        currentPositionMs = positionMs,
+        onActiveViewChange = onActiveViewChange,
+        onNavigateToDriveMode = onNavigateToDriveMode
     )
 }
 
