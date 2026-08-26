@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.graphics.Bitmap
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -45,7 +46,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -72,6 +75,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.components.prefetchAlbumArt
 import `in`.caffeinelabs.cassettecat.ui.theme.ArtworkAtmospherePalette
 import `in`.caffeinelabs.cassettecat.ui.theme.extractArtworkAtmospherePalette
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -233,29 +237,6 @@ internal fun AlbumArtCard(
             } else {
                 AlbumArt(song = song, modifier = Modifier.fillMaxSize())
             }
-            Box(
-                modifier = Modifier.matchParentSize().background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.12f),
-                        0.68f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.45f)
-                    )
-                )
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .border(
-                        1.dp,
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.18f),
-                                Color.White.copy(alpha = 0.04f)
-                            )
-                        ),
-                        RoundedCornerShape(cornerRadius)
-                    )
-            )
         }
     }
 }
@@ -276,24 +257,88 @@ private fun RotatingVinylPlaceholder(isPlaying: Boolean, modifier: Modifier = Mo
         }
     }
     val needleAngle by animateFloatAsState(
-        targetValue = if (isPlaying) 0f else -30f,
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        targetValue = if (isPlaying) 0f else -22f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
         label = "needleLift"
     )
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF0F0F12)),
+        contentAlignment = Alignment.Center
+    ) {
+        // 1. Turntable Platter Deck Base
+        TurntablePlatter(
+            modifier = Modifier
+                .fillMaxSize(0.88f)
+                .aspectRatio(1f)
+        )
+
+        // 2. Spinning Vinyl Disc with Grooves and Dynamic Light Reflections
         VinylDisc(
             modifier = Modifier
-                .fillMaxSize(0.66f)
+                .fillMaxSize(0.74f)
                 .aspectRatio(1f)
                 .graphicsLayer { rotationZ = rotation.value % 360f }
         )
+
+        // 3. Full-Deck Engineered Tonearm with Armrest Post & Needle on Grooves
         Tonearm(
             liftAngleDeg = needleAngle,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .fillMaxSize(0.44f)
-                .aspectRatio(1f)
+            modifier = Modifier.fillMaxSize()
         )
+    }
+}
+
+@Composable
+private fun TurntablePlatter(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val radius = size.minDimension / 2f
+        val center = Offset(size.width / 2f, size.height / 2f)
+
+        // Platter Outer Machined Bevel Rim
+        drawCircle(
+            brush = Brush.sweepGradient(
+                listOf(
+                    Color(0xFF282830),
+                    Color(0xFF1E1E22),
+                    Color(0xFF383842),
+                    Color(0xFF1E1E22),
+                    Color(0xFF282830)
+                ),
+                center = center
+            ),
+            radius = radius,
+            center = center
+        )
+
+        // Strobe calibration ring
+        drawCircle(
+            color = Color.White.copy(alpha = 0.08f),
+            radius = radius * 0.98f,
+            center = center,
+            style = Stroke(width = 1.5.dp.toPx())
+        )
+
+        // Anti-Static Rubber Platter Mat
+        drawCircle(
+            color = Color(0xFF131316),
+            radius = radius * 0.94f,
+            center = center
+        )
+
+        // Concentric Mat Rings
+        var matRing = radius * 0.88f
+        while (matRing > radius * 0.38f) {
+            drawCircle(
+                color = Color.White.copy(alpha = 0.035f),
+                radius = matRing,
+                center = center,
+                style = Stroke(width = 1.dp.toPx())
+            )
+            matRing -= radius * 0.12f
+        }
     }
 }
 
@@ -303,38 +348,204 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
-        drawCircle(color = Color(0xFF141414), radius = radius, center = center)
-        var grooveRadius = radius * 0.94f
-        while (grooveRadius > radius * 0.42f) {
+
+        // Deep Glossy Black Vinyl Base
+        drawCircle(color = Color(0xFF0C0C0E), radius = radius, center = center)
+
+        // Outer Beveled Edge
+        drawCircle(
+            color = Color.White.copy(alpha = 0.12f),
+            radius = radius * 0.99f,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+
+        // Dynamic Dual Light Reflections (Specular Sheen Cones)
+        drawCircle(
+            brush = Brush.sweepGradient(
+                0.00f to Color.White.copy(alpha = 0.00f),
+                0.10f to Color.White.copy(alpha = 0.07f),
+                0.16f to Color.White.copy(alpha = 0.14f),
+                0.22f to Color.White.copy(alpha = 0.07f),
+                0.32f to Color.White.copy(alpha = 0.00f),
+                0.60f to Color.White.copy(alpha = 0.00f),
+                0.66f to Color.White.copy(alpha = 0.07f),
+                0.72f to Color.White.copy(alpha = 0.14f),
+                0.78f to Color.White.copy(alpha = 0.07f),
+                0.88f to Color.White.copy(alpha = 0.00f),
+                1.00f to Color.White.copy(alpha = 0.00f)
+            ),
+            radius = radius * 0.96f,
+            center = center
+        )
+
+        // Realistic High-Density Groove Bands
+        var groove = radius * 0.94f
+        val innerGrooveLimit = radius * 0.44f
+        var step = 0
+        while (groove > innerGrooveLimit) {
+            val alpha = if (step % 4 == 0) 0.09f else 0.04f
             drawCircle(
-                color = Color.White.copy(alpha = 0.05f),
-                radius = grooveRadius,
+                color = Color.White.copy(alpha = alpha),
+                radius = groove,
                 center = center,
-                style = Stroke(width = 1.dp.toPx())
+                style = Stroke(width = 0.75.dp.toPx())
             )
-            grooveRadius -= radius * 0.045f
+            groove -= radius * 0.032f
+            step++
         }
-        drawCircle(color = labelColor, radius = radius * 0.34f, center = center)
-        drawCircle(color = Color(0xFF141414), radius = radius * 0.05f, center = center)
+
+        // Dead Wax / Run-out Groove Zone
+        drawCircle(
+            color = Color(0xFF16161A),
+            radius = radius * 0.44f,
+            center = center
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.06f),
+            radius = radius * 0.40f,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+
+        // Center Album Label
+        drawCircle(
+            color = labelColor,
+            radius = radius * 0.35f,
+            center = center
+        )
+        // Label Concentric Micro-rings
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.25f),
+            radius = radius * 0.30f,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.20f),
+            radius = radius * 0.20f,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+
+        // Spindle Hole & Center Metallic Brass Ring
+        drawCircle(color = Color(0xFFC4A052), radius = radius * 0.07f, center = center)
+        drawCircle(color = Color(0xFF0C0C0E), radius = radius * 0.045f, center = center)
     }
 }
 
 @Composable
 private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
-    val armColor = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier = modifier) {
-        val pivot = Offset(size.width * 0.82f, size.height * 0.10f)
-        val restTip = Offset(size.width * 0.28f, size.height * 0.80f)
+        val w = size.width
+        val h = size.height
+        val pivot = Offset(w * 0.84f, h * 0.16f)
+        val playingTip = Offset(w * 0.68f, h * 0.62f)
+        val armRestPos = Offset(w * 0.85f, h * 0.66f)
+
+        // Fixed Armrest Post on the turntable deck
+        drawCircle(
+            color = Color(0xFF1E293B),
+            radius = 5.dp.toPx(),
+            center = armRestPos
+        )
+        drawCircle(
+            color = Color(0xFF64748B),
+            radius = 3.dp.toPx(),
+            center = armRestPos
+        )
+        drawLine(
+            color = Color(0xFF94A3B8),
+            start = armRestPos + Offset(-4.dp.toPx(), 0f),
+            end = armRestPos + Offset(4.dp.toPx(), 0f),
+            strokeWidth = 2.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+
+        // Animated Tonearm Assembly
         rotate(degrees = liftAngleDeg, pivot = pivot) {
+            // Shadow behind the tonearm
             drawLine(
-                color = armColor,
-                start = pivot,
-                end = restTip,
-                strokeWidth = size.minDimension * 0.05f,
+                color = Color.Black.copy(alpha = 0.45f),
+                start = pivot + Offset(3.dp.toPx(), 3.dp.toPx()),
+                end = playingTip + Offset(3.dp.toPx(), 3.dp.toPx()),
+                strokeWidth = 3.5.dp.toPx(),
                 cap = StrokeCap.Round
             )
-            drawCircle(color = armColor, radius = size.minDimension * 0.09f, center = pivot)
-            drawCircle(color = armColor, radius = size.minDimension * 0.045f, center = restTip)
+
+            // S-Curve Metallic Arm Tube in Brushed Chrome
+            val armPath = Path().apply {
+                moveTo(pivot.x, pivot.y)
+                cubicTo(
+                    pivot.x - w * 0.08f, pivot.y + h * 0.18f,
+                    playingTip.x + w * 0.08f, playingTip.y - h * 0.18f,
+                    playingTip.x, playingTip.y
+                )
+            }
+            drawPath(
+                path = armPath,
+                brush = Brush.linearGradient(
+                    listOf(
+                        Color(0xFFF1F5F9),
+                        Color(0xFF94A3B8),
+                        Color(0xFFE2E8F0),
+                        Color(0xFF64748B)
+                    ),
+                    start = pivot,
+                    end = playingTip
+                ),
+                style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+
+            // Cartridge / Headshell at the needle tip (angled tangentially along the groove)
+            val headshellPath = Path().apply {
+                moveTo(playingTip.x - 7.dp.toPx(), playingTip.y - 10.dp.toPx())
+                lineTo(playingTip.x + 5.dp.toPx(), playingTip.y - 6.dp.toPx())
+                lineTo(playingTip.x + 2.dp.toPx(), playingTip.y + 12.dp.toPx())
+                lineTo(playingTip.x - 10.dp.toPx(), playingTip.y + 8.dp.toPx())
+                close()
+            }
+            drawPath(path = headshellPath, color = Color(0xFF1E293B))
+
+            // Red Stylus Cartridge Accent Needle Point
+            drawCircle(
+                color = Color(0xFFEF4444),
+                radius = 2.5.dp.toPx(),
+                center = playingTip + Offset(-3.dp.toPx(), 4.dp.toPx())
+            )
+
+            // Gimbal Pivot Base Assembly
+            drawCircle(
+                color = Color(0xFF1E293B),
+                radius = 16.dp.toPx(),
+                center = pivot
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    listOf(Color(0xFFE2E8F0), Color(0xFF475569)),
+                    center = pivot,
+                    radius = 12.dp.toPx()
+                ),
+                radius = 12.dp.toPx(),
+                center = pivot
+            )
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = 5.dp.toPx(),
+                center = pivot
+            )
+
+            // Rear Counterweight Cylindrical Ring
+            val counterweightCenter = pivot + Offset(11.dp.toPx(), -11.dp.toPx())
+            drawCircle(
+                brush = Brush.linearGradient(
+                    listOf(Color(0xFF94A3B8), Color(0xFF334155), Color(0xFF94A3B8)),
+                    start = counterweightCenter - Offset(8.dp.toPx(), 8.dp.toPx()),
+                    end = counterweightCenter + Offset(8.dp.toPx(), 8.dp.toPx())
+                ),
+                radius = 9.dp.toPx(),
+                center = counterweightCenter
+            )
         }
     }
 }
@@ -342,19 +553,16 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
 @Composable
 internal fun NowPlayingBackdrop(song: Song) {
     val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val backdropStyle = preferences.nowPlayingBackdropStyle
 
-    var palette by remember(song.id) { mutableStateOf<ArtworkAtmospherePalette?>(null) }
+    var palette by remember { mutableStateOf<ArtworkAtmospherePalette?>(null) }
 
     LaunchedEffect(song.id) {
         val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, song) }
         if (bitmap != null) {
             val extracted = withContext(Dispatchers.Default) { extractArtworkAtmospherePalette(bitmap) }
             palette = extracted
-        } else {
-            palette = null
         }
     }
 
@@ -397,6 +605,35 @@ internal fun NowPlayingBackdrop(song: Song) {
                         .fillMaxSize()
                         .background(Color(0xFF000000))
                 )
+            }
+            NowPlayingBackdropStyle.ATMOSPHERE_BLUR -> {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Crossfade(
+                        targetState = song,
+                        animationSpec = tween(600, easing = FastOutSlowInEasing),
+                        label = "atmosphereBlurCrossfade"
+                    ) { targetSong ->
+                        AlbumArt(
+                            song = targetSong,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(50.dp)
+                                .graphicsLayer { scaleX = 1.25f; scaleY = 1.25f }
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.45f),
+                                        Color.Black.copy(alpha = 0.85f)
+                                    )
+                                )
+                            )
+                    )
+                }
             }
             NowPlayingBackdropStyle.AMBIENT_GLOW,
             NowPlayingBackdropStyle.LIQUID_GRADIENT -> {
