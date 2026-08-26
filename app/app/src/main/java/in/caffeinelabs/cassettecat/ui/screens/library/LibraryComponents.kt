@@ -382,24 +382,52 @@ internal fun AlbumCard(
     selected: Boolean = false,
     onLongClick: () -> Unit = {}
 ) {
+    val year = group.songs.firstOrNull()?.releaseYear
     Column(modifier = Modifier.fillMaxWidth().tapScaleSelectable(onClick, onLongClick)) {
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp))) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(14.dp))
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+        ) {
             AlbumArt(song = group.songs.first(), modifier = Modifier.fillMaxSize())
+            if (year != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                ) {
+                    Text(
+                        year.toString(),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+                        color = Color.White
+                    )
+                }
+            }
             SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
-        Text(group.album, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            group.album,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
         Text(
             group.artist,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
-            style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
     }
 }
@@ -416,7 +444,8 @@ internal fun ArtistCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
@@ -424,11 +453,16 @@ internal fun ArtistCard(
             SelectionOverlay(selected)
         }
         Spacer(Modifier.height(8.dp))
-        Text(group.artist, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            group.artist,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
         Text(
             if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
-            style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
     }
 }
@@ -449,7 +483,7 @@ internal fun GenreCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1.55f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -485,11 +519,12 @@ internal fun GenreCard(
 
         Icon(
             painter = painterResource(iconRes),
-            contentDescription = null,
+            contentDescription = "Play",
             tint = Color.White.copy(alpha = 0.88f),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .size(34.dp)
+                .tapScale(onPlay)
         )
 
         SelectionOverlay(selected)
@@ -508,12 +543,12 @@ internal fun FolderCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1.55f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(
-                1.dp,
+                0.5.dp,
                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(12.dp)
+                RoundedCornerShape(14.dp)
             )
             .tapScaleSelectable(onClick, onLongClick)
             .padding(14.dp)
@@ -539,11 +574,12 @@ internal fun FolderCard(
 
         Icon(
             painter = painterResource(R.drawable.lucide_ic_folder),
-            contentDescription = null,
+            contentDescription = "Play",
             tint = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .size(34.dp)
+                .tapScale(onPlay)
         )
 
         SelectionOverlay(selected)

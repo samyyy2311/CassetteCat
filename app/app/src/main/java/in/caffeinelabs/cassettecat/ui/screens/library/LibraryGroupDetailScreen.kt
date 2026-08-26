@@ -1,6 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -14,10 +17,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -25,8 +30,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
+import androidx.compose.ui.draw.blur
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
@@ -194,6 +201,7 @@ private fun ArtistCatalogScreen(
                     artist = artist,
                     songCount = songs.size,
                     albumCount = albums.size,
+                    totalDurationMs = songs.sumOf { it.durationMs },
                     collapseProgress = compactHeaderProgress,
                     onBack = onBack,
                     onPlay = ::playAll,
@@ -201,8 +209,10 @@ private fun ArtistCatalogScreen(
                 )
             }
             if (recentTracks.isNotEmpty()) {
-                item(key = "recent-title", contentType = "section_title") { ArtistSectionTitle("Recently added") }
-                items(recentTracks, key = { "recent:${it.id}" }, contentType = { "song" }) { song -> ArtistSongRow(song = song, onClick = { play(song) }) }
+                item(key = "recent-title", contentType = "section_title") { ArtistSectionTitle("Recently Added") }
+                itemsIndexed(recentTracks, key = { _, it -> "recent:${it.id}" }, contentType = { _, _ -> "song" }) { index, song ->
+                    ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
+                }
             }
             if (albumsOnly.isNotEmpty()) {
                 item(key = "albums", contentType = "album_shelf") {
@@ -278,29 +288,61 @@ private fun ArtistCatalogScreen(
 
 @Composable
 private fun ArtistAboutSection(biography: ArtistBiography) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)) {
-        Text("About", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = biography.text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            .padding(20.dp)
+            .animateContentSize()
+    ) {
         Row(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_book_open),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(8.dp))
+            Text("About the Artist", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_book_open),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(12.dp)
+                )
+                Text(
+                    biography.source,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(
+            text = biography.text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) Int.MAX_VALUE else 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+        if (biography.text.length > 160 || biography.text.lines().size > 2) {
             Text(
-                biography.source,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = if (expanded) "Show less" else "Read more",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .clickable { expanded = !expanded }
             )
         }
     }
@@ -311,26 +353,69 @@ private fun ArtistCatalogHero(
     artist: String,
     songCount: Int,
     albumCount: Int,
+    totalDurationMs: Long,
     collapseProgress: Float,
     onBack: () -> Unit,
     onPlay: () -> Unit,
     onShuffle: () -> Unit
 ) {
+    val durationText = remember(totalDurationMs) {
+        if (totalDurationMs > 0) {
+            val totalSeconds = totalDurationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+        } else ""
+    }
+
+    val statsText = listOfNotNull(
+        "$songCount ${if (songCount == 1) "song" else "songs"}",
+        "$albumCount ${if (albumCount == 1) "album" else "albums"}",
+        durationText.takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+
     Box(modifier = Modifier.fillMaxWidth().height(430.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
         ArtistImage(artist = artist, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Box(
             modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(0f to Color.Transparent, 0.62f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.88f))
+                Brush.verticalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.35f),
+                        Color.Transparent,
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.70f),
+                        Color.Black.copy(alpha = 0.95f)
+                    )
+                )
             )
         )
-        Text(
-            artist,
-            style = MaterialTheme.typography.headlineLarge,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 24.dp, vertical = 28.dp)
+                .padding(horizontal = 24.dp, vertical = 20.dp)
                 .graphicsLayer { alpha = (1f - ((collapseProgress - 0.18f) / 0.58f)).coerceIn(0f, 1f) }
-        )
+        ) {
+            Text(
+                artist,
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(Color.White.copy(alpha = 0.15f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    statsText,
+                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_chevron_left,
             contentDescription = "Back",
@@ -348,15 +433,6 @@ private fun ArtistCatalogHero(
                 .align(Alignment.BottomEnd)
                 .padding(20.dp)
                 .graphicsLayer { alpha = (1f - (collapseProgress * 2f)).coerceIn(0f, 1f) }
-        )
-        Text(
-            "$songCount songs · $albumCount albums",
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 24.dp, bottom = 8.dp)
-                .graphicsLayer { alpha = (1f - ((collapseProgress - 0.1f) / 0.6f)).coerceIn(0f, 1f) }
         )
     }
 }
@@ -395,16 +471,47 @@ private fun ArtistAlbumShelf(title: String, albums: List<ArtistAlbum>, onAlbumCl
     Column(modifier = Modifier.padding(top = 20.dp)) {
         ArtistSectionTitle(title)
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(horizontal = 24.dp)
         ) {
             items(albums, key = { it.cover.albumId }) { album ->
-                Column(modifier = Modifier.width(176.dp).tapScale { onAlbumClick(album) }) {
-                    Box(modifier = Modifier.size(176.dp).clip(RoundedCornerShape(12.dp))) {
+                Column(modifier = Modifier.width(170.dp).tapScale { onAlbumClick(album) }) {
+                    Box(
+                        modifier = Modifier
+                            .size(170.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    ) {
                         AlbumArt(song = album.cover, modifier = Modifier.fillMaxSize())
+                        album.cover.releaseYear?.let { year ->
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.Black.copy(alpha = 0.65f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    year.toString(),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 10.sp),
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
-                    Text(album.cover.album, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
-                    Text(album.cover.releaseYear?.toString() ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        album.cover.album,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Text(
+                        "${album.tracks.size} ${if (album.tracks.size == 1) "track" else "tracks"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -607,6 +714,7 @@ private fun LibraryGroupDetailScreen(
                     AlbumDetailHeader(
                         song = albumHeroSong,
                         songCount = songs.size,
+                        totalDurationMs = songs.sumOf { it.durationMs },
                         canDownload = downloadableSongs.isNotEmpty(),
                         onBack = onBack,
                         onPlayAll = playAll,
@@ -683,7 +791,7 @@ private fun LibraryGroupDetailScreen(
                 }
             )
         }
-        songForOptions?.let { song ->
+        if (!showPlaylistPicker) songForOptions?.let { song ->
             val favoritesRepository = remember { FavoritesRepository(context) }
             val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
             val isFav = song.isFavorite || song.id in favoriteIds
@@ -804,41 +912,68 @@ private fun ArtistDetailHeader(
 }
 
 @Composable
-private fun ArtistSongRow(song: Song, onClick: () -> Unit) {
+private fun ArtistSongRow(
+    song: Song,
+    trackIndex: Int,
+    onClick: () -> Unit
+) {
+    val durationText = remember(song.durationMs) {
+        if (song.durationMs > 0) {
+            val totalSeconds = song.durationMs / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            "%d:%02d".format(minutes, seconds)
+        } else ""
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .tapScale(onClick)
-            .padding(start = 24.dp, end = 16.dp)
+            .padding(start = 24.dp, end = 20.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))) {
+            Text(
+                text = "%02d".format(trackIndex),
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.width(28.dp)
+            )
+            Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))) {
                 AlbumArt(song = song, modifier = Modifier.fillMaxSize())
             }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = listOfNotNull(song.artist, song.releaseYear?.toString()).joinToString(" · "),
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = listOfNotNull(song.album.takeIf { it.isNotEmpty() && it != song.title }, song.releaseYear?.toString()).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            DownloadStatusIcon(song = song, modifier = Modifier.padding(start = 12.dp))
+            if (durationText.isNotEmpty()) {
+                Text(
+                    text = durationText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            DownloadStatusIcon(song = song, modifier = Modifier.padding(start = 8.dp))
         }
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-            modifier = Modifier.padding(start = 72.dp)
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+            modifier = Modifier.padding(start = 90.dp)
         )
     }
 }
@@ -847,6 +982,7 @@ private fun ArtistSongRow(song: Song, onClick: () -> Unit) {
 private fun AlbumDetailHeader(
     song: Song,
     songCount: Int,
+    totalDurationMs: Long = 0L,
     canDownload: Boolean,
     onBack: () -> Unit,
     onPlayAll: () -> Unit,
@@ -854,71 +990,120 @@ private fun AlbumDetailHeader(
     onDownloadAll: () -> Unit,
     onMore: () -> Unit
 ) {
-    val genres = song.genres.take(2).joinToString(", ")
+    val durationText = if (totalDurationMs > 0) {
+        val totalSeconds = totalDurationMs / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+    } else ""
+
+    val genres = song.genres.take(1).joinToString("")
     val releaseDetails = listOfNotNull(
         genres.takeIf { it.isNotBlank() },
         song.releaseYear?.toString(),
-        "$songCount ${if (songCount == 1) "track" else "tracks"}"
-    ).joinToString(" / ")
+        "$songCount ${if (songCount == 1) "track" else "tracks"}",
+        durationText.takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 12.dp),
+            .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
-            Spacer(Modifier.weight(1f))
-            if (canDownload) {
-                PressDepthIconButton(R.drawable.lucide_ic_download, "Download album", onDownloadAll)
-            }
-            PressDepthIconButton(R.drawable.lucide_ic_ellipsis_vertical, "Album actions", onMore)
-        }
         Box(
             modifier = Modifier
-                .padding(top = 16.dp)
-                .size(232.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .fillMaxWidth()
+                .height(340.dp)
         ) {
-            AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            AlbumArt(
+                song = song,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(50.dp)
+                    .graphicsLayer { alpha = 0.40f }
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 12.dp)
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            ) {
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+                Spacer(Modifier.weight(1f))
+                if (canDownload) {
+                    PressDepthIconButton(R.drawable.lucide_ic_download, "Download album", onDownloadAll)
+                }
+                PressDepthIconButton(R.drawable.lucide_ic_ellipsis_vertical, "Album actions", onMore)
+            }
         }
+
         Text(
             song.album,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 18.dp)
+            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 8.dp)
         )
         Text(
             song.artist,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 4.dp)
+            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 2.dp)
         )
         if (releaseDetails.isNotBlank()) {
-            Text(
-                releaseDetails,
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp).padding(top = 8.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(100.dp))
+                    .padding(horizontal = 14.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    releaseDetails,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         CatalogPlaybackActions(
             onPlay = onPlayAll,
             onShuffle = onShuffleAll,
-            modifier = Modifier.padding(top = 20.dp)
+            modifier = Modifier.padding(top = 12.dp)
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AlbumActionsSheet(
     onPlayNext: () -> Unit,
@@ -927,30 +1112,83 @@ private fun AlbumActionsSheet(
     onShare: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            AlbumActionRow(R.drawable.lucide_ic_play, "Play Next", onPlayNext)
-            AlbumActionRow(R.drawable.lucide_ic_list_music, "Add to Playlist", onAddToPlaylist)
-            AlbumActionRow(R.drawable.lucide_ic_download, "Download Album", onDownload)
-            AlbumActionRow(R.drawable.lucide_ic_share_2, "Share Album", onShare)
+    FullOpenBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                "Album Options",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                AlbumActionRow(R.drawable.lucide_ic_play, "Play Next", "Add album tracks next in queue", onPlayNext)
+                AlbumActionRow(R.drawable.lucide_ic_list_music, "Add to Playlist", "Add all tracks to a playlist", onAddToPlaylist)
+                AlbumActionRow(R.drawable.lucide_ic_download, "Download Album", "Save album for offline playback", onDownload)
+                AlbumActionRow(R.drawable.lucide_ic_share_2, "Share Album", "Share album link or info", onShare)
+            }
         }
     }
 }
 
 @Composable
-private fun AlbumActionRow(iconRes: Int, label: String, onClick: () -> Unit) {
+private fun AlbumActionRow(
+    iconRes: Int,
+    label: String,
+    subtitle: String? = null,
+    onClick: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().tapScale(onClick).padding(horizontal = 24.dp, vertical = 14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .tapScale(onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Icon(
-            painter = painterResource(iconRes),
+            painter = painterResource(R.drawable.lucide_ic_chevron_right),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(16.dp)
         )
-        Spacer(Modifier.width(16.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -1174,7 +1412,14 @@ private fun MusicMetadataBlock(metadata: List<Pair<String, String>>) {
 
 @Composable
 private fun WikipediaAboutBlock(aboutText: String) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .animateContentSize()
+    ) {
         Text(
             "ABOUT",
             style = MaterialTheme.typography.labelLarge,
@@ -1184,24 +1429,37 @@ private fun WikipediaAboutBlock(aboutText: String) {
             aboutText,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) Int.MAX_VALUE else 3,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp)
         )
+        if (aboutText.length > 160 || aboutText.lines().size > 2) {
+            Text(
+                text = if (expanded) "Show less" else "Read more",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .clickable { expanded = !expanded }
+            )
+        }
         Row(
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(top = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_book_open),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(10.dp))
             Column {
-                Text("Wikipedia", style = MaterialTheme.typography.labelLarge)
+                Text("Wikipedia", style = MaterialTheme.typography.labelMedium)
                 Text(
                     "Description source / CC BY-SA",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }
