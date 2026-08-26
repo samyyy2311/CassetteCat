@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -42,18 +45,19 @@ fun SettingsSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         if (title != null) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
         }
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp)),
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
             content = content
         )
     }
@@ -66,7 +70,7 @@ fun SettingsDivider(
     endPadding: Dp = 24.dp
 ) {
     HorizontalDivider(
-        color = MaterialTheme.colorScheme.outlineVariant,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         modifier = modifier.padding(start = startPadding, end = endPadding)
     )
 }
@@ -83,7 +87,7 @@ fun NavigationRow(
         modifier = Modifier
             .fillMaxWidth()
             .tapScale(onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -92,19 +96,20 @@ fun NavigationRow(
             tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Icon(
             painter = painterResource(R.drawable.lucide_ic_chevron_right),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+            modifier = Modifier.size(16.dp)
         )
     }
 }
@@ -125,7 +130,7 @@ fun ToggleRow(
             .fillMaxWidth()
             .alpha(if (enabled) 1f else 0.38f)
             .then(if (enabled) Modifier.tapScale { onCheckedChange(!checked) } else Modifier)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -134,12 +139,12 @@ fun ToggleRow(
             tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -148,14 +153,20 @@ fun ToggleRow(
             checked = checked,
             onCheckedChange = { onSwitchToggle() },
             enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                checkedBorderColor = MaterialTheme.colorScheme.tertiary
-            )
+            colors = appSwitchColors()
         )
     }
 }
+
+@Composable
+fun appSwitchColors(): SwitchColors = SwitchDefaults.colors(
+    checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+    checkedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    checkedBorderColor = MaterialTheme.colorScheme.tertiary,
+    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+)
 
 @Composable
 fun ActionRow(
@@ -169,7 +180,7 @@ fun ActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .tapScale(onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -178,12 +189,12 @@ fun ActionRow(
             tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -207,7 +218,7 @@ fun ServerRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (!config.connected) Modifier.tapScale(onConnect) else Modifier)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -216,12 +227,12 @@ fun ServerRow(
             tint = iconTint,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
                 if (config.connected) status ?: "Connected as ${config.username}" else subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -238,7 +249,8 @@ fun ServerRow(
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_right),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }

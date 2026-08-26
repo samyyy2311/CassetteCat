@@ -230,10 +230,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setMonoAudio(enabled) }
     }
 
-    fun setSkipSilenceEnabled(enabled: Boolean) {
-        viewModelScope.launch { appPreferencesRepository.setSkipSilenceEnabled(enabled) }
-    }
-
     fun setAutoplayEnabled(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setAutoplayEnabled(enabled) }
     }
@@ -284,6 +280,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setFlipToPauseEnabled(enabled) }
     }
 
+    fun setProximityWaveSkipEnabled(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setProximityWaveSkipEnabled(enabled) }
+    }
+
     fun setMiniPlayerSwipeToSkip(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setMiniPlayerSwipeToSkip(enabled) }
     }
@@ -315,5 +315,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setAutoDownloadFavorites(enabled: Boolean) {
         viewModelScope.launch { downloadSettingsRepository.setAutoDownloadFavorites(enabled) }
+    }
+
+    fun setAutoDriveModeBluetooth(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setAutoDriveModeBluetooth(enabled) }
     }
 }

@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,7 +25,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -149,11 +149,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                 onCheckedChange = hapticToggle { enabled ->
                     scope.launch { appPreferencesRepository.setWifiOnlyDownloads(enabled) }
                 },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                    checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                    checkedBorderColor = MaterialTheme.colorScheme.tertiary
-                )
+                colors = appSwitchColors()
             )
         }
 
@@ -182,11 +178,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                 onCheckedChange = hapticToggle { enabled ->
                     scope.launch { downloadSettingsRepository.setAutoDownloadFavorites(enabled) }
                 },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                    checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                    checkedBorderColor = MaterialTheme.colorScheme.tertiary
-                )
+                colors = appSwitchColors()
             )
         }
 
@@ -347,8 +339,13 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (selected) MaterialTheme.colorScheme.tertiaryContainer
+                                if (selected) MaterialTheme.colorScheme.surfaceContainerHighest
                                 else MaterialTheme.colorScheme.surfaceContainerLow
+                            )
+                            .border(
+                                if (selected) 1.dp else 0.5.dp,
+                                if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                RoundedCornerShape(16.dp)
                             )
                             .tapScale {
                                 scope.launch { downloadSettingsRepository.setMaxCacheBytes(limit) }
@@ -361,12 +358,12 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                             Text(
                                 formatBytes(limit),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                                color = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 if (selected) "Current limit" else "Offline music storage",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (selected) {

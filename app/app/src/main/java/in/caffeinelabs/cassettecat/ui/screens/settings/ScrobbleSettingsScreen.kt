@@ -132,11 +132,7 @@ fun ScrobbleSettingsScreen(
                     Switch(
                         checked = settings.listenBrainz.enabled,
                         onCheckedChange = hapticToggle { enabled -> scope.launch { repository.setListenBrainzEnabled(enabled) } },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                            checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                            checkedBorderColor = MaterialTheme.colorScheme.tertiary
-                        )
+                        colors = appSwitchColors()
                     )
                 }
             }
@@ -190,11 +186,7 @@ fun ScrobbleSettingsScreen(
                     Switch(
                         checked = settings.libreFm.enabled,
                         onCheckedChange = hapticToggle { enabled -> scope.launch { repository.setLibreFmEnabled(enabled) } },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                            checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                            checkedBorderColor = MaterialTheme.colorScheme.tertiary
-                        )
+                        colors = appSwitchColors()
                     )
                 }
             }

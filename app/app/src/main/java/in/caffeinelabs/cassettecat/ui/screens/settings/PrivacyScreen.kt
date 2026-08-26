@@ -82,11 +82,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Switch(
                     checked = preferences.listeningStatsEnabled,
                     onCheckedChange = hapticToggle { enabled -> scope.launch { preferencesRepository.setListeningStatsEnabled(enabled) } },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                        checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                        checkedBorderColor = MaterialTheme.colorScheme.tertiary
-                    )
+                    colors = appSwitchColors()
                 )
             }
         }
