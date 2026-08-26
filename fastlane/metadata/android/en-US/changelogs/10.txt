@@ -1,0 +1,14 @@
+What's new in 1.6.0:
+
+- Drive Mode: a large-touch-target playback view that launches automatically when you connect to your car's Bluetooth
+- Wave to Skip: wave your hand over your phone to skip tracks
+- Audio quality badge on Now Playing shows Lossless/Hi-Res, bit depth, and sample rate
+- Write your own lyrics for a song and optionally contribute them to LRCLIB
+- Smart Playlists support mutually-exclusive rule groups
+- Fonts are now fully bundled offline, added VT323 and Monocraft, no more Google Play Services dependency for fonts
+- Fixed playback sometimes stopping early instead of moving to the next queued song
+- Fixed the seek bar snapping back after a manual seek
+- Fixed Equalizer Reset re-enabling a disabled equalizer
+- Fixed radio search showing results for the wrong country when switching filters quickly
+- Fixed nearby Listening Room discovery running in the background after leaving the screen
+- Reduced memory usage from playlist cover images

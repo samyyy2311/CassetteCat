@@ -2,6 +2,35 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.6.0] - Drive Mode, Wave to Skip & Reliability Fixes
+
+### Playback
+* **Drive Mode**: a stripped, high-contrast full-screen playback view with large touch targets, launches automatically when connected to a car's Bluetooth audio.
+* **Wave to Skip**: wave your hand over the top of your phone to skip to the next track.
+* **Audio Quality Badge**: Now Playing shows a Lossless/Hi-Res badge with format, bit depth, and sample rate details.
+* Fixed playback sometimes stopping early instead of continuing to the next queued song, and next/previous sometimes not following the queue order.
+* Shuffle now re-randomizes the upcoming queue every time it's turned on, and restores the original order when turned off.
+* Fixed the seek bar visually snapping back after a manual seek; dragging it now feels more responsive.
+* Fixed a flip-to-pause edge case leaving the shake and wave-to-skip sensors active while paused.
+* Rewritten shake-to-skip detection with fewer false triggers from being in a pocket or bag.
+
+### Library & Lyrics
+* **Custom Lyrics Editor**: write and save your own lyrics for a song from Now Playing, and optionally contribute them to LRCLIB.
+* Smart Playlists support mutually-exclusive rule groups.
+* Higher-quality album art fetching, with cleaner matching for remastered/deluxe edition releases.
+
+### Customization
+* Fonts are now fully bundled offline: added VT323 and Monocraft, no longer depends on Google Play Services for downloadable fonts.
+
+### Fixes
+* Fixed Equalizer Reset silently re-enabling a disabled equalizer, leaving a stale calibration label, and not appearing for preamp-only adjustments.
+* Fixed radio search occasionally showing results for the wrong country after quickly switching filters.
+* Radio Browser being fully unreachable now shows a clear retry option instead of an endless "Loading stations…".
+* Custom radio stations now require a valid stream URL before saving.
+* Fixed a connection error being shown as a raw technical message when a server URL was entered without "https://".
+* Fixed nearby Listening Room discovery continuing to run in the background after leaving the sheet.
+* Reduced memory usage from playlist cover images.
+
 ## [1.5.0] - Gestures, Smart Playlists & Custom Fonts
 
 ### Playback
