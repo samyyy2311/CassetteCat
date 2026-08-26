@@ -79,7 +79,7 @@ class CoverArtArchiveClient {
         val key = "$album|$artist".lowercase()
         cache.get(key)?.let { return@withContext it }
 
-        // Multi-source high-resolution cover lookup: iTunes (1200px) -> Deezer (1000px) -> MusicBrainz/CAA (1200px)
+        // Multi-source ultra-high-resolution cover lookup: iTunes (1400px) -> Deezer (1000px) -> MusicBrainz/CAA (1200px/original)
         val bitmap = fetchFromITunes(album, artist)
             ?: fetchFromDeezer(album, artist)
             ?: fetchFromMusicBrainz(album, artist)
@@ -91,21 +91,25 @@ class CoverArtArchiveClient {
     }
 
     private fun fetchFromITunes(album: String, artist: String): Bitmap? = runCatching {
-        val query = "$album $artist".trim()
-        val url = "https://itunes.apple.com/search?term=${query.urlEncode()}&entity=album&limit=3"
+        val cleanAlbum = sanitizeQuery(album)
+        val cleanArtist = sanitizeQuery(artist)
+        val query = "$cleanAlbum $cleanArtist".trim()
+        val url = "https://itunes.apple.com/search?term=${query.urlEncode()}&entity=album&limit=5"
         val body = getBody(url) ?: return@runCatching null
         val response = sharedJson.decodeFromString<ITunesSearchResponse>(body)
         val match = response.results.firstOrNull { it.artworkUrl100 != null } ?: return@runCatching null
-        val highResUrl = match.artworkUrl100
-            ?.replace("100x100bb.jpg", "1200x1200bb.jpg")
-            ?.replace("100x100bb.png", "1200x1200bb.png")
-            ?: return@runCatching null
-        downloadImage(highResUrl)
+        val url100 = match.artworkUrl100 ?: return@runCatching null
+        val highResUrl = url100
+            .replace(Regex("\\d+x\\d+bb[^\"]*"), "1400x1400bb.jpg")
+            .replace(Regex("/\\d+x\\d+[^\"]*"), "/1400x1400bb.jpg")
+        downloadImage(highResUrl) ?: downloadImage(url100)
     }.getOrNull()
 
     private fun fetchFromDeezer(album: String, artist: String): Bitmap? = runCatching {
-        val query = "$album $artist".trim()
-        val url = "https://api.deezer.com/search/album?q=${query.urlEncode()}&limit=3"
+        val cleanAlbum = sanitizeQuery(album)
+        val cleanArtist = sanitizeQuery(artist)
+        val query = "$cleanAlbum $cleanArtist".trim()
+        val url = "https://api.deezer.com/search/album?q=${query.urlEncode()}&limit=5"
         val body = getBody(url) ?: return@runCatching null
         val response = sharedJson.decodeFromString<DeezerAlbumSearchResponse>(body)
         val match = response.data.firstOrNull() ?: return@runCatching null
@@ -114,20 +118,27 @@ class CoverArtArchiveClient {
     }.getOrNull()
 
     private suspend fun fetchFromMusicBrainz(album: String, artist: String): Bitmap? = runCatching {
-        val query = "release:${album.urlEncode()} AND artist:${artist.urlEncode()}"
-        val mbUrl = "https://musicbrainz.org/ws/2/release/?query=$query&fmt=json&limit=3"
+        val cleanAlbum = sanitizeQuery(album)
+        val cleanArtist = sanitizeQuery(artist)
+        val query = "release:\"${cleanAlbum}\" AND artist:\"${cleanArtist}\""
+        val mbUrl = "https://musicbrainz.org/ws/2/release/?query=${query.urlEncode()}&fmt=json&limit=3"
         MusicBrainzRateLimiter.await()
         val mbBody = getBody(mbUrl) ?: return@runCatching null
         val response = sharedJson.decodeFromString<MusicBrainzSearchResponse>(mbBody)
         val release = response.releases.firstOrNull() ?: return@runCatching null
 
-        // Try high-resolution 1200px first, fallback to 500px
+        // Try high-resolution 1200px first, fallback to original uncompressed scan, then 500px
         val caa1200 = "https://coverartarchive.org/release/${release.id}/front-1200"
-        downloadImage(caa1200) ?: run {
-            val caa500 = "https://coverartarchive.org/release/${release.id}/front-500"
-            downloadImage(caa500)
-        }
+        val caaOriginal = "https://coverartarchive.org/release/${release.id}/front"
+        val caa500 = "https://coverartarchive.org/release/${release.id}/front-500"
+        downloadImage(caa1200) ?: downloadImage(caaOriginal) ?: downloadImage(caa500)
     }.getOrNull()
+
+    private fun sanitizeQuery(input: String): String =
+        input.replace(Regex("(?i)\\[(remastered|deluxe|bonus|explicit|expanded|anniversary|edition|version|mono|stereo|reissue)[^\\]]*\\]"), "")
+            .replace(Regex("(?i)\\((remastered|deluxe|bonus|explicit|expanded|anniversary|edition|version|mono|stereo|reissue|feat\\.?)[^\\)]*\\)"), "")
+            .replace(Regex("(?i)-\\s*(remastered|deluxe|bonus|expanded|anniversary).*$"), "")
+            .trim()
 
     private fun getBody(url: String): String? =
         sharedHttpClient.newCall(
