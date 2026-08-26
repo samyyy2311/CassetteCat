@@ -51,7 +51,6 @@ class PlaybackRepository(private val context: Context) {
     // or manual drag-reorder: what toggling shuffle off restores.
     private var originalQueue: List<Song> = emptyList()
     private var shuffleEnabled = false
-    private var suppressShuffleSync = false
     private val history = ArrayDeque<Song>()
     var onQueueExhausted: (() -> Unit)? = null
 
@@ -78,7 +77,11 @@ class PlaybackRepository(private val context: Context) {
                         }
                         c != null && c.repeatMode == Player.REPEAT_MODE_ALL && currentQueue.isNotEmpty() -> {
                             if (shuffleEnabled && originalQueue.isNotEmpty()) {
-                                val freshShuffle = originalQueue.shuffled()
+                                val justPlayed = currentQueue.getOrNull(currentIndex)
+                                var freshShuffle = originalQueue.shuffled()
+                                if (freshShuffle.size > 1 && freshShuffle.first().id == justPlayed?.id) {
+                                    freshShuffle = freshShuffle.toMutableList().apply { add(1, removeAt(0)) }
+                                }
                                 currentQueue = freshShuffle
                                 val mediaItems = freshShuffle.map { it.toMediaItem() }
                                 c.setMediaItems(mediaItems, 0, 0L)
@@ -101,7 +104,6 @@ class PlaybackRepository(private val context: Context) {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = updateState()
             override fun onRepeatModeChanged(repeatMode: Int) = updateState()
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                if (suppressShuffleSync) return
                 if (shuffleModeEnabled != shuffleEnabled) toggleShuffle()
             }
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
@@ -151,12 +153,9 @@ class PlaybackRepository(private val context: Context) {
         finalQueue.getOrNull(targetIndex)?.let { recordPlayed(it) }
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem() } }
         controller?.apply {
-            suppressShuffleSync = true
-            shuffleModeEnabled = shuffle
             setMediaItems(mediaItems, targetIndex, 0L)
             prepare()
             play()
-            suppressShuffleSync = false
         }
         updateState()
     }
@@ -323,17 +322,21 @@ class PlaybackRepository(private val context: Context) {
         controller?.volume = replayGainVolume * volumeLimitMultiplier * fraction.coerceIn(0f, 1f)
     }
 
-    // Real toggle, not ExoPlayer's shuffleModeEnabled (fixed order reused across
-    // re-enabling, and MediaController can't reach setShuffleOrder() to force a fresh one):
-    // on shuffles the upcoming queue for real, off restores playQueue()'s original order.
+    // Real toggle, not ExoPlayer's shuffleModeEnabled: on shuffles the upcoming queue for
+    // real, off restores playQueue()'s original order. Never written to the real player's
+    // own shuffleModeEnabled (an uncontrollable random order that can make native gapless
+    // auto-advance and seekToNext/Previous diverge from this queue, even ending playback early).
     fun toggleShuffle() {
         val c = controller ?: return
         shuffleEnabled = !shuffleEnabled
         if (shuffleEnabled) shuffleUpNext(c) else restoreOriginalOrder(c)
-        suppressShuffleSync = true
-        c.shuffleModeEnabled = shuffleEnabled
-        suppressShuffleSync = false
         updateState()
+    }
+
+    private fun originalIndexOf(currentIndex: Int, currentSong: Song): Int {
+        val occurrence = currentQueue.subList(0, currentIndex + 1).count { it.id == currentSong.id } - 1
+        val matches = originalQueue.withIndex().filter { it.value.id == currentSong.id }.map { it.index }
+        return matches.getOrNull(occurrence) ?: matches.lastOrNull() ?: -1
     }
 
     private fun shuffleUpNext(c: MediaController) {
@@ -343,7 +346,7 @@ class PlaybackRepository(private val context: Context) {
         val currentSong = currentQueue.getOrNull(currentIndex) ?: return
 
         val upcoming = if (originalQueue.isNotEmpty()) {
-            val originalIndex = originalQueue.indexOfFirst { it.id == currentSong.id }
+            val originalIndex = originalIndexOf(currentIndex, currentSong)
             if (originalIndex >= 0) originalQueue.drop(originalIndex + 1) else originalQueue.filter { it.id != currentSong.id }
         } else {
             currentQueue.drop(currentIndex + 1)
@@ -360,9 +363,9 @@ class PlaybackRepository(private val context: Context) {
         if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty() || originalQueue.isEmpty()) return
         val currentSong = currentQueue.getOrNull(currentIndex) ?: return
 
-        val originalIndex = originalQueue.indexOfFirst { it.id == currentSong.id }
-        val restoredUpcoming = if (originalIndex >= 0 && originalIndex < originalQueue.size - 1) {
-            originalQueue.subList(originalIndex + 1, originalQueue.size)
+        val originalIndex = originalIndexOf(currentIndex, currentSong)
+        val restoredUpcoming = if (originalIndex >= 0) {
+            originalQueue.drop(originalIndex + 1)
         } else {
             originalQueue.filter { it.id != currentSong.id }
         }
@@ -514,13 +517,98 @@ class PlaybackRepository(private val context: Context) {
             upNext = currentQueue.drop(index + 1),
             previousInQueue = currentQueue.getOrNull(index - 1),
             history = history.toList(),
-            currentLyrics = extractLyrics(c.currentTracks)
+            currentLyrics = extractLyrics(c.currentTracks),
+            audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }
 }
 
-// No lyrics API on Player/MediaMetadata; reuses Media3's own ID3 USLT (MP3) / Vorbis
-// LYRICS (FLAC/OGG) parsing instead of adding a tagging dependency.
+internal fun extractAudioFormat(tracks: Tracks, song: Song?): AudioTrackFormat? {
+    for (group in tracks.groups) {
+        if (group.type == C.TRACK_TYPE_AUDIO && group.isSelected) {
+            for (i in 0 until group.length) {
+                if (group.isTrackSelected(i)) {
+                    val format = group.getTrackFormat(i)
+                    val mime = format.sampleMimeType ?: format.containerMimeType
+                    val sampleRate = format.sampleRate
+                    val pcmEncoding = format.pcmEncoding
+                    val bitrate = format.bitrate.takeIf { it > 0 } ?: format.averageBitrate.takeIf { it > 0 } ?: (song?.bitrateKbps?.takeIf { it > 0 }?.let { it * 1000 }) ?: -1
+
+                    val (codecName, isLossless) = when {
+                        mime?.contains("flac", ignoreCase = true) == true -> "FLAC" to true
+                        mime?.contains("alac", ignoreCase = true) == true -> "ALAC" to true
+                        mime?.contains("wav", ignoreCase = true) == true || mime?.contains("raw", ignoreCase = true) == true -> "WAV" to true
+                        mime?.contains("opus", ignoreCase = true) == true -> "Opus" to false
+                        mime?.contains("mp4a", ignoreCase = true) == true || mime?.contains("aac", ignoreCase = true) == true -> "AAC" to false
+                        mime?.contains("mpeg", ignoreCase = true) == true || mime?.contains("mp3", ignoreCase = true) == true -> "MP3" to false
+                        mime?.contains("vorbis", ignoreCase = true) == true -> "Vorbis" to false
+                        else -> {
+                            val ext = song?.filePath?.substringAfterLast('.', "")?.uppercase()
+                            if (!ext.isNullOrBlank()) {
+                                ext to (ext in listOf("FLAC", "ALAC", "WAV", "AIFF", "APE"))
+                            } else {
+                                (mime?.substringAfter("audio/")?.uppercase() ?: "AUDIO") to false
+                            }
+                        }
+                    }
+
+                    val bitDepth = when (pcmEncoding) {
+                        C.ENCODING_PCM_24BIT, C.ENCODING_PCM_24BIT_BIG_ENDIAN -> 24
+                        C.ENCODING_PCM_32BIT, C.ENCODING_PCM_32BIT_BIG_ENDIAN, C.ENCODING_PCM_FLOAT -> 32
+                        C.ENCODING_PCM_16BIT, C.ENCODING_PCM_16BIT_BIG_ENDIAN -> 16
+                        else -> if (isLossless && sampleRate > 48000) 24 else if (isLossless) 16 else 0
+                    }
+
+                    val rateStr = when {
+                        sampleRate >= 1000 && sampleRate % 1000 == 0 -> "${sampleRate / 1000} kHz"
+                        sampleRate > 1000 -> "%.1f kHz".format(java.util.Locale.US, sampleRate / 1000f)
+                        sampleRate > 0 -> "$sampleRate Hz"
+                        else -> ""
+                    }
+
+                    val bitrateStr = if (bitrate > 0 && !isLossless) "${bitrate / 1000} kbps" else ""
+
+                    val labelParts = mutableListOf<String>()
+                    if (bitDepth > 0) labelParts.add("${bitDepth}-bit")
+                    if (rateStr.isNotBlank()) labelParts.add(rateStr)
+                    if (bitrateStr.isNotBlank()) labelParts.add(bitrateStr)
+                    labelParts.add(codecName)
+
+                    val isHiRes = isLossless && (sampleRate > 48000 || bitDepth > 16)
+                    val badgeLabel = when {
+                        isHiRes -> "Hi-Res Lossless"
+                        isLossless -> "Lossless"
+                        else -> codecName
+                    }
+
+                    return AudioTrackFormat(
+                        label = labelParts.joinToString(" · "),
+                        badgeLabel = badgeLabel,
+                        codecName = codecName,
+                        sampleRateHz = sampleRate,
+                        bitDepth = bitDepth,
+                        bitrateKbps = if (bitrate > 0) bitrate / 1000 else 0,
+                        isLossless = isLossless,
+                        isHiRes = isHiRes
+                    )
+                }
+            }
+        }
+    }
+    val ext = song?.filePath?.substringAfterLast('.', "")?.uppercase()
+    if (!ext.isNullOrBlank()) {
+        val isLossless = ext in listOf("FLAC", "ALAC", "WAV", "AIFF", "APE")
+        return AudioTrackFormat(
+            label = if (isLossless) "Lossless · $ext" else ext,
+            badgeLabel = if (isLossless) "Lossless" else ext,
+            codecName = ext,
+            isLossless = isLossless,
+            isHiRes = false
+        )
+    }
+    return null
+}
+
 private fun extractLyrics(tracks: Tracks): String? {
     for (group in tracks.groups) {
         for (i in 0 until group.length) {

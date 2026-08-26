@@ -117,6 +117,7 @@ internal fun NowPlayingPlayerView(
             song = song,
             isFavorite = isFavorite,
             showThumbnail = false,
+            audioFormat = state.audioFormat,
             onToggleFavorite = onToggleFavorite,
             onShowMenu = onShowMenu,
             onArtistClick = onShowGoToMenu
@@ -246,6 +247,7 @@ internal fun NowPlayingQueueView(
             song = song,
             isFavorite = isFavorite,
             showThumbnail = true,
+            audioFormat = state.audioFormat,
             onToggleFavorite = onToggleFavorite,
             onShowMenu = onShowMenu,
             onArtistClick = onShowGoToMenu,
@@ -257,11 +259,6 @@ internal fun NowPlayingQueueView(
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(Modifier.height(16.dp))
-        val queueBottomPadDp by animateDpAsState(
-            targetValue = if (chromeVisible) 240.dp else 64.dp,
-            animationSpec = tween(220, easing = SmoothEasing),
-            label = "queueBottomPad"
-        )
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             QueueList(
                 upNext = state.upNext,
@@ -272,7 +269,7 @@ internal fun NowPlayingQueueView(
                 onClearHistory = { playbackViewModel.clearHistory() },
                 onSaveQueue = onSaveQueue,
                 onScrollDelta = onQueueScrollDelta,
-                bottomPaddingDp = queueBottomPadDp,
+                bottomPaddingDp = 200.dp,
                 controlsVisible = chromeVisible,
                 onInteraction = onQueueInteraction,
                 state = queueListState,
@@ -377,6 +374,7 @@ internal fun NowPlayingLyricsView(
             song = song,
             isFavorite = isFavorite,
             showThumbnail = true,
+            audioFormat = state.audioFormat,
             onToggleFavorite = onToggleFavorite,
             onShowMenu = onShowMenu,
             onArtistClick = onShowGoToMenu,
@@ -617,10 +615,16 @@ private fun LyricsSyncTunerBar(
             Text("-100ms", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
         }
 
+        val isAdjusted = syncOffsetMs != 0L
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isAdjusted) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow)
+                .border(
+                    if (isAdjusted) 1.dp else 0.5.dp,
+                    if (isAdjusted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    RoundedCornerShape(8.dp)
+                )
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onReset()
@@ -631,7 +635,7 @@ private fun LyricsSyncTunerBar(
             Text(
                 text,
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                color = if (isAdjusted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
             )
         }
 

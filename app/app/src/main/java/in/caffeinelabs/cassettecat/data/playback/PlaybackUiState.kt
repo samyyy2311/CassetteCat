@@ -6,6 +6,17 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.data.library.Song
 
+data class AudioTrackFormat(
+    val label: String,
+    val badgeLabel: String,
+    val codecName: String,
+    val sampleRateHz: Int = 0,
+    val bitDepth: Int = 0,
+    val bitrateKbps: Int = 0,
+    val isLossless: Boolean = false,
+    val isHiRes: Boolean = false
+)
+
 data class PlaybackUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
@@ -23,5 +34,6 @@ data class PlaybackUiState(
     // Most-recently-played first, capped in PlaybackRepository.
     val history: List<Song> = emptyList(),
     // Read off the current track's embedded tags (ID3 USLT / Vorbis LYRICS), see extractLyrics().
-    val currentLyrics: String? = null
+    val currentLyrics: String? = null,
+    val audioFormat: AudioTrackFormat? = null
 )
