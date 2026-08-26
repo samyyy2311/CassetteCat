@@ -95,7 +95,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.icons.lucide.android)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

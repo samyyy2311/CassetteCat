@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -74,6 +75,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -84,11 +86,10 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexSansFontFamily
-import `in`.caffeinelabs.cassettecat.ui.theme.InterFontFamily
-import `in`.caffeinelabs.cassettecat.ui.theme.OutfitFontFamily
-import `in`.caffeinelabs.cassettecat.ui.theme.PlusJakartaSansFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.MonocraftFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SilkscreenFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.VT323FontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Locale
 import kotlin.math.abs
@@ -278,13 +279,14 @@ internal fun LyricsView(
             val fontScale = preferences.lyricsFontSize.scaleMultiplier
             val lyricsFont = when (preferences.lyricsFontFamily) {
                 LyricsFontFamily.SPACE_GROTESK -> SpaceGroteskFontFamily
-                LyricsFontFamily.OUTFIT -> OutfitFontFamily
-                LyricsFontFamily.INTER -> InterFontFamily
-                LyricsFontFamily.PLUS_JAKARTA_SANS -> PlusJakartaSansFontFamily
                 LyricsFontFamily.IBM_PLEX_SANS -> IbmPlexSansFontFamily
                 LyricsFontFamily.IBM_PLEX_MONO -> IbmPlexMonoFontFamily
                 LyricsFontFamily.SILKSCREEN -> SilkscreenFontFamily
-                LyricsFontFamily.SYSTEM -> MaterialTheme.typography.headlineMedium.fontFamily
+                LyricsFontFamily.VT323 -> VT323FontFamily
+                LyricsFontFamily.MONOCRAFT -> MonocraftFontFamily
+                LyricsFontFamily.SYSTEM_DEFAULT -> FontFamily.SansSerif
+                LyricsFontFamily.SYSTEM_SERIF -> FontFamily.Serif
+                LyricsFontFamily.SYSTEM_MONO -> FontFamily.Monospace
             }
             val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = lyricsFont,
@@ -988,7 +990,12 @@ internal fun InstrumentalWaveformView(
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        CircleShape
+                    )
                     .tapScale(onClick = onSearchLyrics)
                     .padding(horizontal = 18.dp, vertical = 10.dp)
             ) {
@@ -999,14 +1006,14 @@ internal fun InstrumentalWaveformView(
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_search),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiary,
+                        tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
                         text = "Search Online",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiary
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -1016,6 +1023,11 @@ internal fun InstrumentalWaveformView(
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        CircleShape
+                    )
                     .tapScale(onClick = onReturnToPlayer)
                     .padding(horizontal = 18.dp, vertical = 10.dp)
             ) {
@@ -1026,7 +1038,7 @@ internal fun InstrumentalWaveformView(
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_disc_3),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
