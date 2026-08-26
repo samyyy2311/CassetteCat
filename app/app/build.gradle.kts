@@ -9,7 +9,10 @@ plugins {
 android {
     namespace = "in.caffeinelabs.cassettecat"
     compileSdk = 37
-    dependenciesInfoInApk = false // Play-only metadata, flagged by IzzyOnDroid
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
