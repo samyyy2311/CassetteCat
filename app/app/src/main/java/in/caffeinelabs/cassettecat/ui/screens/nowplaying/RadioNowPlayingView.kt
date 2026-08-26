@@ -108,15 +108,15 @@ internal fun RadioNowPlayingView(
         }
     } else {
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-            Spacer(Modifier.weight(4f))
+            Spacer(Modifier.weight(2.5f))
             art(
                 Modifier
                     .align(Alignment.CenterHorizontally)
                     .aspectRatio(1f)
             )
-            Spacer(Modifier.weight(3f))
-            info()
             Spacer(Modifier.weight(2f))
+            info()
+            Spacer(Modifier.weight(1.5f))
         }
     }
 }
@@ -131,7 +131,7 @@ internal fun RadioControlsRow(
 ) {
     Column(modifier) {
         LiveIndicator(isPlaying = isPlaying, isBuffering = isBuffering)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Crossfade(
                 targetState = playWhenReady,
@@ -140,7 +140,7 @@ internal fun RadioControlsRow(
             ) { playing ->
                 TransportButton(
                     iconRes = if (playing) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
-                    size = 96.dp,
+                    size = 90.dp,
                     tint = MaterialTheme.colorScheme.tertiary,
                     onClick = onTogglePlayPause,
                     accented = playing

@@ -102,7 +102,7 @@ class MediaLibraryTree(context: Context) {
             }
 
             parentId == RADIO_TOP_ID -> {
-                val top = runCatching { radioBrowserApiClient.topStations() }.getOrDefault(emptyList()).map { it.toSong() }
+                val top = (runCatching { radioBrowserApiClient.topStations() }.getOrNull() ?: emptyList()).map { it.toSong() }
                 cacheRadioResults(top)
                 top.map { it.toMediaItem() }
             }
@@ -148,8 +148,7 @@ class MediaLibraryTree(context: Context) {
         val librarySongs = localLibrary.getSongs()
             .filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
             .take(SEARCH_LIBRARY_LIMIT)
-        val radioSongs = runCatching { radioBrowserApiClient.search(query, limit = SEARCH_RADIO_LIMIT) }
-            .getOrDefault(emptyList())
+        val radioSongs = (runCatching { radioBrowserApiClient.search(query, limit = SEARCH_RADIO_LIMIT) }.getOrNull() ?: emptyList())
             .map { it.toSong() }
         cacheRadioResults(radioSongs)
         return (librarySongs + radioSongs).map { it.toMediaItem() }

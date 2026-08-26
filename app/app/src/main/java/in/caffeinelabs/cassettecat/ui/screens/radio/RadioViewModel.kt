@@ -46,6 +46,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
     private val _isOffline = MutableStateFlow(false)
     val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
 
+    private val _fetchFailed = MutableStateFlow(false)
+    val fetchFailed: StateFlow<Boolean> = _fetchFailed.asStateFlow()
+
     private val _sortOrder = MutableStateFlow(RadioSortOrder.POPULARITY)
     val sortOrder: StateFlow<RadioSortOrder> = _sortOrder.asStateFlow()
 
@@ -95,8 +98,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
             } else {
                 prefs.radioSelectedCountry.ifBlank { null }
             }
-        }
-        viewModelScope.launch {
+
             serviceSettingsRepository.settings.collect { settings ->
                 val radioEnabled = settings.isEnabled(ExternalService.RADIO_BROWSER)
                 if (!radioEnabled) {
@@ -133,6 +135,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         if (_isOffline.value) {
             _topStations.value = emptyList()
             _searchResults.value = emptyList()
+            _fetchFailed.value = false
             return
         }
         val reverse = _sortDirection.value == SortDirection.DESCENDING
@@ -141,16 +144,24 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         val language = _selectedLanguage.value
         val tag = _selectedTag.value
         if (lastQuery.isBlank()) {
-            _topStations.value = apiClient.topStations(
+            val result = apiClient.topStations(
                 country = country, state = state, language = language, tag = tag, sort = _sortOrder.value, reverse = reverse
             )
+            _fetchFailed.value = result == null
+            if (result != null) _topStations.value = result
         } else {
             _isSearching.value = true
-            _searchResults.value = apiClient.search(
+            val result = apiClient.search(
                 lastQuery, country = country, state = state, language = language, tag = tag, sort = _sortOrder.value, reverse = reverse
             )
+            _fetchFailed.value = result == null
+            if (result != null) _searchResults.value = result
             _isSearching.value = false
         }
+    }
+
+    fun retry() {
+        viewModelScope.launch { if (isRadioEnabled()) refresh() }
     }
 
     fun setCountry(country: String?) {
@@ -160,7 +171,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
             appPreferencesRepository.setRadioSelectedCountry(country ?: "")
             appPreferencesRepository.setRadioSelectedState("")
             if (isRadioEnabled()) {
-                _states.value = apiClient.states(country)
+                val states = apiClient.states(country)
+                if (_selectedCountry.value == country) _states.value = states
                 refresh()
             }
         }
@@ -211,6 +223,24 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             appPreferencesRepository.setRadioSortOrder(_sortOrder.value.name)
             appPreferencesRepository.setRadioSortDirection(_sortDirection.value.name)
+            if (isRadioEnabled()) refresh()
+        }
+    }
+
+    fun resetFiltersAndSort() {
+        _selectedCountry.value = null
+        _selectedState.value = null
+        _selectedLanguage.value = null
+        _selectedTag.value = null
+        _sortOrder.value = RadioSortOrder.POPULARITY
+        _sortDirection.value = SortDirection.DESCENDING
+        viewModelScope.launch {
+            appPreferencesRepository.setRadioSelectedCountry("")
+            appPreferencesRepository.setRadioSelectedState("")
+            appPreferencesRepository.setRadioSelectedLanguage("")
+            appPreferencesRepository.setRadioSelectedTag("")
+            appPreferencesRepository.setRadioSortOrder(RadioSortOrder.POPULARITY.name)
+            appPreferencesRepository.setRadioSortDirection(SortDirection.DESCENDING.name)
             if (isRadioEnabled()) refresh()
         }
     }

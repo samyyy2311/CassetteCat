@@ -61,7 +61,7 @@ class RadioBrowserApiClient {
         sort: RadioSortOrder = RadioSortOrder.POPULARITY,
         reverse: Boolean = true,
         limit: Int = 100
-    ): List<RadioStation> {
+    ): List<RadioStation>? {
         val params = buildString {
             append("order=${sort.apiValue}&reverse=$reverse&lastcheckok=1")
             if (query.isNotBlank()) append("&name=${query.urlEncode()}")
@@ -82,7 +82,7 @@ class RadioBrowserApiClient {
         sort: RadioSortOrder = RadioSortOrder.POPULARITY,
         reverse: Boolean = true,
         limit: Int = 100
-    ): List<RadioStation> =
+    ): List<RadioStation>? =
         search(country = country, state = state, language = language, tag = tag, sort = sort, reverse = reverse, limit = limit)
 
     suspend fun countries(): List<String> = getNames("/countries")
@@ -114,7 +114,7 @@ class RadioBrowserApiClient {
         ) ?: emptyList()
     }
 
-    private suspend fun get(path: String): List<RadioStation> = withContext(Dispatchers.IO) {
+    private suspend fun get(path: String): List<RadioStation>? = withContext(Dispatchers.IO) {
         tryServers(
             path = "/json/stations$path",
             parse = { body ->
@@ -132,7 +132,7 @@ class RadioBrowserApiClient {
                         )
                     }
             }
-        ) ?: emptyList()
+        )
     }
 
     private suspend fun <T> tryServers(path: String, parse: (String) -> T): T? {
