@@ -15,6 +15,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicApiClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,6 +52,8 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _quickConnectState = MutableStateFlow<QuickConnectState>(QuickConnectState.Idle)
     val quickConnectState: StateFlow<QuickConnectState> = _quickConnectState.asStateFlow()
+
+    fun savedConfig(protocol: StreamingProtocol): Flow<StreamingServerConfig> = serverRepository.config(protocol)
 
     private var pendingAttempt: (suspend () -> ConnectionState)? = null
     private var quickConnectJob: Job? = null
@@ -122,7 +125,10 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     private fun runAttempt(attempt: suspend () -> ConnectionState) {
         viewModelScope.launch {
             _connectionState.value = ConnectionState.Connecting
-            _connectionState.value = runCatching { attempt() }.getOrElse { it.toConnectionState() }
+            _connectionState.value = runCatching { attempt() }.getOrElse {
+                if (it is CancellationException) throw it
+                it.toConnectionState()
+            }
         }
     }
 
