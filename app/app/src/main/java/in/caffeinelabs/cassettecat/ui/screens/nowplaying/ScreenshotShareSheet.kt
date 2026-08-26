@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -213,16 +214,42 @@ internal fun ScreenshotShareSheet(
                         song = song,
                         lines = availableLyrics,
                         theme = selectedTheme,
-                        onEditLyrics = {
-                            onDismiss()
-                            onOpenFullLyricEditor()
-                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            if (mode == ShareCardMode.LYRICS) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), CircleShape)
+                        .tapScale {
+                            onDismiss()
+                            onOpenFullLyricEditor()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_pencil),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Select different lyrics",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            } else {
+                Spacer(Modifier.height(20.dp))
+            }
 
             // Theme Selection Pills (Atmosphere vs Obsidian)
             Row(
@@ -232,24 +259,23 @@ internal fun ScreenshotShareSheet(
             ) {
                 LyricCardTheme.entries.forEach { theme ->
                     val isSelected = selectedTheme == theme
-                    val bgColor by animateColorAsState(
-                        if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        animationSpec = tween(200),
-                        label = "themeBg"
-                    )
+                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 6.dp)
+                            .padding(horizontal = 4.dp)
                             .clip(CircleShape)
                             .background(bgColor)
+                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
                             .clickable { selectedTheme = theme }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = theme.label,
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = textColor
                         )
                     }
                 }
@@ -314,7 +340,7 @@ internal fun ScreenshotShareSheet(
                             val bitmap = withContext(Dispatchers.Default) {
                                 generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
                             }
-                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}")
+                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}", selectedTheme)
                         }
                     }
                 )
@@ -352,8 +378,8 @@ private fun SongSharePreviewCard(
                 when (theme) {
                     LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
                     LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color(0xFF0F0E0D))
-                        .border(1.dp, Color(0xFF2E2A27), RoundedCornerShape(20.dp))
+                        .background(Color.Black)
+                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
                 }
             )
     ) {
@@ -444,7 +470,6 @@ private fun LyricSharePreviewCard(
     song: Song,
     lines: List<String>,
     theme: LyricCardTheme,
-    onEditLyrics: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -454,8 +479,8 @@ private fun LyricSharePreviewCard(
                 when (theme) {
                     LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
                     LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color(0xFF0F0E0D))
-                        .border(1.dp, Color(0xFF2E2A27), RoundedCornerShape(20.dp))
+                        .background(Color.Black)
+                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
                 }
             )
     ) {
@@ -513,30 +538,6 @@ private fun LyricSharePreviewCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f))
-                        .clickable(onClick = onEditLyrics)
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.lucide_ic_pencil),
-                            contentDescription = "Edit lyrics",
-                            tint = Color.White,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = "Edit",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White
-                        )
-                    }
                 }
             }
 
@@ -676,7 +677,13 @@ private fun generateSharePoster(
     val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
-    val (spaceGroteskBold, _, ibmPlexMono, _) = loadCanvasTypefaces(context)
+    val cardRadius = 96f
+    val cardPath = Path().apply {
+        addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, Path.Direction.CW)
+    }
+    canvas.clipPath(cardPath)
+
+    val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
     // Background
@@ -721,16 +728,16 @@ private fun generateSharePoster(
         }
         LyricCardTheme.OBSIDIAN -> {
             val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = "#0F0E0D".toColorInt()
+                color = android.graphics.Color.BLACK
             }
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+            canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, bgPaint)
 
             val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = "#2E2A27".toColorInt()
+                color = "#1E1E1E".toColorInt()
                 style = Paint.Style.STROKE
                 strokeWidth = 6f
             }
-            canvas.drawRoundRect(RectF(60f, 60f, width - 60f, height - 60f), 64f, 64f, borderPaint)
+            canvas.drawRoundRect(RectF(3f, 3f, width - 3f, height - 3f), cardRadius, cardRadius, borderPaint)
         }
     }
 
@@ -846,7 +853,7 @@ private fun generateSharePoster(
             color = android.graphics.Color.WHITE
             textSize = 84f
             typeface = spaceGroteskBold
-            fontVariationSettings = "'wght' 700"
+            fontVariationSettings = "'wght' 600"
         }
         val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
         canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
@@ -870,8 +877,8 @@ private fun generateSharePoster(
         val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.WHITE
             textSize = fontSize
-            typeface = spaceGroteskBold
-            fontVariationSettings = "'wght' 700"
+            typeface = spaceGroteskSemiBold
+            fontVariationSettings = "'wght' 500"
         }
 
         val textToDraw = validLines.joinToString("\n")
@@ -938,7 +945,8 @@ private suspend fun cacheBitmapAndGetUri(context: Context, bitmap: Bitmap, filen
 internal suspend fun shareImageToInstagramStories(
     context: Context,
     bitmap: Bitmap,
-    title: String
+    title: String,
+    theme: LyricCardTheme = LyricCardTheme.ATMOSPHERE
 ) {
     val uri = cacheBitmapAndGetUri(context, bitmap, "story")
 
@@ -949,12 +957,15 @@ internal suspend fun shareImageToInstagramStories(
         Intent.FLAG_GRANT_READ_URI_PERMISSION
     )
 
+    val topBg = if (theme == LyricCardTheme.OBSIDIAN) "#000000" else "#1A1715"
+    val bottomBg = if (theme == LyricCardTheme.OBSIDIAN) "#000000" else "#0A0908"
+
     // 1. Direct Instagram Stories Intent API (Sticker card on gradient background - standard music share format)
     val storiesIntent = Intent("com.instagram.share.ADD_TO_STORY").apply {
         type = "image/png"
         putExtra("interactive_asset_uri", uri)
-        putExtra("top_background_color", "#1A1715")
-        putExtra("bottom_background_color", "#0A0908")
+        putExtra("top_background_color", topBg)
+        putExtra("bottom_background_color", bottomBg)
         putExtra("source_application", context.packageName)
         setPackage("com.instagram.android")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

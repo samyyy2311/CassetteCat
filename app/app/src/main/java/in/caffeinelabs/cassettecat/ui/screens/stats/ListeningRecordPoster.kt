@@ -876,24 +876,23 @@ internal fun ListeningRecordShareSheet(
             ) {
                 ListeningRecordTheme.entries.forEach { theme ->
                     val isSelected = selectedTheme == theme
-                    val bgColor by animateColorAsState(
-                        if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        animationSpec = tween(200),
-                        label = "themeBg"
-                    )
+                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 6.dp)
+                            .padding(horizontal = 4.dp)
                             .clip(CircleShape)
                             .background(bgColor)
+                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
                             .clickable { selectedTheme = theme }
                             .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = theme.label,
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = textColor
                         )
                     }
                 }

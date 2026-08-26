@@ -90,6 +90,15 @@ class LrcLibClient(private val cacheDir: File? = null) {
                     candidates = request(cleanSearchUrl, isSearch = true) ?: emptyList()
                 }
 
+                if (candidates.isEmpty()) {
+                    val titleSearchUrl = "https://lrclib.net/api/search?q=${title.urlEncode()}"
+                    candidates = request(titleSearchUrl, isSearch = true) ?: emptyList()
+                }
+                if (candidates.isEmpty() && cleanTitle != title) {
+                    val cleanTitleSearchUrl = "https://lrclib.net/api/search?q=${cleanTitle.urlEncode()}"
+                    candidates = request(cleanTitleSearchUrl, isSearch = true) ?: emptyList()
+                }
+
                 val best = candidates
                     .mapNotNull { response -> response.toResult()?.let { result -> result to response } }
                     .maxWithOrNull(
@@ -177,6 +186,7 @@ class LrcLibClient(private val cacheDir: File? = null) {
 
             val request = Request.Builder()
                 .url(publishUrl)
+                .header("User-Agent", "CassetteCat/1.5.0 (https://github.com/caffeinelabs/CassetteCat)")
                 .header("X-Publish-Token", "${challenge.prefix}:$token")
                 .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()

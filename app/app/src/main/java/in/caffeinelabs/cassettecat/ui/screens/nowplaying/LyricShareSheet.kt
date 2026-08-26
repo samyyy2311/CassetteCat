@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -155,24 +156,23 @@ fun LyricShareSheet(
             ) {
                 LyricCardTheme.entries.forEach { theme ->
                     val isSelected = selectedTheme == theme
-                    val bgColor by animateColorAsState(
-                        if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        animationSpec = tween(200),
-                        label = "themeBg"
-                    )
+                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 6.dp)
+                            .padding(horizontal = 4.dp)
                             .clip(CircleShape)
                             .background(bgColor)
+                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
                             .clickable { selectedTheme = theme }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = theme.label,
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = textColor
                         )
                     }
                 }
@@ -275,8 +275,8 @@ private fun LyricQuoteCard(
                 when (theme) {
                     LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
                     LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color(0xFF0F0E0D))
-                        .border(1.dp, Color(0xFF2E2A27), RoundedCornerShape(20.dp))
+                        .background(Color.Black)
+                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
                 }
             )
     ) {
@@ -402,7 +402,13 @@ private fun buildLyricCardPoster(
     val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
-    val (spaceGroteskBold, _, ibmPlexMono, _) = loadCanvasTypefaces(context)
+    val cardRadius = 96f
+    val cardPath = Path().apply {
+        addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, Path.Direction.CW)
+    }
+    canvas.clipPath(cardPath)
+
+    val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
     // Background
@@ -446,16 +452,16 @@ private fun buildLyricCardPoster(
         }
         LyricCardTheme.OBSIDIAN -> {
             val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = "#0F0E0D".toColorInt()
+                color = android.graphics.Color.BLACK
             }
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+            canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, bgPaint)
 
             val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = "#2E2A27".toColorInt()
+                color = "#1E1E1E".toColorInt()
                 style = Paint.Style.STROKE
                 strokeWidth = 6f
             }
-            canvas.drawRoundRect(RectF(60f, 60f, width - 60f, height - 60f), 64f, 64f, borderPaint)
+            canvas.drawRoundRect(RectF(3f, 3f, width - 3f, height - 3f), cardRadius, cardRadius, borderPaint)
         }
     }
 
@@ -493,7 +499,7 @@ private fun buildLyricCardPoster(
         color = android.graphics.Color.WHITE
         textSize = 84f
         typeface = spaceGroteskBold
-        fontVariationSettings = "'wght' 700"
+        fontVariationSettings = "'wght' 600"
     }
     val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
     canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
@@ -517,8 +523,8 @@ private fun buildLyricCardPoster(
     val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = fontSize
-        typeface = spaceGroteskBold
-        fontVariationSettings = "'wght' 700"
+        typeface = spaceGroteskSemiBold
+        fontVariationSettings = "'wght' 500"
     }
 
     val textToDraw = validLines.joinToString("\n")
