@@ -2,9 +2,8 @@ package `in`.caffeinelabs.cassettecat.data.library
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.core.graphics.scale
+import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
@@ -18,9 +17,8 @@ private const val JPEG_QUALITY = 85
 class PlaylistCoverStorage(private val context: Context) {
     suspend fun save(playlistId: String, sourceUri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {
-            val bitmap = context.contentResolver.openInputStream(sourceUri)
-                ?.use { BitmapFactory.decodeStream(it) } ?: return@runCatching null
-            val scaled = bitmap.scaledDownTo(MAX_COVER_DIMENSION)
+            val bytes = context.contentResolver.openInputStream(sourceUri)?.use { it.readBytes() } ?: return@runCatching null
+            val scaled = decodeSampledBitmap(bytes, maxDimension = MAX_COVER_DIMENSION) ?: return@runCatching null
             val file = coverFile(playlistId)
             FileOutputStream(file).use { out -> scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out) }
             file.absolutePath
@@ -41,12 +39,5 @@ class PlaylistCoverStorage(private val context: Context) {
     private fun coverFile(playlistId: String): File {
         val dir = File(context.filesDir, "playlist_covers").apply { mkdirs() }
         return File(dir, "$playlistId.jpg")
-    }
-
-    private fun Bitmap.scaledDownTo(maxDimension: Int): Bitmap {
-        val largestSide = maxOf(width, height)
-        if (largestSide <= maxDimension) return this
-        val factor = maxDimension.toFloat() / largestSide
-        return scale((width * factor).toInt(), (height * factor).toInt())
     }
 }

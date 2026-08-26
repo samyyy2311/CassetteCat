@@ -1,6 +1,8 @@
 package `in`.caffeinelabs.cassettecat.ui.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,13 @@ import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+// Covers are already capped at 512px by PlaylistCoverStorage, sized in bytes so this
+// bounds actual memory rather than entry count.
+private const val COVER_CACHE_BYTES = 8 * 1024 * 1024
+private val coverCache = object : LruCache<String, Bitmap>(COVER_CACHE_BYTES) {
+    override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+}
 
 // key -> drawable, shown in the cover picker and looked up when rendering a saved
 // ICON cover; falls back to the generic music icon if a stored key is ever missing
@@ -97,8 +106,13 @@ fun PlaylistCoverArt(playlist: Playlist, fallbackSong: Song?, modifier: Modifier
             if (path == null) {
                 DefaultPlaylistCover(modifier)
             } else {
-                var bitmap by remember(path) { mutableStateOf<android.graphics.Bitmap?>(null) }
-                LaunchedEffect(path) { bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) } }
+                var bitmap by remember(path) { mutableStateOf(coverCache.get(path)) }
+                LaunchedEffect(path) {
+                    if (bitmap == null) {
+                        bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
+                            ?.also { coverCache.put(path, it) }
+                    }
+                }
                 val current = bitmap
                 if (current != null) {
                     Image(
