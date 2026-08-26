@@ -94,7 +94,8 @@ fun EqualizerScreen(
     val isVirtualizerSupported by viewModel.isVirtualizerSupported.collectAsStateWithLifecycle()
 
     val isEnabled = levels.enabled
-    val hasCustomModifications = levels.bandLevelsMb.any { it != 0 } || levels.bassBoostStrength > 0 || levels.virtualizerStrength > 0
+    val hasCustomModifications = levels.bandLevelsMb.any { it != 0 } || levels.bassBoostStrength > 0 ||
+        levels.virtualizerStrength > 0 || levels.preampGainMb != 0 || levels.loudnessNormalization
     val contentAlpha by animateFloatAsState(targetValue = if (isEnabled) 1.0f else 0.45f, label = "eqContentAlpha")
 
     var showAutoEqPicker by remember { mutableStateOf(false) }
@@ -126,14 +127,18 @@ fun EqualizerScreen(
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_rotate_ccw,
                     contentDescription = "Reset EQ",
-                    onClick = { viewModel.reset() }
+                    onClick = {
+                        viewModel.reset()
+                        selectedAutoEqName = null
+                    }
                 )
             }
             Spacer(Modifier.width(8.dp))
             Switch(
                 checked = isEnabled,
                 onCheckedChange = hapticToggle { viewModel.setMasterEnabled(it) },
-                enabled = isAvailable
+                enabled = isAvailable,
+                colors = appSwitchColors()
             )
         }
 
@@ -551,15 +556,17 @@ private fun PresetChip(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-    val fg = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+    val bg = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+    val borderColor = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    val fg = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(100.dp))
             .background(bg)
+            .border(if (selected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 9.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
@@ -573,7 +580,9 @@ private fun PresetChip(
         }
         Text(
             name,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            ),
             color = fg
         )
     }
@@ -587,15 +596,17 @@ private fun CustomPresetChip(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-    val fg = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+    val bg = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+    val borderColor = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    val fg = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(100.dp))
             .background(bg)
+            .border(if (selected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            .padding(start = 14.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
@@ -609,22 +620,24 @@ private fun CustomPresetChip(
         }
         Text(
             preset.name,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            ),
             color = fg
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(4.dp))
         Box(
             modifier = Modifier
-                .size(22.dp)
+                .size(20.dp)
                 .clip(CircleShape)
                 .clickable(enabled = enabled, onClick = onDelete),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_x),
-                contentDescription = "Delete Preset",
+                contentDescription = "Delete preset",
                 tint = fg.copy(alpha = 0.6f),
-                modifier = Modifier.size(13.dp)
+                modifier = Modifier.size(12.dp)
             )
         }
     }

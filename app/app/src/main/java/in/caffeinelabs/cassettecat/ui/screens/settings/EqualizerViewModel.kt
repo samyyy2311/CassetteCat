@@ -79,10 +79,8 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun applyCustomPreset(preset: CustomEqualizerPreset) {
-        preset.bandLevelsMb.forEachIndexed { band, level ->
-            if (band < numberOfBands) {
-                EqualizerController.setBandLevel(band, level)
-            }
+        for (band in 0 until numberOfBands) {
+            EqualizerController.setBandLevel(band, preset.bandLevelsMb.getOrElse(band) { 0 })
         }
         EqualizerController.setBassBoostStrength(preset.bassBoostStrength)
         EqualizerController.setVirtualizerStrength(preset.virtualizerStrength)
@@ -142,7 +140,7 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
             repository.saveSettings(
                 EqualizerLevels(
                     bandLevelsMb = flat,
-                    enabled = true,
+                    enabled = levels.value.enabled,
                     bassBoostStrength = 0,
                     virtualizerStrength = 0,
                     selectedPresetIndex = -1,
