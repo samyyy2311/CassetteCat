@@ -111,7 +111,7 @@ internal fun SongsTabContent(
     songGridState: LazyGridState,
     songListState: LazyListState,
     listBottomPadding: Dp,
-    onPlayOrSelect: (Song) -> Unit,
+    onPlaySong: (Song) -> Unit,
     onToggleSelect: (String) -> Unit,
     onSongMore: ((Song) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -149,7 +149,13 @@ internal fun SongsTabContent(
                         SongGridCard(
                             song = song,
                             selected = song.id in selectedIds,
-                            onClick = { onPlayOrSelect(song) },
+                            onClick = {
+                                if (selectionMode) {
+                                    onToggleSelect(song.id)
+                                } else {
+                                    onPlaySong(song)
+                                }
+                            },
                             onLongClick = { onToggleSelect(song.id) }
                         )
                     }
@@ -166,7 +172,13 @@ internal fun SongsTabContent(
                             selected = song.id in selectedIds,
                             selectionMode = selectionMode,
                             onMoreClick = if (onSongMore != null && !selectionMode) { { onSongMore(song) } } else null,
-                            onClick = { onPlayOrSelect(song) },
+                            onClick = {
+                                if (selectionMode) {
+                                    onToggleSelect(song.id)
+                                } else {
+                                    onPlaySong(song)
+                                }
+                            },
                             onLongClick = { onToggleSelect(song.id) }
                         )
                     }

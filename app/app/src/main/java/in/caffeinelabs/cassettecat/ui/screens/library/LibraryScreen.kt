@@ -101,6 +101,13 @@ fun LibraryScreen(
         visibleModes.indexOfFirst { it.name == preferences.defaultLibraryTab.name }.coerceAtLeast(0)
     }
     val pagerState = rememberPagerState(initialPage = defaultPage) { visibleModes.size }
+    var hasSyncedDefaultPage by remember { mutableStateOf(false) }
+    LaunchedEffect(defaultPage) {
+        if (!hasSyncedDefaultPage) {
+            pagerState.scrollToPage(defaultPage)
+            hasSyncedDefaultPage = true
+        }
+    }
     val pagerScope = rememberCoroutineScope()
     val songListState = rememberLazyListState()
     val songGridState = rememberLazyGridState()
@@ -213,15 +220,11 @@ fun LibraryScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    fun playOrSelectSong(song: Song) {
-        if (selectionMode) {
-            toggleSelected(song.id)
-        } else {
-            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-            val index = filteredSongs.indexOfFirst { it.id == song.id }
-            playbackViewModel.playQueue(filteredSongs, index)
-            if (wasIdle) onNavigateToNowPlaying()
-        }
+    fun playSong(song: Song) {
+        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+        val index = filteredSongs.indexOfFirst { it.id == song.id }
+        playbackViewModel.playQueue(filteredSongs, index)
+        if (wasIdle) onNavigateToNowPlaying()
     }
 
     fun moveSortedListToStart(target: LibraryViewMode) {
@@ -442,7 +445,7 @@ fun LibraryScreen(
                                         songGridState = songGridState,
                                         songListState = songListState,
                                         listBottomPadding = listBottomPadding,
-                                        onPlayOrSelect = ::playOrSelectSong,
+                                        onPlaySong = ::playSong,
                                         onToggleSelect = ::toggleSelected,
                                         onSongMore = { songForMenu = it },
                                         modifier = Modifier.weight(1f)
@@ -628,7 +631,7 @@ fun LibraryScreen(
         )
     }
 
-    songForMenu?.let { song ->
+    if (!showPlaylistPicker) songForMenu?.let { song ->
         SongOptionsSheet(
             song = song,
             isFavorite = song.isFavorite || song.id in favoriteIds,
