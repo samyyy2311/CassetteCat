@@ -31,6 +31,17 @@ class FlipDetector(
 
     private var faceDownPendingRunnable: Runnable? = null
 
+    companion object {
+        private const val PROXIMITY_ACTIVATE_GZ = -4.0f
+        private const val PROXIMITY_DEACTIVATE_GZ = -1.5f
+        private const val PROXIMITY_NEAR_CM = 5f
+        private const val FACE_DOWN_GZ_THRESHOLD = -6.5f
+        private const val FACE_DOWN_MAX_LATERAL_FORCE_SQ = 40f
+        private const val FACE_DOWN_DEBOUNCE_MS = 350L
+        private const val FACE_UP_GZ_THRESHOLD = 1.5f
+        private const val FACE_UP_GZ_THRESHOLD_WITH_PROXIMITY = -2f
+    }
+
     fun start() {
         if (isListening || sensorManager == null) return
         accelerometer?.let {
@@ -55,7 +66,7 @@ class FlipDetector(
             Sensor.TYPE_PROXIMITY -> {
                 val distance = event.values[0]
                 val maxRange = event.sensor.maximumRange
-                isProximityNear = distance < maxRange && distance < 5f
+                isProximityNear = distance < maxRange && distance < PROXIMITY_NEAR_CM
                 checkOrientation(currentGz, currentGx, currentGy)
             }
             Sensor.TYPE_ACCELEROMETER -> {
@@ -66,12 +77,11 @@ class FlipDetector(
                 currentGy = gy
                 currentGz = gz
 
-                // Power optimization: only turn on proximity sensor when phone begins tilting face down
                 if (hasProximitySensor && proximitySensor != null) {
-                    if (gz < -4.0f && !isProximityRegistered) {
+                    if (gz < PROXIMITY_ACTIVATE_GZ && !isProximityRegistered) {
                         sensorManager?.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL)
                         isProximityRegistered = true
-                    } else if (gz > -1.5f && isProximityRegistered && !isFaceDown) {
+                    } else if (gz > PROXIMITY_DEACTIVATE_GZ && isProximityRegistered && !isFaceDown) {
                         sensorManager?.unregisterListener(this, proximitySensor)
                         isProximityRegistered = false
                         isProximityNear = false
@@ -89,7 +99,7 @@ class FlipDetector(
 
     private fun checkOrientation(gz: Float, gx: Float, gy: Float) {
         val lateralForceSq = gx * gx + gy * gy
-        val isPhysicallyFaceDown = gz < -6.5f && lateralForceSq < 40f
+        val isPhysicallyFaceDown = gz < FACE_DOWN_GZ_THRESHOLD && lateralForceSq < FACE_DOWN_MAX_LATERAL_FORCE_SQ
         val isConfirmedFaceDown = if (hasProximitySensor && isProximityRegistered) {
             isPhysicallyFaceDown && isProximityNear
         } else {
@@ -98,7 +108,6 @@ class FlipDetector(
 
         if (isConfirmedFaceDown) {
             if (!isFaceDown && faceDownPendingRunnable == null) {
-                // Debounce: must remain face down for 350ms to avoid momentary rotation triggers
                 val runnable = Runnable {
                     if (isConfirmedFaceDown && !isFaceDown) {
                         isFaceDown = true
@@ -107,12 +116,13 @@ class FlipDetector(
                     faceDownPendingRunnable = null
                 }
                 faceDownPendingRunnable = runnable
-                handler.postDelayed(runnable, 350L)
+                handler.postDelayed(runnable, FACE_DOWN_DEBOUNCE_MS)
             }
         } else {
             cancelPendingFlipDown()
-            // Face up threshold
-            if (gz > 1.5f || (hasProximitySensor && isProximityRegistered && !isProximityNear && gz > -2f)) {
+            if (gz > FACE_UP_GZ_THRESHOLD ||
+                (hasProximitySensor && isProximityRegistered && !isProximityNear && gz > FACE_UP_GZ_THRESHOLD_WITH_PROXIMITY)
+            ) {
                 if (isFaceDown) {
                     isFaceDown = false
                     onFlipUp()
@@ -128,7 +138,5 @@ class FlipDetector(
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // No-op
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 }
