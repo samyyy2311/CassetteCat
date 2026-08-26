@@ -1,9 +1,12 @@
 package `in`.caffeinelabs.cassettecat.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import androidx.media3.common.Player
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -70,26 +75,40 @@ fun MiniPlayerRow(
     val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val actionIcon = when (preferences.miniPlayerAction) {
-        MiniPlayerAction.NEXT -> R.drawable.lucide_ic_skip_forward
-        MiniPlayerAction.PREVIOUS -> R.drawable.lucide_ic_skip_back
-        MiniPlayerAction.FAVORITE -> R.drawable.lucide_ic_heart
-        MiniPlayerAction.QUEUE -> R.drawable.lucide_ic_list_music
-        MiniPlayerAction.REPEAT -> if (state.repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat
+    val isRadio = song.source == MusicSource.Radio
+    val actionIcon = if (isRadio) {
+        R.drawable.lucide_ic_heart
+    } else {
+        when (preferences.miniPlayerAction) {
+            MiniPlayerAction.NEXT -> R.drawable.lucide_ic_skip_forward
+            MiniPlayerAction.PREVIOUS -> R.drawable.lucide_ic_skip_back
+            MiniPlayerAction.FAVORITE -> R.drawable.lucide_ic_heart
+            MiniPlayerAction.QUEUE -> R.drawable.lucide_ic_list_music
+            MiniPlayerAction.REPEAT -> if (state.repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat
+        }
     }
-    val actionSelected = when (preferences.miniPlayerAction) {
-        MiniPlayerAction.FAVORITE -> isFavorite
-        MiniPlayerAction.REPEAT -> state.repeatMode != Player.REPEAT_MODE_OFF
-        else -> false
+    val actionSelected = if (isRadio) {
+        isFavorite
+    } else {
+        when (preferences.miniPlayerAction) {
+            MiniPlayerAction.FAVORITE -> isFavorite
+            MiniPlayerAction.REPEAT -> state.repeatMode != Player.REPEAT_MODE_OFF
+            else -> false
+        }
     }
-    val actionClick = when (preferences.miniPlayerAction) {
-        MiniPlayerAction.NEXT -> playbackViewModel::skipNext
-        MiniPlayerAction.PREVIOUS -> playbackViewModel::skipPrevious
-        MiniPlayerAction.FAVORITE -> playbackViewModel::toggleFavoriteForCurrentSong
-        MiniPlayerAction.QUEUE -> onOpenQueue
-        MiniPlayerAction.REPEAT -> playbackViewModel::cycleRepeatMode
+    val actionClick = if (isRadio) {
+        { playbackViewModel.toggleFavoriteForCurrentSong() }
+    } else {
+        when (preferences.miniPlayerAction) {
+            MiniPlayerAction.NEXT -> playbackViewModel::skipNext
+            MiniPlayerAction.PREVIOUS -> playbackViewModel::skipPrevious
+            MiniPlayerAction.FAVORITE -> playbackViewModel::toggleFavoriteForCurrentSong
+            MiniPlayerAction.QUEUE -> onOpenQueue
+            MiniPlayerAction.REPEAT -> playbackViewModel::cycleRepeatMode
+        }
     }
 
     Box(modifier = modifier) {
@@ -101,7 +120,13 @@ fun MiniPlayerRow(
                     MaterialTheme.colorScheme.surfaceContainerLow,
                     RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                 )
-                .clickable(onClick = hapticClick(onExpand))
+                .combinedClickable(
+                    onClick = hapticClick(onExpand),
+                    onDoubleClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playbackViewModel.toggleFavoriteForCurrentSong()
+                    }
+                )
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -136,10 +161,15 @@ fun MiniPlayerRow(
 
         if (preferences.showMiniPlayerProgress && state.durationMs > 0) {
             val fraction = (positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
+            val animatedFraction by animateFloatAsState(
+                targetValue = fraction,
+                animationSpec = tween(durationMillis = 100, easing = LinearEasing),
+                label = "miniPlayerProgress"
+            )
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .fillMaxWidth(fraction)
+                    .fillMaxWidth(animatedFraction)
                     .height(2.dp)
                     .background(MaterialTheme.colorScheme.tertiary)
             )
@@ -204,6 +234,7 @@ private fun MiniPlayerSongRow(
     modifier: Modifier = Modifier,
     onThumbnailBoundsChange: (Rect) -> Unit = {}
 ) {
+    val isRadio = song.source == MusicSource.Radio
     Row(modifier = modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -221,13 +252,24 @@ private fun MiniPlayerSongRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                song.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isRadio) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.tertiary)
+                    )
+                    Spacer(Modifier.width(5.dp))
+                }
+                Text(
+                    text = if (isRadio) "LIVE · ${song.artist.ifEmpty { "Radio" }}" else song.artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isRadio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
