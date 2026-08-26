@@ -56,8 +56,8 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
-private const val POSITION_TICK_MS = 500L
-private const val SAVE_EVERY_N_TICKS = 20 // ~10s at POSITION_TICK_MS
+private const val POSITION_TICK_MS = 100L
+private const val SAVE_EVERY_N_TICKS = 100 // ~10s at POSITION_TICK_MS
 private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
 
@@ -185,15 +185,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch {
-            serviceSettingsRepository.settings
-                .map { it.offlineBlackoutMode }
-                .distinctUntilChanged()
-                .collect { offline ->
-                    if (offline) {
-                        val current = playbackState.value.currentSong
-                        if (current != null && current.source != MusicSource.Local) {
-                            pause()
-                        }
+            serviceSettingsRepository.settings.map { it.offlineBlackoutMode }
+                .combine(playbackState.map { it.currentSong }) { offline, song -> offline to song }
+                .collect { (offline, song) ->
+                    if (offline && song != null && song.source != MusicSource.Local) {
+                        pause()
                     }
                 }
         }
@@ -437,6 +433,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         playbackState.value.currentSong?.let { listOf(it) + playbackState.value.upNext } ?: emptyList()
     }
     fun findNearbyListeningRooms() = listeningRoomRepository.findNearbyRooms()
+    fun stopFindingNearbyListeningRooms() = listeningRoomRepository.stopFindingNearbyRooms()
     fun joinListeningRoom(room: NearbyListeningRoom) = listeningRoomRepository.joinRoom(room)
     fun joinListeningRoomManually(address: String) = listeningRoomRepository.joinRoomManually(address)
     fun leaveListeningRoom() {
@@ -480,7 +477,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
                 tick++
-                if (tick % 2 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
+                if (tick % 10 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
                     publishRoomSnapshot()
                 }
                 if (tick % SAVE_EVERY_N_TICKS == 0) {

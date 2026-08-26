@@ -18,6 +18,7 @@ import java.security.SecureRandom
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -121,7 +122,7 @@ class LocalListeningRoomRepository(context: Context) {
     private var serverSocket: ServerSocket? = null
     private var hostRegistration: NsdManager.RegistrationListener? = null
     private var discoveryListener: NsdManager.DiscoveryListener? = null
-    private var isStartingDiscovery = false
+    private var discoveryJob: Job? = null
     private var guestSocket: Socket? = null
     private var guestWriter: BufferedWriter? = null
     private var audioServer: RoomAudioServer? = null
@@ -147,6 +148,7 @@ class LocalListeningRoomRepository(context: Context) {
 
     fun startRoom(queueProvider: () -> List<Song>) {
         if (_state.value.role != ListeningRoomRole.NONE) return
+        stopDiscovery()
         scope.launch {
             if (ServiceSettingsRepository(appContext).settings.first().offlineBlackoutMode) {
                 _state.value = _state.value.copy(notice = "Listening Room is disabled while Offline Blackout Mode is active.")
@@ -184,11 +186,10 @@ class LocalListeningRoomRepository(context: Context) {
 
     @Suppress("DEPRECATION")
     fun findNearbyRooms() {
-        if (_state.value.role != ListeningRoomRole.NONE || discoveryListener != null || isStartingDiscovery) return
-        isStartingDiscovery = true
-        scope.launch {
+        if (_state.value.role != ListeningRoomRole.NONE || discoveryListener != null || discoveryJob != null) return
+        discoveryJob = scope.launch {
             if (ServiceSettingsRepository(appContext).settings.first().offlineBlackoutMode) {
-                isStartingDiscovery = false
+                discoveryJob = null
                 _state.value = _state.value.copy(notice = "Listening Room is disabled while Offline Blackout Mode is active.")
                 return@launch
             }
@@ -226,7 +227,7 @@ class LocalListeningRoomRepository(context: Context) {
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
         }
         discoveryListener = listener
-        isStartingDiscovery = false
+        discoveryJob = null
         runCatching { nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener) }
             .onFailure {
                 discoveryListener = null
@@ -234,6 +235,8 @@ class LocalListeningRoomRepository(context: Context) {
             }
         }
     }
+
+    fun stopFindingNearbyRooms() = stopDiscovery()
 
     fun joinRoom(room: NearbyListeningRoom) {
         if (_state.value.role != ListeningRoomRole.NONE) return
@@ -411,6 +414,8 @@ class LocalListeningRoomRepository(context: Context) {
     }
 
     private fun stopDiscovery() {
+        discoveryJob?.cancel()
+        discoveryJob = null
         discoveryListener?.let { listener -> runCatching { nsdManager.stopServiceDiscovery(listener) } }
         discoveryListener = null
         discovered.clear()

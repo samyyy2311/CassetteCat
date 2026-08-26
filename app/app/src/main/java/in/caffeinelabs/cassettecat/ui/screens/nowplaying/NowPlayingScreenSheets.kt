@@ -65,7 +65,9 @@ internal fun NowPlayingScreenSheetsHost(
     onSaveQueue: (String, List<String>) -> Unit,
     syncedLyrics: List<LyricLine>? = null,
     fallbackLyrics: String? = null,
-    currentPositionMs: Long = 0L
+    currentPositionMs: Long = 0L,
+    onActiveViewChange: (NowPlayingView) -> Unit = {},
+    onNavigateToDriveMode: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
 
@@ -91,6 +93,7 @@ internal fun NowPlayingScreenSheetsHost(
                 onOpenListeningRoom = { sheetState.showListeningRoom = true },
                 onOpenPlaybackSpeed = { sheetState.showPlaybackSpeed = true },
                 onOpenSleepTimer = { sheetState.showSleepTimerPicker = true },
+                onOpenDriveMode = onNavigateToDriveMode,
                 onDismiss = { sheetState.showMenu = false }
             )
         }
@@ -188,7 +191,10 @@ internal fun NowPlayingScreenSheetsHost(
             onJoin = playbackViewModel::joinListeningRoom,
             onJoinManual = playbackViewModel::joinListeningRoomManually,
             onLeave = playbackViewModel::leaveListeningRoom,
-            onDismiss = { sheetState.showListeningRoom = false }
+            onDismiss = {
+                sheetState.showListeningRoom = false
+                playbackViewModel.stopFindingNearbyListeningRooms()
+            }
         )
     }
     if (sheetState.showScreenshotSuggestion) {
@@ -198,7 +204,11 @@ internal fun NowPlayingScreenSheetsHost(
                 syncedLyrics = syncedLyrics,
                 fallbackLyrics = fallbackLyrics,
                 currentPositionMs = currentPositionMs,
-                onDismiss = { sheetState.showScreenshotSuggestion = false }
+                onDismiss = { sheetState.showScreenshotSuggestion = false },
+                onOpenFullLyricEditor = {
+                    sheetState.showScreenshotSuggestion = false
+                    onActiveViewChange(NowPlayingView.LYRICS)
+                }
             )
         }
     }

@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -347,20 +349,23 @@ fun SettingsScreen(
             onJoin = playbackViewModel::joinListeningRoom,
             onJoinManual = playbackViewModel::joinListeningRoomManually,
             onLeave = playbackViewModel::leaveListeningRoom,
-            onDismiss = { showListeningRoom = false }
+            onDismiss = {
+                showListeningRoom = false
+                playbackViewModel.stopFindingNearbyListeningRooms()
+            }
         )
     }
 }
 
 @Composable
 private fun SettingsHeader() {
-    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall)
+    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) {
+        Text("Settings", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Manage playback, library, hardware, services, and data",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp)
+            modifier = Modifier.padding(top = 4.dp)
         )
     }
 }
@@ -407,11 +412,7 @@ fun ServiceToggleRow(
         Switch(
             checked = enabled,
             onCheckedChange = onSwitchToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                checkedTrackColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
-                checkedBorderColor = MaterialTheme.colorScheme.tertiary
-            )
+            colors = appSwitchColors()
         )
     }
 }
