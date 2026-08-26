@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import `in`.caffeinelabs.cassettecat.data.backup.BackupAppPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.appPreferencesDataStore by preferencesDataStore(name = "app_preferences")
@@ -25,7 +27,6 @@ private val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
 private val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_playback")
 private val REPLAY_GAIN_PRE_AMP_DB = intPreferencesKey("replay_gain_pre_amp_db")
 private val MONO_AUDIO = booleanPreferencesKey("mono_audio")
-private val SKIP_SILENCE_ENABLED = booleanPreferencesKey("skip_silence_enabled")
 private val AUTOPLAY_ENABLED = booleanPreferencesKey("autoplay_enabled")
 private val VOLUME_LIMIT_ENABLED = booleanPreferencesKey("volume_limit_enabled")
 private val MAX_VOLUME_PERCENT = intPreferencesKey("max_volume_percent")
@@ -54,6 +55,7 @@ private val SWIPE_UP_LYRICS_ENABLED = booleanPreferencesKey("swipe_up_lyrics_ena
 private val SHAKE_TO_SKIP_ENABLED = booleanPreferencesKey("shake_to_skip_enabled")
 private val SHAKE_SENSITIVITY = intPreferencesKey("shake_sensitivity")
 private val FLIP_TO_PAUSE_ENABLED = booleanPreferencesKey("flip_to_pause_enabled")
+private val PROXIMITY_WAVE_SKIP_ENABLED = booleanPreferencesKey("proximity_wave_skip_enabled")
 private val MINI_PLAYER_SWIPE_TO_SKIP = booleanPreferencesKey("mini_player_swipe_to_skip")
 private val NOW_PLAYING_BACKDROP_STYLE = stringPreferencesKey("now_playing_backdrop_style")
 private val APP_FONT_FAMILY = stringPreferencesKey("app_font_family")
@@ -82,6 +84,7 @@ private val HOME_SECTION_ORDER = stringPreferencesKey("home_section_order")
 private val SHOW_MINI_PLAYER_PROGRESS = booleanPreferencesKey("show_mini_player_progress")
 private val MINI_PLAYER_ACTION = stringPreferencesKey("mini_player_action")
 private val ARTWORK_ACCENT_ENABLED = booleanPreferencesKey("artwork_accent_enabled")
+private val AUTO_DRIVE_MODE_BLUETOOTH = booleanPreferencesKey("auto_drive_mode_bluetooth")
 
 // Radio
 private val RADIO_SORT_ORDER = stringPreferencesKey("radio_sort_order")
@@ -126,10 +129,10 @@ enum class MiniPlayerAction(val label: String) {
     REPEAT("Repeat mode")
 }
 
-enum class AlbumArtCornerStyle(val label: String, val radiusDp: Int) {
-    CURVED("Curved (16dp)", 16),
-    SOFT("Soft (8dp)", 8),
-    SQUARE("Vinyl / Square (0dp)", 0)
+enum class AlbumArtCornerStyle(val shortName: String, val label: String, val radiusDp: Int) {
+    CURVED("Curved", "Curved (16dp)", 16),
+    SOFT("Soft", "Soft (8dp)", 8),
+    SQUARE("Square", "Vinyl / Square (0dp)", 0)
 }
 
 enum class DefaultStartScreen(val label: String, val routeName: String) {
@@ -165,32 +168,35 @@ enum class LyricsActiveStyle(val label: String) {
     CLEAN_WHITE("Pure White")
 }
 
-enum class AppFontFamily(val label: String) {
-    SPACE_GROTESK("Space Grotesk (Default)"),
-    OUTFIT("Outfit (Modern Rounded)"),
-    INTER("Inter (Crisp Digital)"),
-    PLUS_JAKARTA_SANS("Plus Jakarta Sans (Contemporary)"),
-    IBM_PLEX_SANS("IBM Plex Sans (Clean)"),
-    IBM_PLEX_MONO("IBM Plex Mono (Retro Tech)"),
-    SILKSCREEN("Silkscreen (8-bit Pixel)"),
-    SYSTEM("System Default")
+enum class AppFontFamily(val shortName: String, val label: String) {
+    SPACE_GROTESK("Space Grotesk", "Space Grotesk (Default)"),
+    IBM_PLEX_SANS("IBM Plex Sans", "IBM Plex Sans (Clean UI)"),
+    IBM_PLEX_MONO("IBM Plex Mono", "IBM Plex Mono (Retro Tech)"),
+    SILKSCREEN("Silkscreen", "Silkscreen (8-bit Arcade)"),
+    VT323("VT323", "VT323 (Retro CRT Terminal)"),
+    MONOCRAFT("Monocraft", "Monocraft (Pixel Monospace)"),
+    SYSTEM_DEFAULT("System Sans", "System Default (Sans-serif)"),
+    SYSTEM_SERIF("System Serif", "System Serif (Editorial)"),
+    SYSTEM_MONO("System Mono", "System Monospace")
 }
 
 enum class LyricsFontFamily(val label: String) {
     SPACE_GROTESK("Space Grotesk"),
-    OUTFIT("Outfit"),
-    INTER("Inter"),
-    PLUS_JAKARTA_SANS("Plus Jakarta Sans"),
     IBM_PLEX_SANS("IBM Plex Sans"),
     IBM_PLEX_MONO("IBM Plex Mono"),
-    SILKSCREEN("Silkscreen (8-bit Pixel)"),
-    SYSTEM("System Default")
+    SILKSCREEN("Silkscreen (8-bit)"),
+    VT323("VT323 (CRT)"),
+    MONOCRAFT("Monocraft (Pixel)"),
+    SYSTEM_DEFAULT("System Sans-serif"),
+    SYSTEM_SERIF("System Serif"),
+    SYSTEM_MONO("System Monospace")
 }
 
 enum class NowPlayingBackdropStyle(val label: String, val description: String) {
+    ATMOSPHERE_BLUR("Atmosphere Blur", "Full-bleed blurred album art with cinematic dark scrim"),
     LIQUID_GRADIENT("Liquid Gradient", "Dynamic reactive mesh blur with organic drift"),
     AMBIENT_GLOW("Ambient Glow", "Soft luminous aura centered behind artwork"),
-    OLED_BLACK("AMOLED Pure Black", "True black glass backdrop with subtle contrast")
+    OLED_BLACK("Obsidian", "True pitch black backdrop with subtle contrast")
 }
 
 data class AppPreferences(
@@ -206,7 +212,6 @@ data class AppPreferences(
     val gaplessPlayback: Boolean = true,
     val replayGainPreAmpDb: Int = 0,
     val monoAudio: Boolean = false,
-    val skipSilenceEnabled: Boolean = false,
     val autoplayEnabled: Boolean = false,
     val volumeLimitEnabled: Boolean = false,
     val maxVolumePercent: Int = 80,
@@ -232,6 +237,7 @@ data class AppPreferences(
     val shakeToSkipEnabled: Boolean = false,
     val shakeSensitivity: Int = 2,
     val flipToPauseEnabled: Boolean = false,
+    val proximityWaveSkipEnabled: Boolean = false,
     val miniPlayerSwipeToSkip: Boolean = true,
     // Visual Styles
     val nowPlayingBackdropStyle: NowPlayingBackdropStyle = NowPlayingBackdropStyle.OLED_BLACK,
@@ -260,6 +266,7 @@ data class AppPreferences(
     val showMiniPlayerProgress: Boolean = true,
     val miniPlayerAction: MiniPlayerAction = MiniPlayerAction.NEXT,
     val artworkAccentEnabled: Boolean = false,
+    val autoDriveModeBluetooth: Boolean = false,
     // Radio
     val radioSortOrder: String = "POPULARITY",
     val radioSortDirection: String = "DESCENDING",
@@ -293,7 +300,6 @@ class AppPreferencesRepository(private val context: Context) {
             gaplessPlayback = prefs[GAPLESS_PLAYBACK] ?: true,
             replayGainPreAmpDb = prefs[REPLAY_GAIN_PRE_AMP_DB] ?: 0,
             monoAudio = prefs[MONO_AUDIO] ?: false,
-            skipSilenceEnabled = prefs[SKIP_SILENCE_ENABLED] ?: false,
             autoplayEnabled = prefs[AUTOPLAY_ENABLED] ?: false,
             volumeLimitEnabled = prefs[VOLUME_LIMIT_ENABLED] ?: false,
             maxVolumePercent = (prefs[MAX_VOLUME_PERCENT] ?: 80).coerceIn(10, 100),
@@ -327,6 +333,7 @@ class AppPreferencesRepository(private val context: Context) {
             shakeToSkipEnabled = prefs[SHAKE_TO_SKIP_ENABLED] ?: false,
             shakeSensitivity = prefs[SHAKE_SENSITIVITY] ?: 2,
             flipToPauseEnabled = prefs[FLIP_TO_PAUSE_ENABLED] ?: false,
+            proximityWaveSkipEnabled = prefs[PROXIMITY_WAVE_SKIP_ENABLED] ?: false,
             miniPlayerSwipeToSkip = prefs[MINI_PLAYER_SWIPE_TO_SKIP] ?: true,
             nowPlayingBackdropStyle = enumValueOrDefault(prefs[NOW_PLAYING_BACKDROP_STYLE], NowPlayingBackdropStyle.OLED_BLACK),
             appFontFamily = enumValueOrDefault(prefs[APP_FONT_FAMILY], AppFontFamily.SPACE_GROTESK),
@@ -355,6 +362,7 @@ class AppPreferencesRepository(private val context: Context) {
             resumeQueueOnLaunch = prefs[RESUME_QUEUE_ON_LAUNCH] ?: true,
             replayGainEnabled = prefs[REPLAY_GAIN_ENABLED] ?: true,
             pauseOnHeadphoneDisconnect = prefs[PAUSE_ON_DISCONNECT] ?: true,
+            autoDriveModeBluetooth = prefs[AUTO_DRIVE_MODE_BLUETOOTH] ?: false,
             keepScreenOnLyrics = prefs[KEEP_SCREEN_ON_LYRICS] ?: false,
             lyricsFontSize = try {
                 LyricsFontSize.valueOf(prefs[LYRICS_FONT_SIZE] ?: LyricsFontSize.MEDIUM.name)
@@ -428,10 +436,6 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setMonoAudio(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[MONO_AUDIO] = enabled }
-    }
-
-    suspend fun setSkipSilenceEnabled(enabled: Boolean) {
-        context.appPreferencesDataStore.edit { it[SKIP_SILENCE_ENABLED] = enabled }
     }
 
     suspend fun setAutoplayEnabled(enabled: Boolean) {
@@ -539,6 +543,10 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setFlipToPauseEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[FLIP_TO_PAUSE_ENABLED] = enabled }
+    }
+
+    suspend fun setProximityWaveSkipEnabled(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[PROXIMITY_WAVE_SKIP_ENABLED] = enabled }
     }
 
     // Lyrics Customization
@@ -671,6 +679,163 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setRadioDefaultCountryApplied(applied: Boolean) {
         context.appPreferencesDataStore.edit { it[RADIO_DEFAULT_COUNTRY_APPLIED] = applied }
+    }
+
+    suspend fun setAutoDriveModeBluetooth(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[AUTO_DRIVE_MODE_BLUETOOTH] = enabled }
+    }
+
+    suspend fun exportForBackup(): BackupAppPreferences {
+        val current = preferences.first()
+        return BackupAppPreferences(
+            themeAccent = current.themeAccent.name,
+            customAccentColor = current.customAccentColor,
+            amoledDarkTheme = current.amoledDarkTheme,
+            defaultLibraryTab = current.defaultLibraryTab.name,
+            albumArtCornerRadiusDp = current.albumArtCornerRadiusDp,
+            showRemainingTime = current.showRemainingTime,
+            hapticFeedbackEnabled = current.hapticFeedbackEnabled,
+            crossfadeSeconds = current.crossfadeSeconds,
+            gaplessPlayback = current.gaplessPlayback,
+            replayGainPreAmpDb = current.replayGainPreAmpDb,
+            monoAudio = current.monoAudio,
+            autoplayEnabled = current.autoplayEnabled,
+            volumeLimitEnabled = current.volumeLimitEnabled,
+            maxVolumePercent = current.maxVolumePercent,
+            gridColumnCount = current.gridColumnCount,
+            trackRowDensity = current.trackRowDensity.name,
+            defaultSortMetric = current.defaultSortMetric.name,
+            showAudioQualityBadge = current.showAudioQualityBadge,
+            showNowPlayingBlur = current.showNowPlayingBlur,
+            libraryTabOrder = current.libraryTabOrder.map { it.name },
+            hiddenLibraryTabs = current.hiddenLibraryTabs.map { it.name }.toSet(),
+            librarySortDirection = current.librarySortDirection,
+            libraryCollectionLayout = current.libraryCollectionLayout,
+            librarySongFilter = current.librarySongFilter,
+            libraryArtistSortOrder = current.libraryArtistSortOrder,
+            libraryArtistSortDirection = current.libraryArtistSortDirection,
+            libraryAlbumSortOrder = current.libraryAlbumSortOrder,
+            libraryAlbumSortDirection = current.libraryAlbumSortDirection,
+            libraryGenreSortOrder = current.libraryGenreSortOrder,
+            libraryGenreSortDirection = current.libraryGenreSortDirection,
+            swipeUpLyricsEnabled = current.swipeUpLyricsEnabled,
+            shakeToSkipEnabled = current.shakeToSkipEnabled,
+            shakeSensitivity = current.shakeSensitivity,
+            flipToPauseEnabled = current.flipToPauseEnabled,
+            proximityWaveSkipEnabled = current.proximityWaveSkipEnabled,
+            miniPlayerSwipeToSkip = current.miniPlayerSwipeToSkip,
+            nowPlayingBackdropStyle = current.nowPlayingBackdropStyle.name,
+            appFontFamily = current.appFontFamily.name,
+            lyricsAlignment = current.lyricsAlignment.name,
+            lyricsActiveStyle = current.lyricsActiveStyle.name,
+            lyricsFontFamily = current.lyricsFontFamily.name,
+            wifiOnlyDownloads = current.wifiOnlyDownloads,
+            listeningStatsEnabled = current.listeningStatsEnabled,
+            defaultStartScreen = current.defaultStartScreen.name,
+            lastOpenedRoute = current.lastOpenedRoute,
+            resumeQueueOnLaunch = current.resumeQueueOnLaunch,
+            replayGainEnabled = current.replayGainEnabled,
+            pauseOnHeadphoneDisconnect = current.pauseOnHeadphoneDisconnect,
+            keepScreenOnLyrics = current.keepScreenOnLyrics,
+            lyricsFontSize = current.lyricsFontSize.name,
+            localLrcPriority = current.localLrcPriority,
+            ignoreShortAudioClips = current.ignoreShortAudioClips,
+            showHomeRecentlyPlayed = current.showHomeRecentlyPlayed,
+            showHomeHeavyRotation = current.showHomeHeavyRotation,
+            showHomeRecentlyAdded = current.showHomeRecentlyAdded,
+            showHomeForgottenFavorites = current.showHomeForgottenFavorites,
+            homeSectionOrder = current.homeSectionOrder.map { it.name },
+            showMiniPlayerProgress = current.showMiniPlayerProgress,
+            miniPlayerAction = current.miniPlayerAction.name,
+            artworkAccentEnabled = current.artworkAccentEnabled,
+            autoDriveModeBluetooth = current.autoDriveModeBluetooth,
+            radioSortOrder = current.radioSortOrder,
+            radioSortDirection = current.radioSortDirection,
+            radioSelectedCountry = current.radioSelectedCountry,
+            radioSelectedState = current.radioSelectedState,
+            radioSelectedLanguage = current.radioSelectedLanguage,
+            radioSelectedTag = current.radioSelectedTag,
+            radioDefaultCountryApplied = current.radioDefaultCountryApplied
+        )
+    }
+
+    suspend fun restoreFromBackup(backup: BackupAppPreferences) {
+        context.appPreferencesDataStore.edit { prefs ->
+            prefs[THEME_ACCENT] = backup.themeAccent
+            prefs[THEME_ACCENT_CUSTOM_COLOR] = backup.customAccentColor
+            prefs[AMOLED_DARK_THEME] = backup.amoledDarkTheme
+            prefs[DEFAULT_LIBRARY_TAB] = backup.defaultLibraryTab
+            prefs[ALBUM_ART_CORNER_RADIUS] = backup.albumArtCornerRadiusDp
+            prefs[SHOW_REMAINING_TIME] = backup.showRemainingTime
+            prefs[HAPTIC_FEEDBACK_ENABLED] = backup.hapticFeedbackEnabled
+            prefs[CROSSFADE_SECONDS] = backup.crossfadeSeconds
+            prefs[GAPLESS_PLAYBACK] = backup.gaplessPlayback
+            prefs[REPLAY_GAIN_PRE_AMP_DB] = backup.replayGainPreAmpDb
+            prefs[MONO_AUDIO] = backup.monoAudio
+            prefs[AUTOPLAY_ENABLED] = backup.autoplayEnabled
+            prefs[VOLUME_LIMIT_ENABLED] = backup.volumeLimitEnabled
+            prefs[MAX_VOLUME_PERCENT] = backup.maxVolumePercent
+            prefs[GRID_COLUMNS] = backup.gridColumnCount
+            prefs[TRACK_ROW_DENSITY] = backup.trackRowDensity
+            prefs[DEFAULT_SORT_METRIC] = backup.defaultSortMetric
+            prefs[SHOW_AUDIO_QUALITY_BADGE] = backup.showAudioQualityBadge
+            prefs[SHOW_NOW_PLAYING_BLUR] = backup.showNowPlayingBlur
+            if (backup.libraryTabOrder.isNotEmpty()) {
+                prefs[LIBRARY_TAB_ORDER] = backup.libraryTabOrder.joinToString(",")
+            }
+            if (backup.hiddenLibraryTabs.isNotEmpty()) {
+                prefs[HIDDEN_LIBRARY_TABS] = backup.hiddenLibraryTabs.joinToString(",")
+            }
+            prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
+            prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
+            prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter
+            prefs[LIBRARY_ARTIST_SORT_ORDER] = backup.libraryArtistSortOrder
+            prefs[LIBRARY_ARTIST_SORT_DIRECTION] = backup.libraryArtistSortDirection
+            prefs[LIBRARY_ALBUM_SORT_ORDER] = backup.libraryAlbumSortOrder
+            prefs[LIBRARY_ALBUM_SORT_DIRECTION] = backup.libraryAlbumSortDirection
+            prefs[LIBRARY_GENRE_SORT_ORDER] = backup.libraryGenreSortOrder
+            prefs[LIBRARY_GENRE_SORT_DIRECTION] = backup.libraryGenreSortDirection
+            prefs[SWIPE_UP_LYRICS_ENABLED] = backup.swipeUpLyricsEnabled
+            prefs[SHAKE_TO_SKIP_ENABLED] = backup.shakeToSkipEnabled
+            prefs[SHAKE_SENSITIVITY] = backup.shakeSensitivity
+            prefs[FLIP_TO_PAUSE_ENABLED] = backup.flipToPauseEnabled
+            prefs[PROXIMITY_WAVE_SKIP_ENABLED] = backup.proximityWaveSkipEnabled
+            prefs[MINI_PLAYER_SWIPE_TO_SKIP] = backup.miniPlayerSwipeToSkip
+            prefs[NOW_PLAYING_BACKDROP_STYLE] = backup.nowPlayingBackdropStyle
+            prefs[APP_FONT_FAMILY] = backup.appFontFamily
+            prefs[LYRICS_ALIGNMENT] = backup.lyricsAlignment
+            prefs[LYRICS_ACTIVE_STYLE] = backup.lyricsActiveStyle
+            prefs[LYRICS_FONT_FAMILY] = backup.lyricsFontFamily
+            prefs[WIFI_ONLY_DOWNLOADS] = backup.wifiOnlyDownloads
+            prefs[LISTENING_STATS_ENABLED] = backup.listeningStatsEnabled
+            prefs[DEFAULT_START_SCREEN] = backup.defaultStartScreen
+            prefs[LAST_OPENED_ROUTE] = backup.lastOpenedRoute
+            prefs[RESUME_QUEUE_ON_LAUNCH] = backup.resumeQueueOnLaunch
+            prefs[REPLAY_GAIN_ENABLED] = backup.replayGainEnabled
+            prefs[PAUSE_ON_DISCONNECT] = backup.pauseOnHeadphoneDisconnect
+            prefs[KEEP_SCREEN_ON_LYRICS] = backup.keepScreenOnLyrics
+            prefs[LYRICS_FONT_SIZE] = backup.lyricsFontSize
+            prefs[LOCAL_LRC_PRIORITY] = backup.localLrcPriority
+            prefs[IGNORE_SHORT_AUDIO_CLIPS] = backup.ignoreShortAudioClips
+            prefs[SHOW_HOME_RECENTLY_PLAYED] = backup.showHomeRecentlyPlayed
+            prefs[SHOW_HOME_HEAVY_ROTATION] = backup.showHomeHeavyRotation
+            prefs[SHOW_HOME_RECENTLY_ADDED] = backup.showHomeRecentlyAdded
+            prefs[SHOW_HOME_FORGOTTEN_FAVORITES] = backup.showHomeForgottenFavorites
+            if (backup.homeSectionOrder.isNotEmpty()) {
+                prefs[HOME_SECTION_ORDER] = backup.homeSectionOrder.joinToString(",")
+            }
+            prefs[SHOW_MINI_PLAYER_PROGRESS] = backup.showMiniPlayerProgress
+            prefs[MINI_PLAYER_ACTION] = backup.miniPlayerAction
+            prefs[ARTWORK_ACCENT_ENABLED] = backup.artworkAccentEnabled
+            prefs[AUTO_DRIVE_MODE_BLUETOOTH] = backup.autoDriveModeBluetooth
+            prefs[RADIO_SORT_ORDER] = backup.radioSortOrder
+            prefs[RADIO_SORT_DIRECTION] = backup.radioSortDirection
+            prefs[RADIO_SELECTED_COUNTRY] = backup.radioSelectedCountry
+            prefs[RADIO_SELECTED_STATE] = backup.radioSelectedState
+            prefs[RADIO_SELECTED_LANGUAGE] = backup.radioSelectedLanguage
+            prefs[RADIO_SELECTED_TAG] = backup.radioSelectedTag
+            prefs[RADIO_DEFAULT_COUNTRY_APPLIED] = backup.radioDefaultCountryApplied
+        }
     }
 }
 

@@ -9,22 +9,24 @@ import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistRepository
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 
 // Credentials (data/streaming/CredentialStore.kt) are deliberately excluded: their AES key
 // lives in Android Keystore, is hardware-backed, and can't be exported or survive an
 // uninstall, so including the ciphertext here would just be undecryptable dead weight.
 // Playback queue/position and the onboarding flag are excluded too: session state, not data.
 class BackupRepository(private val context: Context) {
+    private val appPreferencesRepository = AppPreferencesRepository(context)
     private val serviceSettingsRepository = ServiceSettingsRepository(context)
     private val equalizerSettingsRepository = EqualizerSettingsRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
@@ -66,7 +68,8 @@ class BackupRepository(private val context: Context) {
             playlists = playlists,
             listeningStatsMonthly = statsRepository.monthlyStats.first(),
             listeningMilestones = statsRepository.milestones.first(),
-            streamingServers = streamingServers
+            streamingServers = streamingServers,
+            appPreferences = appPreferencesRepository.exportForBackup()
         )
         sharedJson.encodeToString(bundle)
     }
@@ -74,6 +77,8 @@ class BackupRepository(private val context: Context) {
     suspend fun restoreBackup(content: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val bundle = sharedJson.decodeFromString<BackupBundle>(content)
+
+            bundle.appPreferences?.let { appPreferencesRepository.restoreFromBackup(it) }
 
             ExternalService.entries.forEach { service ->
                 serviceSettingsRepository.setEnabled(service, bundle.serviceSettings.isEnabled(service))
