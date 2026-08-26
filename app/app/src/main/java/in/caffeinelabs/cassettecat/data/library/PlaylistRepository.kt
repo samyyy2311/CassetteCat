@@ -19,15 +19,15 @@ private val PLAYLISTS_KEY = stringPreferencesKey("playlists_json")
 enum class PlaylistCoverType { NONE, IMAGE, ICON, EMOJI }
 
 @Serializable
-enum class SmartRuleType(val label: String) {
+enum class SmartRuleType(val label: String, val exclusivityGroup: Int? = null) {
     RECENTLY_ADDED("Recently Added (Last 30 Days)"),
     FAVORITES_ONLY("Favorited Tracks Only"),
-    MIN_DURATION("Long Jams (> 5 min)"),
-    MAX_DURATION("Quick Bites (< 3 min)"),
-    DECADE_90S("90s Throwback"),
-    DECADE_2000S("2000s Hits"),
-    DECADE_2010S("2010s Hits"),
-    DECADE_2020S("2020s Contemporary")
+    MIN_DURATION("Long Jams (> 5 min)", exclusivityGroup = 1),
+    MAX_DURATION("Quick Bites (< 3 min)", exclusivityGroup = 1),
+    DECADE_90S("90s Throwback", exclusivityGroup = 2),
+    DECADE_2000S("2000s Hits", exclusivityGroup = 2),
+    DECADE_2010S("2010s Hits", exclusivityGroup = 2),
+    DECADE_2020S("2020s Contemporary", exclusivityGroup = 2)
 }
 
 @Serializable

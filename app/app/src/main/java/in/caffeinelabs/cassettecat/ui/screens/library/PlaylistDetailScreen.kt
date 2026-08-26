@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,9 +59,11 @@ import `in`.caffeinelabs.cassettecat.data.library.buildM3u
 import `in`.caffeinelabs.cassettecat.data.library.filterSongsForSmartCriteria
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
+import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
@@ -131,9 +134,24 @@ fun PlaylistDetailScreen(
         }
     }
 
+    val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
+    val durationText = remember(totalDurationMs) {
+        if (totalDurationMs > 0) {
+            val totalSeconds = totalDurationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+        } else ""
+    }
+
+    val subtitleDetails = listOfNotNull(
+        if (songs.size == 1) "1 song" else "${songs.size} songs",
+        durationText.takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+
     Column(modifier = modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PressDepthIconButton(
@@ -141,18 +159,33 @@ fun PlaylistDetailScreen(
                 contentDescription = "Back",
                 onClick = onBack
             )
+            Spacer(Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            ) {
+                PlaylistCoverArt(playlist = playlist, fallbackSong = songs.firstOrNull(), modifier = Modifier.fillMaxSize())
+            }
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(playlist.name, style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    if (songs.size == 1) "1 song" else "${songs.size} songs",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                    playlist.name,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    subtitleDetails,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (songs.isNotEmpty()) {
                 TransportButton(
                     iconRes = R.drawable.lucide_ic_play,
-                    size = 42.dp,
+                    size = 40.dp,
                     tint = MaterialTheme.colorScheme.tertiary,
                     accented = true,
                     onClick = {
@@ -161,10 +194,10 @@ fun PlaylistDetailScreen(
                         if (wasIdle) onNavigateToNowPlaying()
                     }
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
                 TransportButton(
                     iconRes = R.drawable.lucide_ic_shuffle,
-                    size = 42.dp,
+                    size = 40.dp,
                     tint = MaterialTheme.colorScheme.onSurface,
                     onClick = {
                         val wasIdle = playbackViewModel.playbackState.value.currentSong == null
@@ -172,7 +205,7 @@ fun PlaylistDetailScreen(
                         if (wasIdle) onNavigateToNowPlaying()
                     }
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(2.dp))
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_arrow_up_down,
                     contentDescription = "Sort by",
@@ -330,7 +363,6 @@ fun PlaylistDetailScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlaylistActionsSheet(
     onChangeCover: () -> Unit,
@@ -340,27 +372,89 @@ private fun PlaylistActionsSheet(
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            PlaylistActionRow(iconRes = R.drawable.lucide_ic_image, label = "Change Cover", destructive = false, onClick = onChangeCover)
-            PlaylistActionRow(iconRes = R.drawable.lucide_ic_download, label = "Download All", destructive = false, onClick = onDownloadAll)
-            PlaylistActionRow(iconRes = R.drawable.lucide_ic_upload, label = "Export as M3U8", destructive = false, onClick = onExport)
-            PlaylistActionRow(iconRes = R.drawable.lucide_ic_pencil, label = "Rename", destructive = false, onClick = onRename)
-            PlaylistActionRow(iconRes = R.drawable.lucide_ic_trash_2, label = "Delete", destructive = true, onClick = onDelete)
+    FullOpenBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                "Playlist Options",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_image, label = "Change Cover", subtitle = "Customize playlist artwork or emoji", destructive = false, onClick = onChangeCover)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_download, label = "Download All", subtitle = "Save all playlist tracks for offline listening", destructive = false, onClick = onDownloadAll)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_upload, label = "Export as M3U8", subtitle = "Export playlist playlist file to storage", destructive = false, onClick = onExport)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_pencil, label = "Rename Playlist", subtitle = "Update playlist title and rules", destructive = false, onClick = onRename)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_trash_2, label = "Delete Playlist", subtitle = "Permanently remove this playlist", destructive = true, onClick = onDelete)
+            }
         }
     }
 }
 
 @Composable
-private fun PlaylistActionRow(iconRes: Int, label: String, destructive: Boolean, onClick: () -> Unit) {
-    val tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+private fun PlaylistActionRow(
+    iconRes: Int,
+    label: String,
+    subtitle: String? = null,
+    destructive: Boolean,
+    onClick: () -> Unit
+) {
+    val iconTint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconBg = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerHigh
+    val labelColor = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+
     Row(
-        modifier = Modifier.fillMaxWidth().tapScale(onClick).padding(horizontal = 24.dp, vertical = 14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .tapScale(onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painter = painterResource(iconRes), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(16.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = if (destructive) tint else MaterialTheme.colorScheme.onSurface)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = labelColor
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_chevron_right),
+            contentDescription = null,
+            tint = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -378,7 +472,7 @@ fun PlaylistNameSheet(
     var isSmartMode by remember { mutableStateOf(false) }
     var selectedRules by remember { mutableStateOf(setOf<SmartRuleType>()) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 28.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 8.dp))
 
@@ -449,21 +543,36 @@ fun PlaylistNameSheet(
                 ) {
                     items(SmartRuleType.entries) { rule ->
                         val selected = selectedRules.contains(rule)
-                        val bg = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-                        val fg = if (selected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                        val bg = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                        val borderColor = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        val fg = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(100.dp))
                                 .background(bg)
+                                .border(if (selected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
                                 .clickable {
-                                    selectedRules = if (selected) selectedRules - rule else selectedRules + rule
+                                    selectedRules = if (selected) {
+                                        selectedRules - rule
+                                    } else {
+                                        val withoutConflicts = rule.exclusivityGroup?.let { group ->
+                                            selectedRules.filterNot { it.exclusivityGroup == group }.toSet()
+                                        } ?: selectedRules
+                                        withoutConflicts + rule
+                                    }
                                     if (name.isBlank() && selectedRules.isNotEmpty()) {
                                         name = selectedRules.first().label
                                     }
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            Text(rule.label, style = MaterialTheme.typography.bodySmall, color = fg)
+                            Text(
+                                rule.label,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium
+                                ),
+                                color = fg
+                            )
                         }
                     }
                 }
@@ -510,7 +619,7 @@ private fun AddSongsSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 "Add Songs",

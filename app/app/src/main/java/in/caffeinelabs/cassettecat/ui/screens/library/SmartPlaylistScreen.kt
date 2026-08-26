@@ -172,6 +172,21 @@ fun SmartPlaylistScreen(
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
 
+    val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
+    val durationText = remember(totalDurationMs) {
+        if (totalDurationMs > 0) {
+            val totalSeconds = totalDurationMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+        } else ""
+    }
+
+    val subtitleDetails = listOfNotNull(
+        if (songs.size == 1) "1 song" else "${songs.size} songs",
+        durationText.takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+
     fun playAll(shuffle: Boolean) {
         if (songs.isEmpty()) return
         val wasIdle = playbackViewModel.playbackState.value.currentSong == null
@@ -193,7 +208,7 @@ fun SmartPlaylistScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(playlistType.title, style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    if (songs.size == 1) "1 song" else "${songs.size} songs",
+                    subtitleDetails,
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
