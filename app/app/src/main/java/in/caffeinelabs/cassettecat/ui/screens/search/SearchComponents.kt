@@ -79,15 +79,15 @@ internal fun SearchCategoryPills(
     ) {
         items(SearchCategory.entries) { category ->
             val isSelected = category == selectedCategory
-            val bgColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh
-            val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-            val borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+            val contentColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
 
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
                     .background(bgColor)
-                    .border(1.dp, borderColor, RoundedCornerShape(100.dp))
+                    .border(if (isSelected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
                     .tapScale { onSelectCategory(category) }
                     .padding(horizontal = 16.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
@@ -95,7 +95,7 @@ internal fun SearchCategoryPills(
                 Text(
                     text = category.label,
                     style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     ),
                     color = contentColor
                 )

@@ -50,8 +50,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.SearchHistoryRepository
@@ -250,7 +253,7 @@ fun SearchScreen(
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
                 "Search",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineMedium
             )
             Text(
                 "Find songs, artists, albums, and genres",
@@ -259,16 +262,28 @@ fun SearchScreen(
                 modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
         OutlinedTextField(
             value = query,
             onValueChange = {
                 query = it
                 if (it.isBlank()) selectedCategory = SearchCategory.ALL
             },
-            placeholder = { Text("Search your library") },
+            placeholder = {
+                Text(
+                    "Search songs, artists, albums…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
             leadingIcon = {
-                Icon(painter = painterResource(R.drawable.lucide_ic_search), contentDescription = null)
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_search),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -283,6 +298,13 @@ fun SearchScreen(
                 }
             },
             singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(
                 onSearch = {
@@ -295,9 +317,18 @@ fun SearchScreen(
                 .padding(horizontal = 24.dp)
                 .focusRequester(focusRequester)
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         when {
+            query.isBlank() && recentQueries.isEmpty() && topArtists.isEmpty() && popularGenres.isEmpty() -> {
+                SearchPrompt(
+                    iconRes = R.drawable.lucide_ic_search,
+                    title = "Search your library",
+                    subtitle = "Find songs, artists, albums, and more.",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
             query.isBlank() -> {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -410,25 +441,6 @@ fun SearchScreen(
                     ) {
                         when (selectedCategory) {
                             SearchCategory.ALL -> {
-                                topResult?.let { result ->
-                                    item(key = "top_result", contentType = "top_result") {
-                                        TopResultSpotlightCard(
-                                            result = result,
-                                            onNavigateToArtist = {
-                                                recordQuery()
-                                                onNavigateToArtist(it)
-                                            },
-                                            onNavigateToAlbum = {
-                                                recordQuery()
-                                                onNavigateToAlbum(it)
-                                            },
-                                            onPlaySong = { playSong(matchedSongs, it) },
-                                            onPlayGroup = { playGroup(it) }
-                                        )
-                                        Spacer(Modifier.height(16.dp))
-                                    }
-                                }
-
                                 if (matchedArtists.isNotEmpty()) {
                                     item(key = "section_artists", contentType = "section_artists") {
                                         SearchSectionHeader("Artists")
@@ -654,8 +666,12 @@ fun SearchScreen(
 @Composable
 private fun SearchSectionHeader(title: String) {
     Text(
-        title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        title.uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(
+            letterSpacing = 1.2.sp,
+            fontWeight = FontWeight.Bold
+        ),
+        color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier.padding(horizontal = 24.dp)
     )
 }
