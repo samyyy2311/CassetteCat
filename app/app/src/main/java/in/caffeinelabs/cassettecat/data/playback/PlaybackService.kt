@@ -3,10 +3,14 @@
 package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +21,7 @@ import android.service.quicksettings.TileService
 import androidx.core.graphics.scale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -44,6 +49,9 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
+import `in`.caffeinelabs.cassettecat.data.device.FlipDetector
+import `in`.caffeinelabs.cassettecat.data.device.ProximityWaveDetector
+import `in`.caffeinelabs.cassettecat.data.device.ShakeDetector
 import `in`.caffeinelabs.cassettecat.data.download.DownloadCache
 import `in`.caffeinelabs.cassettecat.data.download.StreamCacheKeyFactory
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
@@ -54,6 +62,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @UnstableApi
@@ -63,13 +72,37 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var libraryTree: MediaLibraryTree
     private var currentFavoriteIds: Set<String> = emptySet()
-    private var shakeDetector: `in`.caffeinelabs.cassettecat.data.device.ShakeDetector? = null
-    private var flipDetector: `in`.caffeinelabs.cassettecat.data.device.FlipDetector? = null
+    private var shakeDetector: ShakeDetector? = null
+    private var flipDetector: FlipDetector? = null
+    private var proximityWaveDetector: ProximityWaveDetector? = null
     private var isShakeToSkipEnabled: Boolean = false
     private var isFlipToPauseEnabled: Boolean = false
+    private var isProximityWaveSkipEnabled: Boolean = false
+    private var isPauseOnDisconnectEnabled: Boolean = true
     private var wasPausedByFlip: Boolean = false
     private var isHapticFeedbackEnabled: Boolean = true
     private var lastShakeSkipTime: Long = 0L
+    private var lastWaveSkipTime: Long = 0L
+
+    private val becomingNoisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY && isPauseOnDisconnectEnabled) {
+                val p = mediaSession?.player ?: return
+                if (!p.isPlaying && !p.playWhenReady) return
+                serviceScope.launch(Dispatchers.Main) {
+                    val origVol = p.volume
+                    val steps = 5
+                    val delayMs = 50L
+                    for (i in 1..steps) {
+                        delay(delayMs)
+                        p.volume = (origVol * (1f - i.toFloat() / steps)).coerceAtLeast(0f)
+                    }
+                    p.pause()
+                    p.volume = origVol
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -95,7 +128,7 @@ class PlaybackService : MediaLibraryService() {
                     .setBufferDurationsMs(
                         DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
                         DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                        500,
+                        1500,
                         DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
                     )
                     .build()
@@ -107,14 +140,16 @@ class PlaybackService : MediaLibraryService() {
                     .build(),
                 true
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(false)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
-        shakeDetector = `in`.caffeinelabs.cassettecat.data.device.ShakeDetector(this) {
+        registerReceiver(becomingNoisyReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+
+        shakeDetector = ShakeDetector(this) {
             serviceScope.launch(Dispatchers.Main) {
                 val now = android.os.SystemClock.elapsedRealtime()
-                if (now - lastShakeSkipTime < 1800L) return@launch
+                if (now - lastShakeSkipTime < 1000L) return@launch
                 lastShakeSkipTime = now
 
                 val p = mediaSession?.player
@@ -134,7 +169,30 @@ class PlaybackService : MediaLibraryService() {
             }
         }
 
-        flipDetector = `in`.caffeinelabs.cassettecat.data.device.FlipDetector(
+        proximityWaveDetector = ProximityWaveDetector(this) {
+            serviceScope.launch(Dispatchers.Main) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastWaveSkipTime < 1500L) return@launch
+                lastWaveSkipTime = now
+
+                val p = mediaSession?.player
+                if (p != null && (p.isPlaying || p.playWhenReady)) {
+                    if (isHapticFeedbackEnabled) {
+                        triggerShakeHaptic()
+                    }
+                    val currentIndex = p.currentMediaItemIndex
+                    val totalCount = p.mediaItemCount
+                    if (currentIndex != C.INDEX_UNSET && currentIndex < totalCount - 1) {
+                        p.seekTo(currentIndex + 1, 0L)
+                    } else if (p.repeatMode == Player.REPEAT_MODE_ALL && totalCount > 0) {
+                        p.seekTo(0, 0L)
+                    }
+                    p.play()
+                }
+            }
+        }
+
+        flipDetector = FlipDetector(
             context = this,
             onFlipDown = {
                 serviceScope.launch(Dispatchers.Main) {
@@ -183,11 +241,11 @@ class PlaybackService : MediaLibraryService() {
                     wasPausedByFlip = false
                     if (isShakeToSkipEnabled) shakeDetector?.start()
                     if (isFlipToPauseEnabled) flipDetector?.start()
+                    if (isProximityWaveSkipEnabled) proximityWaveDetector?.start()
                 } else {
-                    if (!wasPausedByFlip) {
-                        if (isShakeToSkipEnabled) shakeDetector?.stop()
-                        if (isFlipToPauseEnabled) flipDetector?.stop()
-                    }
+                    if (isShakeToSkipEnabled) shakeDetector?.stop()
+                    if (isProximityWaveSkipEnabled) proximityWaveDetector?.stop()
+                    if (!wasPausedByFlip && isFlipToPauseEnabled) flipDetector?.stop()
                 }
             }
 
@@ -207,22 +265,27 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
-                player.setHandleAudioBecomingNoisy(prefs.pauseOnHeadphoneDisconnect)
+                isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                     .setMaxAudioChannelCount(maxChannels)
                     .build()
-                player.skipSilenceEnabled = prefs.skipSilenceEnabled
                 player.pauseAtEndOfMediaItems = !prefs.gaplessPlayback
 
                 isShakeToSkipEnabled = prefs.shakeToSkipEnabled
                 isFlipToPauseEnabled = prefs.flipToPauseEnabled
+                isProximityWaveSkipEnabled = prefs.proximityWaveSkipEnabled
                 isHapticFeedbackEnabled = prefs.hapticFeedbackEnabled
                 shakeDetector?.setSensitivity(prefs.shakeSensitivity)
                 if (isShakeToSkipEnabled && player.isPlaying) {
                     shakeDetector?.start()
                 } else {
                     shakeDetector?.stop()
+                }
+                if (isProximityWaveSkipEnabled && player.isPlaying) {
+                    proximityWaveDetector?.start()
+                } else {
+                    proximityWaveDetector?.stop()
                 }
                 if (isFlipToPauseEnabled && (player.isPlaying || wasPausedByFlip)) {
                     flipDetector?.start()
@@ -241,7 +304,7 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaLibrarySession.Builder(this, player, CustomMediaLibrarySessionCallback())
+        mediaSession = MediaLibrarySession.Builder(this, SequentialNavigationPlayer(player), CustomMediaLibrarySessionCallback())
             .setSessionActivity(sessionActivity)
             .setCustomLayout(buildCustomLayout(player, false))
             .build()
@@ -251,6 +314,20 @@ class PlaybackService : MediaLibraryService() {
             .build()
         notificationProvider.setSmallIcon(R.drawable.ic_notification_small)
         setMediaNotificationProvider(notificationProvider)
+    }
+
+    override fun onDestroy() {
+        shakeDetector?.stop()
+        flipDetector?.stop()
+        proximityWaveDetector?.stop()
+        runCatching { unregisterReceiver(becomingNoisyReceiver) }
+        serviceScope.cancel()
+        mediaSession?.run {
+            player.release()
+            release()
+            mediaSession = null
+        }
+        super.onDestroy()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
@@ -544,37 +621,21 @@ class PlaybackService : MediaLibraryService() {
     @Suppress("DEPRECATION")
     private fun triggerShakeHaptic() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                vibratorManager?.defaultVibrator?.vibrate(
-                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val vibrator = getSystemService(VIBRATOR_SERVICE) as? Vibrator
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (getSystemService(VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+            } else {
+                getSystemService(VIBRATOR_SERVICE) as? Vibrator
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 vibrator?.vibrate(
-                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
                 )
             } else {
-                val vibrator = getSystemService(VIBRATOR_SERVICE) as? Vibrator
-                vibrator?.vibrate(40L)
+                vibrator?.vibrate(65L)
             }
         } catch (_: Exception) {
             // Ignore if vibration service is unavailable
         }
-    }
-
-    override fun onDestroy() {
-        shakeDetector?.stop()
-        shakeDetector = null
-        flipDetector?.stop()
-        flipDetector = null
-        serviceScope.cancel()
-        mediaSession?.run {
-            player.release()
-            release()
-            mediaSession = null
-        }
-        super.onDestroy()
     }
 
     companion object {
@@ -609,5 +670,41 @@ private class StreamOnlyCacheDataSource(
 
     override fun close() {
         active.close()
+    }
+}
+
+// ExoPlayer's own shuffleModeEnabled drives an internal random order PlaybackRepository can't
+// reach or control; this keeps next/previous (including hardware/Bluetooth/notification/Auto)
+// strictly sequential through the real timeline instead of that separate random order.
+private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(player) {
+    override fun hasNextMediaItem(): Boolean {
+        val index = currentMediaItemIndex
+        return index != C.INDEX_UNSET && (index < mediaItemCount - 1 || repeatMode == Player.REPEAT_MODE_ALL)
+    }
+
+    override fun hasPreviousMediaItem(): Boolean {
+        val index = currentMediaItemIndex
+        return index != C.INDEX_UNSET && index > 0
+    }
+
+    override fun seekToNext() = seekToNextMediaItem()
+
+    override fun seekToPrevious() {
+        if (currentPosition > 3000L) seekTo(0L) else seekToPreviousMediaItem()
+    }
+
+    override fun seekToNextMediaItem() {
+        val index = currentMediaItemIndex
+        if (index == C.INDEX_UNSET) return
+        if (index < mediaItemCount - 1) {
+            seekTo(index + 1, 0L)
+        } else if (repeatMode == Player.REPEAT_MODE_ALL && mediaItemCount > 0) {
+            seekTo(0, 0L)
+        }
+    }
+
+    override fun seekToPreviousMediaItem() {
+        val index = currentMediaItemIndex
+        if (index != C.INDEX_UNSET && index > 0) seekTo(index - 1, 0L)
     }
 }
