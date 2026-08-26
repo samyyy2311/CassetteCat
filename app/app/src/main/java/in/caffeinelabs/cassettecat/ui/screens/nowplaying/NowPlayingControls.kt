@@ -1,12 +1,19 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -23,15 +30,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,11 +60,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.composables.icons.lucide.R
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -204,17 +213,35 @@ private fun ScrubberControl(
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val scope = rememberCoroutineScope()
 
     var dragPositionMs by remember { mutableStateOf<Long?>(null) }
+    var pendingSeekMs by remember { mutableStateOf<Long?>(null) }
     var lastHapticTickMs by remember { mutableStateOf<Long?>(null) }
-    val displayedPositionMs = dragPositionMs ?: positionMs
     val haptics = LocalHapticFeedback.current
+
+    LaunchedEffect(positionMs, pendingSeekMs) {
+        val pending = pendingSeekMs
+        if (pending != null && abs(positionMs - pending) < 1200L) {
+            pendingSeekMs = null
+        }
+    }
+
+    val isDragging = dragPositionMs != null
+    val effectivePositionMs = dragPositionMs ?: pendingSeekMs ?: positionMs
+    val safeDuration = durationMs.coerceAtLeast(0L).toFloat()
+
+    val targetSliderValue = effectivePositionMs.toFloat().coerceIn(0f, safeDuration.coerceAtLeast(1f))
+    val animatedSliderValue by animateFloatAsState(
+        targetValue = targetSliderValue,
+        animationSpec = if (isDragging || pendingSeekMs != null) snap() else tween(durationMillis = 100, easing = LinearEasing),
+        label = "scrubberSliderPosition"
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
-            value = displayedPositionMs.toFloat().coerceIn(0f, durationMs.toFloat().coerceAtLeast(0f)),
+            value = if (isDragging || pendingSeekMs != null) targetSliderValue else animatedSliderValue,
             onValueChange = { value ->
                 val newPositionMs = value.toLong()
                 val lastTick = lastHapticTickMs
@@ -225,20 +252,24 @@ private fun ScrubberControl(
                 dragPositionMs = newPositionMs
             },
             onValueChangeFinished = {
+                val target = dragPositionMs
                 if (preferences.hapticFeedbackEnabled) {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
-                dragPositionMs?.let(onSeek)
+                if (target != null) {
+                    pendingSeekMs = target
+                    onSeek(target)
+                }
                 dragPositionMs = null
                 lastHapticTickMs = null
             },
-            valueRange = 0f..durationMs.toFloat().coerceAtLeast(0f),
-            track = { sliderState -> FaderTrack(sliderState) },
-            thumb = { FaderThumb() }
+            valueRange = 0f..safeDuration.coerceAtLeast(1f),
+            track = { sliderState -> FaderTrack(sliderState, isActive = isDragging) },
+            thumb = { FaderThumb(isActive = isDragging) }
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime(displayedPositionMs), style = readoutStyle())
-            val remainingMs = (durationMs - displayedPositionMs).coerceAtLeast(0L)
+            Text(formatTime(effectivePositionMs), style = readoutStyle())
+            val remainingMs = (durationMs - effectivePositionMs).coerceAtLeast(0L)
             val durationText = if (preferences.showRemainingTime) "-${formatTime(remainingMs)}" else formatTime(durationMs)
             Text(
                 text = durationText,
@@ -308,9 +339,13 @@ private fun LiveWaveform(isPlaying: Boolean) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FaderTrack(sliderState: SliderState) {
+private fun FaderTrack(sliderState: SliderState, isActive: Boolean) {
     val grooveColor = MaterialTheme.colorScheme.outlineVariant
-    val filledColor = MaterialTheme.colorScheme.secondary
+    val filledColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+        animationSpec = tween(80, easing = LinearEasing),
+        label = "faderTrackFillColor"
+    )
     val range = (sliderState.valueRange.endInclusive - sliderState.valueRange.start).coerceAtLeast(1f)
     val fraction = ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
 
@@ -334,18 +369,23 @@ private fun FaderTrack(sliderState: SliderState) {
 }
 
 @Composable
-private fun FaderThumb() {
+private fun FaderThumb(isActive: Boolean) {
+    val width by animateDpAsState(if (isActive) 14.dp else 10.dp, tween(80, easing = LinearEasing), label = "faderThumbWidth")
+    val height by animateDpAsState(if (isActive) 27.dp else 22.dp, tween(80, easing = LinearEasing), label = "faderThumbHeight")
+    val elevation by animateDpAsState(if (isActive) 6.dp else 3.dp, tween(80, easing = LinearEasing), label = "faderThumbElevation")
+    val borderColor = if (isActive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline
+
     Box(
         modifier = Modifier
-            .size(width = 10.dp, height = 22.dp)
-            .shadow(3.dp, RoundedCornerShape(3.dp))
+            .size(width = width, height = height)
+            .shadow(elevation, RoundedCornerShape(3.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(MaterialTheme.colorScheme.onPrimaryContainer, MaterialTheme.colorScheme.primary)
                 ),
                 RoundedCornerShape(3.dp)
             )
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(3.dp))
+            .border(if (isActive) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(3.dp))
     )
 }
 
