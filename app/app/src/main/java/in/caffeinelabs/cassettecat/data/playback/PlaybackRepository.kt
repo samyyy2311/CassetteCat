@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 private const val HISTORY_LIMIT = 50
+private const val HISTORY_MIN_PLAYED_MS = 30_000L
 
 @UnstableApi
 class PlaybackRepository(private val context: Context) {
@@ -52,6 +53,7 @@ class PlaybackRepository(private val context: Context) {
     private var originalQueue: List<Song> = emptyList()
     private var shuffleEnabled = false
     private val history = ArrayDeque<Song>()
+    private var lastOldItemPositionMs = 0L
     var onQueueExhausted: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
@@ -62,7 +64,20 @@ class PlaybackRepository(private val context: Context) {
         controller = MediaController.Builder(context, token).buildAsync().awaitController(context)
         controller?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                lastOldItemPositionMs = oldPosition.positionMs
+            }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                // The previous song was added to history the instant it started; if it
+                // didn't stick around long enough to count, evict it now that it's over.
+                val previousSong = _state.value.currentSong
+                if (previousSong != null && lastOldItemPositionMs < HISTORY_MIN_PLAYED_MS) {
+                    history.removeAll { it.id == previousSong.id }
+                }
                 updateState()
                 _state.value.currentSong?.let { recordPlayed(it) }
             }

@@ -62,6 +62,7 @@ import kotlin.random.Random
 private const val POSITION_TICK_MS = 100L
 private const val SAVE_EVERY_N_TICKS = 100 // ~10s at POSITION_TICK_MS
 private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
+private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
 private const val AUTOPLAY_SAME_ARTIST_WEIGHT = 4.0
 private const val AUTOPLAY_SHARED_GENRE_WEIGHT = 2.0
@@ -516,13 +517,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // counts a play past 50% or 4 minutes, whichever is sooner (avoids counting skips)
+    // counts a play past 50% or 4 minutes (whichever is sooner), but never under 60s (avoids counting skips)
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
         val state = playbackState.value
         val song = state.currentSong ?: return
         if (playRecordedForSongId == song.id) return
-        val threshold = minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS)
+        val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
         if (threshold > 0 && _positionMs.value >= threshold) {
             playRecordedForSongId = song.id
             viewModelScope.launch { statsRepository.recordPlay(song.id, YearMonth.now().toString()) }

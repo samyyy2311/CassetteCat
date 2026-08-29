@@ -23,6 +23,9 @@
 ## Install
 
 <p align="center">
+  <a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="56" />
+  </a>
   <a href="https://github.com/samyyy2311/CassetteCat/releases/latest">
     <img src="https://img.shields.io/badge/Download%20APK-GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="Download APK from GitHub Releases" />
   </a>

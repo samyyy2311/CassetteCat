@@ -98,16 +98,18 @@
         <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:18px;">Open Source Project</div>
         <h1 style="font-size:52px; font-weight:600; line-height:1.06; letter-spacing:-0.025em; margin:0 0 20px; text-wrap:balance;">An open-source music player you can make your own.</h1>
         <p style="font-size:17px; font-weight:300; color:var(--text-2); line-height:1.6; max-width:46ch; margin:0 0 32px;">Start with the app. The standalone player is being built in the open.</p>
-        <div class="cc-hero-actions" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:28px;">
-          <a href="https://github.com/samyyy2311/CassetteCat/releases/latest" style="display:inline-flex; align-items:center; gap:9px; height:46px; padding:0 24px; border-radius:10px; background:var(--accent); color:var(--on-accent); font-weight:600; font-size:14px;">
+        <div class="cc-hero-actions" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:28px;">
+          <a href="https://github.com/samyyy2311/CassetteCat/releases/latest" style="box-sizing:border-box; display:inline-flex; align-items:center; gap:9px; height:56px; padding:0 24px; border:1px solid transparent; border-radius:10px; background:var(--accent); color:var(--on-accent); font-weight:600; font-size:14px;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
             Download APK
           </a>
-          <a href="https://github.com/samyyy2311/CassetteCat" style="display:inline-flex; align-items:center; gap:9px; height:46px; padding:0 24px; border-radius:10px; border:1px solid var(--border-strong); font-weight:600; font-size:14px;">
+          <a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat" class="badge badge-play" target="_blank" rel="noopener" aria-label="Get it on Google Play">
+            <img src="assets/google-play-badge.png" alt="Get it on Google Play" width="189" height="56">
+          </a>
+          <a href="https://github.com/samyyy2311/CassetteCat" style="box-sizing:border-box; display:inline-flex; align-items:center; gap:9px; height:56px; padding:0 24px; border-radius:10px; border:1px solid var(--border-strong); font-weight:600; font-size:14px;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
             View on GitHub
           </a>
-          <a href="#app" style="display:inline-flex; align-items:center; height:46px; padding:0 24px; border-radius:10px; border:1px solid var(--border-strong); font-weight:600; font-size:14px;">Explore the app</a>
         </div>
         <div class="cc-badges">
           <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-2); font-family:'IBM Plex Mono',monospace;">
@@ -122,12 +124,12 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/></svg>
             Self-hosted friendly
           </span>
+          <a id="gh-download-count" href="https://github.com/samyyy2311/CassetteCat/releases" style="display:none; align-items:center; gap:6px; font-size:12px; color:var(--text-2); font-family:'IBM Plex Mono',monospace;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            <span id="gh-download-count-value"></span> downloads
+          </a>
         </div>
         <div class="cc-discovery-badges">
-          <a id="gh-download-count" class="cc-downloads-badge" href="https://github.com/samyyy2311/CassetteCat/releases" target="_blank" rel="noopener noreferrer" aria-label="Total downloads on GitHub" style="display:none;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
-            <span><small>TOTAL DOWNLOADS</small><strong id="gh-download-count-value">0</strong></span>
-          </a>
           <a class="cc-alternativeto-badge" href="https://alternativeto.net/software/cassettecat/about/" target="_blank" rel="noopener noreferrer" aria-label="View CassetteCat on AlternativeTo">
             <img class="cc-alternativeto-logo" src="assets/alternativeto.png" alt="" width="30" height="30">
             <span><small>VIEW ON</small><strong>AlternativeTo</strong></span>
