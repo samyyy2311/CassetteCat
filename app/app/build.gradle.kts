@@ -60,7 +60,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             val releaseSigning = signingConfigs.getByName("release")
-            val hasProductionSigning = releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true
+            val hasProductionSigning = releaseSigning.storeFile?.exists() == true &&
+                !releaseSigning.storePassword.isNullOrBlank() &&
+                !releaseSigning.keyAlias.isNullOrBlank() &&
+                !releaseSigning.keyPassword.isNullOrBlank()
             isProfileable = hasProductionSigning
             if (hasProductionSigning) {
                 signingConfig = releaseSigning

@@ -79,6 +79,7 @@ object PlaylistSuggestionEngine {
         val genreGroups = mutableMapOf<String, MutableList<Song>>()
         val genreDisplayLabels = mutableMapOf<String, String>()
         for (song in allSongs) {
+            val processedGenreKeys = mutableSetOf<String>()
             for (genre in song.genres) {
                 val trimmed = genre.trim()
                 val key = trimmed.lowercase(Locale.ROOT)
@@ -86,7 +87,9 @@ object PlaylistSuggestionEngine {
                 genreDisplayLabels.getOrPut(key) {
                     trimmed.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
                 }
-                genreGroups.getOrPut(key) { mutableListOf() }.add(song)
+                if (processedGenreKeys.add(key)) {
+                    genreGroups.getOrPut(key) { mutableListOf() }.add(song)
+                }
             }
         }
 
