@@ -37,6 +37,7 @@ fun TransportButton(
     size: Dp,
     tint: Color,
     onClick: () -> Unit,
+    contentDescription: String? = null,
     modifier: Modifier = Modifier,
     accented: Boolean = false
 ) {

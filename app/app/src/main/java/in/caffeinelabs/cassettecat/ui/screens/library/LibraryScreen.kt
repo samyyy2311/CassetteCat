@@ -49,6 +49,9 @@ import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
+import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
+import `in`.caffeinelabs.cassettecat.data.library.PlaylistSuggestion
+import `in`.caffeinelabs.cassettecat.data.library.PlaylistSuggestionEngine
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.matchM3uEntries
 import `in`.caffeinelabs.cassettecat.data.library.parseM3u
@@ -143,6 +146,18 @@ fun LibraryScreen(
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
+    val monthlyStats by playbackViewModel.monthlyStats.collectAsStateWithLifecycle()
+    val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    var activeSuggestion by remember { mutableStateOf<PlaylistSuggestion?>(null) }
+    val suggestions = remember(loadedState?.songs, monthlyStats, playlists, favoriteIds, playbackState.history) {
+        PlaylistSuggestionEngine.generateSuggestions(
+            allSongs = loadedState?.songs.orEmpty(),
+            monthlyStats = monthlyStats,
+            existingPlaylists = playlists,
+            favoriteIds = favoriteIds,
+            playbackHistory = playbackState.history
+        )
+    }
     val favoriteSongs = remember(loadedState?.songs, favoriteIds) {
         loadedState?.songs.orEmpty().filter { it.isFavorite || it.id in favoriteIds }
     }
@@ -376,6 +391,8 @@ fun LibraryScreen(
                             onPlay = ::playGroup,
                             onOpenLikedSongs = onNavigateToLikedSongs,
                             onOpenSmartPlaylist = onNavigateToSmartPlaylist,
+                            suggestions = suggestions,
+                            onOpenSuggestion = { activeSuggestion = it },
                             selectedIds = selectedIds,
                             selectionMode = selectionMode,
                             onToggleSelect = ::toggleSelected
@@ -392,6 +409,8 @@ fun LibraryScreen(
                             onPlay = ::playGroup,
                             onOpenLikedSongs = onNavigateToLikedSongs,
                             onOpenSmartPlaylist = onNavigateToSmartPlaylist,
+                            suggestions = suggestions,
+                            onOpenSuggestion = { activeSuggestion = it },
                             selectedIds = selectedIds,
                             selectionMode = selectionMode,
                             onToggleSelect = ::toggleSelected
@@ -670,6 +689,23 @@ fun LibraryScreen(
             confirmButton = {
                 TextButton(onClick = { importSummary = null }) { Text("OK") }
             }
+        )
+    }
+
+    activeSuggestion?.let { suggestion ->
+        PlaylistSuggestionSheet(
+            suggestion = suggestion,
+            onSave = { name, songIds, coverType, coverValue ->
+                playlistViewModel.create(name, songIds, coverType, coverValue) { created ->
+                    activeSuggestion = null
+                    onNavigateToPlaylist(created.id)
+                }
+            },
+            onPlay = { songs ->
+                activeSuggestion = null
+                playGroup(songs)
+            },
+            onDismiss = { activeSuggestion = null }
         )
     }
 }

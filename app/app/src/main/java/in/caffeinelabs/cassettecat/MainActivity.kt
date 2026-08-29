@@ -103,6 +103,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        requestHighestRefreshRate()
+    }
+
     override fun onStop() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             screenshotCallback?.let { runCatching { unregisterScreenCaptureCallback(it) } }

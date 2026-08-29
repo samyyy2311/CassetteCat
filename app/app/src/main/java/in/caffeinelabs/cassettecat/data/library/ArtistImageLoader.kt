@@ -11,7 +11,10 @@ import kotlinx.serialization.Serializable
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.Request
 
-private const val MAX_CACHE_BYTES = 24 * 1024 * 1024
+private const val THUMBNAIL_CACHE_BYTES = 12 * 1024 * 1024
+private const val FULL_CACHE_BYTES = 16 * 1024 * 1024
+private const val THUMBNAIL_DIMENSION = 300
+private const val FULL_DIMENSION = 1440
 
 @Serializable
 private data class DeezerSearchResponse(val data: List<DeezerArtist> = emptyList())
@@ -36,26 +39,33 @@ private data class AudioDbArtist(
 
 // Deezer first, TheAudioDB fallback; both no-auth (TheAudioDB's "123" is their published free key)
 class ArtistImageLoader {
-    private val cache = object : LruCache<String, Bitmap>(MAX_CACHE_BYTES) {
+    private val thumbnailCache = object : LruCache<String, Bitmap>(THUMBNAIL_CACHE_BYTES) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+    private val fullCache = object : LruCache<String, Bitmap>(FULL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
-    fun peek(artist: String): Bitmap? = cache.get(artist)
+    fun peek(artist: String, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(artist)
 
-    suspend fun load(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean): Bitmap? {
+    suspend fun load(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, thumbnail: Boolean = true): Bitmap? {
+        val cache = cacheFor(thumbnail)
         cache.get(artist)?.let { return it }
-        val bitmap = withContext(Dispatchers.IO) { fetch(artist, deezerEnabled, audioDbEnabled) } ?: return null
+        val maxDimension = if (thumbnail) THUMBNAIL_DIMENSION else FULL_DIMENSION
+        val bitmap = withContext(Dispatchers.IO) { fetch(artist, deezerEnabled, audioDbEnabled, maxDimension) } ?: return null
         cache.put(artist, bitmap)
         return bitmap
     }
 
-    private fun fetch(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean): Bitmap? {
-        if (deezerEnabled) fetchFromDeezer(artist)?.let { return it }
-        if (audioDbEnabled) fetchFromAudioDb(artist)?.let { return it }
+    private fun cacheFor(thumbnail: Boolean) = if (thumbnail) thumbnailCache else fullCache
+
+    private fun fetch(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, maxDimension: Int): Bitmap? {
+        if (deezerEnabled) fetchFromDeezer(artist, maxDimension)?.let { return it }
+        if (audioDbEnabled) fetchFromAudioDb(artist, maxDimension)?.let { return it }
         return null
     }
 
-    private fun fetchFromDeezer(artist: String): Bitmap? = runCatching {
+    private fun fetchFromDeezer(artist: String, maxDimension: Int): Bitmap? = runCatching {
         val url = "https://api.deezer.com/search/artist?q=${artist.urlEncode()}"
         val body = getBody(url) ?: return@runCatching null
         val artist = sharedJson.decodeFromString<DeezerSearchResponse>(body).data
@@ -63,10 +73,10 @@ class ArtistImageLoader {
             ?: return@runCatching null
         val pictureUrl = artist.picture_xl ?: artist.picture_big ?: artist.picture_medium
             ?: return@runCatching null
-        downloadImage(pictureUrl)
+        downloadImage(pictureUrl, maxDimension)
     }.getOrNull()
 
-    private fun fetchFromAudioDb(artist: String): Bitmap? = runCatching {
+    private fun fetchFromAudioDb(artist: String, maxDimension: Int): Bitmap? = runCatching {
         val url = "https://www.theaudiodb.com/api/v1/json/123/search.php?s=${artist.urlEncode()}"
         val body = getBody(url) ?: return@runCatching null
         val artist = sharedJson.decodeFromString<AudioDbSearchResponse>(body).artists
@@ -74,7 +84,7 @@ class ArtistImageLoader {
             ?: return@runCatching null
         val pictureUrl = artist.strArtistFanart ?: artist.strArtistThumb
             ?: return@runCatching null
-        downloadImage(pictureUrl)
+        downloadImage(pictureUrl, maxDimension)
     }.getOrNull()
 
     private fun getBody(url: String): String? =
@@ -82,10 +92,10 @@ class ArtistImageLoader {
             if (!it.isSuccessful) null else it.body.string()
         }
 
-    private fun downloadImage(url: String): Bitmap? =
+    private fun downloadImage(url: String, maxDimension: Int): Bitmap? =
         sharedHttpClient.newCall(Request.Builder().url(url).build()).execute().use {
             if (!it.isSuccessful) return null
-            it.body.bytes().let { bytes -> decodeSampledBitmap(bytes, maxDimension = 1440) }
+            it.body.bytes().let { bytes -> decodeSampledBitmap(bytes, maxDimension = maxDimension) }
         }
 
     private fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")

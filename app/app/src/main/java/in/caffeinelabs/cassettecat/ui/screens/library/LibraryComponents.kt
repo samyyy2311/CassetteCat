@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -56,10 +57,12 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
+import `in`.caffeinelabs.cassettecat.data.library.PlaylistSuggestion
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
@@ -69,6 +72,13 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
+
+internal fun formatPlaylistDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    return if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+}
 
 @Composable
 fun rememberSkeletonColor(): Color {
@@ -831,6 +841,8 @@ internal fun PlaylistGrid(
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
     onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
+    suggestions: List<PlaylistSuggestion> = emptyList(),
+    onOpenSuggestion: (PlaylistSuggestion) -> Unit = {},
     selectedIds: Set<String> = emptySet(),
     selectionMode: Boolean = false,
     onToggleSelect: (String) -> Unit = {},
@@ -843,6 +855,14 @@ internal fun PlaylistGrid(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (suggestions.isNotEmpty() && !selectionMode) {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }, key = "suggested-mixtapes-shelf") {
+                SuggestedMixtapesShelf(
+                    suggestions = suggestions,
+                    onOpenSuggestion = onOpenSuggestion
+                )
+            }
+        }
         item(key = "liked-songs") {
             LikedSongsCard(
                 songs = likedSongs,
@@ -922,6 +942,8 @@ internal fun PlaylistList(
     onPlay: (List<Song>) -> Unit,
     onOpenLikedSongs: () -> Unit,
     onOpenSmartPlaylist: (SmartPlaylistType) -> Unit,
+    suggestions: List<PlaylistSuggestion> = emptyList(),
+    onOpenSuggestion: (PlaylistSuggestion) -> Unit = {},
     selectedIds: Set<String> = emptySet(),
     selectionMode: Boolean = false,
     onToggleSelect: (String) -> Unit = {},
@@ -932,6 +954,15 @@ internal fun PlaylistList(
         modifier = modifier,
         contentPadding = PaddingValues(top = 4.dp, bottom = listBottomPadding)
     ) {
+        if (suggestions.isNotEmpty() && !selectionMode) {
+            item(key = "suggested-mixtapes-shelf") {
+                SuggestedMixtapesShelf(
+                    suggestions = suggestions,
+                    onOpenSuggestion = onOpenSuggestion,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
+        }
         item(key = "liked-songs") {
             CollectionListRow(
                 title = "Liked Songs",
@@ -1018,3 +1049,93 @@ internal fun SourceWarningBanner(warnings: List<String>) {
         )
     }
 }
+
+@Composable
+internal fun SuggestedMixtapesShelf(
+    suggestions: List<PlaylistSuggestion>,
+    onOpenSuggestion: (PlaylistSuggestion) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_sparkles),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "SUGGESTED MIXTAPES",
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
+                color = MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        LazyRow(
+            contentPadding = PaddingValues(end = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(suggestions, key = { it.id }) { suggestion ->
+                SuggestedMixtapeChip(
+                    suggestion = suggestion,
+                    onClick = { onOpenSuggestion(suggestion) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestedMixtapeChip(
+    suggestion: PlaylistSuggestion,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(
+                0.5.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                RoundedCornerShape(12.dp)
+            )
+            .tapScale(onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(suggestion.iconRes),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                suggestion.title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1
+            )
+            Text(
+                "${suggestion.songs.size} tracks · ${suggestion.category.label}",
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+

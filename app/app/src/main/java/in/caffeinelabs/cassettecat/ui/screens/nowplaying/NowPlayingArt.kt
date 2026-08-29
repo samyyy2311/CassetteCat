@@ -235,7 +235,7 @@ internal fun AlbumArtCard(
                     RotatingVinylPlaceholder(isPlaying = isPlaying, modifier = Modifier.fillMaxSize())
                 }
             } else {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
             }
         }
     }

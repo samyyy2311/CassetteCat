@@ -141,7 +141,7 @@ internal fun NowPlayingActionsSheet(
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
                 ) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -597,7 +597,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -729,7 +729,7 @@ internal fun NowPlayingGoToSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp))) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -760,7 +760,7 @@ internal fun NowPlayingGoToSheet(
                     subtitle = song.album,
                     onClick = { onNavigateToAlbum(song.albumId) }
                 ) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
             }
             GoToMusicDetailRow(

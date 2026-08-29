@@ -45,11 +45,12 @@ enum class SortDirection { ASCENDING, DESCENDING }
 fun SortDirection.flipped(): SortDirection =
     if (this == SortDirection.ASCENDING) SortDirection.DESCENDING else SortDirection.ASCENDING
 
-private val LEADING_ARTICLE_REGEX = Regex("""^(?:the|a|an)\s+""", RegexOption.IGNORE_CASE)
+private val LEADING_ARTICLES = listOf("the ", "an ", "a ")
 
 fun String.sortKey(): String {
-    val clean = replace(LEADING_ARTICLE_REGEX, "")
-        .trimStart('\'', '"', '[', '(', '{', '#', ' ', '\t', '.', '-', '_')
+    val withoutArticle = LEADING_ARTICLES.firstOrNull { startsWith(it, ignoreCase = true) }
+        ?.let { substring(it.length) } ?: this
+    val clean = withoutArticle.trimStart('\'', '"', '[', '(', '{', '#', ' ', '\t', '.', '-', '_')
     return clean.lowercase().ifEmpty { lowercase() }
 }
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 object EqualizerController {
+    private var sessionId: Int = 0
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
@@ -58,9 +59,10 @@ object EqualizerController {
                 (matched ?: clean).ifBlank { "Preset ${index + 1}" }
             }
 
-    fun attach(audioSessionId: Int) {
+    fun attach(audioSessionId: Int, bassBoostActive: Boolean, virtualizerActive: Boolean, loudnessActive: Boolean) {
         runCatching {
             release()
+            sessionId = audioSessionId
 
             val availableTypes = runCatching {
                 AudioEffect.queryEffects()?.map { it.type }?.toSet()
@@ -75,27 +77,21 @@ object EqualizerController {
             _presetNames = equalizer?.let { computePresetNames(it) } ?: emptyList()
 
             if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_BASS_BOOST)) {
-                bassBoost = runCatching {
-                    BassBoost(0, audioSessionId).apply {
-                        _isBassBoostSupported.value = strengthSupported
-                    }
-                }.getOrNull()
+                val bb = runCatching { BassBoost(0, audioSessionId) }.getOrNull()
+                _isBassBoostSupported.value = bb?.strengthSupported ?: false
+                bassBoost = if (bassBoostActive) bb else { runCatching { bb?.release() }; null }
             }
 
             if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_VIRTUALIZER)) {
-                virtualizer = runCatching {
-                    Virtualizer(0, audioSessionId).apply {
-                        _isVirtualizerSupported.value = strengthSupported
-                    }
-                }.getOrNull()
+                val virt = runCatching { Virtualizer(0, audioSessionId) }.getOrNull()
+                _isVirtualizerSupported.value = virt?.strengthSupported ?: false
+                virtualizer = if (virtualizerActive) virt else { runCatching { virt?.release() }; null }
             }
 
             if (availableTypes.isEmpty() || availableTypes.contains(AudioEffect.EFFECT_TYPE_LOUDNESS_ENHANCER)) {
-                loudnessEnhancer = runCatching {
-                    LoudnessEnhancer(audioSessionId).apply {
-                        _isLoudnessEnhancerSupported.value = true
-                    }
-                }.getOrNull()
+                val le = runCatching { LoudnessEnhancer(audioSessionId) }.getOrNull()
+                _isLoudnessEnhancerSupported.value = le != null
+                loudnessEnhancer = if (loudnessActive) le else { runCatching { le?.release() }; null }
             }
         }.onFailure {
             _isAvailable.value = false
@@ -122,42 +118,50 @@ object EqualizerController {
     }
 
     fun setBassBoostStrength(strength: Int) {
-        bassBoost?.let { bb ->
+        val bb = bassBoost ?: if (strength > 0 && _isBassBoostSupported.value) {
+            runCatching { BassBoost(0, sessionId) }.getOrNull()?.also { bassBoost = it }
+        } else null
+        bb?.let {
             runCatching {
-                if (bb.strengthSupported) {
-                    bb.enabled = strength > 0
-                    bb.setStrength(strength.coerceIn(0, 1000).toShort())
-                }
+                it.enabled = strength > 0
+                it.setStrength(strength.coerceIn(0, 1000).toShort())
             }
         }
     }
 
     fun setVirtualizerStrength(strength: Int) {
-        virtualizer?.let { virt ->
+        val virt = virtualizer ?: if (strength > 0 && _isVirtualizerSupported.value) {
+            runCatching { Virtualizer(0, sessionId) }.getOrNull()?.also { virtualizer = it }
+        } else null
+        virt?.let {
             runCatching {
-                if (virt.strengthSupported) {
-                    virt.enabled = strength > 0
-                    virt.setStrength(strength.coerceIn(0, 1000).toShort())
-                }
+                it.enabled = strength > 0
+                it.setStrength(strength.coerceIn(0, 1000).toShort())
             }
         }
     }
 
     fun setPreampGainMb(gainMb: Int) {
-        loudnessEnhancer?.let { le ->
+        val le = loudnessEnhancer ?: if (gainMb > 0) {
+            runCatching { LoudnessEnhancer(sessionId) }.getOrNull()?.also { loudnessEnhancer = it }
+        } else null
+        le?.let {
             runCatching {
-                le.enabled = gainMb > 0
-                le.setTargetGain(gainMb.coerceIn(0, 2000))
+                it.enabled = gainMb > 0
+                it.setTargetGain(gainMb.coerceIn(0, 2000))
             }
         }
     }
 
     fun setLoudnessNormalization(enabled: Boolean, gainMb: Int = 0) {
-        loudnessEnhancer?.let { le ->
+        val le = loudnessEnhancer ?: if (enabled || gainMb > 0) {
+            runCatching { LoudnessEnhancer(sessionId) }.getOrNull()?.also { loudnessEnhancer = it }
+        } else null
+        le?.let {
             runCatching {
-                le.enabled = enabled || gainMb > 0
+                it.enabled = enabled || gainMb > 0
                 val target = if (gainMb > 0) gainMb else if (enabled) 600 else 0
-                le.setTargetGain(target)
+                it.setTargetGain(target)
             }
         }
     }

@@ -14,6 +14,8 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -31,8 +33,14 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.metadata.MetadataOutput
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.text.TextOutput
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
@@ -121,7 +129,7 @@ class PlaybackService : MediaLibraryService() {
             StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
         }
 
-        val player = ExoPlayer.Builder(this)
+        val player = ExoPlayer.Builder(this, audioOnlyRenderersFactory(this))
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(routedFactory))
             .setLoadControl(
                 DefaultLoadControl.Builder()
@@ -672,6 +680,44 @@ private class StreamOnlyCacheDataSource(
         active.close()
     }
 }
+
+private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory =
+    object : DefaultRenderersFactory(context) {
+        override fun buildVideoRenderers(
+            context: Context,
+            extensionRendererMode: Int,
+            mediaCodecSelector: MediaCodecSelector,
+            enableDecoderFallback: Boolean,
+            eventHandler: Handler,
+            eventListener: VideoRendererEventListener,
+            allowedVideoJoiningTimeMs: Long,
+            out: ArrayList<Renderer>
+        ) = Unit
+
+        override fun buildTextRenderers(
+            context: Context,
+            output: TextOutput,
+            outputLooper: Looper,
+            extensionRendererMode: Int,
+            out: ArrayList<Renderer>
+        ) = Unit
+
+        override fun buildMetadataRenderers(
+            context: Context,
+            output: MetadataOutput,
+            outputLooper: Looper,
+            extensionRendererMode: Int,
+            out: ArrayList<Renderer>
+        ) = Unit
+
+        override fun buildCameraMotionRenderers(
+            context: Context,
+            extensionRendererMode: Int,
+            out: ArrayList<Renderer>
+        ) = Unit
+
+        override fun buildImageRenderers(context: Context, out: ArrayList<Renderer>) = Unit
+    }
 
 // ExoPlayer's own shuffleModeEnabled drives an internal random order PlaybackRepository can't
 // reach or control; this keeps next/previous (including hardware/Bluetooth/notification/Auto)

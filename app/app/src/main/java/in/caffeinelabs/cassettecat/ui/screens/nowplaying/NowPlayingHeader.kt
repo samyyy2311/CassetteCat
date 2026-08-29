@@ -218,7 +218,7 @@ internal fun TitleRow(
                     .clip(RoundedCornerShape(6.dp))
                     .clickable(onClick = hapticClick(onThumbnailClick))
             ) {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
             }
             Spacer(Modifier.width(12.dp))
         }

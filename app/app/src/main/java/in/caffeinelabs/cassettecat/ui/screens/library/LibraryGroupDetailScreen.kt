@@ -375,7 +375,7 @@ private fun ArtistCatalogHero(
     ).joinToString(" · ")
 
     Box(modifier = Modifier.fillMaxWidth().height(430.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        ArtistImage(artist = artist, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        ArtistImage(artist = artist, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, thumbnail = false)
         Box(
             modifier = Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
@@ -850,7 +850,8 @@ private fun ArtistDetailHeader(
             ArtistImage(
                 artist = artist,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                thumbnail = false
             )
             Box(
                 modifier = Modifier
@@ -1046,7 +1047,7 @@ private fun AlbumDetailHeader(
                     .clip(RoundedCornerShape(18.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
             ) {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
             }
 
             Row(

@@ -54,8 +54,18 @@ class PlaylistRepository(private val context: Context) {
 
     val playlists: Flow<List<Playlist>> = context.playlistDataStore.data.map { prefs -> prefs.decode() }
 
-    suspend fun create(name: String, songIds: List<String> = emptyList()): Playlist {
-        val playlist = Playlist(name = name, songIds = songIds.distinct())
+    suspend fun create(
+        name: String,
+        songIds: List<String> = emptyList(),
+        coverType: PlaylistCoverType = PlaylistCoverType.NONE,
+        coverValue: String? = null
+    ): Playlist {
+        val playlist = Playlist(
+            name = name,
+            songIds = songIds.distinct(),
+            coverType = coverType,
+            coverValue = coverValue
+        )
         update { it + playlist }
         return playlist
     }

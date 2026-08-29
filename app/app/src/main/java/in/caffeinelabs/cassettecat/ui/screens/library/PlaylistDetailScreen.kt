@@ -136,12 +136,7 @@ fun PlaylistDetailScreen(
 
     val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
     val durationText = remember(totalDurationMs) {
-        if (totalDurationMs > 0) {
-            val totalSeconds = totalDurationMs / 1000
-            val hours = totalSeconds / 3600
-            val minutes = (totalSeconds % 3600) / 60
-            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
-        } else ""
+        if (totalDurationMs > 0) formatPlaylistDuration(totalDurationMs) else ""
     }
 
     val subtitleDetails = listOfNotNull(

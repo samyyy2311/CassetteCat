@@ -319,7 +319,7 @@ private fun LyricQuoteCard(
                         .size(44.dp)
                         .clip(RoundedCornerShape(8.dp))
                 ) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {

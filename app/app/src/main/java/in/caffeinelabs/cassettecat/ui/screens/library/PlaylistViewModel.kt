@@ -17,12 +17,14 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
     val playlists: StateFlow<List<Playlist>> =
         repository.playlists.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun create(name: String, onCreated: (Playlist) -> Unit) {
-        viewModelScope.launch { onCreated(repository.create(name)) }
-    }
-
-    fun create(name: String, songIds: List<String>, onCreated: (Playlist) -> Unit = {}) {
-        viewModelScope.launch { onCreated(repository.create(name, songIds)) }
+    fun create(
+        name: String,
+        songIds: List<String> = emptyList(),
+        coverType: PlaylistCoverType = PlaylistCoverType.NONE,
+        coverValue: String? = null,
+        onCreated: (Playlist) -> Unit = {}
+    ) {
+        viewModelScope.launch { onCreated(repository.create(name, songIds, coverType, coverValue)) }
     }
 
     fun createSmartPlaylist(name: String, criteria: `in`.caffeinelabs.cassettecat.data.library.SmartPlaylistCriteria, onCreated: (Playlist) -> Unit = {}) {

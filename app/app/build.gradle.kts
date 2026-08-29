@@ -59,6 +59,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isProfileable = true
             val releaseSigning = signingConfigs.getByName("release")
             if (releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
@@ -104,4 +105,5 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
 }

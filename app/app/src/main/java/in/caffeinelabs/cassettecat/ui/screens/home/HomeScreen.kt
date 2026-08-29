@@ -37,10 +37,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -208,7 +212,7 @@ fun HomeScreen(
                     }
                     item { Spacer(Modifier.height(32.dp)) }
                 }
-                    preferences.homeSectionOrder.forEach { section ->
+                preferences.homeSectionOrder.forEach { section ->
                         val songs = when (section) {
                             HomeSection.HEAVY_ROTATION -> heavyRotation.takeIf { preferences.showHomeHeavyRotation }
                             HomeSection.RECENTLY_PLAYED -> recentlyPlayed.takeIf { preferences.showHomeRecentlyPlayed }
@@ -251,7 +255,7 @@ fun HomeScreen(
                 }
             }
         }
-    }
+}
 
 // Mirrors the summary, hero, and vertical Shuffle Picks list rather than using a generic spinner.
 @Composable
@@ -304,7 +308,7 @@ private fun ShuffleAllHero(heroSong: Song?, songCount: Int, onClick: () -> Unit)
             .tapScale(onClick)
     ) {
         if (heroSong != null) {
-            AlbumArt(song = heroSong, modifier = Modifier.fillMaxSize())
+            AlbumArt(song = heroSong, modifier = Modifier.fillMaxSize(), thumbnail = false)
         } else {
             Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
         }

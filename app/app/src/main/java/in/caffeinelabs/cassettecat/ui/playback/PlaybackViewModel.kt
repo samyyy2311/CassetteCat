@@ -55,11 +55,17 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.random.Random
 
 private const val POSITION_TICK_MS = 100L
 private const val SAVE_EVERY_N_TICKS = 100 // ~10s at POSITION_TICK_MS
 private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
+private const val AUTOPLAY_SAME_ARTIST_WEIGHT = 4.0
+private const val AUTOPLAY_SHARED_GENRE_WEIGHT = 2.0
+private const val AUTOPLAY_FAVORITE_WEIGHT = 1.5
 
 private data class ListeningBucket(val monthKey: String, val songId: String)
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
@@ -264,8 +270,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             playbackState.map { it.audioSessionId }.distinctUntilChanged().collect { sessionId ->
                 if (sessionId == C.AUDIO_SESSION_ID_UNSET) return@collect
-                EqualizerController.attach(sessionId)
                 val levels = equalizerSettingsRepository.levels.first()
+                EqualizerController.attach(
+                    audioSessionId = sessionId,
+                    bassBoostActive = levels.bassBoostStrength > 0,
+                    virtualizerActive = levels.virtualizerStrength > 0,
+                    loudnessActive = levels.loudnessNormalization || levels.preampGainMb > 0
+                )
                 EqualizerController.setMasterEnabled(levels.enabled)
                 levels.bandLevelsMb.forEachIndexed { band, levelMb -> EqualizerController.setBandLevel(band, levelMb) }
                 EqualizerController.setBassBoostStrength(levels.bassBoostStrength)
@@ -552,16 +563,52 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    private var autoplayInFlight = false
+
     private suspend fun maybeAutoplay() {
+        if (autoplayInFlight) return
         if (!appPreferences.value.autoplayEnabled) return
         if (listeningRoom.value.role != ListeningRoomRole.NONE) return
-        val exclude = (playbackState.value.history.map { it.id } + listOfNotNull(playbackState.value.currentSong?.id)).toSet()
+        autoplayInFlight = true
+        try {
+            performAutoplay()
+        } finally {
+            autoplayInFlight = false
+        }
+    }
+
+    private suspend fun performAutoplay() {
+        val seed = playbackState.value.currentSong
+        val exclude = (playbackState.value.history.map { it.id } + listOfNotNull(seed?.id)).toSet()
         val available = librariesBySource.values.flatMap { library ->
             runCatching { library.getSongs() }.getOrDefault(emptyList())
+        }.filterNot { it.id in exclude }
+        if (available.isEmpty()) return
+
+        val playCounts = HashMap<String, Int>()
+        monthlyStats.value.values.forEach { month ->
+            month.songPlayCounts.forEach { (songId, count) -> playCounts[songId] = (playCounts[songId] ?: 0) + count }
         }
-        val picks = available.filterNot { it.id in exclude }.shuffled().take(AUTOPLAY_BATCH_SIZE)
+        val seedGenres = seed?.genres?.map { it.lowercase() }?.toSet().orEmpty()
+
+        val weighted = available.map { song ->
+            var weight = 1.0
+            if (seed != null && song.artist.isNotBlank() && song.artist == seed.artist) weight += AUTOPLAY_SAME_ARTIST_WEIGHT
+            if (song.genres.any { it.lowercase() in seedGenres }) weight += AUTOPLAY_SHARED_GENRE_WEIGHT
+            if (song.isFavorite) weight += AUTOPLAY_FAVORITE_WEIGHT
+            weight += ln((playCounts[song.id] ?: 0) + 1.0)
+            song to weight
+        }
+
+        val picks = weightedSampleWithoutReplacement(weighted, AUTOPLAY_BATCH_SIZE)
         if (picks.isNotEmpty()) repository.continueWithAutoplay(picks)
     }
+
+    private fun <T> weightedSampleWithoutReplacement(items: List<Pair<T, Double>>, count: Int): List<T> =
+        items.map { (item, weight) -> item to Random.nextDouble().pow(1.0 / weight) }
+            .sortedByDescending { it.second }
+            .take(count)
+            .map { it.first }
 
     private var cachedGuestLibrary: List<Song>? = null
 

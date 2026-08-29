@@ -2,7 +2,10 @@ package `in`.caffeinelabs.cassettecat.data.library.local
 
 import android.content.ContentUris
 import android.content.Context
+import android.database.ContentObserver
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryFolderRepository
@@ -15,6 +18,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
+private const val SHORT_CLIP_MAX_MS = 29_999L
+
 // The MediaStore-backed source, always available regardless of any streaming server.
 class LocalLibraryRepository(private val context: Context) : LibraryRepository {
     private val folderRepository = LibraryFolderRepository(context)
@@ -23,10 +28,22 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
     private val overridesRepository = SongMetadataOverridesRepository.getInstance(context)
 
     override suspend fun getSongs(): List<Song> = withContext(Dispatchers.IO) {
+        ensureContentObserverRegistered(context)
         val folderConfig = folderRepository.folderFilterConfig.first()
         val favoriteIds = favoritesRepository.favoriteIds.first()
         val appPreferences = appPreferencesRepository.preferences.first()
 
+        val rawSongs = cachedRawSongs ?: scanMediaStore().also { cachedRawSongs = it }
+
+        val songs = rawSongs.filter { song ->
+            song.filePath.orEmpty().matchesFolderFilter(folderConfig) &&
+                !(appPreferences.ignoreShortAudioClips && song.durationMs in 1..SHORT_CLIP_MAX_MS)
+        }.map { it.copy(isFavorite = it.id in favoriteIds) }
+
+        overridesRepository.applyTo(songs)
+    }
+
+    private fun scanMediaStore(): List<Song> {
         val hasDirectGenreColumn = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
         val genreByAudioId = if (hasDirectGenreColumn) null else loadGenresByAudioId()
 
@@ -79,11 +96,6 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
 
             while (cursor.moveToNext()) {
                 val path = cursor.getString(dataCol) ?: ""
-                if (!path.matchesFolderFilter(folderConfig)) continue
-
-                val duration = cursor.getLong(durationCol)
-                if (appPreferences.ignoreShortAudioClips && duration in 1..29_999L) continue
-
                 val id = cursor.getLong(idCol)
                 val songId = "local:$id"
                 val genre = if (hasDirectGenreColumn) {
@@ -103,7 +115,7 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
                         id
                     ),
                     source = MusicSource.Local,
-                    isFavorite = songId in favoriteIds,
+                    isFavorite = false,
                     genres = genre?.let { listOf(it) } ?: emptyList(),
                     releaseYear = cursor.getInt(yearCol).takeIf { it > 0 },
                     dateAddedMs = cursor.getLong(dateAddedCol) * 1_000L,
@@ -111,7 +123,7 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
                 )
             }
         }
-        overridesRepository.applyTo(songs)
+        return songs
     }
 
     private fun loadGenresByAudioId(): Map<Long, String> {
@@ -147,5 +159,27 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
 
     override suspend fun setFavorite(songId: String, favorite: Boolean) {
         favoritesRepository.setFavorite(songId, favorite)
+    }
+
+    companion object {
+        @Volatile private var cachedRawSongs: List<Song>? = null
+        @Volatile private var observerRegistered = false
+
+        private fun ensureContentObserverRegistered(context: Context) {
+            if (observerRegistered) return
+            synchronized(this) {
+                if (observerRegistered) return
+                observerRegistered = true
+                context.applicationContext.contentResolver.registerContentObserver(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    true,
+                    object : ContentObserver(Handler(Looper.getMainLooper())) {
+                        override fun onChange(selfChange: Boolean) {
+                            cachedRawSongs = null
+                        }
+                    }
+                )
+            }
+        }
     }
 }

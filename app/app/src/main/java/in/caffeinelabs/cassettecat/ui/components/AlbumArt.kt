@@ -33,7 +33,10 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+
+private const val THUMBNAIL_LOAD_DEBOUNCE_MS = 120L
 
 // Process-wide, not per-composable: a remember{}-scoped loader wouldn't share its LRU
 // cache across LazyColumn rows, causing repeated decode/network work (visible scroll jank).
@@ -54,57 +57,58 @@ private object AlbumArtLoaders {
         }
 }
 
-suspend fun prefetchAlbumArt(context: Context, song: Song?) {
+suspend fun prefetchAlbumArt(context: Context, song: Song?, thumbnail: Boolean = false) {
     song ?: return
     val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
     val isOffline = settings.offlineBlackoutMode
     val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
     when (song.source) {
-        MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled)
-        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it) }
+        MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) }
         MusicSource.ListeningRoomHost -> Unit
     }
 }
 
-suspend fun loadSongArtwork(context: Context, song: Song): Bitmap? {
+suspend fun loadSongArtwork(context: Context, song: Song, thumbnail: Boolean = false): Bitmap? {
     val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
     val isOffline = settings.offlineBlackoutMode
     val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
     return when (song.source) {
-        MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled)
-        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it) } else null
+        MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
         MusicSource.ListeningRoomHost -> null
     }
 }
 
 @Composable
-fun AlbumArt(song: Song, modifier: Modifier = Modifier) {
+fun AlbumArt(song: Song, modifier: Modifier = Modifier, thumbnail: Boolean = true) {
     val context = LocalContext.current
 
-    var bitmap by remember(song.id) {
+    var bitmap by remember(song.id, thumbnail) {
         mutableStateOf(
             when (song.source) {
-                MusicSource.Local -> AlbumArtLoaders.local(context).peek(song)
-                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it) }
+                MusicSource.Local -> AlbumArtLoaders.local(context).peek(song, thumbnail)
+                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it, thumbnail) }
                 MusicSource.ListeningRoomHost -> null
             }
         )
     }
-    LaunchedEffect(song.id) {
+    LaunchedEffect(song.id, thumbnail) {
         if (bitmap == null) {
+            if (thumbnail) delay(THUMBNAIL_LOAD_DEBOUNCE_MS)
             val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
             val isOffline = settings.offlineBlackoutMode
             val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
             bitmap = when (song.source) {
-                MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled)
-                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it) } else null
+                MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
+                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
                 MusicSource.ListeningRoomHost -> null
             }
         }
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Crossfade(targetState = bitmap, animationSpec = tween(220), label = "albumArtCrossfade") { current ->
+        Crossfade(targetState = bitmap, animationSpec = tween(100), label = "albumArtCrossfade") { current ->
             if (current != null) {
                 val imageAspectRatio = if (current.height > 0) current.width.toFloat() / current.height.toFloat() else 1f
                 val isNonSquare = imageAspectRatio < 0.94f || imageAspectRatio > 1.06f

@@ -40,17 +40,19 @@ private object ArtistImageLoaderHolder {
 fun ArtistImage(
     artist: String,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop
+    contentScale: ContentScale = ContentScale.Crop,
+    thumbnail: Boolean = true
 ) {
     val context = LocalContext.current
-    var bitmap by remember(artist) { mutableStateOf(ArtistImageLoaderHolder.loader.peek(artist)) }
-    LaunchedEffect(artist) {
+    var bitmap by remember(artist, thumbnail) { mutableStateOf(ArtistImageLoaderHolder.loader.peek(artist, thumbnail)) }
+    LaunchedEffect(artist, thumbnail) {
         if (bitmap == null) {
             val settings = ArtistImageLoaderHolder.settingsRepository(context).settings.first()
             bitmap = ArtistImageLoaderHolder.loader.load(
                 artist,
                 settings.isEnabled(ExternalService.DEEZER),
-                settings.isEnabled(ExternalService.AUDIODB)
+                settings.isEnabled(ExternalService.AUDIODB),
+                thumbnail
             )
         }
     }

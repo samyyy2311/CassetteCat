@@ -10,23 +10,28 @@ import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private const val MAX_CACHE_BYTES = 48 * 1024 * 1024
-private val ARTWORK_REQUEST_SIZE = Size(1440, 1440)
+private const val THUMBNAIL_CACHE_BYTES = 16 * 1024 * 1024
+private const val FULL_CACHE_BYTES = 24 * 1024 * 1024
+private const val THUMBNAIL_DIMENSION = 300
+private const val FULL_DIMENSION = 1440
 
 class AlbumArtLoader(private val context: Context) {
-    // Sized in bytes, not entry count: shared between library rows and the near-full-width
-    // Now Playing art, so a fixed entry count wouldn't bound actual memory.
-    private val cache = object : LruCache<String, Bitmap>(MAX_CACHE_BYTES) {
+    private val thumbnailCache = object : LruCache<String, Bitmap>(THUMBNAIL_CACHE_BYTES) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+    private val fullCache = object : LruCache<String, Bitmap>(FULL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
     private val coverArtArchiveClient = CoverArtArchiveClient()
 
-    fun peek(song: Song): Bitmap? = cache.get(song.id)
+    fun peek(song: Song, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(song.id)
 
-    suspend fun load(song: Song, coverArtArchiveEnabled: Boolean = true): Bitmap? {
+    suspend fun load(song: Song, coverArtArchiveEnabled: Boolean = true, thumbnail: Boolean = true): Bitmap? {
+        val cache = cacheFor(thumbnail)
         cache.get(song.id)?.let { return it }
+        val maxDimension = if (thumbnail) THUMBNAIL_DIMENSION else FULL_DIMENSION
         val bitmap = withContext(Dispatchers.IO) {
-            decode(song) ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
+            decode(song, maxDimension) ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
                 coverArtArchiveClient.fetchCoverArt(song.album, song.artist)
             } else null
         } ?: return null
@@ -34,12 +39,14 @@ class AlbumArtLoader(private val context: Context) {
         return bitmap
     }
 
-    private fun decode(song: Song): Bitmap? {
+    private fun cacheFor(thumbnail: Boolean) = if (thumbnail) thumbnailCache else fullCache
+
+    private fun decode(song: Song, maxDimension: Int): Bitmap? {
         val embedded = runCatching {
             MediaMetadataRetriever().use { retriever ->
                 retriever.setDataSource(context, song.contentUri)
                 retriever.embeddedPicture?.let { bytes ->
-                    decodeSampledBitmap(bytes, maxDimension = 1440)
+                    decodeSampledBitmap(bytes, maxDimension = maxDimension)
                 }
             }
         }.getOrNull()
@@ -47,7 +54,7 @@ class AlbumArtLoader(private val context: Context) {
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             runCatching {
-                context.contentResolver.loadThumbnail(song.contentUri, ARTWORK_REQUEST_SIZE, null)
+                context.contentResolver.loadThumbnail(song.contentUri, Size(maxDimension, maxDimension), null)
             }.getOrNull()
         } else null
     }
