@@ -33,7 +33,10 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
         val favoriteIds = favoritesRepository.favoriteIds.first()
         val appPreferences = appPreferencesRepository.preferences.first()
 
-        val rawSongs = cachedRawSongs ?: scanMediaStore().also { cachedRawSongs = it }
+        val rawSongs = cachedRawSongs ?: run {
+            val generation = cacheGeneration
+            publishScan(generation, scanMediaStore())
+        }
 
         val songs = rawSongs.filter { song ->
             song.filePath.orEmpty().matchesFolderFilter(folderConfig) &&
@@ -163,7 +166,17 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
 
     companion object {
         @Volatile private var cachedRawSongs: List<Song>? = null
+        @Volatile private var cacheGeneration: Int = 0
         @Volatile private var observerRegistered = false
+
+        // A scan started before invalidation must not overwrite the cache after it,
+        // so publication is only honored if the generation hasn't moved since the scan began.
+        private fun publishScan(generation: Int, songs: List<Song>): List<Song> {
+            synchronized(this) {
+                if (generation == cacheGeneration) cachedRawSongs = songs
+            }
+            return songs
+        }
 
         private fun ensureContentObserverRegistered(context: Context) {
             if (observerRegistered) return
@@ -175,7 +188,10 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
                     true,
                     object : ContentObserver(Handler(Looper.getMainLooper())) {
                         override fun onChange(selfChange: Boolean) {
-                            cachedRawSongs = null
+                            synchronized(this@Companion) {
+                                cachedRawSongs = null
+                                cacheGeneration++
+                            }
                         }
                     }
                 )

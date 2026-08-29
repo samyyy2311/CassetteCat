@@ -37,7 +37,6 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-import androidx.media3.exoplayer.metadata.MetadataOutput
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.text.TextOutput
 import androidx.media3.exoplayer.video.VideoRendererEventListener
@@ -697,14 +696,6 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
         override fun buildTextRenderers(
             context: Context,
             output: TextOutput,
-            outputLooper: Looper,
-            extensionRendererMode: Int,
-            out: ArrayList<Renderer>
-        ) = Unit
-
-        override fun buildMetadataRenderers(
-            context: Context,
-            output: MetadataOutput,
             outputLooper: Looper,
             extensionRendererMode: Int,
             out: ArrayList<Renderer>

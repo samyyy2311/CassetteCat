@@ -77,12 +77,16 @@ object PlaylistSuggestionEngine {
         }
 
         val genreGroups = mutableMapOf<String, MutableList<Song>>()
+        val genreDisplayLabels = mutableMapOf<String, String>()
         for (song in allSongs) {
             for (genre in song.genres) {
-                val cleaned = genre.trim().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
-                if (cleaned.isNotBlank() && !isIgnoredGenre(cleaned)) {
-                    genreGroups.getOrPut(cleaned) { mutableListOf() }.add(song)
+                val trimmed = genre.trim()
+                val key = trimmed.lowercase(Locale.ROOT)
+                if (trimmed.isBlank() || isIgnoredGenre(key)) continue
+                genreDisplayLabels.getOrPut(key) {
+                    trimmed.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
                 }
+                genreGroups.getOrPut(key) { mutableListOf() }.add(song)
             }
         }
 
@@ -91,7 +95,8 @@ object PlaylistSuggestionEngine {
             .sortedByDescending { it.value.size }
             .take(3)
 
-        for ((genre, songs) in topGenres) {
+        for ((genreKey, songs) in topGenres) {
+            val genre = genreDisplayLabels[genreKey] ?: genreKey
             val distinctSongs = songs.distinctBy { it.id }.take(MAX_SONGS_PER_SUGGESTION)
             val (iconKey, iconRes, emoji) = genreArt(genre)
             candidates.add(
@@ -108,9 +113,15 @@ object PlaylistSuggestionEngine {
             )
         }
 
-        val artistGroups = allSongs
-            .filter { it.artist.isNotBlank() && !isIgnoredArtist(it.artist) }
-            .groupBy { it.artist.trim() }
+        val artistGroups = mutableMapOf<String, MutableList<Song>>()
+        val artistDisplayLabels = mutableMapOf<String, String>()
+        for (song in allSongs) {
+            val trimmed = song.artist.trim()
+            val key = trimmed.lowercase(Locale.ROOT)
+            if (trimmed.isBlank() || isIgnoredArtist(key)) continue
+            artistDisplayLabels.getOrPut(key) { trimmed }
+            artistGroups.getOrPut(key) { mutableListOf() }.add(song)
+        }
 
         val totalPlayCounts = HashMap<String, Int>()
         monthlyStats.values.forEach { month ->
@@ -126,7 +137,8 @@ object PlaylistSuggestionEngine {
             }
             .take(2)
 
-        for ((artist, songs) in topArtists) {
+        for ((artistKey, songs) in topArtists) {
+            val artist = artistDisplayLabels[artistKey] ?: artistKey
             val sortedSongs = songs.distinctBy { it.id }
                 .sortedByDescending { totalPlayCounts[it.id] ?: 0 }
                 .take(MAX_SONGS_PER_SUGGESTION)

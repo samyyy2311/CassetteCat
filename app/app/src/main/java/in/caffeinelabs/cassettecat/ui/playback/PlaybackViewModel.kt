@@ -586,7 +586,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (available.isEmpty()) return
 
         val playCounts = HashMap<String, Int>()
-        monthlyStats.value.values.forEach { month ->
+        statsRepository.monthlyStats.first().values.forEach { month ->
             month.songPlayCounts.forEach { (songId, count) -> playCounts[songId] = (playCounts[songId] ?: 0) + count }
         }
         val seedGenres = seed?.genres?.map { it.lowercase() }?.toSet().orEmpty()

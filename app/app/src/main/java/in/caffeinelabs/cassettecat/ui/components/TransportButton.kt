@@ -75,7 +75,7 @@ fun TransportButton(
     ) {
         Icon(
             painter = painterResource(iconRes),
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = tint,
             modifier = Modifier.size(size * 0.42f)
         )

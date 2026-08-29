@@ -108,7 +108,10 @@ object EqualizerController {
         equalizer?.let { eq -> runCatching { eq.setBandLevel(band.toShort(), levelMb.toShort()) } }
     }
 
+    private var masterEnabled = true
+
     fun setMasterEnabled(enabled: Boolean) {
+        masterEnabled = enabled
         runCatching {
             equalizer?.enabled = enabled
             bassBoost?.enabled = enabled
@@ -123,7 +126,7 @@ object EqualizerController {
         } else null
         bb?.let {
             runCatching {
-                it.enabled = strength > 0
+                it.enabled = masterEnabled && strength > 0
                 it.setStrength(strength.coerceIn(0, 1000).toShort())
             }
         }
@@ -135,7 +138,7 @@ object EqualizerController {
         } else null
         virt?.let {
             runCatching {
-                it.enabled = strength > 0
+                it.enabled = masterEnabled && strength > 0
                 it.setStrength(strength.coerceIn(0, 1000).toShort())
             }
         }
@@ -147,7 +150,7 @@ object EqualizerController {
         } else null
         le?.let {
             runCatching {
-                it.enabled = gainMb > 0
+                it.enabled = masterEnabled && gainMb > 0
                 it.setTargetGain(gainMb.coerceIn(0, 2000))
             }
         }
@@ -159,7 +162,7 @@ object EqualizerController {
         } else null
         le?.let {
             runCatching {
-                it.enabled = enabled || gainMb > 0
+                it.enabled = masterEnabled && (enabled || gainMb > 0)
                 val target = if (gainMb > 0) gainMb else if (enabled) 600 else 0
                 it.setTargetGain(target)
             }
@@ -183,6 +186,7 @@ object EqualizerController {
         bassBoost = null
         virtualizer = null
         loudnessEnhancer = null
+        masterEnabled = true
         _isAvailable.value = false
         _isBassBoostSupported.value = false
         _isVirtualizerSupported.value = false

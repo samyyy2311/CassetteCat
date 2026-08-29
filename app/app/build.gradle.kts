@@ -59,9 +59,10 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            isProfileable = true
             val releaseSigning = signingConfigs.getByName("release")
-            if (releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true) {
+            val hasProductionSigning = releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true
+            isProfileable = hasProductionSigning
+            if (hasProductionSigning) {
                 signingConfig = releaseSigning
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

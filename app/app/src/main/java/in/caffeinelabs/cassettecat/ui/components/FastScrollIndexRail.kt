@@ -44,7 +44,7 @@ import `in`.caffeinelabs.cassettecat.ui.theme.SilverDim
 import `in`.caffeinelabs.cassettecat.ui.theme.TextPrimary
 import `in`.caffeinelabs.cassettecat.ui.theme.TextSecondary
 
-private val LEADING_ARTICLES = listOf("the ", "an ", "a ")
+private val LEADING_ARTICLE_REGEX = Regex("""^(the|an|a)\s+""", RegexOption.IGNORE_CASE)
 private val ALL_LETTERS = listOf('#') + ('A'..'Z').toList()
 
 data class AlphabetSection(
@@ -54,8 +54,7 @@ data class AlphabetSection(
 )
 
 fun normalizeIndexChar(raw: String): Char {
-    val withoutArticle = LEADING_ARTICLES.firstOrNull { raw.startsWith(it, ignoreCase = true) }
-        ?.let { raw.substring(it.length) } ?: raw
+    val withoutArticle = LEADING_ARTICLE_REGEX.find(raw)?.let { raw.substring(it.value.length) } ?: raw
     val clean = withoutArticle.trimStart('\'', '"', '[', '(', '{', '#', ' ', '\t', '.', '-', '_')
     val first = clean.firstOrNull()?.uppercaseChar() ?: '#'
     return if (first in 'A'..'Z') first else '#'
