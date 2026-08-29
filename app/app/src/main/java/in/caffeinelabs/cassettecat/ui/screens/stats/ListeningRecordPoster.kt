@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -454,7 +455,9 @@ internal fun ListeningRecordPreviewCard(
     isRewind: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val localizedMonth = monthAbbreviation.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    val localizedMonth = monthAbbreviation.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(LocalLocale.current.platformLocale) else it.toString()
+    }
     val heroTitle = if (isRewind) yearLabel else "$localizedMonth $yearLabel"
     val formattedMinutes = NumberFormat.getNumberInstance(Locale.US).format(listeningMinutes)
 
