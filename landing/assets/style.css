@@ -223,6 +223,16 @@ a:hover { color: var(--text); }
 .cc-alternativeto-badge span:last-child { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
 .cc-alternativeto-badge small { font: 500 9px var(--font-mono); letter-spacing: 0.08em; color: #aaa; }
 .cc-alternativeto-badge strong { font-size: 17px; font-weight: 600; }
+.cc-downloads-badge {
+  width: 210px; height: 54px; padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 12px;
+  color: #fff; background: #1f1f1f; border: 1px solid #3a3a3a; border-radius: 10px;
+}
+.cc-downloads-badge:hover { color: #fff; border-color: #666; }
+.cc-downloads-badge svg { flex-shrink: 0; color: var(--accent); }
+.cc-downloads-badge span:last-child { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+.cc-downloads-badge small { font: 500 9px var(--font-mono); letter-spacing: 0.08em; color: #aaa; }
+.cc-downloads-badge strong { font-size: 17px; font-weight: 600; }
 .cc-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
 .cc-phone-frame {
   padding: 6px !important;

@@ -84,4 +84,21 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(() => {});
   }
+
+  const downloadCountEl = document.getElementById('gh-download-count');
+  const downloadValueEl = document.getElementById('gh-download-count-value');
+  if (downloadCountEl && downloadValueEl) {
+    fetch('https://api.github.com/repos/samyyy2311/CassetteCat/releases?per_page=100')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((releases) => {
+        if (!Array.isArray(releases)) return;
+        const total = releases.reduce((sum, release) => {
+          const assets = Array.isArray(release.assets) ? release.assets : [];
+          return sum + assets.reduce((s, asset) => s + (asset.download_count || 0), 0);
+        }, 0);
+        downloadValueEl.textContent = total.toLocaleString();
+        downloadCountEl.style.display = 'inline-flex';
+      })
+      .catch(() => {});
+  }
 });

@@ -36,9 +36,8 @@
   Download the latest APK directly from GitHub or use Obtainium for automatic update tracking.
 </p>
 
-> **F-Droid and IzzyOnDroid:** submissions are currently pending. Their install
-> buttons will be added once CassetteCat is available through those
-> repositories.
+> **F-Droid:** submission is currently pending. An install button will be
+> added once CassetteCat is available through the repository.
 
 ---
 
@@ -145,7 +144,7 @@
 - Streaming server credentials encrypted with AES-256 via the hardware-backed
   `AndroidKeyStore`.
 - Fully open source under GPL-3.0.
-- F-Droid and IzzyOnDroid submissions pending.
+- F-Droid submission pending.
 
 ---
 
@@ -178,7 +177,7 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 Contributions are welcome.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used in this project.
 
 ---
 
