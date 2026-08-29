@@ -65,7 +65,10 @@ class CoreLogicTest {
     @Test
     fun restoresPersistedCustomizationOrderAndArtworkAccent() {
         assertEquals(
-            listOf(DefaultLibraryTab.ALBUMS, DefaultLibraryTab.SONGS, DefaultLibraryTab.ARTISTS, DefaultLibraryTab.GENRES, DefaultLibraryTab.PLAYLISTS),
+            listOf(
+                DefaultLibraryTab.ALBUMS, DefaultLibraryTab.SONGS, DefaultLibraryTab.ARTISTS,
+                DefaultLibraryTab.GENRES, DefaultLibraryTab.PLAYLISTS, DefaultLibraryTab.FOLDERS
+            ),
             orderedEnumValues("ALBUMS,SONGS,ALBUMS,REMOVED", DefaultLibraryTab.entries)
         )
 

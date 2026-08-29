@@ -5,11 +5,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 class PlaylistSuggestionEngineTest {
 
-    private val dummyUri: Uri = mock(Uri::class.java)
+    private val dummyUri: Uri = Uri.EMPTY
 
     private fun createDummySong(
         id: String,
