@@ -71,4 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (metaTheme) metaTheme.setAttribute('content', next === 'light' ? '#F4F1EB' : '#000000');
     });
   }
+
+  const starCountEl = document.getElementById('gh-star-count');
+  const starValueEl = document.getElementById('gh-star-count-value');
+  if (starCountEl && starValueEl) {
+    fetch('https://api.github.com/repos/samyyy2311/CassetteCat')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data || typeof data.stargazers_count !== 'number') return;
+        starValueEl.textContent = data.stargazers_count;
+        starCountEl.style.display = 'inline-flex';
+      })
+      .catch(() => {});
+  }
 });

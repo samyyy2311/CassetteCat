@@ -57,7 +57,7 @@
         <div class="doc-head-meta">
           <span><b>App</b> CassetteCat</span>
           <span class="sep">·</span>
-          <span><b>Latest</b> v1.3.1</span>
+          <span><b>Latest</b> v1.6.1</span>
           <span class="sep">·</span>
           <span><b>Source</b> <a href="https://github.com/samyyy2311/CassetteCat/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a></span>
         </div>
@@ -66,19 +66,161 @@
       <aside class="doc-toc">
         <h4>Versions</h4>
         <ol>
-          <li><a href="#v1-3-1"><span class="toc-num">01</span>v1.3.1</a></li>
-          <li><a href="#v1-3-0"><span class="toc-num">02</span>v1.3.0</a></li>
-          <li><a href="#v1-2-0"><span class="toc-num">03</span>v1.2.0</a></li>
-          <li><a href="#v1-1-0"><span class="toc-num">04</span>v1.1.0</a></li>
-          <li><a href="#v1-0-0"><span class="toc-num">05</span>v1.0.0</a></li>
+          <li><a href="#v1-6-1"><span class="toc-num">01</span>v1.6.1</a></li>
+          <li><a href="#v1-6-0"><span class="toc-num">02</span>v1.6.0</a></li>
+          <li><a href="#v1-5-0"><span class="toc-num">03</span>v1.5.0</a></li>
+          <li><a href="#v1-4-5"><span class="toc-num">04</span>v1.4.5</a></li>
+          <li><a href="#v1-4-1"><span class="toc-num">05</span>v1.4.1</a></li>
+          <li><a href="#v1-4-0"><span class="toc-num">06</span>v1.4.0</a></li>
+          <li><a href="#v1-3-1"><span class="toc-num">07</span>v1.3.1</a></li>
+          <li><a href="#v1-3-0"><span class="toc-num">08</span>v1.3.0</a></li>
+          <li><a href="#v1-2-0"><span class="toc-num">09</span>v1.2.0</a></li>
+          <li><a href="#v1-1-0"><span class="toc-num">10</span>v1.1.0</a></li>
+          <li><a href="#v1-0-0"><span class="toc-num">11</span>v1.0.0</a></li>
         </ol>
       </aside>
 
       <div class="doc-body">
         <p class="doc-lede">All notable changes to CassetteCat are documented here, in the same order as <a href="https://github.com/samyyy2311/CassetteCat/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a> in the repository.</p>
 
+        <section id="v1-6-1">
+          <h2><span class="sec-num">01.</span>v1.6.1 - Performance &amp; Reliability</h2>
+          <p><strong>Performance</strong></p>
+          <ul>
+            <li>Reduced memory usage and smoother scrolling across the library and Now Playing screens.</li>
+            <li>Lower memory usage from the equalizer's audio effects.</li>
+          </ul>
+          <p><strong>Fixes</strong></p>
+          <ul>
+            <li>Fixed Playlist Suggestions occasionally splitting one genre into separate suggestions when songs were tagged with different capitalization (e.g. &quot;Rock&quot; vs &quot;ROCK&quot;).</li>
+          </ul>
+        </section>
+
+        <section id="v1-6-0">
+          <h2><span class="sec-num">02.</span>v1.6.0 - Drive Mode, Wave to Skip &amp; Reliability Fixes</h2>
+          <p><strong>Playback</strong></p>
+          <ul>
+            <li><strong>Drive Mode</strong>: a stripped, high-contrast full-screen playback view with large touch targets, launches automatically when connected to a car's Bluetooth audio.</li>
+            <li><strong>Wave to Skip</strong>: wave your hand over the top of your phone to skip to the next track.</li>
+            <li><strong>Audio Quality Badge</strong>: Now Playing shows a Lossless/Hi-Res badge with format, bit depth, and sample rate details.</li>
+            <li>Fixed playback sometimes stopping early instead of continuing to the next queued song, and next/previous sometimes not following the queue order.</li>
+            <li>Shuffle now re-randomizes the upcoming queue every time it's turned on, and restores the original order when turned off.</li>
+            <li>Fixed the seek bar visually snapping back after a manual seek; dragging it now feels more responsive.</li>
+            <li>Fixed a flip-to-pause edge case leaving the shake and wave-to-skip sensors active while paused.</li>
+            <li>Rewritten shake-to-skip detection with fewer false triggers from being in a pocket or bag.</li>
+          </ul>
+          <p><strong>Library &amp; Lyrics</strong></p>
+          <ul>
+            <li><strong>Custom Lyrics Editor</strong>: write and save your own lyrics for a song from Now Playing, and optionally contribute them to LRCLIB.</li>
+            <li>Smart Playlists support mutually-exclusive rule groups.</li>
+            <li>Higher-quality album art fetching, with cleaner matching for remastered/deluxe edition releases.</li>
+          </ul>
+          <p><strong>Customization</strong></p>
+          <ul>
+            <li>Fonts are now fully bundled offline: added VT323 and Monocraft, no longer depends on Google Play Services for downloadable fonts.</li>
+          </ul>
+          <p><strong>Fixes</strong></p>
+          <ul>
+            <li>Fixed Equalizer Reset silently re-enabling a disabled equalizer, leaving a stale calibration label, and not appearing for preamp-only adjustments.</li>
+            <li>Fixed radio search occasionally showing results for the wrong country after quickly switching filters.</li>
+            <li>Radio Browser being fully unreachable now shows a clear retry option instead of an endless &quot;Loading stations&hellip;&quot;.</li>
+            <li>Custom radio stations now require a valid stream URL before saving.</li>
+            <li>Fixed a connection error being shown as a raw technical message when a server URL was entered without &quot;https://&quot;.</li>
+            <li>Fixed nearby Listening Room discovery continuing to run in the background after leaving the sheet.</li>
+            <li>Reduced memory usage from playlist cover images.</li>
+          </ul>
+        </section>
+
+        <section id="v1-5-0">
+          <h2><span class="sec-num">03.</span>v1.5.0 - Gestures, Smart Playlists &amp; Custom Fonts</h2>
+          <p><strong>Playback</strong></p>
+          <ul>
+            <li><strong>Shake to Skip</strong>: Shake your phone to skip to the next track, with adjustable sensitivity.</li>
+            <li><strong>Flip to Pause</strong>: Flip your phone face-down to pause, flip it back up to resume.</li>
+            <li>Mini player swipe-to-skip can now be turned off in Settings.</li>
+          </ul>
+          <p><strong>Library</strong></p>
+          <ul>
+            <li><strong>Smart Playlists</strong>: Auto-populated playlists built from rules like Recently Added, Favorites Only, song length, or decade, instead of a manually curated song list.</li>
+            <li><strong>Edit Song Tags</strong>: Override a local song's title, artist, album, or release year from Now Playing, without touching the file on disk.</li>
+            <li>Recent searches are now remembered and quickly reselectable.</li>
+          </ul>
+          <p><strong>Lyrics</strong></p>
+          <ul>
+            <li><strong>Manual Lyrics Search</strong>: Search LRCLIB directly and pick a specific match when the automatic lookup finds the wrong song.</li>
+          </ul>
+          <p><strong>Customization</strong></p>
+          <ul>
+            <li><strong>Choose Your Font</strong>: Pick from Space Grotesk, IBM Plex Sans, Outfit, Inter, Plus Jakarta Sans, or Silkscreen for the UI, with a separate font choice for lyrics.</li>
+            <li><strong>Now Playing Backdrop Style</strong>: Choose between AMOLED Pure Black, Ambient Glow, or Liquid Gradient.</li>
+          </ul>
+        </section>
+
+        <section id="v1-4-5">
+          <h2><span class="sec-num">04.</span>v1.4.5 - Fixes &amp; Reliability</h2>
+          <p><strong>Fixes</strong></p>
+          <ul>
+            <li>Fixed shuffle sometimes duplicating songs already in the queue.</li>
+            <li>Fixed &quot;Add to Queue&quot; behaving identically to &quot;Play Next&quot; instead of appending to the end of the queue.</li>
+            <li>Fixed the back button collapsing the whole Now Playing sheet instead of returning to the Player view from Lyrics/Queue.</li>
+            <li>Fixed equalizer presets sometimes applying the wrong preset on devices with an unnamed preset slot.</li>
+            <li>Fixed a brief &quot;Connecting&hellip;&quot; flash when changing local tracks.</li>
+            <li>Fixed a potential resource leak from rapidly tapping &quot;Find Nearby Rooms&quot; in Listening Room.</li>
+            <li>Fixed the playback notification's icon.</li>
+          </ul>
+          <p><strong>Performance</strong></p>
+          <ul>
+            <li>Smoother scrolling through long song lists and search results.</li>
+            <li>Faster equalizer preset loading.</li>
+          </ul>
+        </section>
+
+        <section id="v1-4-1">
+          <h2><span class="sec-num">05.</span>v1.4.1 - Shortcuts &amp; Playback Polish</h2>
+          <p><strong>Playback</strong></p>
+          <ul>
+            <li>Save the current queue as a playlist and start an Instant Mix from Now Playing.</li>
+            <li>See the connected Bluetooth audio device and jump directly to Bluetooth settings.</li>
+          </ul>
+          <p><strong>Library &amp; Streaming</strong></p>
+          <ul>
+            <li>Refine library views with clearer sorting and filtering controls.</li>
+            <li>See Subsonic and Jellyfin library status, song counts, and refresh failures in Settings.</li>
+          </ul>
+          <p><strong>Launcher</strong></p>
+          <ul>
+            <li>Added shortcuts for Shuffle All, Play Favorites, and Radio Favorites with distinct icons.</li>
+          </ul>
+        </section>
+
+        <section id="v1-4-0">
+          <h2><span class="sec-num">06.</span>v1.4.0 - Jellyfin Quick Connect &amp; Playback Fixes</h2>
+          <p><strong>Streaming</strong></p>
+          <ul>
+            <li><strong>Jellyfin Quick Connect</strong>: Sign in without typing a password by approving a code from an already-signed-in client.</li>
+            <li>Fixed Jellyfin and Subsonic libraries sometimes failing to load songs.</li>
+          </ul>
+          <p><strong>Playback</strong></p>
+          <ul>
+            <li>Fixed a brief pause when skipping to the next track.</li>
+            <li>Fixed Autoplay replaying the song that just ended before moving to the next pick, and fixed manually pressing Next at the end of the queue not triggering Autoplay.</li>
+            <li><strong>Volume Limit (Ear Protection)</strong>: optional hard cap on maximum output level, independent of system volume.</li>
+            <li>External media button presses (e.g. from a swipe-to-skip widget) now reach the app even when it isn't in the foreground.</li>
+          </ul>
+          <p><strong>Display</strong></p>
+          <ul>
+            <li>Now Playing screen supports landscape orientation.</li>
+            <li>Fixed the app restarting itself on screen rotation.</li>
+            <li>Fixed the bottom navigation bar and Now Playing controls being covered on phones with a taller system navigation bar.</li>
+          </ul>
+          <p><strong>Fixes</strong></p>
+          <ul>
+            <li>Fixed a crash on launch affecting devices running Android 13 and below.</li>
+          </ul>
+        </section>
+
         <section id="v1-3-1">
-          <h2><span class="sec-num">01.</span>v1.3.1 - Performance &amp; Reliability</h2>
+          <h2><span class="sec-num">07.</span>v1.3.1 - Performance &amp; Reliability</h2>
           <p><strong>Performance</strong></p>
           <ul>
             <li>Smoother transitions between songs during playback.</li>
@@ -92,7 +234,7 @@
         </section>
 
         <section id="v1-3-0">
-          <h2><span class="sec-num">02.</span>v1.3.0 - Internet Radio &amp; Onboarding Fixes</h2>
+          <h2><span class="sec-num">08.</span>v1.3.0 - Internet Radio &amp; Onboarding Fixes</h2>
           <p><strong>Radio</strong></p>
           <ul>
             <li><strong>Internet Radio</strong>: Search and browse tens of thousands of live stations from Radio Browser by name, tag, or country. Favorite stations sync to Android Auto, which also gets a dedicated Radio browse tree and voice search support.</li>
@@ -109,7 +251,7 @@
         </section>
 
         <section id="v1-2-0">
-          <h2><span class="sec-num">03.</span>v1.2.0 - Android Auto &amp; Real Hotspot Pairing</h2>
+          <h2><span class="sec-num">09.</span>v1.2.0 - Android Auto &amp; Real Hotspot Pairing</h2>
           <p><strong>Companion Hardware</strong></p>
           <ul>
             <li><strong>Real SoftAP Auto-Connect</strong>: On Android 13+, pairing to the player's direct hotspot now associates automatically via <code>WifiNetworkSpecifier</code> instead of assuming the user already switched Wi-Fi networks manually. Older devices keep the existing connect-then-scan flow.</li>
@@ -128,7 +270,7 @@
         </section>
 
         <section id="v1-1-0">
-          <h2><span class="sec-num">04.</span>v1.1.0 - Share Cards &amp; UI Polish</h2>
+          <h2><span class="sec-num">10.</span>v1.1.0 - Share Cards &amp; UI Polish</h2>
           <p><strong>Share &amp; Social</strong></p>
           <ul>
             <li><strong>1:1 Share Card Export</strong>: Exported posters for both Song and Lyrics cards now render identically to the in-app preview card.</li>
@@ -146,7 +288,7 @@
         </section>
 
         <section id="v1-0-0">
-          <h2><span class="sec-num">05.</span>v1.0.0 - Initial Release</h2>
+          <h2><span class="sec-num">11.</span>v1.0.0 - Initial Release</h2>
           <p><strong>Audio &amp; Playback</strong></p>
           <ul>
             <li>High-fidelity audio engine built on AndroidX Media3 (ExoPlayer).</li>

@@ -1,0 +1,4 @@
+What's new in 1.6.1:
+
+- Reduced memory usage and smoother scrolling across the library and Now Playing screens
+- Fixed Playlist Suggestions sometimes splitting one genre into separate suggestions when tagged with different capitalization

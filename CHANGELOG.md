@@ -2,6 +2,15 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.6.1] - Performance & Reliability
+
+### Performance
+* Reduced memory usage and smoother scrolling across the library and Now Playing screens.
+* Lower memory usage from the equalizer's audio effects.
+
+### Fixes
+* Fixed Playlist Suggestions occasionally splitting one genre into separate suggestions when songs were tagged with different capitalization (e.g. "Rock" vs "ROCK").
+
 ## [1.6.0] - Drive Mode, Wave to Skip & Reliability Fixes
 
 ### Playback
