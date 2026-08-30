@@ -1,0 +1,9 @@
+What's new in 1.6.2:
+
+- Reworked the setup flow: cleaner, more consistent screens, and one less step
+- Restore a backup right from setup, handy on a reinstall
+- Added pull-to-refresh to Home
+- Added an All Songs section to artist pages
+- Fixed Next/skip going dead at the end of your queue when Autoplay was on
+- Fixed Google Assistant/Gemini not being able to trigger playback
+- Recently Played no longer counts a song you skipped after a second or two

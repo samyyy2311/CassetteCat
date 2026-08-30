@@ -131,10 +131,13 @@ fun MiniPlayerRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.weight(1f)) {
+                val canContinuePastQueueEnd = nextSong == null &&
+                    (state.repeatMode == Player.REPEAT_MODE_ALL || preferences.autoplayEnabled)
                 MiniPlayerArtRow(
                     currentSong = song,
                     previousSong = previousSong,
                     nextSong = nextSong,
+                    showNextPlaceholder = canContinuePastQueueEnd,
                     swipeEnabled = preferences.miniPlayerSwipeToSkip,
                     onSwipeNext = { playbackViewModel.skipNext() },
                     onSwipePrevious = { playbackViewModel.skipPrevious() },
@@ -184,6 +187,7 @@ private fun MiniPlayerArtRow(
     currentSong: Song,
     previousSong: Song?,
     nextSong: Song?,
+    showNextPlaceholder: Boolean,
     swipeEnabled: Boolean,
     onSwipeNext: () -> Unit,
     onSwipePrevious: () -> Unit,
@@ -191,11 +195,11 @@ private fun MiniPlayerArtRow(
 ) {
     val haptics = LocalHapticFeedback.current
     key(currentSong.id, previousSong?.id, nextSong?.id) {
-        val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id) {
+        val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id, showNextPlaceholder) {
             buildList {
                 if (previousSong != null) add(previousSong)
                 add(currentSong)
-                if (nextSong != null) add(nextSong)
+                if (nextSong != null) add(nextSong) else if (showNextPlaceholder) add(currentSong)
             }
         }
         val currentIndex = if (previousSong != null) 1 else 0

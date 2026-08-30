@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +54,7 @@ class PlaybackRepository(private val context: Context) {
     private var originalQueue: List<Song> = emptyList()
     private var shuffleEnabled = false
     private val history = ArrayDeque<Song>()
-    private var lastOldItemPositionMs = 0L
+    private var historyJob: Job? = null
     var onQueueExhausted: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
@@ -64,22 +65,9 @@ class PlaybackRepository(private val context: Context) {
         controller = MediaController.Builder(context, token).buildAsync().awaitController(context)
         controller?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
-            override fun onPositionDiscontinuity(
-                oldPosition: Player.PositionInfo,
-                newPosition: Player.PositionInfo,
-                reason: Int
-            ) {
-                lastOldItemPositionMs = oldPosition.positionMs
-            }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // The previous song was added to history the instant it started; if it
-                // didn't stick around long enough to count, evict it now that it's over.
-                val previousSong = _state.value.currentSong
-                if (previousSong != null && lastOldItemPositionMs < HISTORY_MIN_PLAYED_MS) {
-                    history.removeAll { it.id == previousSong.id }
-                }
                 updateState()
-                _state.value.currentSong?.let { recordPlayed(it) }
+                _state.value.currentSong?.let { scheduleHistoryRecord(it) }
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
@@ -165,7 +153,7 @@ class PlaybackRepository(private val context: Context) {
 
         currentQueue = finalQueue
         shuffleEnabled = shuffle
-        finalQueue.getOrNull(targetIndex)?.let { recordPlayed(it) }
+        finalQueue.getOrNull(targetIndex)?.let { scheduleHistoryRecord(it) }
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem() } }
         controller?.apply {
             setMediaItems(mediaItems, targetIndex, 0L)
@@ -477,6 +465,17 @@ class PlaybackRepository(private val context: Context) {
     fun playFromQueue(song: Song) {
         val index = currentQueue.indexOfFirst { it.id == song.id }
         if (index != -1) controller?.seekTo(index, 0L)
+    }
+
+    // Delayed rather than immediate: a song only counts as "played" for Recently
+    // Played/history once it's actually been listened to for HISTORY_MIN_PLAYED_MS,
+    // not the instant playback starts.
+    private fun scheduleHistoryRecord(song: Song) {
+        historyJob?.cancel()
+        historyJob = repositoryScope.launch {
+            delay(HISTORY_MIN_PLAYED_MS)
+            recordPlayed(song)
+        }
     }
 
     fun recordPlayed(song: Song) {

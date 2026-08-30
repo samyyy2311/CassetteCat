@@ -23,9 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -65,6 +67,7 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     playbackViewModel: PlaybackViewModel,
@@ -141,7 +144,12 @@ fun HomeScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
+    PullToRefreshBox(
+        isRefreshing = libraryState is LibraryUiState.Loading,
+        onRefresh = { libraryViewModel.refresh() },
+        modifier = modifier.fillMaxSize()
+    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,6 +263,7 @@ fun HomeScreen(
                 }
             }
         }
+    }
 }
 
 // Mirrors the summary, hero, and vertical Shuffle Picks list rather than using a generic spinner.

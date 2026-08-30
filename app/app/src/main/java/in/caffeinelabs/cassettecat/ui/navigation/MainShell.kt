@@ -5,6 +5,9 @@ package `in`.caffeinelabs.cassettecat.ui.navigation
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -45,6 +48,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -53,6 +57,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.caffeinelabs.cassettecat.AppShortcutAction
+import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
@@ -133,6 +138,7 @@ object MainRoute {
     fun albumDetail(albumId: String) = "main/library/album/${Uri.encode(albumId)}"
     const val GENRE_DETAIL = "main/library/genre/{genre}"
     fun genreDetail(genre: String) = "main/library/genre/${Uri.encode(genre)}"
+    val BOTTOM_TABS = listOf(HOME, LIBRARY, RADIO, SEARCH, SETTINGS)
     const val FOLDER_DETAIL = "main/library/folder/{folderPath}"
     fun folderDetail(folderPath: String) = "main/library/folder/${Uri.encode(folderPath)}"
     const val PLAYLIST_DETAIL = "main/library/playlist/{playlistId}"
@@ -155,6 +161,29 @@ object MainRoute {
     const val SCROBBLING = "main/settings/scrobbling"
 }
 
+private val tabAwareEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
+    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+    slideEnter(fromRight = fromIndex == -1 || toIndex == -1 || toIndex > fromIndex)
+}
+
+private val tabAwareExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
+    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+    slideExit(toRight = fromIndex != -1 && toIndex != -1 && toIndex < fromIndex)
+}
+
+private fun resolvePlayMediaQueue(query: String?, songs: List<Song>, playlists: List<Playlist>): List<Song> {
+    val q = query?.trim().orEmpty()
+    if (q.isEmpty()) return songs
+    playlists.firstOrNull { it.name.equals(q, ignoreCase = true) }?.let { playlist ->
+        return songs.filter { it.id in playlist.songIds }
+    }
+    songs.filter { it.artist.contains(q, ignoreCase = true) }.takeIf { it.isNotEmpty() }?.let { return it }
+    songs.filter { it.album.contains(q, ignoreCase = true) }.takeIf { it.isNotEmpty() }?.let { return it }
+    return songs.filter { it.title.contains(q, ignoreCase = true) }
+}
+
 private val MINI_PLAYER_HEIGHT = 64.dp
 private val SHEET_CORNER_RADIUS = 28.dp
 // The bottom chrome is one continuous 64dp surface. Keeping this in sync with BottomNavBar
@@ -169,6 +198,7 @@ fun MainShell(
     playbackViewModel: PlaybackViewModel,
     modifier: Modifier = Modifier,
     shortcutAction: String? = null,
+    shortcutQuery: String? = null,
     onShortcutHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
@@ -292,6 +322,7 @@ fun MainShell(
             AppShortcutAction.SHUFFLE_ALL -> librarySongs to true
             AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite } to false
             AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() } to false
+            AppShortcutAction.PLAY_MEDIA -> resolvePlayMediaQueue(shortcutQuery, librarySongs, playlists) to false
             else -> emptyList<Song>() to false
         }
         onShortcutHandled()
@@ -437,8 +468,8 @@ fun MainShell(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(if (isHeroRoute) Modifier else Modifier.statusBarsPadding()),
-                    enterTransition = mechanicalEnter,
-                    exitTransition = mechanicalExit,
+                    enterTransition = tabAwareEnter,
+                    exitTransition = tabAwareExit,
                     popEnterTransition = mechanicalPopEnter,
                     popExitTransition = mechanicalPopExit
                 ) {

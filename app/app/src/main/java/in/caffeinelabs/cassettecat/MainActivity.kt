@@ -30,11 +30,13 @@ object AppShortcutAction {
     const val SHUFFLE_ALL = "in.caffeinelabs.cassettecat.action.SHUFFLE_ALL"
     const val PLAY_FAVORITES = "in.caffeinelabs.cassettecat.action.PLAY_FAVORITES"
     const val PLAY_RADIO_FAVORITES = "in.caffeinelabs.cassettecat.action.PLAY_RADIO_FAVORITES"
-    val all = setOf(SHUFFLE_ALL, PLAY_FAVORITES, PLAY_RADIO_FAVORITES)
+    const val PLAY_MEDIA = "in.caffeinelabs.cassettecat.action.PLAY_MEDIA"
+    val all = setOf(SHUFFLE_ALL, PLAY_FAVORITES, PLAY_RADIO_FAVORITES, PLAY_MEDIA)
 }
 
 class MainActivity : ComponentActivity() {
     private val shortcutAction = mutableStateOf<String?>(null)
+    private val shortcutQuery = mutableStateOf<String?>(null)
     // Initializer must be SDK-gated too, not just the register/unregister calls, or this crashes pre-14.
     private val screenshotCallback: Activity.ScreenCaptureCallback? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -70,7 +72,8 @@ class MainActivity : ComponentActivity() {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         CassetteCatNavHost(
                             shortcutAction = shortcutAction.value,
-                            onShortcutHandled = { shortcutAction.value = null },
+                            shortcutQuery = shortcutQuery.value,
+                            onShortcutHandled = { shortcutAction.value = null; shortcutQuery.value = null },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -87,6 +90,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleShortcutIntent(intent: Intent?) {
         shortcutAction.value = intent?.action?.takeIf { it in AppShortcutAction.all }
+        shortcutQuery.value = intent?.getStringExtra("query")
     }
 
     private fun requestHighestRefreshRate() {

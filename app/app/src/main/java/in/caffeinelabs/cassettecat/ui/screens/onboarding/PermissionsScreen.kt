@@ -40,17 +40,17 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        OnboardingProgressDots(currentStep = 0)
-        Spacer(Modifier.height(32.dp))
-
-        Text("Give your library a starting point", style = MaterialTheme.typography.headlineSmall)
+        OnboardingHeaderRow(currentStep = 0, totalSteps = 5)
         Spacer(Modifier.height(10.dp))
+
+        Text("Give your library a starting point", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(4.dp))
         Text(
-            "CassetteCat only asks for what it needs to play your music and keep playback handy.",
+            "Only what's needed to play your music.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(10.dp))
 
         PermissionCard(
             iconRes = R.drawable.lucide_ic_music,
@@ -58,14 +58,20 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
             description = "Find and play music stored on your phone."
         )
         if (showNotificationRow) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(28.dp))
             PermissionCard(
                 iconRes = R.drawable.lucide_ic_bell,
                 title = "Notifications",
                 description = "Keep playback controls available outside the app."
             )
+            Spacer(Modifier.height(28.dp))
+            PermissionCard(
+                iconRes = R.drawable.lucide_ic_wifi,
+                title = "Nearby devices",
+                description = "Find and pair your CassetteCat hardware player over Wi-Fi."
+            )
         }
-        // Top-anchored, not centered: a short device-menu-style list, not a hero moment.
+
         Spacer(Modifier.weight(1f))
 
         Button(

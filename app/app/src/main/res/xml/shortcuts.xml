@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <capability android:name="actions.intent.PLAY_MEDIA">
+        <intent
+            android:action="in.caffeinelabs.cassettecat.action.PLAY_MEDIA"
+            android:targetPackage="in.caffeinelabs.cassettecat"
+            android:targetClass="in.caffeinelabs.cassettecat.MainActivity">
+            <parameter
+                android:name="media.name"
+                android:key="query" />
+            <parameter
+                android:name="media.type"
+                android:key="mediaType" />
+        </intent>
+    </capability>
     <shortcut
         android:shortcutId="shuffle_all"
         android:enabled="true"

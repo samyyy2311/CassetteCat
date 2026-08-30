@@ -14,12 +14,12 @@ import androidx.navigation.NavBackStackEntry
 internal const val TRANSITION_MS = 220
 internal val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 
-private fun slideEnter(fromRight: Boolean): EnterTransition = slideInHorizontally(
+internal fun slideEnter(fromRight: Boolean): EnterTransition = slideInHorizontally(
     animationSpec = tween(TRANSITION_MS, easing = SmoothEasing),
     initialOffsetX = { if (fromRight) it / 4 else -it / 4 }
 ) + fadeIn(tween(TRANSITION_MS, easing = SmoothEasing))
 
-private fun slideExit(toRight: Boolean): ExitTransition = slideOutHorizontally(
+internal fun slideExit(toRight: Boolean): ExitTransition = slideOutHorizontally(
     animationSpec = tween(TRANSITION_MS, easing = SmoothEasing),
     targetOffsetX = { if (toRight) it / 4 else -it / 4 }
 ) + fadeOut(tween(TRANSITION_MS, easing = SmoothEasing))

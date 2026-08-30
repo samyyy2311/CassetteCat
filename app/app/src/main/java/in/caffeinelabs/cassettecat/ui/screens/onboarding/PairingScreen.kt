@@ -74,12 +74,12 @@ fun PairingScreen(
     ) {
         if (isOnboarding) {
             Column(modifier = Modifier.padding(24.dp)) {
-                OnboardingProgressDots(currentStep = 3)
-                Spacer(Modifier.height(32.dp))
-                Text("Connect CassetteCat", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
+                OnboardingHeaderRow(currentStep = 4, totalSteps = 5, onSkip = onFinish)
+                Spacer(Modifier.height(10.dp))
+                Text("Connect CassetteCat", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Pair with your companion hardware player over Wi-Fi or direct hotspot.",
+                    "Pair over Wi-Fi or direct hotspot.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -250,16 +250,6 @@ fun PairingScreen(
                         Text("Try again", color = MaterialTheme.colorScheme.tertiary)
                     }
                 }
-            }
-        }
-
-        if (isOnboarding && state !is DevicePairingState.Connected) {
-            Spacer(Modifier.height(32.dp))
-            TextButton(
-                onClick = hapticClick(onFinish),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-            ) {
-                Text("Skip for now", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 

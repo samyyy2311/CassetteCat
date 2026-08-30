@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,9 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.ui.navigation.SmoothEasing
 import `in`.caffeinelabs.cassettecat.ui.navigation.TRANSITION_MS
+import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 // Fades and settles in on entry, like a display powering on, instead of appearing static.
 @Composable
@@ -69,34 +73,49 @@ fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp
 }
 
 @Composable
+fun OnboardingHeaderRow(
+    currentStep: Int,
+    totalSteps: Int,
+    onSkip: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().height(40.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OnboardingProgressDots(currentStep = currentStep, totalSteps = totalSteps, modifier = Modifier.weight(1f))
+        if (onSkip != null) {
+            Spacer(Modifier.width(8.dp))
+            TextButton(
+                onClick = hapticClick(onSkip),
+                contentPadding = PaddingValues(vertical = 4.dp, horizontal = 8.dp),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+            ) { Text("Skip", style = MaterialTheme.typography.bodyMedium) }
+        }
+    }
+}
+
+@Composable
 fun OnboardingProgressDots(currentStep: Int, modifier: Modifier = Modifier, totalSteps: Int = 4) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(
-            text = "SETUP ${currentStep + 1} OF $totalSteps",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.weight(1f))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(totalSteps) { index ->
-                // Each dot ticks in slightly after the last, like an LED meter filling, no bounce.
-                val filled = index <= currentStep
-                val color by animateColorAsState(
-                    targetValue = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    animationSpec = tween(TRANSITION_MS, delayMillis = if (filled) index * 40 else 0, easing = SmoothEasing),
-                    label = "dotFill"
-                )
-                Box(
-                    modifier = Modifier
-                        .width(28.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                )
-            }
+        repeat(totalSteps) { index ->
+            // Each dot ticks in slightly after the last, like an LED meter filling, no bounce.
+            val filled = index <= currentStep
+            val color by animateColorAsState(
+                targetValue = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                animationSpec = tween(TRANSITION_MS, delayMillis = if (filled) index * 40 else 0, easing = SmoothEasing),
+                label = "dotFill"
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
         }
     }
 }

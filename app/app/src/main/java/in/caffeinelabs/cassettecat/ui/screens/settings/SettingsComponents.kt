@@ -241,7 +241,8 @@ fun ServerRow(
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_refresh_cw),
                     contentDescription = "Retry $title",
-                    tint = MaterialTheme.colorScheme.tertiary
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             TextButton(onClick = hapticClick(onDisconnect)) { Text("Disconnect") }

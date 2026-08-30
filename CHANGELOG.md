@@ -2,6 +2,16 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.6.2] - Cleaner Setup & a Skip Bug Squashed
+
+* Reworked the setup flow: cleaner, more consistent screens, and one less step.
+* You can now restore a backup right from setup, handy on a reinstall.
+* Added pull-to-refresh to Home.
+* Added an All Songs section to artist pages.
+* Fixed Next/skip going dead at the end of your queue when Autoplay was on.
+* Fixed Google Assistant/Gemini not being able to trigger playback in CassetteCat.
+* Recently Played no longer counts a song you skipped after a second or two.
+
 ## [1.6.1] - Performance & Reliability
 
 ### Performance

@@ -25,6 +25,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.DeviceIntroScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.LibraryScanScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PermissionsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.SetupCustomizationScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.WelcomeScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ private object OnboardingRoute {
     const val WELCOME = "onboarding/welcome"
     const val PERMISSIONS = "onboarding/permissions"
     const val LIBRARY_SCAN = "onboarding/library_scan"
+    const val CUSTOMIZATION = "onboarding/customization"
     const val DEVICE_INTRO = "onboarding/device_intro"
     const val PAIRING = "onboarding/pairing"
 }
@@ -45,6 +47,7 @@ private object OnboardingRoute {
 @Composable
 fun CassetteCatNavHost(
     shortcutAction: String? = null,
+    shortcutQuery: String? = null,
     onShortcutHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -84,7 +87,12 @@ fun CassetteCatNavHost(
         onboardingGraph(navController, onOnboardingFinished)
         composable(Graph.MAIN) { entry ->
             val playbackViewModel: PlaybackViewModel = viewModel(entry)
-            MainShell(playbackViewModel, shortcutAction = shortcutAction, onShortcutHandled = onShortcutHandled)
+            MainShell(
+                playbackViewModel,
+                shortcutAction = shortcutAction,
+                shortcutQuery = shortcutQuery,
+                onShortcutHandled = onShortcutHandled
+            )
         }
     }
 }
@@ -107,7 +115,19 @@ private fun NavGraphBuilder.onboardingGraph(
             )
         }
         composable(OnboardingRoute.LIBRARY_SCAN) {
+            val toCustomization: () -> Unit = {
+                navController.navigate(OnboardingRoute.CUSTOMIZATION) {
+                    popUpTo(OnboardingRoute.LIBRARY_SCAN) { inclusive = true }
+                }
+            }
             LibraryScanScreen(
+                onContinue = toCustomization,
+                onSkip = toCustomization,
+                modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
+            )
+        }
+        composable(OnboardingRoute.CUSTOMIZATION) {
+            SetupCustomizationScreen(
                 onContinue = { navController.navigate(OnboardingRoute.DEVICE_INTRO) },
                 modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
             )

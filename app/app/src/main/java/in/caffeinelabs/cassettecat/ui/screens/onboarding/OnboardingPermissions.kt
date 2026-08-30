@@ -12,6 +12,7 @@ object OnboardingPermissions {
         )
         if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.POST_NOTIFICATIONS)
+            add(Manifest.permission.NEARBY_WIFI_DEVICES)
         }
     }
 }

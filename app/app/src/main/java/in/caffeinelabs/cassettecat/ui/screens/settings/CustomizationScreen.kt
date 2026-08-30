@@ -294,7 +294,7 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
 }
 
 @Composable
-private fun AccentSwatchItem(
+internal fun AccentSwatchItem(
     color: Color,
     label: String,
     isSelected: Boolean,

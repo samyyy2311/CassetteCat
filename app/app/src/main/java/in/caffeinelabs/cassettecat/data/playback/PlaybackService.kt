@@ -90,6 +90,7 @@ class PlaybackService : MediaLibraryService() {
     private var isHapticFeedbackEnabled: Boolean = true
     private var lastShakeSkipTime: Long = 0L
     private var lastWaveSkipTime: Long = 0L
+    private var sequentialNavigationPlayer: SequentialNavigationPlayer? = null
 
     private val becomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -164,13 +165,7 @@ class PlaybackService : MediaLibraryService() {
                     if (isHapticFeedbackEnabled) {
                         triggerShakeHaptic()
                     }
-                    val currentIndex = p.currentMediaItemIndex
-                    val totalCount = p.mediaItemCount
-                    if (currentIndex != C.INDEX_UNSET && currentIndex < totalCount - 1) {
-                        p.seekTo(currentIndex + 1, 0L)
-                    } else if (p.repeatMode == Player.REPEAT_MODE_ALL && totalCount > 0) {
-                        p.seekTo(0, 0L)
-                    }
+                    p.seekToNextMediaItem()
                     p.play()
                 }
             }
@@ -187,13 +182,7 @@ class PlaybackService : MediaLibraryService() {
                     if (isHapticFeedbackEnabled) {
                         triggerShakeHaptic()
                     }
-                    val currentIndex = p.currentMediaItemIndex
-                    val totalCount = p.mediaItemCount
-                    if (currentIndex != C.INDEX_UNSET && currentIndex < totalCount - 1) {
-                        p.seekTo(currentIndex + 1, 0L)
-                    } else if (p.repeatMode == Player.REPEAT_MODE_ALL && totalCount > 0) {
-                        p.seekTo(0, 0L)
-                    }
+                    p.seekToNextMediaItem()
                     p.play()
                 }
             }
@@ -273,6 +262,7 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
                 isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
+                sequentialNavigationPlayer?.autoplayEnabled = prefs.autoplayEnabled
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                     .setMaxAudioChannelCount(maxChannels)
@@ -311,7 +301,9 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaLibrarySession.Builder(this, SequentialNavigationPlayer(player), CustomMediaLibrarySessionCallback())
+        val navigationPlayer = SequentialNavigationPlayer(player)
+        sequentialNavigationPlayer = navigationPlayer
+        mediaSession = MediaLibrarySession.Builder(this, navigationPlayer, CustomMediaLibrarySessionCallback())
             .setSessionActivity(sessionActivity)
             .setCustomLayout(buildCustomLayout(player, false))
             .build()
@@ -357,13 +349,7 @@ class PlaybackService : MediaLibraryService() {
                 }
                 ACTION_WIDGET_NEXT -> {
                     player?.let { p ->
-                        val curr = p.currentMediaItemIndex
-                        val total = p.mediaItemCount
-                        if (curr != C.INDEX_UNSET && curr < total - 1) {
-                            p.seekTo(curr + 1, 0L)
-                        } else if (p.repeatMode == Player.REPEAT_MODE_ALL && total > 0) {
-                            p.seekTo(0, 0L)
-                        }
+                        p.seekToNextMediaItem()
                         p.play()
                     }
                 }
@@ -495,7 +481,12 @@ class PlaybackService : MediaLibraryService() {
             serviceScope.launch {
                 runCatching {
                     mediaItems.map { item ->
-                        if (item.localConfiguration != null) item else libraryTree.item(item.mediaId) ?: item
+                        val searchQuery = item.requestMetadata.searchQuery
+                        when {
+                            item.localConfiguration != null -> item
+                            !searchQuery.isNullOrBlank() -> libraryTree.search(searchQuery).firstOrNull() ?: item
+                            else -> libraryTree.item(item.mediaId) ?: item
+                        }
                     }
                 }.onSuccess { future.set(it) }.onFailure { future.setException(it) }
             }
@@ -714,14 +705,37 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
 // reach or control; this keeps next/previous (including hardware/Bluetooth/notification/Auto)
 // strictly sequential through the real timeline instead of that separate random order.
 private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(player) {
+    // Lets the system next button, gestures, and widget stay usable past the last queued
+    // song when Autoplay is on, instead of going dead the same way they would with it off.
+    var autoplayEnabled: Boolean = false
+
     override fun hasNextMediaItem(): Boolean {
         val index = currentMediaItemIndex
-        return index != C.INDEX_UNSET && (index < mediaItemCount - 1 || repeatMode == Player.REPEAT_MODE_ALL)
+        return index != C.INDEX_UNSET && (index < mediaItemCount - 1 || repeatMode == Player.REPEAT_MODE_ALL || autoplayEnabled)
     }
 
     override fun hasPreviousMediaItem(): Boolean {
         val index = currentMediaItemIndex
         return index != C.INDEX_UNSET && index > 0
+    }
+
+    override fun getAvailableCommands(): Player.Commands {
+        val builder = Player.Commands.Builder().addAll(super.getAvailableCommands())
+        if (hasNextMediaItem()) {
+            builder.add(Player.COMMAND_SEEK_TO_NEXT)
+            builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+        } else {
+            builder.remove(Player.COMMAND_SEEK_TO_NEXT)
+            builder.remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+        }
+        if (hasPreviousMediaItem()) {
+            builder.add(Player.COMMAND_SEEK_TO_PREVIOUS)
+            builder.add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+        } else {
+            builder.remove(Player.COMMAND_SEEK_TO_PREVIOUS)
+            builder.remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+        }
+        return builder.build()
     }
 
     override fun seekToNext() = seekToNextMediaItem()
@@ -737,6 +751,12 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
             seekTo(index + 1, 0L)
         } else if (repeatMode == Player.REPEAT_MODE_ALL && mediaItemCount > 0) {
             seekTo(0, 0L)
+        } else if (autoplayEnabled) {
+            // No next item yet: jump to the end of the current one to trigger ExoPlayer's
+            // own STATE_ENDED, which PlaybackRepository's listener already turns into an
+            // Autoplay continuation - reusing that path instead of duplicating it here.
+            val dur = duration
+            if (dur > 0 && dur != C.TIME_UNSET) seekTo(index, dur)
         }
     }
 

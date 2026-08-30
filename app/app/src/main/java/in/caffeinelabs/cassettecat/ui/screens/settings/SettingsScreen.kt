@@ -384,7 +384,7 @@ fun ServiceToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .tapScale { onToggle(!enabled) }
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (iconRes != null) {
@@ -392,9 +392,9 @@ fun ServiceToggleRow(
                 painter = painterResource(iconRes),
                 contentDescription = null,
                 tint = if (isBlackedOut) iconTint.copy(alpha = 0.5f) else iconTint,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.width(18.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -437,15 +437,16 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
                     Modifier
                 }
             )
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(R.drawable.lucide_ic_refresh_cw),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text("Check for Updates", style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -463,7 +464,8 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_right),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(16.dp)
             )
         }
     }

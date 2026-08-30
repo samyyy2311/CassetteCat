@@ -157,6 +157,7 @@ private fun ArtistCatalogScreen(
         artistReleases.filterNot { it.cover.albumId in singleIds }
     }
     val recentTracks = remember(songs) { songs.sortedByDescending { it.dateAddedMs }.take(5) }
+    val allSongsSorted = remember(songs) { songs.sortedBy { it.title.lowercase() } }
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     val heroHeightPx = with(density) { 430.dp.toPx() }
@@ -239,6 +240,12 @@ private fun ArtistCatalogScreen(
                         albums = appearsOn,
                         onAlbumClick = { onNavigateToAlbum(it.cover.albumId) }
                     )
+                }
+            }
+            if (allSongsSorted.isNotEmpty()) {
+                item(key = "all-songs-title", contentType = "section_title") { ArtistSectionTitle("All Songs") }
+                itemsIndexed(allSongsSorted, key = { _, it -> "all:${it.id}" }, contentType = { _, _ -> "song" }) { index, song ->
+                    ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
                 }
             }
             // About is intentionally final: the library/catalog content comes first.
