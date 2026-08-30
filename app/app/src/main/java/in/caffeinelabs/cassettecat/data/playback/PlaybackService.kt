@@ -711,7 +711,7 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
 
     override fun hasNextMediaItem(): Boolean {
         val index = currentMediaItemIndex
-        return index != C.INDEX_UNSET && (index < mediaItemCount - 1 || repeatMode == Player.REPEAT_MODE_ALL || autoplayEnabled)
+        return index != C.INDEX_UNSET && (index < mediaItemCount - 1 || repeatMode == Player.REPEAT_MODE_ALL)
     }
 
     override fun hasPreviousMediaItem(): Boolean {
@@ -721,7 +721,9 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
 
     override fun getAvailableCommands(): Player.Commands {
         val builder = Player.Commands.Builder().addAll(super.getAvailableCommands())
-        if (hasNextMediaItem()) {
+        // autoplayEnabled affects command exposure only, not hasNextMediaItem() itself,
+        // which PlaybackRepository's queue-exhaustion/Autoplay path depends on staying accurate.
+        if (hasNextMediaItem() || autoplayEnabled) {
             builder.add(Player.COMMAND_SEEK_TO_NEXT)
             builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
         } else {

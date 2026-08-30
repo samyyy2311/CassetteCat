@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.6.1-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.6.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.6.3-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.6.3" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose" /></a>
-  <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-Listed-2A2A2A?style=flat-square" alt="AlternativeTo" /></a>
-  <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&label=downloads" alt="GitHub downloads" /></a>
+  <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-2A2A2A?style=flat-square&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
+  <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
 </p>
 
 ---
@@ -24,23 +24,22 @@
 
 <p align="center">
   <a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat">
-    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="56" />
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="45" style="vertical-align:middle" />
   </a>
   <a href="https://github.com/samyyy2311/CassetteCat/releases/latest">
-    <img src="https://img.shields.io/badge/Download%20APK-GitHub%20Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="Download APK from GitHub Releases" />
+    <img src="assets/badge_github.png" alt="Download APK from GitHub Releases" height="31" style="vertical-align:middle" />
   </a>
   <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/samyyy2311/CassetteCat">
-    <img src="https://img.shields.io/badge/Install%20with-Obtainium-4A154B?style=for-the-badge&logo=android&logoColor=white" alt="Install CassetteCat with Obtainium" />
+    <img src="assets/badge_obtainium.png" alt="Install CassetteCat with Obtainium" height="45" style="vertical-align:middle" />
   </a>
+  <img src="assets/badge_fdroid.png" alt="F-Droid (pending)" height="45" style="vertical-align:middle" />
+  <img src="assets/badge_openapk.png" alt="OpenAPK (pending)" height="45" style="vertical-align:middle" />
 </p>
 
 <p align="center">
   <strong>Android 8.0+</strong><br />
-  Download the latest APK directly from GitHub or use Obtainium for automatic update tracking.
+  Download the latest APK directly from GitHub or use Obtainium for automatic update tracking. F-Droid and OpenAPK listings are pending.
 </p>
-
-> **F-Droid:** submission is currently pending. An install button will be
-> added once CassetteCat is available through the repository.
 
 ---
 

@@ -2,6 +2,12 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.6.3] - Autoplay Actually Continues Now
+
+* Fixed Autoplay silently failing to continue at the end of your queue instead of picking new songs.
+* Fixed Restore from Backup getting interrupted if you tapped Continue during setup too quickly.
+* Recently Played now correctly pauses its 30-second timer while a song is paused.
+
 ## [1.6.2] - Cleaner Setup & a Skip Bug Squashed
 
 * Reworked the setup flow: cleaner, more consistent screens, and one less step.

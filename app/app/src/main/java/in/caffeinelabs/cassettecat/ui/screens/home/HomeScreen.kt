@@ -180,12 +180,14 @@ fun HomeScreen(
         if (libraryState is LibraryUiState.Loading) {
             HomeSkeletonContent(listBottomPadding = listBottomPadding)
         } else if (allSongs.isEmpty()) {
-            EmptyState(
-                iconRes = R.drawable.lucide_ic_folder_search,
-                title = "Nothing here yet",
-                message = "Scan your library to get started.",
-                modifier = Modifier.weight(1f)
-            )
+            Box(modifier = Modifier.weight(1f).fillMaxSize().verticalScroll(rememberScrollState())) {
+                EmptyState(
+                    iconRes = R.drawable.lucide_ic_folder_search,
+                    title = "Nothing here yet",
+                    message = "Scan your library to get started.",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),

@@ -55,6 +55,9 @@ class PlaybackRepository(private val context: Context) {
     private var shuffleEnabled = false
     private val history = ArrayDeque<Song>()
     private var historyJob: Job? = null
+    private var historyAccumulatedMs: Long = 0L
+    private var historyActiveSinceMs: Long? = null
+    private var historySong: Song? = null
     var onQueueExhausted: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
@@ -64,10 +67,14 @@ class PlaybackRepository(private val context: Context) {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         controller = MediaController.Builder(context, token).buildAsync().awaitController(context)
         controller?.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updateState()
+                if (isPlaying) resumeHistoryTracking() else pauseHistoryTracking()
+            }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 updateState()
-                _state.value.currentSong?.let { scheduleHistoryRecord(it) }
+                resetHistoryTracking(_state.value.currentSong)
+                if (controller?.isPlaying == true) resumeHistoryTracking()
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
@@ -94,10 +101,6 @@ class PlaybackRepository(private val context: Context) {
                                 c.seekTo(0, 0L)
                                 c.play()
                             }
-                        }
-                        c != null && c.hasNextMediaItem() -> {
-                            c.seekToNextMediaItem()
-                            c.play()
                         }
                         else -> onQueueExhausted?.invoke()
                     }
@@ -153,7 +156,7 @@ class PlaybackRepository(private val context: Context) {
 
         currentQueue = finalQueue
         shuffleEnabled = shuffle
-        finalQueue.getOrNull(targetIndex)?.let { scheduleHistoryRecord(it) }
+        resetHistoryTracking(finalQueue.getOrNull(targetIndex))
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem() } }
         controller?.apply {
             setMediaItems(mediaItems, targetIndex, 0L)
@@ -261,9 +264,6 @@ class PlaybackRepository(private val context: Context) {
             c.play()
         } else if (c.repeatMode == Player.REPEAT_MODE_ALL && currentQueue.isNotEmpty()) {
             c.seekTo(0, 0L)
-            c.play()
-        } else if (c.hasNextMediaItem()) {
-            c.seekToNextMediaItem()
             c.play()
         } else {
             onQueueExhausted?.invoke()
@@ -467,13 +467,31 @@ class PlaybackRepository(private val context: Context) {
         if (index != -1) controller?.seekTo(index, 0L)
     }
 
-    // Delayed rather than immediate: a song only counts as "played" for Recently
-    // Played/history once it's actually been listened to for HISTORY_MIN_PLAYED_MS,
-    // not the instant playback starts.
-    private fun scheduleHistoryRecord(song: Song) {
+    // Accumulates only actively-playing time toward HISTORY_MIN_PLAYED_MS, pausing/resuming
+    // with playback instead of a flat wall-clock delay, so a song paused for most of its
+    // runtime doesn't get counted as "played" just because time passed.
+    private fun resetHistoryTracking(song: Song?) {
         historyJob?.cancel()
+        historyJob = null
+        historyAccumulatedMs = 0L
+        historyActiveSinceMs = null
+        historySong = song
+    }
+
+    private fun pauseHistoryTracking() {
+        historyActiveSinceMs?.let { since -> historyAccumulatedMs += SystemClock.elapsedRealtime() - since }
+        historyActiveSinceMs = null
+        historyJob?.cancel()
+        historyJob = null
+    }
+
+    private fun resumeHistoryTracking() {
+        val song = historySong ?: return
+        if (historyActiveSinceMs != null) return
+        historyActiveSinceMs = SystemClock.elapsedRealtime()
+        val remaining = (HISTORY_MIN_PLAYED_MS - historyAccumulatedMs).coerceAtLeast(0L)
         historyJob = repositoryScope.launch {
-            delay(HISTORY_MIN_PLAYED_MS)
+            delay(remaining)
             recordPlayed(song)
         }
     }

@@ -60,18 +60,24 @@ fun SetupCustomizationScreen(onContinue: () -> Unit, modifier: Modifier = Modifi
     val scope = rememberCoroutineScope()
     val backupRepository = remember { BackupRepository(context) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
+    var isRestoring by remember { mutableStateOf(false) }
 
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
+            isRestoring = true
             scope.launch {
-                val result = withContext(Dispatchers.IO) {
-                    val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                    text?.let { backupRepository.restoreBackup(it) }
-                }
-                resultMessage = if (result?.isSuccess == true) {
-                    "Backup restored."
-                } else {
-                    "Restore failed: the file may not be a valid CassetteCat backup."
+                try {
+                    val result = withContext(Dispatchers.IO) {
+                        val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        text?.let { backupRepository.restoreBackup(it) }
+                    }
+                    resultMessage = if (result?.isSuccess == true) {
+                        "Backup restored."
+                    } else {
+                        "Restore failed: the file may not be a valid CassetteCat backup."
+                    }
+                } finally {
+                    isRestoring = false
                 }
             }
         }
@@ -197,6 +203,7 @@ fun SetupCustomizationScreen(onContinue: () -> Unit, modifier: Modifier = Modifi
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = hapticClick(onContinue),
+            enabled = !isRestoring,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Continue") }
     }

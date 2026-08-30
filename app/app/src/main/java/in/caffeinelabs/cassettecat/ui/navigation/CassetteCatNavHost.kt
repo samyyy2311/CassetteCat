@@ -48,6 +48,7 @@ private object OnboardingRoute {
 fun CassetteCatNavHost(
     shortcutAction: String? = null,
     shortcutQuery: String? = null,
+    shortcutMediaType: String? = null,
     onShortcutHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -91,6 +92,7 @@ fun CassetteCatNavHost(
                 playbackViewModel,
                 shortcutAction = shortcutAction,
                 shortcutQuery = shortcutQuery,
+                shortcutMediaType = shortcutMediaType,
                 onShortcutHandled = onShortcutHandled
             )
         }

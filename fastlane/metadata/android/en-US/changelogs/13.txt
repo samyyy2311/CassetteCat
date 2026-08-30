@@ -1,0 +1,5 @@
+What's new in 1.6.3:
+
+- Fixed Autoplay silently failing to continue at the end of your queue
+- Fixed Restore from Backup getting interrupted if you tapped Continue too quickly
+- Recently Played now correctly pauses its 30-second timer while a song is paused
