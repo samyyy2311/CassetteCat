@@ -23,17 +23,11 @@
 ## Install
 
 <p align="center">
-  <a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat">
-    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="45" style="vertical-align:middle" />
-  </a>
-  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest">
-    <img src="assets/badge_github.png" alt="Download APK from GitHub Releases" height="31" style="vertical-align:middle" />
-  </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/samyyy2311/CassetteCat">
-    <img src="assets/badge_obtainium.png" alt="Install CassetteCat with Obtainium" height="45" style="vertical-align:middle" />
-  </a>
-  <img src="assets/badge_fdroid.png" alt="F-Droid (pending)" height="45" style="vertical-align:middle" />
-  <img src="assets/badge_openapk.png" alt="OpenAPK (pending)" height="45" style="vertical-align:middle" />
+  <a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat"><span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; border:1px solid #444; border-radius:6px; vertical-align:middle;"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="45" /></span></a>
+  <a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; border:1px solid #444; border-radius:6px; vertical-align:middle;"><img src="assets/badge_github.png" alt="Download APK from GitHub Releases" height="31" /></span></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/samyyy2311/CassetteCat"><span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; border:1px solid #444; border-radius:6px; vertical-align:middle;"><img src="assets/badge_obtainium.png" alt="Install CassetteCat with Obtainium" height="45" /></span></a>
+  <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; border:1px solid #444; border-radius:6px; vertical-align:middle;"><img src="assets/badge_fdroid.png" alt="F-Droid (pending)" height="45" /></span>
+  <span style="display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; border:1px solid #444; border-radius:6px; vertical-align:middle;"><img src="assets/badge_openapk.png" alt="OpenAPK (pending)" height="45" /></span>
 </p>
 
 <p align="center">
