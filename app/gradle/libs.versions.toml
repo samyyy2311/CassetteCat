@@ -14,7 +14,7 @@ okhttp = "5.4.0"
 kotlinxSerializationJson = "1.11.0"
 junit = "4.13.2"
 mockitoCore = "5.14.2"
-robolectric = "4.14.1"
+robolectric = "4.16.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
