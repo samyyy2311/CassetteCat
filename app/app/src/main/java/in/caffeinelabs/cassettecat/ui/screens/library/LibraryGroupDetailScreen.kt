@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.draw.blur
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +66,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.ArtistBiography
@@ -69,12 +76,14 @@ import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.rememberLocalFileCoverBitmap
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.deleteSongFile
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.flow.first
@@ -608,6 +617,23 @@ fun FolderDetailScreen(
 
     val folderName = java.io.File(folderPath).name.ifBlank { folderPath }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val folderCoverRepository = remember { FolderCoverRepository(context) }
+    val folderCoverStorage = remember { FolderCoverStorage(context) }
+    val folderCovers by folderCoverRepository.folderCovers.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val customCoverPath = folderCovers[folderPath]
+    val coverPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                folderCoverStorage.save(folderPath, uri)?.let { folderCoverRepository.setCover(folderPath, it) }
+            }
+        }
+    }
+    val deleteRecoveryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { libraryViewModel.refresh() }
+
     LibraryGroupDetailScreen(
         title = folderName,
         subtitle = if (songs.size == 1) "1 song" else "${songs.size} songs",
@@ -615,6 +641,12 @@ fun FolderDetailScreen(
         artistForHero = null,
         albumHeroSong = null,
         folderHeroPath = folderPath,
+        folderCustomCoverPath = customCoverPath,
+        onChangeFolderCover = { coverPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        onClearFolderCover = {
+            scope.launch { folderCoverRepository.clearCover(folderPath) }
+            folderCoverStorage.delete(folderPath)
+        },
         playlistViewModel = playlistViewModel,
         metadata = emptyList(),
         songs = songs,
@@ -622,10 +654,15 @@ fun FolderDetailScreen(
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
         modifier = modifier,
-        listBottomPadding = listBottomPadding
+        listBottomPadding = listBottomPadding,
+        onDeleteSong = { song ->
+            deleteSongFile(context, song, deleteRecoveryLauncher)
+            libraryViewModel.refresh()
+        }
     )
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun LibraryGroupDetailScreen(
     title: String,
@@ -640,13 +677,16 @@ private fun LibraryGroupDetailScreen(
     onNavigateToNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
     folderHeroPath: String? = null,
+    folderCustomCoverPath: String? = null,
+    onChangeFolderCover: () -> Unit = {},
+    onClearFolderCover: () -> Unit = {},
     wikipediaAlbumArtist: String? = null,
     playlistViewModel: PlaylistViewModel? = null,
-    listBottomPadding: Dp = 0.dp
+    listBottomPadding: Dp = 0.dp,
+    onDeleteSong: ((Song) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
-    val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
     val playlists = playlistViewModel?.playlists?.collectAsStateWithLifecycle()?.value.orEmpty()
     val loader = remember { WikipediaInfoLoader() }
     val settingsRepo = remember { ServiceSettingsRepository(context) }
@@ -654,7 +694,39 @@ private fun LibraryGroupDetailScreen(
     var showAlbumActions by remember { mutableStateOf(false) }
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var songForOptions by remember { mutableStateOf<Song?>(null) }
+    var songPendingDelete by remember { mutableStateOf<Song?>(null) }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+
+    var songFilter by remember { mutableStateOf(SongFilter.ALL) }
+    var sortOrder by remember { mutableStateOf(SongSortOrder.TITLE) }
+    var sortDirection by remember { mutableStateOf(SortDirection.ASCENDING) }
+    var showRefineSheet by remember { mutableStateOf(false) }
+    val isRefined = folderHeroPath != null && (songFilter != SongFilter.ALL || sortOrder != SongSortOrder.TITLE || sortDirection != SortDirection.ASCENDING)
+
+    val favoritesRepository = remember { FavoritesRepository(context) }
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
+    val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
+
+    // Sort/filter only apply inside a folder's track list; every other detail screen keeps its natural order.
+    val songs = remember(songs, folderHeroPath, songFilter, sortOrder, sortDirection, favoriteIds, downloads) {
+        if (folderHeroPath == null) songs
+        else {
+            val filtered = when (songFilter) {
+                SongFilter.ALL -> songs
+                SongFilter.FAVORITES -> songs.filter { it.isFavorite || it.id in favoriteIds }
+                SongFilter.DOWNLOADED -> songs.filter {
+                    it.source == MusicSource.Local || downloads[it.id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
+                }
+                SongFilter.RECENTLY_ADDED -> songs.sortedByDescending { it.dateAddedMs }
+            }
+            if (songFilter == SongFilter.RECENTLY_ADDED) filtered
+            else {
+                val comparator = sortOrder.comparator().let { if (sortDirection == SortDirection.DESCENDING) it.reversed() else it }
+                filtered.sortedWith(comparator)
+            }
+        }
+    }
+    val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
 
     LaunchedEffect(wikipediaQuery) {
         val settings = settingsRepo.settings.first()
@@ -711,11 +783,14 @@ private fun LibraryGroupDetailScreen(
                         folderPath = folderHeroPath,
                         songCount = songs.size,
                         sampleSong = songs.firstOrNull(),
+                        customCoverPath = folderCustomCoverPath,
                         canDownload = downloadableSongs.isNotEmpty(),
                         onBack = onBack,
                         onPlayAll = playAll,
                         onShuffleAll = shuffleAll,
-                        onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) }
+                        onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) },
+                        onChangeCover = onChangeFolderCover,
+                        onClearCover = onClearFolderCover
                     )
                 } else if (albumHeroSong != null) {
                     AlbumDetailHeader(
@@ -752,7 +827,9 @@ private fun LibraryGroupDetailScreen(
                         title = if (albumHeroSong != null) "Tracks" else if (artistForHero != null) "Popular Songs" else "Tracks",
                         songs = songs,
                         onPlayAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) playAll else null,
-                        onShuffleAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) shuffleAll else null
+                        onShuffleAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) shuffleAll else null,
+                        onRefine = if (folderHeroPath != null) { { showRefineSheet = true } } else null,
+                        isRefined = isRefined
                     )
                 }
             }
@@ -799,8 +876,6 @@ private fun LibraryGroupDetailScreen(
             )
         }
         if (!showPlaylistPicker) songForOptions?.let { song ->
-            val favoritesRepository = remember { FavoritesRepository(context) }
-            val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
             val isFav = song.isFavorite || song.id in favoriteIds
             val coroutineScope = rememberCoroutineScope()
 
@@ -828,7 +903,43 @@ private fun LibraryGroupDetailScreen(
                     shareSongs(context, listOf(song))
                     songForOptions = null
                 },
+                onDelete = if (onDeleteSong != null) {
+                    { songPendingDelete = song; songForOptions = null }
+                } else null,
                 onDismiss = { songForOptions = null }
+            )
+        }
+        if (folderHeroPath != null && showRefineSheet) {
+            LibraryRefineSheet(
+                filter = songFilter,
+                onFilterSelect = { songFilter = it },
+                sortOptions = SongSortOrder.entries,
+                sortLabelOf = { it.label },
+                selectedSort = sortOrder,
+                sortDirection = sortDirection,
+                onSortSelect = { order ->
+                    if (order == sortOrder) sortDirection = sortDirection.flipped() else {
+                        sortOrder = order
+                        sortDirection = SortDirection.ASCENDING
+                    }
+                },
+                onDismiss = { showRefineSheet = false }
+            )
+        }
+        songPendingDelete?.let { song ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { songPendingDelete = null },
+                title = { Text("Delete \"${song.title}\"?") },
+                text = { Text("This permanently removes the file from your device. This can't be undone.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        onDeleteSong?.invoke(song)
+                        songPendingDelete = null
+                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { songPendingDelete = null }) { Text("Cancel") }
+                }
             )
         }
     }
@@ -1210,8 +1321,12 @@ private fun FolderDetailHeader(
     onBack: () -> Unit,
     onPlayAll: () -> Unit,
     onShuffleAll: () -> Unit,
-    onDownloadAll: () -> Unit
+    onDownloadAll: () -> Unit,
+    customCoverPath: String? = null,
+    onChangeCover: () -> Unit = {},
+    onClearCover: () -> Unit = {}
 ) {
+    val customCover = rememberLocalFileCoverBitmap(customCoverPath)
     val displayPath = folderPath
         .replace("/storage/emulated/0", "~")
         .replace("/storage/emulated/legacy", "~")
@@ -1245,8 +1360,18 @@ private fun FolderDetailHeader(
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
-            if (sampleSong != null) {
+            val hasArt = customCover != null || sampleSong != null
+            if (customCover != null) {
+                Image(
+                    bitmap = customCover.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (sampleSong != null) {
                 AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+            }
+            if (hasArt) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1259,12 +1384,43 @@ private fun FolderDetailHeader(
                         )
                 )
             }
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_folder),
-                contentDescription = null,
-                tint = if (sampleSong != null) Color.White.copy(alpha = 0.95f) else MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(56.dp)
-            )
+            if (customCover == null) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_folder),
+                    contentDescription = null,
+                    tint = if (hasArt) Color.White.copy(alpha = 0.95f) else MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(56.dp)
+                )
+            }
+            Row(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (customCoverPath != null) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_trash_2),
+                        contentDescription = "Remove folder cover",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .padding(3.dp)
+                            .tapScale(onClearCover)
+                    )
+                }
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_image_plus),
+                    contentDescription = "Change folder cover",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(3.dp)
+                        .tapScale(onChangeCover)
+                )
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -1341,7 +1497,9 @@ private fun SongSectionHeader(
     title: String,
     songs: List<Song> = emptyList(),
     onPlayAll: (() -> Unit)? = null,
-    onShuffleAll: (() -> Unit)? = null
+    onShuffleAll: (() -> Unit)? = null,
+    onRefine: (() -> Unit)? = null,
+    isRefined: Boolean = false
 ) {
     val totalDurationText = remember(songs) {
         if (songs.isEmpty()) "" else {
@@ -1392,6 +1550,13 @@ private fun SongSectionHeader(
                     onClick = onShuffleAll
                 )
             }
+        } else if (onRefine != null) {
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                contentDescription = "Refine tracks",
+                tint = if (isRefined) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onRefine
+            )
         }
     }
 }

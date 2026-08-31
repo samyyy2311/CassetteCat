@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.6.3-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.6.3" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.6.5-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.6.5" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -166,6 +166,10 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 - [System Architecture](docs/architecture.md)
 - [Android Development Guide](docs/android.md)
+- [Firmware Architecture](docs/firmware.md)
+- [Hardware (BOM, wiring)](docs/hardware.md)
+- [Device Song Sync Protocol](docs/device-sync-protocol.md)
+- [Device Control Protocol](docs/device-control-protocol.md)
 - [Troubleshooting & FAQs](docs/troubleshooting.md)
 - [Privacy Policy](PRIVACY_POLICY.md)
 

@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = EqualizerSettingsRepository(app)
@@ -156,5 +157,9 @@ class EqualizerViewModel(app: Application) : AndroidViewModel(app) {
     private fun paddedLevels(): List<Int> {
         val current = levels.value.bandLevelsMb
         return if (current.size < numberOfBands) List(numberOfBands) { current.getOrElse(it) { 0 } } else current
+    }
+
+    override fun onCleared() {
+        audioDspScope.cancel()
     }
 }

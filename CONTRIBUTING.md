@@ -17,7 +17,7 @@ Before opening a pull request, please review our core engineering principles:
    - Hardware designs in `hardware/` are licensed under CERN-OHL-S-2.0.
 
 3. **Design Consistency**
-   - Respect the Owned Device theme (neutral surfaces, Signal Red `#C23B30` indicator accents, IBM Plex typography, and tactile button feedback).
+   - Respect the Owned Device theme: neutral surfaces, Record Red `#B3483A` indicator accents used sparingly (never as a background or large fill), IBM Plex Sans/Mono typography, and tactile press-depth button feedback.
    - Navigation transitions use linear 220ms sliding animations without spring or bounce easing.
 
 4. **Independent Implementation**

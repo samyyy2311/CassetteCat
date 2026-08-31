@@ -74,7 +74,13 @@ data class ArtistGroup(val artist: String, val songs: List<Song>)
 data class AlbumGroup(val albumId: String, val album: String, val artist: String, val songs: List<Song>)
 data class GenreGroup(val genre: String, val songs: List<Song>)
 
-data class FolderGroup(val folderName: String, val folderPath: String, val songs: List<Song>)
+data class FolderGroup(
+    val folderName: String,
+    val folderPath: String,
+    val parentName: String?,
+    val songs: List<Song>,
+    val customCoverPath: String? = null
+)
 
 // misfires on stylized names like "Simon & Garfunkel": no way to tell those apart from credits
 private val ARTIST_SPLIT_REGEX = Regex("""\s*(?:,|&|;|/|\bfeat\.?\b|\bfeaturing\b|\bft\.?\b)\s*""", RegexOption.IGNORE_CASE)
@@ -113,8 +119,10 @@ fun List<Song>.groupedByFolder(): List<FolderGroup> {
         }
     }
     return byFolder.map { (path, songs) ->
-        val name = java.io.File(path).name.ifBlank { path }
-        FolderGroup(name, path, songs)
+        val file = java.io.File(path)
+        val name = file.name.ifBlank { path }
+        val parentName = file.parentFile?.name?.ifBlank { null }
+        FolderGroup(name, path, parentName, songs)
     }.sortedWith(compareBy<FolderGroup> { symbolOrNumberFirst(it.folderName) }.thenBy { it.folderName.sortKey() })
 }
 

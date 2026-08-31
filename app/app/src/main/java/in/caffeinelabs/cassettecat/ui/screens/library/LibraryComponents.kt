@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,6 +68,7 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
+import `in`.caffeinelabs.cassettecat.ui.components.rememberLocalFileCoverBitmap
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -153,6 +157,14 @@ internal fun RowScope.SongListRowContent(
         } else ""
     }
 
+    val sourceLabel = when (song.source) {
+        MusicSource.Local -> "Local"
+        MusicSource.Subsonic -> "Subsonic"
+        MusicSource.Jellyfin -> "Jellyfin"
+        MusicSource.ListeningRoomHost -> "Room"
+        MusicSource.Radio -> "Radio"
+    }
+
     Box(
         modifier = Modifier
             .size(artSize)
@@ -196,6 +208,16 @@ internal fun RowScope.SongListRowContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = sourceLabel,
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+            color = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
+                .padding(horizontal = 4.dp, vertical = 1.dp)
         )
     }
 
@@ -548,6 +570,9 @@ internal fun FolderCard(
     selected: Boolean = false,
     onLongClick: () -> Unit = {}
 ) {
+    val sampleSong = group.songs.firstOrNull()
+    val customCover = rememberLocalFileCoverBitmap(group.customCoverPath)
+    val hasArt = customCover != null || sampleSong != null
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -560,16 +585,39 @@ internal fun FolderCard(
                 RoundedCornerShape(14.dp)
             )
             .tapScaleSelectable(onClick, onLongClick)
-            .padding(14.dp)
     ) {
+        if (customCover != null) {
+            Image(
+                bitmap = customCover.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else if (sampleSong != null) {
+            AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+        }
+        if (hasArt) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        0f to Color.Black.copy(alpha = 0.15f),
+                        0.55f to Color.Black.copy(alpha = 0.55f),
+                        1f to Color.Black.copy(alpha = 0.88f)
+                    )
+                )
+            )
+        }
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth(0.72f)
+                .padding(14.dp)
         ) {
             Text(
                 text = group.folderName,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -577,16 +625,26 @@ internal fun FolderCard(
             Text(
                 text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (hasArt) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
             )
+            group.parentName?.let { parent ->
+                Text(
+                    text = "in $parent",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (hasArt) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
         Icon(
             painter = painterResource(R.drawable.lucide_ic_folder),
             contentDescription = "Play",
-            tint = MaterialTheme.colorScheme.tertiary,
+            tint = if (hasArt) Color.White else MaterialTheme.colorScheme.tertiary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .padding(14.dp)
                 .size(34.dp)
                 .tapScale(onPlay)
         )
@@ -733,21 +791,32 @@ internal fun FolderListRow(
     selected: Boolean = false,
     selectionMode: Boolean = false
 ) {
+    val songCountLabel = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"
     CollectionListRow(
         title = group.folderName,
-        subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+        subtitle = group.parentName?.let { "$songCountLabel · in $it" } ?: songCountLabel,
         onClick = onClick,
         onPlay = onPlay,
         onLongClick = onLongClick,
         selected = selected,
         selectionMode = selectionMode
     ) {
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_folder),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(28.dp)
-        )
+        val customCover = rememberLocalFileCoverBitmap(group.customCoverPath)
+        if (customCover != null) {
+            Image(
+                bitmap = customCover.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_folder),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(28.dp)
+            )
+        }
     }
 }
 
@@ -1027,4 +1096,3 @@ internal fun SourceWarningBanner(warnings: List<String>) {
         )
     }
 }
-

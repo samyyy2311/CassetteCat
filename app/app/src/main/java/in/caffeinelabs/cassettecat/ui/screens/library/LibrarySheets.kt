@@ -386,7 +386,8 @@ internal fun SongOptionsSheet(
     onAddToPlaylist: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
@@ -541,6 +542,15 @@ internal fun SongOptionsSheet(
                     subtitle = "Save track to a custom playlist",
                     onClick = { onAddToPlaylist(); onDismiss() }
                 )
+                if (onDelete != null) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_trash_2,
+                        title = "Delete from Device",
+                        subtitle = "Permanently remove this file",
+                        destructive = true,
+                        onClick = { onDelete(); onDismiss() }
+                    )
+                }
             }
         }
     }
@@ -551,8 +561,11 @@ private fun SongOptionCardRow(
     iconRes: Int,
     title: String,
     subtitle: String? = null,
+    destructive: Boolean = false,
     onClick: () -> Unit
 ) {
+    val tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    val textColor = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -571,7 +584,7 @@ private fun SongOptionCardRow(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = tint,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -580,7 +593,7 @@ private fun SongOptionCardRow(
             Text(
                 title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface
+                color = textColor
             )
             if (subtitle != null) {
                 Text(
@@ -590,11 +603,13 @@ private fun SongOptionCardRow(
                 )
             }
         }
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_chevron_right),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier.size(16.dp)
-        )
+        if (!destructive) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_chevron_right),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }

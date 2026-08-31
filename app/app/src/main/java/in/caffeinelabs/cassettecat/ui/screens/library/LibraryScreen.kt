@@ -5,6 +5,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -24,6 +33,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +49,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,17 +61,21 @@ import androidx.media3.common.util.UnstableApi
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.matchM3uEntries
 import `in`.caffeinelabs.cassettecat.data.library.parseM3u
+import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
+import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -98,11 +116,13 @@ fun LibraryScreen(
             .filterNot { it in preferences.hiddenLibraryTabs }
             .map { LibraryViewMode.valueOf(it.name) }
     }
-    val defaultPage = remember(visibleModes, preferences.defaultLibraryTab) {
-        visibleModes.indexOfFirst { it.name == preferences.defaultLibraryTab.name }.coerceAtLeast(0)
+    val defaultPage = remember(visibleModes, preferences.defaultLibraryTab, preferences.lastLibraryTab) {
+        val initialTab = preferences.lastLibraryTab?.takeIf { tab -> visibleModes.any { it.name == tab.name } }
+            ?: preferences.defaultLibraryTab
+        visibleModes.indexOfFirst { it.name == initialTab.name }.coerceAtLeast(0)
     }
     val pagerState = rememberPagerState(initialPage = defaultPage) { visibleModes.size }
-    var hasSyncedDefaultPage by remember { mutableStateOf(false) }
+    var hasSyncedDefaultPage by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(defaultPage) {
         if (!hasSyncedDefaultPage) {
             pagerState.scrollToPage(defaultPage)
@@ -110,18 +130,21 @@ fun LibraryScreen(
         }
     }
     val pagerScope = rememberCoroutineScope()
-    val songListState = rememberLazyListState()
-    val songGridState = rememberLazyGridState()
-    val artistGridState = rememberLazyGridState()
-    val albumGridState = rememberLazyGridState()
-    val genreGridState = rememberLazyGridState()
-    val folderGridState = rememberLazyGridState()
-    val artistListState = rememberLazyListState()
-    val albumListState = rememberLazyListState()
-    val genreListState = rememberLazyListState()
-    val folderListState = rememberLazyListState()
-    val playlistListState = rememberLazyListState()
+    val songListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val songGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val artistGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val albumGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val genreGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val folderGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val artistListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val albumListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val genreListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val folderListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val playlistListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val viewMode = visibleModes.getOrElse(pagerState.currentPage) { visibleModes.first() }
+    LaunchedEffect(viewMode) {
+        appPreferencesRepository.setLastLibraryTab(DefaultLibraryTab.valueOf(viewMode.name))
+    }
     val collectionLayout by viewModel.collectionLayout.collectAsStateWithLifecycle()
     val artistSortOrder by viewModel.artistSortOrder.collectAsStateWithLifecycle()
     val artistSortDirection by viewModel.artistSortDirection.collectAsStateWithLifecycle()
@@ -144,6 +167,20 @@ fun LibraryScreen(
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
+    val folderCoverRepository = remember { FolderCoverRepository(context) }
+    val folderCoverStorage = remember { FolderCoverStorage(context) }
+    val folderCovers by folderCoverRepository.folderCovers.collectAsStateWithLifecycle(initialValue = emptyMap())
+    var folderForCover by remember { mutableStateOf<FolderGroup?>(null) }
+    var folderCoverActions by remember { mutableStateOf<FolderGroup?>(null) }
+    val folderCoverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val folder = folderForCover
+        folderForCover = null
+        if (uri != null && folder != null) {
+            pagerScope.launch {
+                folderCoverStorage.save(folder.folderPath, uri)?.let { folderCoverRepository.setCover(folder.folderPath, it) }
+            }
+        }
+    }
     val monthlyStats by playbackViewModel.monthlyStats.collectAsStateWithLifecycle()
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val favoriteSongs = remember(loadedState?.songs, favoriteIds) {
@@ -217,6 +254,16 @@ fun LibraryScreen(
         selectedIds = emptySet()
     }
 
+    fun addSelectedToUpNext(songs: List<Song>) {
+        playbackViewModel.addToUpNext(songs)
+        selectedIds = emptySet()
+    }
+
+    fun addSelectedToQueue(songs: List<Song>) {
+        playbackViewModel.addToEndOfQueue(songs)
+        selectedIds = emptySet()
+    }
+
     fun playGroup(songs: List<Song>) {
         val wasIdle = playbackViewModel.playbackState.value.currentSong == null
         playbackViewModel.playQueue(songs, 0)
@@ -262,30 +309,12 @@ fun LibraryScreen(
                         contentDescription = "Cancel selection",
                         onClick = { selectedIds = emptySet() }
                     )
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_check_check,
-                        contentDescription = "Select all",
-                        onClick = { selectedIds = allIdsForCurrentTab() }
-                    )
                     Text(
                         "${selectedIds.size} selected",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp)
-                    )
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_list_plus,
-                        contentDescription = "Add to playlist",
-                        onClick = { showPlaylistPicker = true }
-                    )
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_download,
-                        contentDescription = "Download",
-                        onClick = { downloadSelected(selectedSongs()) }
-                    )
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_share_2,
-                        contentDescription = "Share",
-                        onClick = { shareSelected(selectedSongs()) }
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                     )
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
@@ -349,6 +378,47 @@ fun LibraryScreen(
                             )
                         }
                     }
+                }
+            }
+            if (selectionMode) {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_check_check,
+                        label = "Select All",
+                        onClick = { selectedIds = allIdsForCurrentTab() }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_play,
+                        label = "Play Next",
+                        onClick = { addSelectedToUpNext(selectedSongs()) }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_list_plus,
+                        label = "Queue",
+                        onClick = { addSelectedToQueue(selectedSongs()) }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_list_music,
+                        label = "Playlist",
+                        onClick = { showPlaylistPicker = true }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_download,
+                        label = "Download",
+                        onClick = { downloadSelected(selectedSongs()) }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_share_2,
+                        label = "Share",
+                        onClick = { shareSelected(selectedSongs()) }
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -499,7 +569,8 @@ fun LibraryScreen(
                                     LibraryViewMode.FOLDERS -> {
                                         val folders = filteredSongs.groupedByFolder().let { list ->
                                             val sorted = list.sortedWith(folderSortOrder.comparator())
-                                            if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted
+                                            (if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted)
+                                                .map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
                                         }
                                         FoldersTab(
                                             folders = folders,
@@ -509,6 +580,7 @@ fun LibraryScreen(
                                             listBottomPadding = listBottomPadding,
                                             onNavigateToFolder = onNavigateToFolder,
                                             onPlayGroup = ::playGroup,
+                                            onChangeCover = { folder -> folderCoverActions = folder },
                                             selectedIds = selectedIds,
                                             selectionMode = selectionMode,
                                             onToggleSelect = ::toggleSelected,
@@ -617,6 +689,30 @@ fun LibraryScreen(
         )
     }
 
+    folderCoverActions?.let { folder ->
+        AlertDialog(
+            onDismissRequest = { folderCoverActions = null },
+            title = { Text(folder.folderName) },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        folderForCover = folder
+                        folderCoverActions = null
+                        folderCoverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) { Text("Change cover") }
+                    if (folder.customCoverPath != null) {
+                        TextButton(onClick = {
+                            pagerScope.launch { folderCoverRepository.clearCover(folder.folderPath) }
+                            folderCoverStorage.delete(folder.folderPath)
+                            folderCoverActions = null
+                        }) { Text("Remove custom cover") }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { folderCoverActions = null }) { Text("Cancel") } }
+        )
+    }
+
     if (showPlaylistPicker) {
         PlaylistPickerSheet(
             playlists = playlists,
@@ -676,4 +772,30 @@ fun LibraryScreen(
         )
     }
 
+}
+
+@Composable
+private fun SelectionActionChip(iconRes: Int, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+            .tapScale(onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }

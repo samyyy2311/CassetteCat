@@ -8,11 +8,15 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
+    // Hard ceiling per call: OkHttp's per-read timeouts reset on every byte, so a trickling
+    // connection could otherwise stay open indefinitely.
+    .callTimeout(45, TimeUnit.SECONDS)
     .addInterceptor { chain ->
         val request = chain.request().newBuilder()
             .header("User-Agent", "CassetteCat/${BuildConfig.VERSION_NAME} (https://github.com/samyyy2311/CassetteCat)")

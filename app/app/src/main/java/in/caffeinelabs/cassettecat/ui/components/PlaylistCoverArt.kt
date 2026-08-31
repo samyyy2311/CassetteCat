@@ -35,6 +35,18 @@ private val coverCache = object : LruCache<String, Bitmap>(COVER_CACHE_BYTES) {
     override fun sizeOf(key: String, value: Bitmap) = value.byteCount
 }
 
+@Composable
+fun rememberLocalFileCoverBitmap(path: String?): Bitmap? {
+    if (path == null) return null
+    var bitmap by remember(path) { mutableStateOf(coverCache.get(path)) }
+    LaunchedEffect(path) {
+        if (bitmap == null) {
+            bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }?.also { coverCache.put(path, it) }
+        }
+    }
+    return bitmap
+}
+
 // key -> drawable, shown in the cover picker and looked up when rendering a saved
 // ICON cover; falls back to the generic music icon if a stored key is ever missing
 // (e.g. after a future curation change)
@@ -102,28 +114,16 @@ val PLAYLIST_EMOJI_OPTIONS: List<String> = listOf(
 fun PlaylistCoverArt(playlist: Playlist, fallbackSong: Song?, modifier: Modifier = Modifier) {
     when (playlist.coverType) {
         PlaylistCoverType.IMAGE -> {
-            val path = playlist.coverValue
-            if (path == null) {
-                DefaultPlaylistCover(modifier)
+            val bitmap = rememberLocalFileCoverBitmap(playlist.coverValue)
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = modifier,
+                    contentScale = ContentScale.Crop
+                )
             } else {
-                var bitmap by remember(path) { mutableStateOf(coverCache.get(path)) }
-                LaunchedEffect(path) {
-                    if (bitmap == null) {
-                        bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
-                            ?.also { coverCache.put(path, it) }
-                    }
-                }
-                val current = bitmap
-                if (current != null) {
-                    Image(
-                        bitmap = current.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = modifier,
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    DefaultPlaylistCover(modifier)
-                }
+                DefaultPlaylistCover(modifier)
             }
         }
 

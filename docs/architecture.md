@@ -63,4 +63,6 @@ The hardware player operates independently from an SD card, while offering Wi-Fi
 ### Communication Channels
 * **SoftAP Mode**: The ESP32 creates a local Wi-Fi hotspot. The Android app connects using `WifiNetworkSpecifier` without requiring an existing router.
 * **Station Mode**: The ESP32 joins the local home Wi-Fi network and advertises its service via mDNS/NSD.
-* **Protocol**: HTTP/REST endpoints hosted on the ESP32 for library synchronization, file upload to SD card, and firmware OTA updates (`esp_https_ota`).
+* **Protocol**: HTTP/REST endpoints hosted on the ESP32, all app-side already built ahead of firmware:
+  * Song library sync ([device-sync-protocol.md](device-sync-protocol.md)): diff the phone's library against what's on the SD card, then upload what's missing.
+  * Remote playback control, device management (rename/restart/factory reset/rescan/clock sync), a storage browser, and firmware OTA ([device-control-protocol.md](device-control-protocol.md)).

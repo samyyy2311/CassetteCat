@@ -2,6 +2,16 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.6.5] - CassetteCat Player Gets a Control Panel
+
+* Folders now show a parent-folder label, album-art thumbnails, and support custom cover art.
+* Added sort and filter options for the songs inside a folder, and you can now delete a song directly from a folder.
+* Fixed the back button in Library returning you to the Songs tab instead of whatever tab or folder you were actually browsing.
+* Redesigned the multi-select toolbar: the old one broke on longer selection counts, the new one uses clear action chips instead.
+* Fixed a crash when tapping Direct Hotspot in CassetteCat Player settings.
+* CassetteCat Player now has a real control panel: sync your local songs onto the hardware player's SD card, remote play/pause/skip/volume, browse and manage files on its SD card, rename it or restart it, and update its firmware, including an automatic check against GitHub releases.
+* These talk to a wire protocol the app is ready for today; the firmware side is still being built (see docs/device-sync-protocol.md and docs/device-control-protocol.md).
+
 ## [1.6.3] - Autoplay Actually Continues Now
 
 * Fixed Autoplay silently failing to continue at the end of your queue instead of picking new songs.

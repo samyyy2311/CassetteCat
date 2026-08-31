@@ -1,0 +1,8 @@
+What's new in 1.6.5:
+
+- Folders now show a parent-folder label, album-art thumbnails, and custom cover art
+- Added sort and filter options for songs inside a folder, and you can delete a song directly from a folder
+- Fixed Library's back button returning you to Songs instead of where you actually were
+- Redesigned the multi-select toolbar so it no longer breaks on longer selections
+- Fixed a crash when tapping Direct Hotspot in CassetteCat Player settings
+- CassetteCat Player now has a real control panel: song sync to the hardware player's SD card, remote playback control, a storage browser, device management, and firmware updates

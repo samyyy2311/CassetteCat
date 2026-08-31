@@ -82,12 +82,18 @@ import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.DriveModeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingContent
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.NowPlayingView
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.radio.RadioScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.search.SearchScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.AboutLegalScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.BackupRestoreScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceFirmwareScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceNowPlayingScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSettingsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceStorageScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSyncScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DownloadsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.EqualizerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ExternalServicesScreen
@@ -156,6 +162,11 @@ object MainRoute {
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
+    const val DEVICE_SYNC = "main/settings/companion/sync"
+    const val DEVICE_NOW_PLAYING = "main/settings/companion/now_playing"
+    const val DEVICE_STORAGE = "main/settings/companion/storage"
+    const val DEVICE_FIRMWARE = "main/settings/companion/firmware"
+    const val DEVICE_SETTINGS = "main/settings/companion/device_settings"
     const val ABOUT_LEGAL = "main/settings/about_legal"
     const val CREDITS = "main/settings/credits"
     const val SCROBBLING = "main/settings/scrobbling"
@@ -270,6 +281,7 @@ fun MainShell(
     // shared across Library/Home/Search to avoid redundant refetches
     val libraryViewModel: LibraryViewModel = viewModel()
     val playlistViewModel: PlaylistViewModel = viewModel()
+    val pairingViewModel: PairingViewModel = viewModel()
     val radioFavoritesRepository = remember { RadioFavoritesRepository(context) }
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val librarySongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
@@ -750,7 +762,44 @@ fun MainShell(
                     composable(MainRoute.COMPANION_DEVICE) {
                         PairingScreen(
                             onFinish = { navController.popBackStack() },
-                            listBottomPadding = contentPadding.calculateBottomPadding()
+                            onNavigateToSync = { navController.navigate(MainRoute.DEVICE_SYNC) },
+                            onNavigateToNowPlaying = { navController.navigate(MainRoute.DEVICE_NOW_PLAYING) },
+                            onNavigateToStorage = { navController.navigate(MainRoute.DEVICE_STORAGE) },
+                            onNavigateToFirmware = { navController.navigate(MainRoute.DEVICE_FIRMWARE) },
+                            onNavigateToDeviceSettings = { navController.navigate(MainRoute.DEVICE_SETTINGS) },
+                            listBottomPadding = contentPadding.calculateBottomPadding(),
+                            viewModel = pairingViewModel
+                        )
+                    }
+                    composable(MainRoute.DEVICE_SYNC) {
+                        DeviceSyncScreen(
+                            libraryViewModel = libraryViewModel,
+                            pairingViewModel = pairingViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(MainRoute.DEVICE_NOW_PLAYING) {
+                        DeviceNowPlayingScreen(
+                            pairingViewModel = pairingViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(MainRoute.DEVICE_STORAGE) {
+                        DeviceStorageScreen(
+                            pairingViewModel = pairingViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(MainRoute.DEVICE_FIRMWARE) {
+                        DeviceFirmwareScreen(
+                            pairingViewModel = pairingViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(MainRoute.DEVICE_SETTINGS) {
+                        DeviceSettingsScreen(
+                            pairingViewModel = pairingViewModel,
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(MainRoute.MANAGE_SCAN_FOLDERS) {

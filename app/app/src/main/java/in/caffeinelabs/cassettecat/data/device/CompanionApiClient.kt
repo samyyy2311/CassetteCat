@@ -1,7 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import android.net.Network
-import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,16 +16,13 @@ data class WifiProvisionRequest(
 )
 
 class CompanionApiClient {
-    private fun clientFor(network: Network?) =
-        if (network != null) sharedHttpClient.newBuilder().socketFactory(network.socketFactory).build() else sharedHttpClient
-
     suspend fun getStatus(host: String, port: Int = 80, network: Network? = null): CompanionStatus? = withContext(Dispatchers.IO) {
         runCatching {
             val request = Request.Builder()
                 .url("http://$host:$port/api/status")
                 .build()
 
-            val response = clientFor(network).newCall(request).execute()
+            val response = deviceHttpClient(network).newCall(request).execute()
             response.use {
                 if (!it.isSuccessful) return@runCatching null
                 val body = it.body.string()
@@ -43,7 +39,7 @@ class CompanionApiClient {
                 .post(payload.toRequestBody("application/json".toMediaType()))
                 .build()
 
-            val response = clientFor(network).newCall(request).execute()
+            val response = deviceHttpClient(network).newCall(request).execute()
             response.use { it.isSuccessful }
         }.getOrDefault(false)
     }

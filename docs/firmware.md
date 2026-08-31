@@ -8,6 +8,8 @@ The CassetteCat firmware powers the ESP32-S3 hardware companion audio player.
 2. **Companion Synchronization**:
    - Host an HTTP/REST server on the ESP32 for file transfer, metadata synchronization, and diagnostics.
    - Support both SoftAP mode (standalone Wi-Fi network) and Station mode (joining existing LAN with mDNS advertising).
+   - Song sync wire contract is defined in [device-sync-protocol.md](device-sync-protocol.md), built app-side ahead of firmware.
+   - Remote playback, device management, storage browsing, and OTA upload contracts are defined in [device-control-protocol.md](device-control-protocol.md), also built app-side ahead of firmware.
 3. **Firmware Updates**: Utilize ESP-IDF's built-in `esp_https_ota` framework for over-the-air firmware updates initiated by the mobile app.
 
 ---

@@ -486,6 +486,7 @@ internal fun FoldersTab(
     listBottomPadding: Dp,
     onNavigateToFolder: (String) -> Unit,
     onPlayGroup: (List<Song>) -> Unit,
+    onChangeCover: (FolderGroup) -> Unit,
     selectedIds: Set<String> = emptySet(),
     selectionMode: Boolean = false,
     onToggleSelect: (String) -> Unit = {},
@@ -516,7 +517,7 @@ internal fun FoldersTab(
                         group = group,
                         selected = group.folderPath in selectedIds,
                         onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onLongClick = { if (selectionMode) onToggleSelect(group.folderPath) else onChangeCover(group) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }
@@ -533,7 +534,7 @@ internal fun FoldersTab(
                         selected = group.folderPath in selectedIds,
                         selectionMode = selectionMode,
                         onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onLongClick = { if (selectionMode) onToggleSelect(group.folderPath) else onChangeCover(group) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }

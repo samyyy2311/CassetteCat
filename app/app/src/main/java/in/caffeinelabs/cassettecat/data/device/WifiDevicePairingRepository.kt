@@ -43,6 +43,9 @@ class WifiDevicePairingRepository(private val context: Context) {
     private var searchJob: Job? = null
     private var boundNetwork: Network? = null
 
+    // Lets sync reuse the SoftAP network binding without re-running discovery.
+    val currentNetwork: Network? get() = boundNetwork
+
     private val canAutoAssociateSoftAp: Boolean
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED

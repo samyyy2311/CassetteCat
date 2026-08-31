@@ -39,6 +39,7 @@ private val SHOW_AUDIO_QUALITY_BADGE = booleanPreferencesKey("show_audio_quality
 private val SHOW_NOW_PLAYING_BLUR = booleanPreferencesKey("show_now_playing_blur")
 private val LIBRARY_TAB_ORDER = stringPreferencesKey("library_tab_order")
 private val HIDDEN_LIBRARY_TABS = stringPreferencesKey("hidden_library_tabs")
+private val LAST_LIBRARY_TAB = stringPreferencesKey("last_library_tab")
 
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
 private val LIBRARY_COLLECTION_LAYOUT = stringPreferencesKey("library_collection_layout")
@@ -223,6 +224,7 @@ data class AppPreferences(
     val showNowPlayingBlur: Boolean = true,
     val libraryTabOrder: List<DefaultLibraryTab> = DefaultLibraryTab.entries,
     val hiddenLibraryTabs: Set<DefaultLibraryTab> = emptySet(),
+    val lastLibraryTab: DefaultLibraryTab? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",
@@ -319,6 +321,7 @@ class AppPreferencesRepository(private val context: Context) {
             showNowPlayingBlur = prefs[SHOW_NOW_PLAYING_BLUR] ?: true,
             libraryTabOrder = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries),
             hiddenLibraryTabs = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries),
+            lastLibraryTab = prefs[LAST_LIBRARY_TAB]?.let { runCatching { DefaultLibraryTab.valueOf(it) }.getOrNull() },
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
             librarySongFilter = prefs[LIBRARY_SONG_FILTER] ?: "ALL",
@@ -490,6 +493,10 @@ class AppPreferencesRepository(private val context: Context) {
                     .name
             }
         }
+    }
+
+    suspend fun setLastLibraryTab(tab: DefaultLibraryTab) {
+        context.appPreferencesDataStore.edit { it[LAST_LIBRARY_TAB] = tab.name }
     }
 
     suspend fun setLibrarySortDirection(direction: String) {

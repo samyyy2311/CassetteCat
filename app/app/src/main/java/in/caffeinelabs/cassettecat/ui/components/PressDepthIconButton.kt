@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -29,7 +30,9 @@ fun PressDepthIconButton(
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    boxSize: Dp = 48.dp,
+    iconSize: Dp = 24.dp
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -41,7 +44,7 @@ fun PressDepthIconButton(
 
     Box(
         modifier = modifier
-            .size(48.dp)
+            .size(boxSize)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -54,7 +57,9 @@ fun PressDepthIconButton(
             painter = painterResource(iconRes),
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier.offset { IntOffset(0, offset.roundToPx()) }
+            modifier = Modifier
+                .size(iconSize)
+                .offset { IntOffset(0, offset.roundToPx()) }
         )
     }
 }

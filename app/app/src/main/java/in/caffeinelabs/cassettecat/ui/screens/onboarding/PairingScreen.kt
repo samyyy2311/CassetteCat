@@ -51,6 +51,11 @@ fun PairingScreen(
     modifier: Modifier = Modifier,
     isOnboarding: Boolean = false,
     listBottomPadding: Dp = 0.dp,
+    onNavigateToSync: () -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToStorage: () -> Unit = {},
+    onNavigateToFirmware: () -> Unit = {},
+    onNavigateToDeviceSettings: () -> Unit = {},
     viewModel: PairingViewModel = viewModel()
 ) {
     val state by viewModel.pairingState.collectAsStateWithLifecycle()
@@ -216,7 +221,15 @@ fun PairingScreen(
             }
 
             is DevicePairingState.Connected -> {
-                ConnectedCompanionView(device = current.device, onDisconnect = { viewModel.disconnect() })
+                ConnectedCompanionView(
+                    device = current.device,
+                    onDisconnect = { viewModel.disconnect() },
+                    onNavigateToSync = onNavigateToSync,
+                    onNavigateToNowPlaying = onNavigateToNowPlaying,
+                    onNavigateToStorage = onNavigateToStorage,
+                    onNavigateToFirmware = onNavigateToFirmware,
+                    onNavigateToDeviceSettings = onNavigateToDeviceSettings
+                )
             }
 
             is DevicePairingState.Failed -> {
@@ -258,7 +271,15 @@ fun PairingScreen(
 }
 
 @Composable
-private fun ConnectedCompanionView(device: DiscoveredDevice, onDisconnect: () -> Unit) {
+private fun ConnectedCompanionView(
+    device: DiscoveredDevice,
+    onDisconnect: () -> Unit,
+    onNavigateToSync: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit,
+    onNavigateToStorage: () -> Unit,
+    onNavigateToFirmware: () -> Unit,
+    onNavigateToDeviceSettings: () -> Unit
+) {
     val status = device.status ?: CompanionStatus(deviceName = device.name)
     val used = status.storageUsedBytes ?: (4L * 1024 * 1024 * 1024)
     val total = status.storageTotalBytes ?: (32L * 1024 * 1024 * 1024)
@@ -289,6 +310,45 @@ private fun ConnectedCompanionView(device: DiscoveredDevice, onDisconnect: () ->
                 Text("Disconnect", color = MaterialTheme.colorScheme.error)
             }
         }
+    }
+
+    Spacer(Modifier.height(24.dp))
+
+    SettingsSection(title = "CONTROL PANEL") {
+        NavigationRow(
+            title = "Now Playing",
+            subtitle = "Remote play, pause, skip, and volume",
+            iconRes = R.drawable.lucide_ic_music,
+            onClick = onNavigateToNowPlaying
+        )
+        SettingsDivider()
+        NavigationRow(
+            title = "Sync Songs",
+            subtitle = "Push local songs to the player's SD card",
+            iconRes = R.drawable.lucide_ic_upload,
+            onClick = onNavigateToSync
+        )
+        SettingsDivider()
+        NavigationRow(
+            title = "Storage",
+            subtitle = "Browse and manage files on the SD card",
+            iconRes = R.drawable.lucide_ic_folder,
+            onClick = onNavigateToStorage
+        )
+        SettingsDivider()
+        NavigationRow(
+            title = "Firmware",
+            subtitle = "v${status.firmwareVersion} installed",
+            iconRes = R.drawable.lucide_ic_cpu,
+            onClick = onNavigateToFirmware
+        )
+        SettingsDivider()
+        NavigationRow(
+            title = "Device Settings",
+            subtitle = "Rename, Wi-Fi mode, factory reset",
+            iconRes = R.drawable.lucide_ic_settings,
+            onClick = onNavigateToDeviceSettings
+        )
     }
 
     Spacer(Modifier.height(24.dp))
