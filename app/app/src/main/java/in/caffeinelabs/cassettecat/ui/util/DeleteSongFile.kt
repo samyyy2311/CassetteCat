@@ -9,7 +9,12 @@ import androidx.activity.result.IntentSenderRequest
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import java.io.File
 
-fun deleteSongFile(context: Context, song: Song, recoveryLauncher: ActivityResultLauncher<IntentSenderRequest>) {
+fun deleteSongFile(
+    context: Context,
+    song: Song,
+    recoveryLauncher: ActivityResultLauncher<IntentSenderRequest>,
+    onNeedsConsentRetry: (Song) -> Unit = {}
+) {
     val resolver = context.contentResolver
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         val pendingIntent = MediaStore.createDeleteRequest(resolver, listOf(song.contentUri))
@@ -21,7 +26,15 @@ fun deleteSongFile(context: Context, song: Song, recoveryLauncher: ActivityResul
         song.filePath?.let { File(it).delete() }
     } catch (e: SecurityException) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
+            onNeedsConsentRetry(song)
             recoveryLauncher.launch(IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build())
         }
+    }
+}
+
+fun retryDeleteAfterConsent(context: Context, song: Song) {
+    val deletedRows = runCatching { context.contentResolver.delete(song.contentUri, null, null) }.getOrDefault(0)
+    if (deletedRows > 0) {
+        song.filePath?.let { File(it).delete() }
     }
 }

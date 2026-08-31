@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.device.DeviceFileEntry
@@ -41,18 +43,23 @@ import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 fun DeviceStorageScreen(
     pairingViewModel: PairingViewModel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
 ) {
     var currentPath by remember { mutableStateOf("") }
     var entries by remember { mutableStateOf<List<DeviceFileEntry>?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var pendingDelete by remember { mutableStateOf<DeviceFileEntry?>(null) }
+    var latestRequestId by remember { mutableStateOf(0) }
 
     fun load(path: String) {
         isLoading = true
+        val requestId = ++latestRequestId
         pairingViewModel.listDeviceFiles(path) { result ->
-            entries = result
-            isLoading = false
+            if (requestId == latestRequestId && path == currentPath) {
+                entries = result
+                isLoading = false
+            }
         }
     }
 
@@ -88,7 +95,7 @@ fun DeviceStorageScreen(
                 message = "The player didn't respond, or this folder is empty.",
                 modifier = Modifier.weight(1f)
             )
-            else -> LazyColumn(modifier = Modifier.weight(1f)) {
+            else -> LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding)) {
                 items(entries.orEmpty(), key = { it.path }) { entry ->
                     DeviceFileRow(
                         entry = entry,

@@ -568,7 +568,9 @@ internal fun FolderCard(
     onClick: () -> Unit,
     onPlay: () -> Unit,
     selected: Boolean = false,
-    onLongClick: () -> Unit = {}
+    selectionMode: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onChangeCover: (() -> Unit)? = null
 ) {
     val sampleSong = group.songs.firstOrNull()
     val customCover = rememberLocalFileCoverBitmap(group.customCoverPath)
@@ -649,6 +651,19 @@ internal fun FolderCard(
                 .tapScale(onPlay)
         )
 
+        if (onChangeCover != null && !selectionMode) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_image_plus),
+                contentDescription = "Change cover",
+                tint = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(14.dp)
+                    .size(20.dp)
+                    .tapScale(onChangeCover)
+            )
+        }
+
         SelectionOverlay(selected)
     }
 }
@@ -662,6 +677,8 @@ internal fun CollectionListRow(
     onLongClick: (() -> Unit)? = null,
     selected: Boolean = false,
     selectionMode: Boolean = false,
+    onSecondaryAction: (() -> Unit)? = null,
+    secondaryActionIconRes: Int = R.drawable.lucide_ic_image_plus,
     artwork: @Composable () -> Unit
 ) {
     Column {
@@ -694,6 +711,15 @@ internal fun CollectionListRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (onSecondaryAction != null && !selectionMode) {
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    painter = painterResource(secondaryActionIconRes),
+                    contentDescription = "Change cover",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp).tapScale(onSecondaryAction)
                 )
             }
             if (onPlay != null) {
@@ -789,7 +815,8 @@ internal fun FolderListRow(
     onPlay: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     selected: Boolean = false,
-    selectionMode: Boolean = false
+    selectionMode: Boolean = false,
+    onChangeCover: (() -> Unit)? = null
 ) {
     val songCountLabel = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"
     CollectionListRow(
@@ -799,7 +826,8 @@ internal fun FolderListRow(
         onPlay = onPlay,
         onLongClick = onLongClick,
         selected = selected,
-        selectionMode = selectionMode
+        selectionMode = selectionMode,
+        onSecondaryAction = onChangeCover
     ) {
         val customCover = rememberLocalFileCoverBitmap(group.customCoverPath)
         if (customCover != null) {

@@ -78,6 +78,8 @@ import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -107,7 +109,12 @@ fun LibraryScreen(
     val isRefreshing = uiState is LibraryUiState.Loading
     val context = LocalContext.current
     val appPreferencesRepository = remember { `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = `in`.caffeinelabs.cassettecat.data.settings.AppPreferences())
+    val nullablePreferences: Flow<`in`.caffeinelabs.cassettecat.data.settings.AppPreferences?> = remember(appPreferencesRepository) {
+        appPreferencesRepository.preferences.map { it }
+    }
+    val loadedPreferences by nullablePreferences.collectAsStateWithLifecycle(initialValue = null)
+    val preferences = loadedPreferences ?: `in`.caffeinelabs.cassettecat.data.settings.AppPreferences()
+    val preferencesLoaded = loadedPreferences != null
 
     var showRefineSheet by remember { mutableStateOf(false) }
     var showNewPlaylistSheet by remember { mutableStateOf(false) }
@@ -123,8 +130,8 @@ fun LibraryScreen(
     }
     val pagerState = rememberPagerState(initialPage = defaultPage) { visibleModes.size }
     var hasSyncedDefaultPage by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(defaultPage) {
-        if (!hasSyncedDefaultPage) {
+    LaunchedEffect(defaultPage, preferencesLoaded) {
+        if (!hasSyncedDefaultPage && preferencesLoaded) {
             pagerState.scrollToPage(defaultPage)
             hasSyncedDefaultPage = true
         }
@@ -142,8 +149,10 @@ fun LibraryScreen(
     val folderListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val playlistListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val viewMode = visibleModes.getOrElse(pagerState.currentPage) { visibleModes.first() }
-    LaunchedEffect(viewMode) {
-        appPreferencesRepository.setLastLibraryTab(DefaultLibraryTab.valueOf(viewMode.name))
+    LaunchedEffect(viewMode, preferencesLoaded) {
+        if (preferencesLoaded) {
+            appPreferencesRepository.setLastLibraryTab(DefaultLibraryTab.valueOf(viewMode.name))
+        }
     }
     val collectionLayout by viewModel.collectionLayout.collectAsStateWithLifecycle()
     val artistSortOrder by viewModel.artistSortOrder.collectAsStateWithLifecycle()
@@ -177,7 +186,17 @@ fun LibraryScreen(
         folderForCover = null
         if (uri != null && folder != null) {
             pagerScope.launch {
-                folderCoverStorage.save(folder.folderPath, uri)?.let { folderCoverRepository.setCover(folder.folderPath, it) }
+                val newPath = folderCoverStorage.save(folder.folderPath, uri) ?: return@launch
+                try {
+                    folderCoverRepository.setCover(folder.folderPath, newPath)
+                } catch (e: Throwable) {
+                    folderCoverStorage.delete(newPath)
+                    throw e
+                }
+                val previousPath = folder.customCoverPath
+                if (previousPath != null && previousPath != newPath) {
+                    folderCoverStorage.delete(previousPath)
+                }
             }
         }
     }
@@ -702,8 +721,10 @@ fun LibraryScreen(
                     }) { Text("Change cover") }
                     if (folder.customCoverPath != null) {
                         TextButton(onClick = {
-                            pagerScope.launch { folderCoverRepository.clearCover(folder.folderPath) }
-                            folderCoverStorage.delete(folder.folderPath)
+                            pagerScope.launch {
+                                folderCoverRepository.clearCover(folder.folderPath)
+                                folder.customCoverPath?.let { folderCoverStorage.delete(it) }
+                            }
                             folderCoverActions = null
                         }) { Text("Remove custom cover") }
                     }

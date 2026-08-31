@@ -9,8 +9,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.security.MessageDigest
 
 @Serializable
 data class DevicePlaybackStatus(
@@ -164,14 +166,31 @@ class DeviceControlApiClient {
             runCatching {
                 val body = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
-                    .addFormDataPart("file", firmwareFile.name, firmwareFile.readBytes().toRequestBody("application/octet-stream".toMediaType()))
+                    .addFormDataPart("file", firmwareFile.name, firmwareFile.asRequestBody("application/octet-stream".toMediaType()))
                     .build()
-                val request = Request.Builder().url("http://$host:$port/api/ota").post(body).build()
-                val response = deviceHttpClient(network).newCall(request).execute()
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/ota")
+                    .header("X-Firmware-Sha256", sha256Hex(firmwareFile))
+                    .post(body)
+                    .build()
+                val response = deviceUploadHttpClient(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching false
                     sharedJson.decodeFromString<OkResponse>(it.body.string()).ok
                 }
             }.getOrDefault(false)
         }
+}
+
+private fun sha256Hex(file: File): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { input ->
+        val buffer = ByteArray(8192)
+        while (true) {
+            val read = input.read(buffer)
+            if (read == -1) break
+            digest.update(buffer, 0, read)
+        }
+    }
+    return digest.digest().joinToString("") { "%02x".format(it) }
 }

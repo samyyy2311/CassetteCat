@@ -10,6 +10,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
@@ -18,6 +19,8 @@ data class RemoteSongEntry(val path: String, val sizeBytes: Long)
 
 @Serializable
 private data class SyncSongMetadata(val path: String, val title: String, val artist: String, val sizeBytes: Long)
+
+internal fun remoteSyncPath(song: Song, fileName: String): String = "${song.artist}/${song.album}/$fileName"
 
 @Serializable
 private data class SyncUploadResponse(val ok: Boolean, val error: String? = null)
@@ -46,7 +49,7 @@ class SyncApiClient {
                 if (!file.exists()) return@runCatching false
 
                 val metadata = SyncSongMetadata(
-                    path = "${song.artist}/${song.album}/${file.name}",
+                    path = remoteSyncPath(song, file.name),
                     title = song.title,
                     artist = song.artist,
                     sizeBytes = file.length()
@@ -58,7 +61,7 @@ class SyncApiClient {
                         null,
                         sharedJson.encodeToString(SyncSongMetadata.serializer(), metadata).toRequestBody("application/json".toMediaType())
                     )
-                    .addFormDataPart("file", file.name, file.readBytes().toRequestBody("audio/*".toMediaType()))
+                    .addFormDataPart("file", file.name, file.asRequestBody("audio/*".toMediaType()))
                     .build()
 
                 val request = Request.Builder()
@@ -66,7 +69,7 @@ class SyncApiClient {
                     .post(body)
                     .build()
 
-                val response = deviceHttpClient(network).newCall(request).execute()
+                val response = deviceUploadHttpClient(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching false
                     sharedJson.decodeFromString<SyncUploadResponse>(it.body.string()).ok

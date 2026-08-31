@@ -14,3 +14,13 @@ fun deviceHttpClient(network: Network?): OkHttpClient {
     if (network != null) builder.socketFactory(network.socketFactory)
     return builder.build()
 }
+
+fun deviceUploadHttpClient(network: Network?): OkHttpClient {
+    val builder = sharedHttpClient.newBuilder()
+        .connectTimeout(3, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.MINUTES)
+        .writeTimeout(5, TimeUnit.MINUTES)
+        .callTimeout(5, TimeUnit.MINUTES)
+    if (network != null) builder.socketFactory(network.socketFactory)
+    return builder.build()
+}

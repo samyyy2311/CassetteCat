@@ -516,8 +516,10 @@ internal fun FoldersTab(
                     FolderCard(
                         group = group,
                         selected = group.folderPath in selectedIds,
+                        selectionMode = selectionMode,
                         onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                        onLongClick = { if (selectionMode) onToggleSelect(group.folderPath) else onChangeCover(group) },
+                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onChangeCover = { onChangeCover(group) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }
@@ -534,7 +536,8 @@ internal fun FoldersTab(
                         selected = group.folderPath in selectedIds,
                         selectionMode = selectionMode,
                         onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                        onLongClick = { if (selectionMode) onToggleSelect(group.folderPath) else onChangeCover(group) },
+                        onLongClick = { onToggleSelect(group.folderPath) },
+                        onChangeCover = { onChangeCover(group) },
                         onPlay = { onPlayGroup(group.songs) }
                     )
                 }

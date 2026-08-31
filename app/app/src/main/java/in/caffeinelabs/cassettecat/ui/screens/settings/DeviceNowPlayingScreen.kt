@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
@@ -34,7 +35,8 @@ import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingViewModel
 fun DeviceNowPlayingScreen(
     pairingViewModel: PairingViewModel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
 ) {
     val status by pairingViewModel.playbackStatus.collectAsStateWithLifecycle()
 
@@ -112,6 +114,8 @@ fun DeviceNowPlayingScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
+                Spacer(Modifier.height(listBottomPadding))
             }
         }
     }

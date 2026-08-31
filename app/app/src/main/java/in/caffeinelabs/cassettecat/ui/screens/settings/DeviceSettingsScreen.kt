@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.data.device.DeviceConnectionType
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
@@ -35,11 +36,13 @@ import com.composables.icons.lucide.R
 fun DeviceSettingsScreen(
     pairingViewModel: PairingViewModel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
 ) {
     val pairingState by pairingViewModel.pairingState.collectAsStateWithLifecycle()
     val connectedDevice = (pairingState as? DevicePairingState.Connected)?.device
     val connectionType = connectedDevice?.connectionType ?: DeviceConnectionType.STATION
+    var wifiModeIsSoftAp by remember(connectionType) { mutableStateOf(connectionType == DeviceConnectionType.SOFT_AP) }
     var nameInput by remember { mutableStateOf(connectedDevice?.name ?: "") }
     var showResetConfirm by remember { mutableStateOf(false) }
     var showRestartConfirm by remember { mutableStateOf(false) }
@@ -94,10 +97,11 @@ fun DeviceSettingsScreen(
                     )
                 }
                 Switch(
-                    checked = connectionType == DeviceConnectionType.SOFT_AP,
+                    checked = wifiModeIsSoftAp,
                     onCheckedChange = hapticToggle { enabled ->
                         val mode = if (enabled) "softap" else "station"
                         pairingViewModel.setWifiMode(mode) { ok ->
+                            if (ok) wifiModeIsSoftAp = enabled
                             statusMessage = if (ok) "Wi-Fi mode changed." else "Couldn't change Wi-Fi mode."
                         }
                     },
@@ -187,6 +191,8 @@ fun DeviceSettingsScreen(
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
         }
+
+        Spacer(Modifier.height(listBottomPadding))
     }
 
     if (showRestartConfirm) {

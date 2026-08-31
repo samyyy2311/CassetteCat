@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
 import `in`.caffeinelabs.cassettecat.data.device.FirmwareUpdateInfo
@@ -51,7 +52,8 @@ private sealed interface UpdateCheckState {
 fun DeviceFirmwareScreen(
     pairingViewModel: PairingViewModel,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
 ) {
     val context = LocalContext.current
     val pairingState by pairingViewModel.pairingState.collectAsStateWithLifecycle()
@@ -80,10 +82,9 @@ fun DeviceFirmwareScreen(
 
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        val input = context.contentResolver.openInputStream(uri) ?: return@rememberLauncherForActivityResult
         val cacheFile = File(context.cacheDir, "ota_upload.bin")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            cacheFile.outputStream().use { output -> input.copyTo(output) }
-        }
+        input.use { stream -> cacheFile.outputStream().use { output -> stream.copyTo(output) } }
         pendingLocalFile = cacheFile
     }
 
@@ -137,7 +138,7 @@ fun DeviceFirmwareScreen(
                 }
 
                 is UpdateCheckState.Available -> Row(
-                    modifier = Modifier.fillMaxWidth().tapScale { pendingRemoteUpdate = state.info }.padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().tapScale { if (!isBusy) pendingRemoteUpdate = state.info }.padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -186,7 +187,7 @@ fun DeviceFirmwareScreen(
 
         SettingsSection(title = "MANUAL UPDATE") {
             Row(
-                modifier = Modifier.fillMaxWidth().tapScale { filePicker.launch(arrayOf("application/octet-stream")) }.padding(horizontal = 20.dp, vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().tapScale { if (!isBusy) filePicker.launch(arrayOf("application/octet-stream")) }.padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -218,6 +219,8 @@ fun DeviceFirmwareScreen(
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
         }
+
+        Spacer(Modifier.height(listBottomPadding))
     }
 
     pendingRemoteUpdate?.let { info ->

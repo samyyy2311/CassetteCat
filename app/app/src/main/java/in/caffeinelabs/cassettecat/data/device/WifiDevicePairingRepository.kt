@@ -123,6 +123,15 @@ class WifiDevicePairingRepository(private val context: Context) {
             override fun onUnavailable() {
                 _pairingState.value = DevicePairingState.Failed(mode, "Couldn't join the CassetteCat hotspot. Make sure the player is powered on.")
             }
+
+            override fun onLost(network: Network) {
+                if (boundNetwork == network) {
+                    searchJob?.cancel()
+                    searchJob = null
+                    boundNetwork = null
+                    _pairingState.value = DevicePairingState.Failed(mode, "Lost connection to the CassetteCat hotspot.")
+                }
+            }
         }
         networkCallback = callback
         connectivityManager.requestNetwork(request, callback, 20_000)

@@ -82,7 +82,15 @@ file:
   ```
 - `file` part: the actual raw audio file bytes.
 
-The device should:
+Before touching the filesystem, firmware must validate `path`: it has to be
+a relative path (no leading `/`), it can't contain a `..` segment or any
+other traversal trick, and it can't contain filesystem control characters.
+Reject anything that doesn't resolve to a location underneath the device's
+music storage root instead of writing it. `path` comes straight from the
+phone over the network, so it's untrusted input, the same as any other
+request body.
+
+Once `path` passes that check, the device should:
 1. Create whatever folders are needed for `path` (e.g. `Daft Punk/Discovery/`
    if they don't already exist).
 2. Write the file there, replacing anything already at that exact path.

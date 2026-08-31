@@ -84,6 +84,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.deleteSongFile
+import `in`.caffeinelabs.cassettecat.ui.util.retryDeleteAfterConsent
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.flow.first
@@ -626,13 +627,29 @@ fun FolderDetailScreen(
     val coverPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                folderCoverStorage.save(folderPath, uri)?.let { folderCoverRepository.setCover(folderPath, it) }
+                val newPath = folderCoverStorage.save(folderPath, uri) ?: return@launch
+                try {
+                    folderCoverRepository.setCover(folderPath, newPath)
+                } catch (e: Throwable) {
+                    folderCoverStorage.delete(newPath)
+                    throw e
+                }
+                if (customCoverPath != null && customCoverPath != newPath) {
+                    folderCoverStorage.delete(customCoverPath)
+                }
             }
         }
     }
+    var songPendingConsentRetry by remember { mutableStateOf<Song?>(null) }
     val deleteRecoveryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
-    ) { libraryViewModel.refresh() }
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            songPendingConsentRetry?.let { retryDeleteAfterConsent(context, it) }
+        }
+        songPendingConsentRetry = null
+        libraryViewModel.refresh()
+    }
 
     LibraryGroupDetailScreen(
         title = folderName,
@@ -644,8 +661,10 @@ fun FolderDetailScreen(
         folderCustomCoverPath = customCoverPath,
         onChangeFolderCover = { coverPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onClearFolderCover = {
-            scope.launch { folderCoverRepository.clearCover(folderPath) }
-            folderCoverStorage.delete(folderPath)
+            scope.launch {
+                folderCoverRepository.clearCover(folderPath)
+                customCoverPath?.let { folderCoverStorage.delete(it) }
+            }
         },
         playlistViewModel = playlistViewModel,
         metadata = emptyList(),
@@ -656,7 +675,7 @@ fun FolderDetailScreen(
         modifier = modifier,
         listBottomPadding = listBottomPadding,
         onDeleteSong = { song ->
-            deleteSongFile(context, song, deleteRecoveryLauncher)
+            deleteSongFile(context, song, deleteRecoveryLauncher) { pending -> songPendingConsentRetry = pending }
             libraryViewModel.refresh()
         }
     )

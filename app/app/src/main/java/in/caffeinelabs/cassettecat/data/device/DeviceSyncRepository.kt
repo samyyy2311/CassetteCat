@@ -38,8 +38,9 @@ class DeviceSyncRepository {
         val remoteByPath = _remoteManifest.value?.associateBy { it.path } ?: return localSongs
         return localSongs.filter { song ->
             val path = song.filePath ?: return@filter false
-            val entry = remoteByPath[path]
-            entry == null || entry.sizeBytes != File(path).length()
+            val file = File(path)
+            val entry = remoteByPath[remoteSyncPath(song, file.name)]
+            entry == null || entry.sizeBytes != file.length()
         }
     }
 

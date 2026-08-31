@@ -21,6 +21,27 @@ device, not several.
 
 ---
 
+## Authentication and transport
+
+None of this is built yet, and it needs to be before any of these endpoints
+actually run on real firmware. Right now the wire contract above has no
+credential on any request, which is fine for writing the contract but not
+fine for a device that can factory-reset itself, delete arbitrary files, or
+flash new firmware because anyone on the same Wi-Fi network sent it a
+request.
+
+Firmware needs a per-device pairing token, issued once during the initial
+pairing handshake (the same moment `/api/status` first succeeds) and then
+required on every request after that, factory reset, file delete, Wi-Fi
+mode changes, and both OTA endpoints included, not just the destructive
+ones. A request without a valid token should be rejected outright.
+
+The connection itself also needs to move to HTTPS (self-signed is fine for
+a SoftAP/LAN device like this) instead of plain HTTP, so the token and any
+file contents aren't sent in the clear over Wi-Fi.
+
+---
+
 ## Remote playback control
 
 This is what powers the "Now Playing on Device" screen: play, pause, and
@@ -143,10 +164,17 @@ An empty (or omitted) `path=` means "list the root folder." Entries with
 `GET /api/files?path=...` call. Entries with `isDirectory: false` are
 actual files, shown with their size.
 
-`DELETE /api/files?path=...` deletes whatever's at that exact path, one
-file, or, if it's a folder, presumably everything inside it (that detail is
-up to however firmware implements it). The app shows a confirmation dialog
-before calling this, same as factory reset.
+`DELETE /api/files?path=...` deletes whatever's at that exact path. If the
+path is a folder, firmware deletes it recursively along with everything
+inside it, this isn't left as an implementation detail, both the app's
+confirmation dialog and the storage browser assume deleting a folder
+actually removes its contents.
+
+Before deleting anything, firmware must resolve `path` to a canonical path
+(no `..` segments, no symlink tricks, no equivalent-but-differently-written
+path) and confirm it's still underneath the device's music storage root.
+Anything that resolves outside that root gets rejected, not deleted. The
+app shows a confirmation dialog before calling this, same as factory reset.
 
 ---
 
@@ -157,29 +185,48 @@ something that doesn't exist publicly yet.
 
 ### The primary way: the device downloads it itself
 
-`POST /api/ota/from-url` body `{ "url": "https://github.com/.../firmware.bin" }`
+`POST /api/ota/from-url` body:
+```json
+{ "url": "https://github.com/.../firmware.bin", "sha256": "<hex digest>" }
+```
 
 The app checks GitHub for the latest published release of this project,
 looks for a `.bin` file attached to it, and if it finds one, sends the
-device that file's public download link. The device then downloads and
-flashes that file itself, directly from GitHub. The phone is just the
-messenger telling it where to look, not something the file passes through.
-This is the standard way ESP32 devices are supposed to update
-(`esp_https_ota`, a built-in ESP-IDF feature), simpler and more robust than
-routing a big file through the phone.
+device that file's public download link. `sha256` is the digest GitHub
+itself publishes for that release asset (the Releases API returns a
+`digest` field per asset), not something the app computes, so there's no
+separate companion file to keep in sync with the `.bin`. The device then
+downloads the file itself directly from GitHub, computes its own SHA-256
+over what it received, and compares it against `sha256` before flashing.
+The phone is just the messenger telling it where to look and what to
+expect, not something the file passes through. This is the standard way
+ESP32 devices are supposed to update (`esp_https_ota`, a built-in ESP-IDF
+feature), simpler and more robust than routing a big file through the
+phone.
 
 ### The fallback way: the app sends the file directly
 
 `POST /api/ota`, a multipart upload (same style as song sync), with a
-`file` part containing the firmware `.bin`. Used when there's a build to
-install that isn't a public GitHub release yet, for example a developer
-testing a work-in-progress firmware build before it's officially published.
+`file` part containing the firmware `.bin`, and an `X-Firmware-Sha256`
+header carrying the app-computed SHA-256 digest of that same file. Used
+when there's a build to install that isn't a public GitHub release yet,
+for example a developer testing a work-in-progress firmware build before
+it's officially published. Firmware hashes the bytes it actually received
+and compares against the header before flashing, so a corrupted transfer
+gets rejected instead of flashed.
 
 Both ways respond the same:
 ```json
 { "ok": true, "error": null }
 ```
-and the device flashes the new firmware and reboots on success.
+and the device flashes the new firmware and reboots on success. Firmware
+must not flash a `.bin` just because it arrived: both paths above carry a
+digest specifically so firmware can verify the received bytes before
+flashing, and an image that fails validation gets rejected with
+`{ "ok": false, "error": "..." }`, not flashed. For the manual upload path,
+the trust boundary is "this device already trusts whoever holds its
+pairing token" (per the authentication section above); the digest there is
+about catching a corrupted transfer, not about who's allowed to upload.
 
 ### One thing worth knowing about the GitHub check
 

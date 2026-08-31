@@ -775,31 +775,36 @@ fun MainShell(
                         DeviceSyncScreen(
                             libraryViewModel = libraryViewModel,
                             pairingViewModel = pairingViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.DEVICE_NOW_PLAYING) {
                         DeviceNowPlayingScreen(
                             pairingViewModel = pairingViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.DEVICE_STORAGE) {
                         DeviceStorageScreen(
                             pairingViewModel = pairingViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.DEVICE_FIRMWARE) {
                         DeviceFirmwareScreen(
                             pairingViewModel = pairingViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.DEVICE_SETTINGS) {
                         DeviceSettingsScreen(
                             pairingViewModel = pairingViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.MANAGE_SCAN_FOLDERS) {
