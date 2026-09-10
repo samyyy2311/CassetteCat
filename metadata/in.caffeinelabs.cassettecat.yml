@@ -10,6 +10,7 @@ AutoName: CassetteCat
 
 RepoType: git
 Repo: https://github.com/samyyy2311/CassetteCat.git
+Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-release.apk
 
 Builds:
   - versionName: 1.2.0
@@ -24,12 +25,16 @@ Builds:
     subdir: app/app
     gradle:
       - yes
-
-Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-release.apk
+  - versionName: 1.6.5
+    versionCode: 15
+    commit: de10e50a41e968b1bb89c0d201f3bd701cb2480a
+    subdir: app/app
+    gradle:
+      - yes
 
 AllowedAPKSigningKeys: e55ead1e67b33ffc10f29323b72cafaffbc9fb34f31f40ae069eb307dfbd2b53
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.3.1
-CurrentVersionCode: 5
+CurrentVersion: 1.6.5
+CurrentVersionCode: 15
