@@ -33,7 +33,7 @@ Builds:
       - yes
   - versionName: 1.7.0
     versionCode: 17
-    commit: 53c0146b4f4c7d2e1a3b5e6f7a8b9c0d1e2f3a4b
+    commit: 6689e3ae8dea188fa515f42d486f4ef92d27403a
     subdir: app/app
     gradle:
       - yes
