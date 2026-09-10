@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.radio
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.radio
 
 import android.app.Application
 import android.net.ConnectivityManager
@@ -255,7 +255,6 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { favoritesRepository.add(customRadioStation(name, url)) }
     }
 
-    // Called when a station actually starts playing: records local history and pings
     // Radio Browser's click endpoint so its popularity ranking stays meaningful.
     fun recordPlay(station: RadioStation) {
         viewModelScope.launch { historyRepository.recordPlayed(station) }

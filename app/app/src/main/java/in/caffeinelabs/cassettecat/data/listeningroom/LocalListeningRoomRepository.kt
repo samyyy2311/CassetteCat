@@ -99,11 +99,6 @@ private data class WireMessage(
     val snapshot: RoomSnapshot? = null
 )
 
-/**
- * Direct, LAN-only room transport. Discovery uses Android NSD/mDNS and every socket is
- * opened directly between the host and guests. It deliberately has no account, relay,
- * persistence, analytics, or internet endpoint.
- */
 class LocalListeningRoomRepository(context: Context) {
     private val appContext = context.applicationContext
     private val nsdManager = appContext.getSystemService(NsdManager::class.java)
@@ -321,7 +316,6 @@ class LocalListeningRoomRepository(context: Context) {
         }
     }
 
-    /** Hosts publish the current track, queue and position directly to every joined guest. */
     fun publish(snapshot: RoomSnapshot) {
         if (_state.value.role != ListeningRoomRole.HOST) return
         val line = json.encodeToString(
@@ -375,8 +369,7 @@ class LocalListeningRoomRepository(context: Context) {
                         socket.soTimeout = 0
                         guest.writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
                         updateParticipantCount()
-                        // Guests never send anything after the room code; this just blocks
-                        // until the socket closes, so disconnects are noticed immediately.
+                        // Blocks until socket close so disconnects are noticed immediately.
                         while (reader.readLineBounded(MAX_WIRE_LINE_LENGTH) != null) { /* discard */ }
                     }
                     removeHostGuest(guest)

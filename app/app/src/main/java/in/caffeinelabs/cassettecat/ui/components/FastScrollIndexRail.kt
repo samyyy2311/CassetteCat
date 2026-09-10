@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.components
+﻿package `in`.caffeinelabs.cassettecat.ui.components
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
@@ -112,7 +112,6 @@ fun <T> FastScrollIndexRail(
             activeLetter = letter
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
 
-            // Find matching section or nearest next available letter
             val targetSection = sectionMap[letter]?.takeIf { it.startIndex in items.indices }
                 ?: ALL_LETTERS.drop(letterIndex).mapNotNull { sectionMap[it]?.takeIf { s -> s.startIndex in items.indices } }.firstOrNull()
                 ?: sectionMap.values.lastOrNull { it.startIndex in items.indices }
@@ -129,7 +128,6 @@ fun <T> FastScrollIndexRail(
             .padding(top = 8.dp, bottom = bottomPadding + 8.dp, end = 2.dp),
         contentAlignment = Alignment.CenterEnd
     ) {
-        // Vertical rail
         Column(
             modifier = Modifier
                 .width(24.dp)
@@ -193,7 +191,6 @@ fun <T> FastScrollIndexRail(
             }
         }
 
-        // Floating Tape Index HUD Readout
         AnimatedVisibility(
             visible = isDragging && activeLetter != null,
             enter = fadeIn() + scaleIn(initialScale = 0.85f),

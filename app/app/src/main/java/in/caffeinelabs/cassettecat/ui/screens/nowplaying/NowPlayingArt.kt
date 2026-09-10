@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.graphics.Bitmap
 import androidx.compose.animation.Crossfade
@@ -268,14 +268,12 @@ private fun RotatingVinylPlaceholder(isPlaying: Boolean, modifier: Modifier = Mo
             .background(Color(0xFF0F0F12)),
         contentAlignment = Alignment.Center
     ) {
-        // 1. Turntable Platter Deck Base
         TurntablePlatter(
             modifier = Modifier
                 .fillMaxSize(0.88f)
                 .aspectRatio(1f)
         )
 
-        // 2. Spinning Vinyl Disc with Grooves and Dynamic Light Reflections
         VinylDisc(
             modifier = Modifier
                 .fillMaxSize(0.74f)
@@ -283,7 +281,6 @@ private fun RotatingVinylPlaceholder(isPlaying: Boolean, modifier: Modifier = Mo
                 .graphicsLayer { rotationZ = rotation.value % 360f }
         )
 
-        // 3. Full-Deck Engineered Tonearm with Armrest Post & Needle on Grooves
         Tonearm(
             liftAngleDeg = needleAngle,
             modifier = Modifier.fillMaxSize()

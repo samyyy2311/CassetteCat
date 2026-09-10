@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.data.settings
+﻿package `in`.caffeinelabs.cassettecat.data.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -22,7 +22,6 @@ private val ALBUM_ART_CORNER_RADIUS = intPreferencesKey("album_art_corner_radius
 private val SHOW_REMAINING_TIME = booleanPreferencesKey("show_remaining_time")
 private val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
 
-// Audio Engine & Transitions
 private val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
 private val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_playback")
 private val REPLAY_GAIN_PRE_AMP_DB = intPreferencesKey("replay_gain_pre_amp_db")
@@ -31,7 +30,6 @@ private val AUTOPLAY_ENABLED = booleanPreferencesKey("autoplay_enabled")
 private val VOLUME_LIMIT_ENABLED = booleanPreferencesKey("volume_limit_enabled")
 private val MAX_VOLUME_PERCENT = intPreferencesKey("max_volume_percent")
 
-// Library & Layout
 private val GRID_COLUMNS = intPreferencesKey("grid_columns")
 private val TRACK_ROW_DENSITY = stringPreferencesKey("track_row_density")
 private val DEFAULT_SORT_METRIC = stringPreferencesKey("default_sort_metric")
@@ -51,7 +49,6 @@ private val LIBRARY_ALBUM_SORT_DIRECTION = stringPreferencesKey("library_album_s
 private val LIBRARY_GENRE_SORT_ORDER = stringPreferencesKey("library_genre_sort_order")
 private val LIBRARY_GENRE_SORT_DIRECTION = stringPreferencesKey("library_genre_sort_direction")
 
-// Gestures & Visuals
 private val SWIPE_UP_LYRICS_ENABLED = booleanPreferencesKey("swipe_up_lyrics_enabled")
 private val SHAKE_TO_SKIP_ENABLED = booleanPreferencesKey("shake_to_skip_enabled")
 private val SHAKE_SENSITIVITY = intPreferencesKey("shake_sensitivity")
@@ -61,7 +58,6 @@ private val MINI_PLAYER_SWIPE_TO_SKIP = booleanPreferencesKey("mini_player_swipe
 private val NOW_PLAYING_BACKDROP_STYLE = stringPreferencesKey("now_playing_backdrop_style")
 private val APP_FONT_FAMILY = stringPreferencesKey("app_font_family")
 
-// Lyrics Customization
 private val LYRICS_ALIGNMENT = stringPreferencesKey("lyrics_alignment")
 private val LYRICS_ACTIVE_STYLE = stringPreferencesKey("lyrics_active_style")
 private val LYRICS_FONT_FAMILY = stringPreferencesKey("lyrics_font_family")
@@ -87,7 +83,6 @@ private val MINI_PLAYER_ACTION = stringPreferencesKey("mini_player_action")
 private val ARTWORK_ACCENT_ENABLED = booleanPreferencesKey("artwork_accent_enabled")
 private val AUTO_DRIVE_MODE_BLUETOOTH = booleanPreferencesKey("auto_drive_mode_bluetooth")
 
-// Radio
 private val RADIO_SORT_ORDER = stringPreferencesKey("radio_sort_order")
 private val RADIO_SORT_DIRECTION = stringPreferencesKey("radio_sort_direction")
 private val RADIO_SELECTED_COUNTRY = stringPreferencesKey("radio_selected_country")
@@ -208,7 +203,6 @@ data class AppPreferences(
     val albumArtCornerRadiusDp: Int = 16,
     val showRemainingTime: Boolean = false,
     val hapticFeedbackEnabled: Boolean = true,
-    // Audio Engine & Transitions
     val crossfadeSeconds: Int = 0,
     val gaplessPlayback: Boolean = true,
     val replayGainPreAmpDb: Int = 0,
@@ -216,7 +210,6 @@ data class AppPreferences(
     val autoplayEnabled: Boolean = false,
     val volumeLimitEnabled: Boolean = false,
     val maxVolumePercent: Int = 80,
-    // Library & Layout
     val gridColumnCount: Int = 2,
     val trackRowDensity: TrackRowDensity = TrackRowDensity.DETAILED,
     val defaultSortMetric: DefaultSortMetric = DefaultSortMetric.TITLE,
@@ -234,21 +227,17 @@ data class AppPreferences(
     val libraryAlbumSortDirection: String = "ASCENDING",
     val libraryGenreSortOrder: String = "NAME",
     val libraryGenreSortDirection: String = "ASCENDING",
-    // Gestures
     val swipeUpLyricsEnabled: Boolean = true,
     val shakeToSkipEnabled: Boolean = false,
     val shakeSensitivity: Int = 2,
     val flipToPauseEnabled: Boolean = false,
     val proximityWaveSkipEnabled: Boolean = false,
     val miniPlayerSwipeToSkip: Boolean = true,
-    // Visual Styles
     val nowPlayingBackdropStyle: NowPlayingBackdropStyle = NowPlayingBackdropStyle.OLED_BLACK,
     val appFontFamily: AppFontFamily = AppFontFamily.SPACE_GROTESK,
-    // Lyrics Customization
     val lyricsAlignment: LyricsAlignment = LyricsAlignment.CENTER,
     val lyricsActiveStyle: LyricsActiveStyle = LyricsActiveStyle.ACCENT_GLOW,
     val lyricsFontFamily: LyricsFontFamily = LyricsFontFamily.SPACE_GROTESK,
-    // Standard
     val wifiOnlyDownloads: Boolean = false,
     val listeningStatsEnabled: Boolean = true,
     val defaultStartScreen: DefaultStartScreen = DefaultStartScreen.HOME,
@@ -269,7 +258,6 @@ data class AppPreferences(
     val miniPlayerAction: MiniPlayerAction = MiniPlayerAction.NEXT,
     val artworkAccentEnabled: Boolean = false,
     val autoDriveModeBluetooth: Boolean = false,
-    // Radio
     val radioSortOrder: String = "POPULARITY",
     val radioSortDirection: String = "DESCENDING",
     val radioSelectedCountry: String = "",
@@ -297,7 +285,6 @@ class AppPreferencesRepository(private val context: Context) {
             albumArtCornerRadiusDp = prefs[ALBUM_ART_CORNER_RADIUS] ?: 16,
             showRemainingTime = prefs[SHOW_REMAINING_TIME] ?: false,
             hapticFeedbackEnabled = prefs[HAPTIC_FEEDBACK_ENABLED] ?: true,
-            // Audio Engine & Transitions
             crossfadeSeconds = prefs[CROSSFADE_SECONDS] ?: 0,
             gaplessPlayback = prefs[GAPLESS_PLAYBACK] ?: true,
             replayGainPreAmpDb = prefs[REPLAY_GAIN_PRE_AMP_DB] ?: 0,
@@ -305,7 +292,6 @@ class AppPreferencesRepository(private val context: Context) {
             autoplayEnabled = prefs[AUTOPLAY_ENABLED] ?: false,
             volumeLimitEnabled = prefs[VOLUME_LIMIT_ENABLED] ?: false,
             maxVolumePercent = (prefs[MAX_VOLUME_PERCENT] ?: 80).coerceIn(10, 100),
-            // Library & Layout
             gridColumnCount = (prefs[GRID_COLUMNS] ?: 2).coerceIn(2, 4),
             trackRowDensity = try {
                 TrackRowDensity.valueOf(prefs[TRACK_ROW_DENSITY] ?: TrackRowDensity.DETAILED.name)
@@ -331,7 +317,6 @@ class AppPreferencesRepository(private val context: Context) {
             libraryAlbumSortDirection = prefs[LIBRARY_ALBUM_SORT_DIRECTION] ?: "ASCENDING",
             libraryGenreSortOrder = prefs[LIBRARY_GENRE_SORT_ORDER] ?: "NAME",
             libraryGenreSortDirection = prefs[LIBRARY_GENRE_SORT_DIRECTION] ?: "ASCENDING",
-            // Gestures
             swipeUpLyricsEnabled = prefs[SWIPE_UP_LYRICS_ENABLED] ?: true,
             shakeToSkipEnabled = prefs[SHAKE_TO_SKIP_ENABLED] ?: false,
             shakeSensitivity = prefs[SHAKE_SENSITIVITY] ?: 2,
@@ -340,7 +325,6 @@ class AppPreferencesRepository(private val context: Context) {
             miniPlayerSwipeToSkip = prefs[MINI_PLAYER_SWIPE_TO_SKIP] ?: true,
             nowPlayingBackdropStyle = enumValueOrDefault(prefs[NOW_PLAYING_BACKDROP_STYLE], NowPlayingBackdropStyle.OLED_BLACK),
             appFontFamily = enumValueOrDefault(prefs[APP_FONT_FAMILY], AppFontFamily.SPACE_GROTESK),
-            // Lyrics Customization
             lyricsAlignment = try {
                 LyricsAlignment.valueOf(prefs[LYRICS_ALIGNMENT] ?: LyricsAlignment.CENTER.name)
             } catch (_: Exception) {
@@ -352,8 +336,6 @@ class AppPreferencesRepository(private val context: Context) {
                 LyricsActiveStyle.ACCENT_GLOW
             },
             lyricsFontFamily = enumValueOrDefault(prefs[LYRICS_FONT_FAMILY], LyricsFontFamily.SPACE_GROTESK),
-            // Cache & Storage
-            // Standard
             wifiOnlyDownloads = prefs[WIFI_ONLY_DOWNLOADS] ?: false,
             listeningStatsEnabled = prefs[LISTENING_STATS_ENABLED] ?: true,
             defaultStartScreen = try {
@@ -382,7 +364,6 @@ class AppPreferencesRepository(private val context: Context) {
             showMiniPlayerProgress = prefs[SHOW_MINI_PLAYER_PROGRESS] ?: true,
             miniPlayerAction = enumValueOrDefault(prefs[MINI_PLAYER_ACTION], MiniPlayerAction.NEXT),
             artworkAccentEnabled = prefs[ARTWORK_ACCENT_ENABLED] ?: false,
-            // Radio
             radioSortOrder = prefs[RADIO_SORT_ORDER] ?: "POPULARITY",
             radioSortDirection = prefs[RADIO_SORT_DIRECTION] ?: "DESCENDING",
             radioSelectedCountry = prefs[RADIO_SELECTED_COUNTRY] ?: "",
@@ -424,7 +405,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[HAPTIC_FEEDBACK_ENABLED] = enabled }
     }
 
-    // Audio Engine & Transitions
     suspend fun setCrossfadeSeconds(seconds: Int) {
         context.appPreferencesDataStore.edit { it[CROSSFADE_SECONDS] = seconds }
     }
@@ -453,7 +433,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[MAX_VOLUME_PERCENT] = percent.coerceIn(10, 100) }
     }
 
-    // Library & Layout
     suspend fun setGridColumnCount(columns: Int) {
         context.appPreferencesDataStore.edit { it[GRID_COLUMNS] = columns }
     }
@@ -535,7 +514,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[LIBRARY_GENRE_SORT_DIRECTION] = direction }
     }
 
-    // Gestures
     suspend fun setSwipeUpLyricsEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SWIPE_UP_LYRICS_ENABLED] = enabled }
     }
@@ -556,7 +534,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[PROXIMITY_WAVE_SKIP_ENABLED] = enabled }
     }
 
-    // Lyrics Customization
     suspend fun setLyricsAlignment(alignment: LyricsAlignment) {
         context.appPreferencesDataStore.edit { it[LYRICS_ALIGNMENT] = alignment.name }
     }
@@ -573,8 +550,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[APP_FONT_FAMILY] = fontFamily.name }
     }
 
-    // Cache & Storage
-    // Standard
     suspend fun setWifiOnlyDownloads(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[WIFI_ONLY_DOWNLOADS] = enabled }
     }
@@ -651,7 +626,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[ARTWORK_ACCENT_ENABLED] = enabled }
     }
 
-    // Radio
     suspend fun setRadioSortOrder(order: String) {
         context.appPreferencesDataStore.edit { it[RADIO_SORT_ORDER] = order }
     }

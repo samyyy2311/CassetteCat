@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.settings
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
 import android.text.format.DateFormat
@@ -93,15 +93,15 @@ fun SettingsScreen(
 
     fun serverStatus(config: StreamingServerConfig, source: MusicSource, label: String): String {
         if (uiState.services.offlineBlackoutMode) return "Paused by Offline Blackout Mode"
-        if (libraryState is LibraryUiState.Loading) return "Checking connection…"
+        if (libraryState is LibraryUiState.Loading) return "Checking connectionâ€¦"
         val loaded = libraryState as? LibraryUiState.Loaded
         val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$label:") }
         val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }
         return if (warning != null) {
-            "Unavailable · ${warning.substringAfter(':').trim()}${checkedAt?.let { " · checked $it" }.orEmpty()}"
+            "Unavailable Â· ${warning.substringAfter(':').trim()}${checkedAt?.let { " Â· checked $it" }.orEmpty()}"
         } else {
             val count = loaded?.songs?.count { it.source == source } ?: 0
-            "${config.username} · $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " · refreshed $it" }.orEmpty()}"
+            "${config.username} Â· $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " Â· refreshed $it" }.orEmpty()}"
         }
     }
 
@@ -116,7 +116,6 @@ fun SettingsScreen(
         SettingsHeader()
         Spacer(Modifier.height(12.dp))
 
-        // 1. Audio & Playback
         SettingsSection(title = "Audio & Playback") {
             NavigationRow(
                 title = "Customisation",
@@ -145,7 +144,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // 2. Library & Hardware
         SettingsSection(title = "Library & Hardware") {
             NavigationRow(
                 title = "Listening Record",
@@ -186,7 +184,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // 3. Streaming & Services
         SettingsSection(title = "Streaming & Services") {
             ToggleRow(
                 title = "Offline Blackout Mode",
@@ -250,7 +247,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // 4. Data & App Updates
         SettingsSection(title = "Data & Updates") {
             NavigationRow(
                 title = "Privacy & Security",
@@ -288,7 +284,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // 5. Support & About (Clean, consistent styling)
         SettingsSection(title = "Support & About") {
             NavigationRow(
                 title = "About & Legal",
@@ -403,7 +398,7 @@ fun ServiceToggleRow(
                 color = if (isBlackedOut) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
             )
             Text(
-                if (isBlackedOut) "${service.description} · Paused by Offline Blackout Mode" else service.description,
+                if (isBlackedOut) "${service.description} Â· Paused by Offline Blackout Mode" else service.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isBlackedOut) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )

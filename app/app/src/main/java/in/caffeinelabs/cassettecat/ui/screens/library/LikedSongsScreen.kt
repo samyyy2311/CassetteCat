@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.library
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +33,6 @@ import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 
-/** A first-class collection, not a redirect to a filtered version of Library → Songs. */
 @Composable
 fun LikedSongsScreen(
     libraryViewModel: LibraryViewModel,
@@ -68,7 +67,7 @@ fun LikedSongsScreen(
     val subtitleDetails = listOfNotNull(
         if (songs.size == 1) "1 song" else "${songs.size} songs",
         durationText.takeIf { it.isNotBlank() }
-    ).joinToString(" · ")
+    ).joinToString(" Â· ")
 
     fun playAll(shuffle: Boolean) {
         if (songs.isEmpty()) return

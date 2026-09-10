@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
@@ -119,7 +119,7 @@ internal fun NowPlayingActionsSheet(
         MusicSource.Local -> "Local"
         MusicSource.Subsonic -> "Subsonic"
         MusicSource.Jellyfin -> "Jellyfin"
-        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio · ${song.bitrateKbps}k" else "Radio"
+        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio Â· ${song.bitrateKbps}k" else "Radio"
         MusicSource.ListeningRoomHost -> "Room"
     }
 
@@ -129,7 +129,6 @@ internal fun NowPlayingActionsSheet(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
         ) {
-            // 1. Song Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,7 +178,6 @@ internal fun NowPlayingActionsSheet(
                 }
             }
 
-            // 2. Tactile Quick Actions Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,7 +238,6 @@ internal fun NowPlayingActionsSheet(
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
             )
 
-            // 3. Track & Metadata Actions
             if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_file_music,
@@ -278,7 +275,6 @@ internal fun NowPlayingActionsSheet(
                 modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
             )
 
-            // 4. Playback & Audio Controls
             SongActionRow(
                 iconRes = outputIcon,
                 label = "Audio output",
@@ -459,7 +455,7 @@ internal fun ListeningRoomSheet(
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_users,
                         label = state.roomName ?: "Listening Room",
-                        subtitle = "Room controls are on this phone • ${state.participantCount} connected",
+                        subtitle = "Room controls are on this phone â€¢ ${state.participantCount} connected",
                         accented = true,
                         onClick = {}
                     )
@@ -536,7 +532,7 @@ internal fun ListeningRoomSheet(
                         }
                     } else if (state.notice == null) {
                         Text(
-                            "Looking for nearby rooms on this Wi-Fi…",
+                            "Looking for nearby rooms on this Wi-Fiâ€¦",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -588,7 +584,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.ListeningRoomHost -> "Streamed from Listening Room host"
         MusicSource.Radio -> "Internet radio"
     }
-    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Not supplied" }
+    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" Â· ").ifBlank { "Not supplied" }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
@@ -1049,7 +1045,6 @@ internal fun SleepTimerPickerSheet(
 
             Spacer(Modifier.height(6.dp))
 
-            // 1. END OF CURRENT TRACK CARD
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1105,7 +1100,6 @@ internal fun SleepTimerPickerSheet(
 
             Spacer(Modifier.height(12.dp))
 
-            // 2. DURATION CAPSULE PILLS (HORIZONTAL ROW)
             Text(
                 "DURATION",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),

@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.stats
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -119,7 +119,6 @@ internal fun buildListeningRecordPoster(
 
     val (color1, color2, _) = extractAuroraColors(topSongArtwork)
 
-    // 1. Vibrant Ambient Background
     when (theme) {
         ListeningRecordTheme.ATMOSPHERE -> {
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -211,7 +210,6 @@ internal fun buildListeningRecordPoster(
         textSize = 44f
     }
 
-    // 2. Top Header ("Rewind" on left, "CassetteCat" on right)
     val headerY = 175f
     canvas.drawText(
         "Rewind",
@@ -241,7 +239,6 @@ internal fun buildListeningRecordPoster(
         }
     )
 
-    // 3. Hero Date & Minutes (Big, Bold, Centered)
     val heroY = 360f
     val localizedMonth = monthAbbreviation.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     val heroTitle = if (isRewind) yearLabel else "$localizedMonth $yearLabel"
@@ -264,7 +261,6 @@ internal fun buildListeningRecordPoster(
     }
     canvas.drawText(minutesText, width / 2f, heroY + 80f, minutesPaint)
 
-    // 4. Two-Column Asymmetric Section (Left: Text, Right: Large Artwork Stack)
     val splitLeftWidth = 1220f
     val rightArtSize = 580f
     val rightArtLeft = rightMargin - rightArtSize
@@ -336,13 +332,10 @@ internal fun buildListeningRecordPoster(
     val art2Top = 1190f
     val art3Top = 1830f
 
-    // 1: Top Artist Circle
     drawArtwork(topArtistArtwork ?: topSongArtwork, rightArtLeft, art1Top, rightArtSize, isCircle = true)
 
-    // 2: Top Song Square
     drawArtwork(topSongArtwork, rightArtLeft, art2Top, rightArtSize, isCircle = false)
 
-    // 3: Top Album Square
     drawArtwork(topAlbumArtwork ?: topSongArtwork, rightArtLeft, art3Top, rightArtSize, isCircle = false)
 
     // --- LEFT COLUMN TEXT SECTIONS ---

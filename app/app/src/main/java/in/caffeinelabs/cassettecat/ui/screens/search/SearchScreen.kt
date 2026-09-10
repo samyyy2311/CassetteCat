@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.search
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.search
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -150,7 +150,6 @@ fun SearchScreen(
         trimmed.lowercase().split("\\s+".toRegex()).filter { it.isNotEmpty() }
     }
 
-    // Matched results per entity type
     val matchedSongs = remember(trimmed, allSongs) {
         if (trimmed.isBlank()) emptyList()
         else allSongs
@@ -271,7 +270,7 @@ fun SearchScreen(
             },
             placeholder = {
                 Text(
-                    "Search songs, artists, albums…",
+                    "Search songs, artists, albumsâ€¦",
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

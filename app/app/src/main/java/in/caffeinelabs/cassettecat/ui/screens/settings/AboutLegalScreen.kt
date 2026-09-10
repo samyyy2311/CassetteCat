@@ -85,7 +85,6 @@ fun AboutLegalScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. App Brand Card
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
@@ -101,7 +100,7 @@ fun AboutLegalScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(AppR.drawable.ic_launcher_foreground),
+                            painter = painterResource(AppR.drawable.ic_app_icon),
                             contentDescription = null,
                             modifier = Modifier.size(36.dp)
                         )
@@ -132,7 +131,6 @@ fun AboutLegalScreen(
                 }
             }
 
-            // 2. Audio DSP & Engine
             InfoCard(title = "Audio Engine & Hi-Fi DSP") {
                 Text(
                     "Bit-perfect local playback with 32-bit float internal audio processing. Parametric equalization and headphone frequency response correction curves are powered by Jaakko Pasanen's calibrated AutoEq database.",
@@ -142,7 +140,6 @@ fun AboutLegalScreen(
                 )
             }
 
-            // 3. Data Sources
             InfoCard(title = "Data Sources") {
                 Text(
                     "Real-time synchronized and plain lyrics are provided by LRCLIB. Album cover artwork and metadata are fetched from MusicBrainz and Cover Art Archive. Artist biographies and background information are sourced from Wikipedia & Wikimedia (CC BY-SA 4.0).",
@@ -158,10 +155,9 @@ fun AboutLegalScreen(
                 )
             }
 
-            // 4. Privacy & Local-First Data
             InfoCard(title = "Privacy & Local-First Data") {
                 Text(
-                    "Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings → Privacy → Crash Log.",
+                    "Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings â†’ Privacy â†’ Crash Log.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
@@ -175,7 +171,6 @@ fun AboutLegalScreen(
                 )
             }
 
-            // 5. Permissions Used
             InfoCard(title = "Permissions Used") {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     PermissionRow(
@@ -205,7 +200,6 @@ fun AboutLegalScreen(
                 }
             }
 
-            // 6. Feedback & Open Source (No email required)
             InfoCard(title = "Feedback & Open Source") {
                 Text(
                     "Found a bug, want to request a feature, or explore the source code? CassetteCat is free and open source software licensed under GNU GPL v3.0.",

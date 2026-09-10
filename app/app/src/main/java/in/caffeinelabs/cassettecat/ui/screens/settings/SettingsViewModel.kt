@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.settings
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -213,7 +213,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setHapticFeedbackEnabled(enabled) }
     }
 
-    // Audio Engine & Transitions
     fun setCrossfadeSeconds(seconds: Int) {
         viewModelScope.launch { appPreferencesRepository.setCrossfadeSeconds(seconds) }
     }
@@ -242,7 +241,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setMaxVolumePercent(percent) }
     }
 
-    // Library & Layout
     fun setGridColumnCount(columns: Int) {
         viewModelScope.launch { appPreferencesRepository.setGridColumnCount(columns) }
     }
@@ -263,7 +261,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setShowNowPlayingBlur(enabled) }
     }
 
-    // Gestures
     fun setSwipeUpLyricsEnabled(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setSwipeUpLyricsEnabled(enabled) }
     }
@@ -292,7 +289,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setNowPlayingBackdropStyle(style) }
     }
 
-    // Lyrics Customization
     fun setLyricsAlignment(alignment: LyricsAlignment) {
         viewModelScope.launch { appPreferencesRepository.setLyricsAlignment(alignment) }
     }

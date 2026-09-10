@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.util
+﻿package `in`.caffeinelabs.cassettecat.ui.util
 
 import android.Manifest
 import android.bluetooth.BluetoothClass
@@ -68,13 +68,11 @@ internal fun rememberConnectedBluetoothDevice(): AudioDeviceInfo? {
 fun isCarAudioDevice(device: AudioDeviceInfo?, context: Context): Boolean {
     if (device == null) return false
 
-    // 1. Direct hardware car audio output device type (Android Automotive audio bus)
     if (device.type == AudioDeviceInfo.TYPE_BUS) return true
 
     val rawName = device.productName?.toString()?.trim() ?: ""
     val name = rawName.lowercase()
 
-    // 2. Filter out explicit personal audio devices (headphones, earbuds, speakers)
     val personalAudioKeywords = listOf(
         "airpod", "earbud", "earphone", "headphone", "headset", "buds",
         "wh-1000", "wf-1000", "quietcomfort", "soundcore", "freebud",
@@ -84,7 +82,6 @@ fun isCarAudioDevice(device: AudioDeviceInfo?, context: Context): Boolean {
         return false
     }
 
-    // 3. Check for car audio / infotainment / automotive keywords
     val carKeywords = listOf(
         "car", "auto", "carkit", "car kit", "sync", "uconnect", "infotainment",
         "handsfree", "hands-free", "mmi", "entune", "carplay", "android auto",
@@ -99,7 +96,6 @@ fun isCarAudioDevice(device: AudioDeviceInfo?, context: Context): Boolean {
         return true
     }
 
-    // 4. Inspect BluetoothDevice Class if BLUETOOTH_CONNECT permission is granted
     if (hasBluetoothConnectPermission(context)) {
         try {
             val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -120,9 +116,7 @@ fun isCarAudioDevice(device: AudioDeviceInfo?, context: Context): Boolean {
                 }
             }
         } catch (_: SecurityException) {
-            // Permission missing at runtime
         } catch (_: Exception) {
-            // Fallback safely
         }
     }
 

@@ -1,4 +1,4 @@
-@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+﻿@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
@@ -381,12 +381,10 @@ fun MainShell(
         }
     }
 
-    // 1. Back handler for Now Playing sub-views (Queue, Lyrics, Visualizer)
     BackHandler(enabled = nowPlayingView != NowPlayingView.PLAYER) {
         nowPlayingView = NowPlayingView.PLAYER
     }
 
-    // 2. Back handler for expanded Now Playing bottom sheet -> collapses to mini-player
     BackHandler(enabled = isSheetExpanded && nowPlayingView == NowPlayingView.PLAYER) {
         scope.launch { scaffoldState.bottomSheetState.partialExpand() }
     }

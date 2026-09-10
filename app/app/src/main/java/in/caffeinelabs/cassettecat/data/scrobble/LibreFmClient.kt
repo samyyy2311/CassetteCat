@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.data.scrobble
+﻿package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
@@ -49,7 +49,6 @@ class LibreFmClient {
             sharedHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body.string()
-                // Parse session key from JSON or fallback string extraction
                 if (body.contains("\"key\":\"")) {
                     body.substringAfter("\"key\":\"").substringBefore("\"")
                 } else if (body.contains("<key>")) {

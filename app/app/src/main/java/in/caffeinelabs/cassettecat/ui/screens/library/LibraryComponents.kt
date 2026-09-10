@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.library
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -203,7 +203,7 @@ internal fun RowScope.SongListRowContent(
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            text = if (song.album.isNotEmpty() && song.album != song.title) "${song.artist} • ${song.album}" else song.artist,
+            text = if (song.album.isNotEmpty() && song.album != song.title) "${song.artist} â€¢ ${song.album}" else song.artist,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -221,7 +221,6 @@ internal fun RowScope.SongListRowContent(
         )
     }
 
-    // Trailing metadata section (Format pill, Duration, Download icon, More button)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
@@ -770,7 +769,7 @@ internal fun AlbumListRow(
 ) {
     CollectionListRow(
         title = group.album,
-        subtitle = "${group.artist} · ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
+        subtitle = "${group.artist} Â· ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
         onClick = onClick,
         onLongClick = onLongClick,
         selected = selected,
@@ -821,7 +820,7 @@ internal fun FolderListRow(
     val songCountLabel = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"
     CollectionListRow(
         title = group.folderName,
-        subtitle = group.parentName?.let { "$songCountLabel · in $it" } ?: songCountLabel,
+        subtitle = group.parentName?.let { "$songCountLabel Â· in $it" } ?: songCountLabel,
         onClick = onClick,
         onPlay = onPlay,
         onLongClick = onLongClick,

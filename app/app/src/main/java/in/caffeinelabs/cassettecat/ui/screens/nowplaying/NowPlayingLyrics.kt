@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing

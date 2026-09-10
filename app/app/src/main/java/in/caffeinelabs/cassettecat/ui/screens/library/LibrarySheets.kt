@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.library
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -98,7 +98,6 @@ internal fun <T> LibraryRefineSheet(
 
             Spacer(Modifier.height(4.dp))
 
-            // 1. FILTER SECTION
             Text(
                 "FILTER BY",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
@@ -154,7 +153,6 @@ internal fun <T> LibraryRefineSheet(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
 
-            // 2. SORT SECTION
             Text(
                 "SORT BY",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
@@ -299,10 +297,10 @@ internal fun SortOptionCard(
 }
 
 private fun directionLabelFor(label: String, direction: SortDirection): String = when {
-    label.contains("Song Count", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "1 → 9" else "9 → 1"
+    label.contains("Song Count", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "1 â†’ 9" else "9 â†’ 1"
     label.contains("Recent", ignoreCase = true) || label.contains("Date", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Oldest" else "Newest"
     label.contains("Duration", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Shortest" else "Longest"
-    else -> if (direction == SortDirection.ASCENDING) "A → Z" else "Z → A"
+    else -> if (direction == SortDirection.ASCENDING) "A â†’ Z" else "Z â†’ A"
 }
 
 private fun sortIconFor(label: String): Int = when {
@@ -397,7 +395,6 @@ internal fun SongOptionsSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 24.dp)
         ) {
-            // 1. Song Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -434,7 +431,6 @@ internal fun SongOptionsSheet(
                 }
             }
 
-            // 2. Tactile Quick Actions (Like, Play Next, Share)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -523,7 +519,6 @@ internal fun SongOptionsSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // 3. Extended Options Rows
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

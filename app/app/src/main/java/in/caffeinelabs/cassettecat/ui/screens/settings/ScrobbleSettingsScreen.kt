@@ -1,4 +1,4 @@
-package `in`.caffeinelabs.cassettecat.ui.screens.settings
+﻿package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
 import androidx.core.net.toUri
@@ -100,7 +100,6 @@ fun ScrobbleSettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // ListenBrainz
         SettingsSection(title = "LISTENBRAINZ") {
             val isConnected = settings.listenBrainz.userToken.isNotBlank()
             Row(
@@ -158,7 +157,6 @@ fun ScrobbleSettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Libre.fm
         SettingsSection(title = "LIBRE.FM") {
             val isConnected = settings.libreFm.sessionKey.isNotBlank()
             Row(
