@@ -8,8 +8,6 @@ on:
       - "CHANGELOG.md"
       - "scripts/build_changelog.py"
       - ".github/workflows/deploy-pages.yml"
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
