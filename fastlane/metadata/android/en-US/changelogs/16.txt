@@ -1,0 +1,6 @@
+What's new in 1.7.0:
+
+- Fixed playback pausing between songs when autoplay is on
+- Fixed queue not advancing automatically at the end of a track
+- Padded the launcher icon so it stays centered inside circular launcher masks
+- Refreshed the welcome screen with the new app icon

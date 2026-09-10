@@ -1,7 +1,7 @@
 # CassetteCat
 
 <p align="center">
-  <img src="assets/logo.svg" width="128" height="128" alt="CassetteCat Logo" />
+  <img src="assets/play_store_icon_512.png" width="128" height="128" alt="CassetteCat Logo" style="border-radius: 28px;" />
 </p>
 
 <p align="center">
@@ -9,7 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.6.5-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.6.5" /></a>
+  Desktop app: <a href="https://github.com/samyyy2311/CassetteCat-Desktop">CassetteCat Desktop</a> (Windows, Linux)
+</p>
+
+<p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.7.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.7.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -99,9 +103,9 @@
 
 ### Planned Companion Hardware
 
-> The companion protocol is present in the Android app, but the `firmware/`
-> and `hardware/` directories currently contain design placeholders rather
-> than buildable firmware or fabrication files.
+> The companion protocol is present in the Android app, but the `firmware/` and
+> `hardware/` directories currently contain design placeholders rather than
+> buildable firmware or fabrication files.
 
 - **Wireless Pairing**: Connect to a standalone ESP32 CassetteCat player over a
   direct SoftAP hotspot or your local Wi-Fi network via mDNS. On Android 13+,
@@ -179,7 +183,9 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 Contributions are welcome.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used in this project.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and
+[AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used in this
+project.
 
 ---
 
@@ -234,6 +240,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and [AI_DISC
   Typefaces (OFL 1.1).
 - <a href="https://github.com/floriankarsten/space-grotesk"><img src="https://img.shields.io/badge/Space%20Grotesk-242424?style=flat-square" alt="Space Grotesk" /></a>
   Display font by Florian Karsten (OFL 1.1).
+
+---
+
+## Desktop
+
+CassetteCat is also available for Windows and Linux at [CassetteCat-Desktop](https://github.com/samyyy2311/CassetteCat-Desktop).
 
 ---
 

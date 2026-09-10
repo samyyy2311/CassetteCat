@@ -2,6 +2,13 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.0]
+
+* Fixed playback pausing between songs when autoplay is on.
+* Fixed queue not advancing automatically at the end of a track.
+* Padded the launcher icon so it stays centered inside circular launcher masks.
+* Refreshed the welcome screen with the new app icon.
+
 ## [1.6.5] - CassetteCat Player Gets a Control Panel
 
 * Folders now show a parent-folder label, album-art thumbnails, and support custom cover art.
