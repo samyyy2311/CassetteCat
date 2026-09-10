@@ -1,8 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.onboarding
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,46 @@ import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.ui.navigation.SmoothEasing
 import `in`.caffeinelabs.cassettecat.ui.navigation.TRANSITION_MS
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+
+@Composable
+fun OnboardingHeroImage(
+    @DrawableRes imageRes: Int,
+    modifier: Modifier = Modifier,
+    blobSize: Dp = 200.dp,
+    imageSize: Dp = 112.dp
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(TRANSITION_MS * 2, easing = SmoothEasing), label = "heroAlpha")
+    val scale by animateFloatAsState(if (visible) 1f else 0.92f, tween(TRANSITION_MS * 2, easing = SmoothEasing), label = "heroScale")
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { this.alpha = alpha; scaleX = scale; scaleY = scale },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(blobSize)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.24f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0f)
+                        )
+                    )
+                )
+        )
+        Image(
+            painter = painterResource(imageRes),
+            contentDescription = null,
+            modifier = Modifier
+                .size(imageSize)
+                .clip(RoundedCornerShape(26.dp))
+        )
+    }
+}
 
 // Fades and settles in on entry, like a display powering on, instead of appearing static.
 @Composable

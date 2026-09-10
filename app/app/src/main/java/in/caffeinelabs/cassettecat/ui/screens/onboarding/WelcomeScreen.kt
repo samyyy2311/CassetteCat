@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -44,7 +44,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.Center
         ) {
-            OnboardingHeroIcon(iconRes = R.drawable.lucide_ic_cassette_tape)
+            OnboardingHeroImage(imageRes = R.drawable.ic_app_icon)
         }
         Text(
             "PRIVATE BY DEFAULT",
