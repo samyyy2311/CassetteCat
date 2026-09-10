@@ -300,7 +300,7 @@ private fun LibrarySnapshot(songs: List<Song>, onClick: () -> Unit) {
     val artistCount = songs.groupedByArtist().size
     val albumCount = songs.groupedByAlbum().size
     Text(
-        "${songs.size} songs Â· $artistCount artists Â· $albumCount albums",
+        "${songs.size} songs · $artistCount artists · $albumCount albums",
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 24.dp).tapScale(onClick)

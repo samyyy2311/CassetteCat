@@ -98,10 +98,10 @@ fun SettingsScreen(
         val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$label:") }
         val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }
         return if (warning != null) {
-            "Unavailable Â· ${warning.substringAfter(':').trim()}${checkedAt?.let { " Â· checked $it" }.orEmpty()}"
+            "Unavailable · ${warning.substringAfter(':').trim()}${checkedAt?.let { " · checked $it" }.orEmpty()}"
         } else {
             val count = loaded?.songs?.count { it.source == source } ?: 0
-            "${config.username} Â· $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " Â· refreshed $it" }.orEmpty()}"
+            "${config.username} · $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " · refreshed $it" }.orEmpty()}"
         }
     }
 
@@ -398,7 +398,7 @@ fun ServiceToggleRow(
                 color = if (isBlackedOut) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
             )
             Text(
-                if (isBlackedOut) "${service.description} Â· Paused by Offline Blackout Mode" else service.description,
+                if (isBlackedOut) "${service.description} · Paused by Offline Blackout Mode" else service.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isBlackedOut) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -67,7 +67,7 @@ fun LikedSongsScreen(
     val subtitleDetails = listOfNotNull(
         if (songs.size == 1) "1 song" else "${songs.size} songs",
         durationText.takeIf { it.isNotBlank() }
-    ).joinToString(" Â· ")
+    ).joinToString(" · ")
 
     fun playAll(shuffle: Boolean) {
         if (songs.isEmpty()) return

@@ -769,7 +769,7 @@ internal fun AlbumListRow(
 ) {
     CollectionListRow(
         title = group.album,
-        subtitle = "${group.artist} Â· ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
+        subtitle = "${group.artist} · ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
         onClick = onClick,
         onLongClick = onLongClick,
         selected = selected,
@@ -820,7 +820,7 @@ internal fun FolderListRow(
     val songCountLabel = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"
     CollectionListRow(
         title = group.folderName,
-        subtitle = group.parentName?.let { "$songCountLabel Â· in $it" } ?: songCountLabel,
+        subtitle = group.parentName?.let { "$songCountLabel · in $it" } ?: songCountLabel,
         onClick = onClick,
         onPlay = onPlay,
         onLongClick = onLongClick,

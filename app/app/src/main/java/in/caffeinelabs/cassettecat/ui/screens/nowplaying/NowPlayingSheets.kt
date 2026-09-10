@@ -119,7 +119,7 @@ internal fun NowPlayingActionsSheet(
         MusicSource.Local -> "Local"
         MusicSource.Subsonic -> "Subsonic"
         MusicSource.Jellyfin -> "Jellyfin"
-        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio Â· ${song.bitrateKbps}k" else "Radio"
+        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio · ${song.bitrateKbps}k" else "Radio"
         MusicSource.ListeningRoomHost -> "Room"
     }
 
@@ -584,7 +584,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.ListeningRoomHost -> "Streamed from Listening Room host"
         MusicSource.Radio -> "Internet radio"
     }
-    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" Â· ").ifBlank { "Not supplied" }
+    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Not supplied" }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
