@@ -21,7 +21,7 @@ android {
 
     val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
         ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
-        ?: 16
+        ?: 17
 
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"

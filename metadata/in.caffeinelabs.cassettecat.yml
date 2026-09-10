@@ -32,8 +32,8 @@ Builds:
     gradle:
       - yes
   - versionName: 1.7.0
-    versionCode: 16
-    commit: 1a629d4f187eda2490a2781efa23991d371fcbd9
+    versionCode: 17
+    commit: 53c0146b4f4c7d2e1a3b5e6f7a8b9c0d1e2f3a4b
     subdir: app/app
     gradle:
       - yes
@@ -43,4 +43,4 @@ AllowedAPKSigningKeys: e55ead1e67b33ffc10f29323b72cafaffbc9fb34f31f40ae069eb307d
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 1.7.0
-CurrentVersionCode: 16
+CurrentVersionCode: 17
