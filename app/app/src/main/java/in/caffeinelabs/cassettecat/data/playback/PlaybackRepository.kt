@@ -83,6 +83,7 @@ class PlaybackRepository(private val context: Context) {
                     when {
                         c != null && currentIndex != C.INDEX_UNSET && currentIndex < currentQueue.size - 1 -> {
                             c.seekTo(currentIndex + 1, 0L)
+                            c.prepare()
                             c.play()
                         }
                         c != null && c.repeatMode == Player.REPEAT_MODE_ALL && currentQueue.isNotEmpty() -> {
@@ -99,6 +100,7 @@ class PlaybackRepository(private val context: Context) {
                                 c.play()
                             } else {
                                 c.seekTo(0, 0L)
+                                c.prepare()
                                 c.play()
                             }
                         }
@@ -181,7 +183,6 @@ class PlaybackRepository(private val context: Context) {
         }
     }
 
-    /** Applies a host snapshot without exposing networking concerns to the player UI. */
     suspend fun applyRoomQueue(songs: List<Song>, positionMs: Long, isPlaying: Boolean) {
         if (songs.isEmpty()) return
         val c = controller ?: return
@@ -427,6 +428,7 @@ class PlaybackRepository(private val context: Context) {
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
         originalQueue = currentQueue
         c.seekTo(insertAt, 0L)
+        c.prepare()
         c.play()
         updateState()
     }

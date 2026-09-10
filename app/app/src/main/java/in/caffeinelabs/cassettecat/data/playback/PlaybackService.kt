@@ -267,7 +267,6 @@ class PlaybackService : MediaLibraryService() {
                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                     .setMaxAudioChannelCount(maxChannels)
                     .build()
-                player.pauseAtEndOfMediaItems = !prefs.gaplessPlayback
 
                 isShakeToSkipEnabled = prefs.shakeToSkipEnabled
                 isFlipToPauseEnabled = prefs.flipToPauseEnabled
