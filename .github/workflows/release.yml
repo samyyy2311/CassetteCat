@@ -46,7 +46,7 @@ jobs:
         run: |
           echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > release.keystore
 
-      - name: Build Release and Debug APKs
+      - name: Build Release and Debug Artifacts (APKs & AAB)
         working-directory: ./app
         env:
           GITHUB_REF_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
@@ -55,7 +55,14 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease assembleDebug --stacktrace
+          ./gradlew assembleRelease assembleDebug bundleRelease --stacktrace
+
+      - name: Upload Release AAB (Play Store Bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cassettecat-release-aab
+          path: app/app/build/outputs/bundle/release/app-release*.aab
+          if-no-files-found: warn
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
@@ -97,4 +104,5 @@ jobs:
           files: |
             app/app/build/outputs/apk/release/app-release*.apk
             app/app/build/outputs/apk/debug/app-debug.apk
+            app/app/build/outputs/bundle/release/app-release*.aab
           generate_release_notes: true
