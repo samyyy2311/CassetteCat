@@ -15,7 +15,7 @@ Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-re
 Builds:
   - versionName: 1.7.0
     versionCode: 18
-    commit: 6689e3ae8dea188fa515f42d486f4ef92d27403a
+    commit: c89c9813051273be454eafc8a458286d6591d7ce
     subdir: app/app
     gradle:
       - yes
