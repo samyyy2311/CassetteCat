@@ -13,24 +13,6 @@ Repo: https://github.com/samyyy2311/CassetteCat.git
 Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.2.0
-    versionCode: 3
-    commit: f27da0e2e290e8b0bdfd9034ed95461c1f342014
-    subdir: app/app
-    gradle:
-      - yes
-  - versionName: 1.3.1
-    versionCode: 5
-    commit: 390e13bdefdf8c2643a5afbe779d8c5ca51ca07d
-    subdir: app/app
-    gradle:
-      - yes
-  - versionName: 1.6.5
-    versionCode: 15
-    commit: de10e50a41e968b1bb89c0d201f3bd701cb2480a
-    subdir: app/app
-    gradle:
-      - yes
   - versionName: 1.7.0
     versionCode: 17
     commit: 6689e3ae8dea188fa515f42d486f4ef92d27403a
