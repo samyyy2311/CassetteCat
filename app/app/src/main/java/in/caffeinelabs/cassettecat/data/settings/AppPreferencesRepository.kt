@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.data.settings
+package `in`.caffeinelabs.cassettecat.data.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -90,6 +90,7 @@ private val RADIO_SELECTED_STATE = stringPreferencesKey("radio_selected_state")
 private val RADIO_SELECTED_LANGUAGE = stringPreferencesKey("radio_selected_language")
 private val RADIO_SELECTED_TAG = stringPreferencesKey("radio_selected_tag")
 private val RADIO_DEFAULT_COUNTRY_APPLIED = booleanPreferencesKey("radio_default_country_applied")
+private val FULL_SCREEN_NOW_PLAYING_ART = booleanPreferencesKey("full_screen_now_playing_art")
 
 enum class ThemeAccent(val label: String, val colorValue: Long, val containerValue: Long) {
     RECORD_RED("Record Red", 0xFFC23B30, 0xFF3A1512),
@@ -264,7 +265,8 @@ data class AppPreferences(
     val radioSelectedState: String = "",
     val radioSelectedLanguage: String = "",
     val radioSelectedTag: String = "",
-    val radioDefaultCountryApplied: Boolean = false
+    val radioDefaultCountryApplied: Boolean = false,
+    val fullScreenNowPlayingArt: Boolean = false
 )
 
 class AppPreferencesRepository(private val context: Context) {
@@ -370,7 +372,8 @@ class AppPreferencesRepository(private val context: Context) {
             radioSelectedState = prefs[RADIO_SELECTED_STATE] ?: "",
             radioSelectedLanguage = prefs[RADIO_SELECTED_LANGUAGE] ?: "",
             radioSelectedTag = prefs[RADIO_SELECTED_TAG] ?: "",
-            radioDefaultCountryApplied = prefs[RADIO_DEFAULT_COUNTRY_APPLIED] ?: false
+            radioDefaultCountryApplied = prefs[RADIO_DEFAULT_COUNTRY_APPLIED] ?: false,
+            fullScreenNowPlayingArt = prefs[FULL_SCREEN_NOW_PLAYING_ART] ?: false
         )
     }
 
@@ -666,6 +669,10 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[AUTO_DRIVE_MODE_BLUETOOTH] = enabled }
     }
 
+    suspend fun setFullScreenNowPlayingArt(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[FULL_SCREEN_NOW_PLAYING_ART] = enabled }
+    }
+
     suspend fun exportForBackup(): BackupAppPreferences {
         val current = preferences.first()
         return BackupAppPreferences(
@@ -736,7 +743,8 @@ class AppPreferencesRepository(private val context: Context) {
             radioSelectedState = current.radioSelectedState,
             radioSelectedLanguage = current.radioSelectedLanguage,
             radioSelectedTag = current.radioSelectedTag,
-            radioDefaultCountryApplied = current.radioDefaultCountryApplied
+            radioDefaultCountryApplied = current.radioDefaultCountryApplied,
+            fullScreenNowPlayingArt = current.fullScreenNowPlayingArt
         )
     }
 
@@ -816,6 +824,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[RADIO_SELECTED_LANGUAGE] = backup.radioSelectedLanguage
             prefs[RADIO_SELECTED_TAG] = backup.radioSelectedTag
             prefs[RADIO_DEFAULT_COUNTRY_APPLIED] = backup.radioDefaultCountryApplied
+            prefs[FULL_SCREEN_NOW_PLAYING_ART] = backup.fullScreenNowPlayingArt
         }
     }
 }

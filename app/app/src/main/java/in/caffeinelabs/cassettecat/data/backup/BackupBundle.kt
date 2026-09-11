@@ -95,7 +95,8 @@ data class BackupAppPreferences(
     val radioSelectedState: String = "",
     val radioSelectedLanguage: String = "",
     val radioSelectedTag: String = "",
-    val radioDefaultCountryApplied: Boolean = false
+    val radioDefaultCountryApplied: Boolean = false,
+    val fullScreenNowPlayingArt: Boolean = false
 )
 
 @Serializable

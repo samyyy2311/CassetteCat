@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
+package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -203,7 +203,7 @@ internal fun RowScope.SongListRowContent(
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            text = if (song.album.isNotEmpty() && song.album != song.title) "${song.artist} â€¢ ${song.album}" else song.artist,
+            text = if (song.album.isNotEmpty() && song.album != song.title) "${song.artist} • ${song.album}" else song.artist,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,

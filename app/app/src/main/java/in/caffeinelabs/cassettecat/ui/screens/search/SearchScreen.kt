@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.search
+package `in`.caffeinelabs.cassettecat.ui.screens.search
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -270,7 +270,7 @@ fun SearchScreen(
             },
             placeholder = {
                 Text(
-                    "Search songs, artists, albumsâ€¦",
+                    "Search songs, artists, albums…",
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

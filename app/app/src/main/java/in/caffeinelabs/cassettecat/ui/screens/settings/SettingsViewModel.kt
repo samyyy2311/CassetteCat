@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.settings
+package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -259,6 +259,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setShowNowPlayingBlur(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setShowNowPlayingBlur(enabled) }
+    }
+
+    fun setFullScreenNowPlayingArt(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setFullScreenNowPlayingArt(enabled) }
     }
 
     fun setSwipeUpLyricsEnabled(enabled: Boolean) {

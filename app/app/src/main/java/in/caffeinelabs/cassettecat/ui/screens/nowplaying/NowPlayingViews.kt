@@ -69,6 +69,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 
 @Composable
 internal fun NowPlayingPlayerView(
@@ -88,9 +89,7 @@ internal fun NowPlayingPlayerView(
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit
 ) {
-    val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val art: @Composable (Modifier) -> Unit = { modifier ->
@@ -166,6 +165,36 @@ internal fun NowPlayingPlayerView(
             ) {
                 info()
                 Spacer(Modifier.height(24.dp))
+                LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+            }
+        }
+    } else if (preferences.fullScreenNowPlayingArt) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            art(
+                Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.38f to Color.Transparent,
+                            0.70f to Color.Black.copy(alpha = 0.75f),
+                            1f to Color.Black.copy(alpha = 0.95f)
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 20.dp)
+            ) {
+                info()
+                Spacer(Modifier.height(48.dp))
                 LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
             }
         }

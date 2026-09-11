@@ -519,6 +519,14 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
         )
         SettingsDivider()
         ToggleRow(
+            title = "Full-Screen Artwork",
+            subtitle = "Expand album art to full-bleed edge-to-edge display on Now Playing",
+            checked = prefs.fullScreenNowPlayingArt,
+            onCheckedChange = viewModel::setFullScreenNowPlayingArt,
+            iconRes = R.drawable.lucide_ic_image,
+        )
+        SettingsDivider()
+        ToggleRow(
             title = "Show Remaining Time",
             subtitle = "Display countdown time (e.g. -02:45) instead of total song length",
             checked = prefs.showRemainingTime,

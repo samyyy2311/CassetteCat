@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.graphics.Bitmap
 import androidx.compose.animation.Crossfade
@@ -102,7 +102,7 @@ internal fun AlbumArtCarousel(
         launch { prefetchAlbumArt(context, previousSong) }
         launch { prefetchAlbumArt(context, nextSong) }
     }
-    key(currentSong.id, previousSong?.id, nextSong?.id) {
+    key(currentSong.id, previousSong?.id) {
         val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id) {
             buildList {
                 if (previousSong != null) add(previousSong)
@@ -154,9 +154,9 @@ internal fun AlbumArtCard(
     isPlaying: Boolean = true
 ) {
     val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
-    val cornerRadius = preferences.albumArtCornerRadiusDp.dp
+    val preferences = LocalAppPreferences.current
+    val cornerRadius = if (preferences.fullScreenNowPlayingArt) 0.dp else preferences.albumArtCornerRadiusDp.dp
+    val cardElevation = if (preferences.fullScreenNowPlayingArt) 0.dp else 20.dp
     val haptics = LocalHapticFeedback.current
 
     var expandedArtRect by remember(song.id) { mutableStateOf<Rect?>(null) }
@@ -212,11 +212,15 @@ internal fun AlbumArtCard(
         Box(
             Modifier
                 .fillMaxSize()
-                .shadow(
-                    elevation = 20.dp,
-                    shape = RoundedCornerShape(cornerRadius),
-                    ambientColor = Color.Black.copy(alpha = 0.45f),
-                    spotColor = Color.Black.copy(alpha = 0.70f)
+                .then(
+                    if (cardElevation > 0.dp) {
+                        Modifier.shadow(
+                            elevation = cardElevation,
+                            shape = RoundedCornerShape(cornerRadius),
+                            ambientColor = Color.Black.copy(alpha = 0.45f),
+                            spotColor = Color.Black.copy(alpha = 0.70f)
+                        )
+                    } else Modifier
                 )
                 .clip(RoundedCornerShape(cornerRadius))
         ) {
@@ -236,6 +240,23 @@ internal fun AlbumArtCard(
                 }
             } else {
                 AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
+            }
+            if (preferences.fullScreenNowPlayingArt) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.35f),
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                                    MaterialTheme.colorScheme.surface
+                                )
+                            )
+                        )
+                )
             }
         }
     }

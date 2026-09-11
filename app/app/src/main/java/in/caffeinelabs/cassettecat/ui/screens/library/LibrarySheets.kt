@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
+package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -297,10 +297,10 @@ internal fun SortOptionCard(
 }
 
 private fun directionLabelFor(label: String, direction: SortDirection): String = when {
-    label.contains("Song Count", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "1 â†’ 9" else "9 â†’ 1"
+    label.contains("Song Count", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "1 → 9" else "9 → 1"
     label.contains("Recent", ignoreCase = true) || label.contains("Date", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Oldest" else "Newest"
     label.contains("Duration", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Shortest" else "Longest"
-    else -> if (direction == SortDirection.ASCENDING) "A â†’ Z" else "Z â†’ A"
+    else -> if (direction == SortDirection.ASCENDING) "A → Z" else "Z → A"
 }
 
 private fun sortIconFor(label: String): Int = when {
@@ -569,21 +569,13 @@ private fun SongOptionCardRow(
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.width(14.dp))
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,

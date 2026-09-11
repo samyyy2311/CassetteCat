@@ -157,7 +157,7 @@ fun AboutLegalScreen(
 
             InfoCard(title = "Privacy & Local-First Data") {
                 Text(
-                    "Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings â†’ Privacy â†’ Crash Log.",
+                    "Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings → Privacy → Crash Log.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp

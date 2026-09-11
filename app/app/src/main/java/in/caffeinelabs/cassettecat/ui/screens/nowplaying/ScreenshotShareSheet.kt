@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -779,7 +779,7 @@ private fun generateSharePoster(
             fontVariationSettings = "'wght' 700"
             textAlign = Paint.Align.CENTER
         }
-        val safeTitle = if (song.title.length > 32) song.title.take(30) + "â€¦" else song.title
+        val safeTitle = if (song.title.length > 32) song.title.take(30) + "…" else song.title
         canvas.drawText(safeTitle, width / 2f, artTop + artSize + 220f, titlePaint)
 
         // Artist
@@ -789,7 +789,7 @@ private fun generateSharePoster(
             typeface = Typeface.DEFAULT
             textAlign = Paint.Align.CENTER
         }
-        val safeArtist = if (song.artist.length > 40) song.artist.take(38) + "â€¦" else song.artist
+        val safeArtist = if (song.artist.length > 40) song.artist.take(38) + "…" else song.artist
         canvas.drawText(safeArtist, width / 2f, artTop + artSize + 340f, artistPaint)
 
         // Centered CassetteCat Branding
@@ -855,7 +855,7 @@ private fun generateSharePoster(
             typeface = spaceGroteskBold
             fontVariationSettings = "'wght' 600"
         }
-        val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "â€¦" else song.title
+        val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
         canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
 
         val headerArtistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -863,7 +863,7 @@ private fun generateSharePoster(
             textSize = 58f
             typeface = Typeface.DEFAULT
         }
-        val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "â€¦" else song.artist
+        val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
         canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
         // Lyrics Text Layout (Perfect proportion and spacing without overlap)

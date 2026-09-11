@@ -194,7 +194,7 @@ private fun MiniPlayerArtRow(
     onThumbnailBoundsChange: (Rect) -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
-    key(currentSong.id, previousSong?.id, nextSong?.id) {
+    key(currentSong.id, previousSong?.id) {
         val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id, showNextPlaceholder) {
             buildList {
                 if (previousSong != null) add(previousSong)

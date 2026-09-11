@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -500,7 +500,7 @@ private fun buildLyricCardPoster(
         typeface = spaceGroteskBold
         fontVariationSettings = "'wght' 600"
     }
-    val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "â€¦" else song.title
+    val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
     canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
 
     val headerArtistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
@@ -508,7 +508,7 @@ private fun buildLyricCardPoster(
         textSize = 58f
         typeface = Typeface.DEFAULT
     }
-    val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "â€¦" else song.artist
+    val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
     canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
     // Lyrics Text Layout (Perfect proportion and spacing without overlap)

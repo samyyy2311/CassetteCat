@@ -87,8 +87,13 @@ import `in`.caffeinelabs.cassettecat.ui.util.deleteSongFile
 import `in`.caffeinelabs.cassettecat.ui.util.retryDeleteAfterConsent
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
+import `in`.caffeinelabs.cassettecat.ui.theme.ArtworkAtmospherePalette
+import `in`.caffeinelabs.cassettecat.ui.theme.extractArtworkAtmospherePalette
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ArtistDetailScreen(
@@ -757,7 +762,17 @@ private fun LibraryGroupDetailScreen(
             }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    var atmospherePalette by remember(albumHeroSong?.id) { mutableStateOf<ArtworkAtmospherePalette?>(null) }
+    LaunchedEffect(albumHeroSong?.id) {
+        val hero = albumHeroSong ?: return@LaunchedEffect
+        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, hero) }
+        if (bitmap != null) {
+            atmospherePalette = withContext(Dispatchers.Default) { extractArtworkAtmospherePalette(bitmap) }
+        }
+    }
+    val atmosphereColor = if (albumHeroSong != null) (atmospherePalette?.darkBase ?: MaterialTheme.colorScheme.surface) else MaterialTheme.colorScheme.surface
+
+    Column(modifier = modifier.fillMaxSize().background(atmosphereColor)) {
         val playAll = {
             if (songs.isNotEmpty()) {
                 val wasIdle = playbackViewModel.playbackState.value.currentSong == null
@@ -817,6 +832,7 @@ private fun LibraryGroupDetailScreen(
                         songCount = songs.size,
                         totalDurationMs = songs.sumOf { it.durationMs },
                         canDownload = downloadableSongs.isNotEmpty(),
+                        atmosphereColor = atmosphereColor,
                         onBack = onBack,
                         onPlayAll = playAll,
                         onShuffleAll = shuffleAll,
@@ -833,12 +849,6 @@ private fun LibraryGroupDetailScreen(
                         onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) }
                     )
                 }
-            }
-            if (metadata.isNotEmpty()) {
-                item(contentType = "metadata") { MusicMetadataBlock(metadata) }
-            }
-            about?.let { aboutText ->
-                item(contentType = "about") { WikipediaAboutBlock(aboutText) }
             }
             if (songs.isNotEmpty()) {
                 item(contentType = "songs_header") {
@@ -868,6 +878,12 @@ private fun LibraryGroupDetailScreen(
                     onMoreClick = { songForOptions = song },
                     onClick = onSongClick
                 )
+            }
+            if (metadata.isNotEmpty()) {
+                item(contentType = "metadata") { MusicMetadataBlock(metadata) }
+            }
+            about?.let { aboutText ->
+                item(contentType = "about") { WikipediaAboutBlock(aboutText) }
             }
         }
         if (showAlbumActions) {
@@ -1122,6 +1138,7 @@ private fun AlbumDetailHeader(
     songCount: Int,
     totalDurationMs: Long = 0L,
     canDownload: Boolean,
+    atmosphereColor: Color = MaterialTheme.colorScheme.surface,
     onBack: () -> Unit,
     onPlayAll: () -> Unit,
     onShuffleAll: () -> Unit,
@@ -1149,81 +1166,82 @@ private fun AlbumDetailHeader(
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(340.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_chevron_left,
+                contentDescription = "Back",
+                onClick = onBack,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.weight(1f))
+            if (canDownload) {
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_download,
+                    contentDescription = "Download album",
+                    onClick = onDownloadAll,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_ellipsis_vertical,
+                contentDescription = "Album actions",
+                onClick = onMore,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(top = 8.dp, bottom = 16.dp)
+                .size(240.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(20.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.5f),
+                    spotColor = Color.Black.copy(alpha = 0.7f)
+                )
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             AlbumArt(
                 song = song,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(50.dp)
-                    .graphicsLayer { alpha = 0.40f }
+                modifier = Modifier.fillMaxSize(),
+                thumbnail = false
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
-            )
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp)
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-            ) {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
-                Spacer(Modifier.weight(1f))
-                if (canDownload) {
-                    PressDepthIconButton(R.drawable.lucide_ic_download, "Download album", onDownloadAll)
-                }
-                PressDepthIconButton(R.drawable.lucide_ic_ellipsis_vertical, "Album actions", onMore)
-            }
         }
 
         Text(
-            song.album,
+            text = song.album,
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 8.dp)
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
+        Spacer(Modifier.height(4.dp))
         Text(
-            song.artist,
-            style = MaterialTheme.typography.bodyLarge,
+            text = song.artist,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp).padding(top = 2.dp)
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
         if (releaseDetails.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(100.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(100.dp))
                     .padding(horizontal = 14.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1234,10 +1252,10 @@ private fun AlbumDetailHeader(
                 )
             }
         }
+        Spacer(Modifier.height(14.dp))
         CatalogPlaybackActions(
             onPlay = onPlayAll,
-            onShuffle = onShuffleAll,
-            modifier = Modifier.padding(top = 12.dp)
+            onShuffle = onShuffleAll
         )
     }
 }
@@ -1292,21 +1310,13 @@ private fun AlbumActionRow(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.width(14.dp))
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,

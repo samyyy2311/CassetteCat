@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
@@ -455,7 +455,7 @@ internal fun ListeningRoomSheet(
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_users,
                         label = state.roomName ?: "Listening Room",
-                        subtitle = "Room controls are on this phone â€¢ ${state.participantCount} connected",
+                        subtitle = "Room controls are on this phone • ${state.participantCount} connected",
                         accented = true,
                         onClick = {}
                     )
@@ -532,7 +532,7 @@ internal fun ListeningRoomSheet(
                         }
                     } else if (state.notice == null) {
                         Text(
-                            "Looking for nearby rooms on this Wi-Fiâ€¦",
+                            "Looking for nearby rooms on this Wi-Fi…",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)

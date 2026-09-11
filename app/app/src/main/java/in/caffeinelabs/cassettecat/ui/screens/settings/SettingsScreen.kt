@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.settings
+package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
 import android.text.format.DateFormat
@@ -93,7 +93,7 @@ fun SettingsScreen(
 
     fun serverStatus(config: StreamingServerConfig, source: MusicSource, label: String): String {
         if (uiState.services.offlineBlackoutMode) return "Paused by Offline Blackout Mode"
-        if (libraryState is LibraryUiState.Loading) return "Checking connectionâ€¦"
+        if (libraryState is LibraryUiState.Loading) return "Checking connection…"
         val loaded = libraryState as? LibraryUiState.Loaded
         val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$label:") }
         val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }

@@ -47,6 +47,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -75,6 +76,7 @@ fun NowPlayingContent(
     drawBehindSystemBars: Boolean = false,
     onHeaderDragProgressChange: (Float) -> Unit = {}
 ) {
+    val preferences = LocalAppPreferences.current
     val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
     val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
@@ -187,8 +189,14 @@ fun NowPlayingContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(top = 12.dp, bottom = 20.dp)
+                .then(
+                    if (!preferences.fullScreenNowPlayingArt || activeView != NowPlayingView.PLAYER) {
+                        Modifier
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .padding(top = 12.dp)
+                    } else Modifier
+                )
+                .padding(bottom = 20.dp)
         ) {
             if (song == null) {
                 EmptyState(
