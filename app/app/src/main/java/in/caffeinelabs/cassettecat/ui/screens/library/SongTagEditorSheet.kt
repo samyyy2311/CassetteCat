@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -36,10 +37,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverride
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
@@ -59,12 +62,20 @@ fun SongTagEditorSheet(
     val context = LocalContext.current
     val repository = remember { SongMetadataOverridesRepository.getInstance(context) }
 
+    val existingOverride = remember(song.id) { repository.overrides.value[song.id] }
+    val isOverridden = repository.hasOverride(song.id)
+
     var title by remember(song.id) { mutableStateOf(song.title) }
     var artist by remember(song.id) { mutableStateOf(song.artist) }
     var album by remember(song.id) { mutableStateOf(song.album) }
+    var genreText by remember(song.id) { mutableStateOf(song.genres.joinToString(", ")) }
     var yearText by remember(song.id) { mutableStateOf(song.releaseYear?.toString() ?: "") }
 
-    val hasChanges = title != song.title || artist != song.artist || album != song.album || yearText != (song.releaseYear?.toString() ?: "")
+    val hasChanges = title != song.title ||
+        artist != song.artist ||
+        album != song.album ||
+        genreText != song.genres.joinToString(", ") ||
+        yearText != (song.releaseYear?.toString() ?: "")
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
@@ -73,7 +84,7 @@ fun SongTagEditorSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
-            // Header Track Banner
+            // Track header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,10 +121,10 @@ fun SongTagEditorSheet(
                 modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
             )
 
-            // Section Title
+            // Section title
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(
-                    text = "Edit Song Tags",
+                    text = "Edit Song Details",
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = SpaceGroteskFontFamily,
                     fontWeight = FontWeight.Bold
@@ -125,7 +136,7 @@ fun SongTagEditorSheet(
                     modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
                 )
 
-                // Input fields with clean styling
+                // Tag fields
                 TagInputField(
                     label = "Title",
                     value = title,
@@ -154,6 +165,15 @@ fun SongTagEditorSheet(
                 Spacer(Modifier.height(14.dp))
 
                 TagInputField(
+                    label = "Genre",
+                    value = genreText,
+                    onValueChange = { genreText = it },
+                    placeholder = "e.g. Rock, Pop, Electronic"
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                TagInputField(
                     label = "Release Year",
                     value = yearText,
                     onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) yearText = it },
@@ -163,7 +183,44 @@ fun SongTagEditorSheet(
 
                 Spacer(Modifier.height(24.dp))
 
-                // Actions Row
+                // Actions
+                if (isOverridden) {
+                    OutlinedButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            coroutineScope.launch {
+                                val origTitle = existingOverride?.originalTitle ?: song.title
+                                val origArtist = existingOverride?.originalArtist ?: song.artist
+                                val origAlbum = existingOverride?.originalAlbum ?: song.album
+                                val origYear = existingOverride?.originalReleaseYear ?: song.releaseYear
+                                val origGenres = existingOverride?.originalGenres ?: song.genres
+
+                                repository.removeOverride(song.id)
+                                val revertedSong = song.copy(
+                                    title = origTitle,
+                                    artist = origArtist,
+                                    album = origAlbum,
+                                    releaseYear = origYear,
+                                    genres = origGenres
+                                )
+                                onSaved(revertedSong)
+                                onDismiss()
+                            }
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.lucide_ic_rotate_ccw),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Revert to Original Tags")
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -175,6 +232,7 @@ fun SongTagEditorSheet(
                                 title = song.title
                                 artist = song.artist
                                 album = song.album
+                                genreText = song.genres.joinToString(", ")
                                 yearText = song.releaseYear?.toString() ?: ""
                             },
                             shape = RoundedCornerShape(14.dp),
@@ -187,17 +245,37 @@ fun SongTagEditorSheet(
                     Button(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                            val parsedYear = yearText.toIntOrNull()
+                            val parsedYear = yearText.trim().toIntOrNull()
+                            val parsedGenres = genreText.split(",")
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                            val newTitle = title.trim().ifBlank { song.title }
+                            val newArtist = artist.trim().ifBlank { song.artist }
+                            val newAlbum = album.trim().ifBlank { song.album }
+
                             val override = SongMetadataOverride(
                                 songId = song.id,
-                                title = title.trim(),
-                                artist = artist.trim(),
-                                album = album.trim(),
-                                releaseYear = parsedYear
+                                title = newTitle,
+                                artist = newArtist,
+                                album = newAlbum,
+                                releaseYear = parsedYear,
+                                releaseYearSet = true,
+                                genres = parsedGenres,
+                                originalTitle = existingOverride?.originalTitle ?: song.title,
+                                originalArtist = existingOverride?.originalArtist ?: song.artist,
+                                originalAlbum = existingOverride?.originalAlbum ?: song.album,
+                                originalReleaseYear = existingOverride?.originalReleaseYear ?: song.releaseYear,
+                                originalGenres = existingOverride?.originalGenres ?: song.genres
+                            )
+                            val updatedSong = song.copy(
+                                title = newTitle,
+                                artist = newArtist,
+                                album = newAlbum,
+                                releaseYear = parsedYear,
+                                genres = parsedGenres
                             )
                             coroutineScope.launch {
                                 repository.saveOverride(override)
-                                val updatedSong = repository.applyTo(song)
                                 onSaved(updatedSong)
                                 onDismiss()
                             }

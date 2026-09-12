@@ -26,6 +26,7 @@ import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
@@ -239,7 +240,7 @@ fun SmartPlaylistScreen(
 
         if (songs.isEmpty()) {
             EmptyState(
-                iconRes = playlistType.iconRes,
+                catRes = AppR.drawable.cat_gray_dancing,
                 title = "No songs found",
                 message = playlistType.description,
                 modifier = Modifier.weight(1f)

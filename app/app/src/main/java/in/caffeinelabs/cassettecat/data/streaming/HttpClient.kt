@@ -5,6 +5,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
@@ -14,8 +15,9 @@ import kotlin.coroutines.resumeWithException
 
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
+    .connectionPool(ConnectionPool(5, 1, TimeUnit.MINUTES))
     // Hard ceiling per call: OkHttp's per-read timeouts reset on every byte, so a trickling
-    // connection could otherwise stay open indefinitely.
+    // connection could otherwise stay open indefinitely. We have songs to get to.
     .callTimeout(45, TimeUnit.SECONDS)
     .addInterceptor { chain ->
         val request = chain.request().newBuilder()
@@ -24,10 +26,10 @@ val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
         chain.proceed(request)
     }
     .build()
+
 val sharedJson: Json = Json { ignoreUnknownKeys = true }
 
-// Mirrors PlaybackRepository's awaitController() bridging idiom, giving real
-// coroutine cancellation (e.g. backing out of a connect screen mid-request).
+// Cancelling the coroutine cancels the HTTP call.
 suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
     enqueue(object : Callback {
         override fun onResponse(call: Call, response: Response) = cont.resume(response)

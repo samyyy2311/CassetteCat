@@ -19,7 +19,14 @@ data class SongMetadataOverride(
     val title: String? = null,
     val artist: String? = null,
     val album: String? = null,
-    val releaseYear: Int? = null
+    val releaseYear: Int? = null,
+    val releaseYearSet: Boolean = false,
+    val genres: List<String>? = null,
+    val originalTitle: String? = null,
+    val originalArtist: String? = null,
+    val originalAlbum: String? = null,
+    val originalReleaseYear: Int? = null,
+    val originalGenres: List<String>? = null
 )
 
 class SongMetadataOverridesRepository private constructor(context: Context) {
@@ -56,13 +63,33 @@ class SongMetadataOverridesRepository private constructor(context: Context) {
         }
     }
 
+    suspend fun removeOverride(songId: String) = withContext(Dispatchers.IO) {
+        writeMutex.withLock {
+            val updated = _overrides.value.toMutableMap()
+            if (updated.remove(songId) != null) {
+                _overrides.value = updated
+                runCatching {
+                    val tempFile = File(file.parentFile, "${file.name}.tmp")
+                    tempFile.writeText(sharedJson.encodeToString(updated.values.toList()))
+                    if (!tempFile.renameTo(file)) {
+                        tempFile.copyTo(file, overwrite = true)
+                        tempFile.delete()
+                    }
+                }
+            }
+        }
+    }
+
+    fun hasOverride(songId: String): Boolean = _overrides.value.containsKey(songId)
+
     fun applyTo(song: Song): Song {
         val ov = _overrides.value[song.id] ?: return song
         return song.copy(
             title = ov.title?.ifBlank { null } ?: song.title,
             artist = ov.artist?.ifBlank { null } ?: song.artist,
             album = ov.album?.ifBlank { null } ?: song.album,
-            releaseYear = ov.releaseYear ?: song.releaseYear
+            releaseYear = if (ov.releaseYearSet) ov.releaseYear else (ov.releaseYear ?: song.releaseYear),
+            genres = ov.genres ?: song.genres
         )
     }
 

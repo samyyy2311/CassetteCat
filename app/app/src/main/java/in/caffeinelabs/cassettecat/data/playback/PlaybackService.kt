@@ -67,6 +67,7 @@ import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -87,6 +88,7 @@ class PlaybackService : MediaLibraryService() {
     private var isProximityWaveSkipEnabled: Boolean = false
     private var isPauseOnDisconnectEnabled: Boolean = true
     private var wasPausedByFlip: Boolean = false
+    private var flipTimeoutJob: Job? = null
     private var isHapticFeedbackEnabled: Boolean = true
     private var lastShakeSkipTime: Long = 0L
     private var lastWaveSkipTime: Long = 0L
@@ -199,11 +201,13 @@ class PlaybackService : MediaLibraryService() {
                             triggerShakeHaptic()
                         }
                         p.pause()
+                        scheduleFlipTimeout()
                     }
                 }
             },
             onFlipUp = {
                 serviceScope.launch(Dispatchers.Main) {
+                    cancelFlipTimeout()
                     val p = mediaSession?.player
                     if (p != null && wasPausedByFlip && !p.isPlaying) {
                         wasPausedByFlip = false
@@ -256,6 +260,12 @@ class PlaybackService : MediaLibraryService() {
             favoritesRepository.favoriteIds.collect { ids ->
                 currentFavoriteIds = ids
                 mediaSession?.player?.let { p -> updateNotificationLayout(p) }
+            }
+        }
+
+        serviceScope.launch {
+            `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository.getInstance(this@PlaybackService).albumCovers.collect {
+                mediaSession?.player?.let { p -> syncWidgetState(p) }
             }
         }
 
@@ -315,6 +325,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        cancelFlipTimeout()
         shakeDetector?.stop()
         flipDetector?.stop()
         proximityWaveDetector?.stop()
@@ -590,8 +601,10 @@ class PlaybackService : MediaLibraryService() {
         val metadata = player.mediaMetadata
         val title = metadata.title?.toString()
         val artist = metadata.artist?.toString()
+        val album = metadata.albumTitle?.toString()
         val isPlaying = player.isPlaying
         val artworkData = metadata.artworkData
+        val artworkUri = metadata.artworkUri
         serviceScope.launch(Dispatchers.Default) {
             val artBitmap = artworkData?.let { data ->
                 runCatching {
@@ -599,7 +612,23 @@ class PlaybackService : MediaLibraryService() {
                     val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options)
                     decoded?.scale(120, 120)
                 }.getOrNull()
-            }
+            } ?: runCatching {
+                val customPath = if (album != null && artist != null) {
+                    `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository.getInstance(this@PlaybackService).getCoverPath(album, artist)
+                } else null
+                if (customPath != null) {
+                    val file = java.io.File(customPath)
+                    `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(file, 120)?.scale(120, 120)
+                } else if (artworkUri != null) {
+                    if (artworkUri.scheme == "file") {
+                        artworkUri.path?.let { `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(java.io.File(it), 120)?.scale(120, 120) }
+                    } else {
+                        contentResolver.openInputStream(artworkUri)?.use { stream ->
+                            `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(stream.readBytes(), 120)?.scale(120, 120)
+                        }
+                    }
+                } else null
+            }.getOrNull()
             runCatching {
                 CassetteWidgetProvider.updateAllWidgets(
                     context = this@PlaybackService,
@@ -635,7 +664,24 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private fun scheduleFlipTimeout() {
+        flipTimeoutJob?.cancel()
+        flipTimeoutJob = serviceScope.launch {
+            delay(FLIP_PAUSE_TIMEOUT_MS)
+            if (wasPausedByFlip) {
+                wasPausedByFlip = false
+                flipDetector?.stop()
+            }
+        }
+    }
+
+    private fun cancelFlipTimeout() {
+        flipTimeoutJob?.cancel()
+        flipTimeoutJob = null
+    }
+
     companion object {
+        private const val FLIP_PAUSE_TIMEOUT_MS = 20 * 60 * 1000L
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
         const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"
         const val ACTION_WIDGET_NEXT = "in.caffeinelabs.cassettecat.action.WIDGET_NEXT"

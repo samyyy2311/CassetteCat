@@ -23,11 +23,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import com.composables.icons.lucide.R
 import androidx.compose.ui.graphics.Color
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.ui.components.ApprovedEasterEggCats
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 
 @Composable
@@ -40,6 +60,9 @@ fun CreditsScreen(
     val openUrl: (String) -> Unit = { url ->
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
+    val haptic = LocalHapticFeedback.current
+    var easterEggTaps by remember { mutableIntStateOf(0) }
+    var showEasterEgg by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -58,7 +81,21 @@ fun CreditsScreen(
 
         val appVersion = BuildConfig.VERSION_NAME
 
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    easterEggTaps++
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (easterEggTaps >= 5) {
+                        easterEggTaps = 0
+                        showEasterEgg = true
+                    }
+                }
+        ) {
             Text(
                 buildAnnotatedString {
                     append("Cassette")
@@ -93,10 +130,18 @@ fun CreditsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "Deezer",
-                subtitle = "Artist photos and images (deezer.com)",
+                subtitle = "Artist photos and high-resolution album artwork (deezer.com)",
                 iconRes = AppR.drawable.ic_logo_deezer,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://deezer.com") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Apple iTunes Search API",
+                subtitle = "Official high-resolution album artwork catalog (itunes.apple.com)",
+                iconRes = AppR.drawable.ic_logo_apple,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://itunes.apple.com") }
             )
             SettingsDivider()
             NavigationRow(
@@ -155,6 +200,22 @@ fun CreditsScreen(
             )
             SettingsDivider()
             NavigationRow(
+                title = "Subsonic API",
+                subtitle = "Open streaming protocol for Navidrome, Gonic, and Subsonic servers",
+                iconRes = AppR.drawable.ic_logo_subsonic,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("http://www.subsonic.org") }
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = "Jellyfin API",
+                subtitle = "Free software media streaming system and server protocol",
+                iconRes = AppR.drawable.ic_logo_jellyfin,
+                iconTint = Color.Unspecified,
+                onClick = { openUrl("https://jellyfin.org") }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = "GitHub",
                 subtitle = "Release update checks (github.com)",
                 iconRes = AppR.drawable.ic_logo_github,
@@ -191,11 +252,11 @@ fun CreditsScreen(
             )
             SettingsDivider()
             NavigationRow(
-                title = "KotlinX Coroutines",
-                subtitle = "Asynchronous flows and reactive state management",
+                title = "KotlinX Coroutines & Serialization",
+                subtitle = "Asynchronous flows, reactive state, and atomic JSON persistence",
                 iconRes = AppR.drawable.ic_logo_kotlin,
                 iconTint = Color.Unspecified,
-                onClick = { openUrl("https://kotlinlang.org/docs/coroutines-overview.html") }
+                onClick = { openUrl("https://github.com/Kotlin/kotlinx.serialization") }
             )
             SettingsDivider()
             NavigationRow(
@@ -208,7 +269,7 @@ fun CreditsScreen(
             SettingsDivider()
             NavigationRow(
                 title = "OkHttp",
-                subtitle = "High-performance HTTP client for lyrics and hardware sync",
+                subtitle = "High-performance HTTP client for lyrics, artwork, and streaming",
                 iconRes = AppR.drawable.ic_logo_okhttp,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/square/okhttp") }
@@ -271,5 +332,72 @@ fun CreditsScreen(
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))
+    }
+
+    if (showEasterEgg) {
+        FullOpenBottomSheet(onDismiss = { showEasterEgg = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "(=^･ω･^=) Cassette Cat Lounge",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = "Secret Easter Egg Unlocked! Tap any cat to make it purr.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ApprovedEasterEggCats.forEach { catRes ->
+                        Image(
+                            painter = painterResource(catRes),
+                            contentDescription = "CassetteCat",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Crafted with 💖 for audiophiles & tape deck enthusiasts.",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                )
+
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showEasterEgg = false
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    )
+                ) {
+                    Text("Purr & Close")
+                }
+            }
+        }
     }
 }

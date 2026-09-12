@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.library
+package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -121,7 +122,7 @@ fun LikedSongsScreen(
 
         if (songs.isEmpty()) {
             EmptyState(
-                iconRes = R.drawable.lucide_ic_heart,
+                catRes = AppR.drawable.cat_gray_dancing,
                 title = "No liked songs yet",
                 message = "Tap the heart on any track to keep it here.",
                 modifier = Modifier.weight(1f)

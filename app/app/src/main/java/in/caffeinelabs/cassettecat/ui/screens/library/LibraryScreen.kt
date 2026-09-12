@@ -4,6 +4,8 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +62,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
+import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
@@ -70,6 +75,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.matchM3uEntries
 import `in`.caffeinelabs.cassettecat.data.library.parseM3u
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
@@ -106,7 +112,7 @@ fun LibraryScreen(
     val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val loadedState = uiState as? LibraryUiState.Loaded
-    val isRefreshing = uiState is LibraryUiState.Loading
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val appPreferencesRepository = remember { `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository(context) }
     val nullablePreferences: Flow<`in`.caffeinelabs.cassettecat.data.settings.AppPreferences?> = remember(appPreferencesRepository) {
@@ -118,6 +124,8 @@ fun LibraryScreen(
 
     var showRefineSheet by remember { mutableStateOf(false) }
     var showNewPlaylistSheet by remember { mutableStateOf(false) }
+    var coverSearchSong by remember { mutableStateOf<Song?>(null) }
+    val albumCoverRepo = remember { AlbumCoverRepository.getInstance(context) }
     val visibleModes = remember(preferences.libraryTabOrder, preferences.hiddenLibraryTabs) {
         preferences.libraryTabOrder
             .filterNot { it in preferences.hiddenLibraryTabs }
@@ -165,8 +173,12 @@ fun LibraryScreen(
     val folderSortDirection by viewModel.folderSortDirection.collectAsStateWithLifecycle()
     var selectedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     val songFilter by viewModel.songFilter.collectAsStateWithLifecycle()
+    val sourceFilter by viewModel.sourceFilter.collectAsStateWithLifecycle()
+    val availableSources by viewModel.availableSources.collectAsStateWithLifecycle()
+    val dismissedWarnings by viewModel.dismissedWarnings.collectAsStateWithLifecycle()
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var songForMenu by remember { mutableStateOf<Song?>(null) }
+    var songForTagEdit by remember { mutableStateOf<Song?>(null) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     BackHandler(enabled = selectionMode) {
@@ -202,19 +214,27 @@ fun LibraryScreen(
     }
     val monthlyStats by playbackViewModel.monthlyStats.collectAsStateWithLifecycle()
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
-    val favoriteSongs = remember(loadedState?.songs, favoriteIds) {
-        loadedState?.songs.orEmpty().filter { it.isFavorite || it.id in favoriteIds }
+    val sourceFilteredSongs = remember(loadedState?.songs, sourceFilter) {
+        loadedState?.songs.orEmpty().filterBySource(sourceFilter)
     }
-    val filteredSongs = remember(loadedState?.songs, songFilter, downloads, favoriteIds) {
+    val favoriteSongs = remember(sourceFilteredSongs, favoriteIds) {
+        sourceFilteredSongs.filter { it.isFavorite || it.id in favoriteIds }
+    }
+    val filteredSongs = remember(sourceFilteredSongs, songFilter, downloads, favoriteIds) {
         when (songFilter) {
-            SongFilter.ALL -> loadedState?.songs.orEmpty()
+            SongFilter.ALL -> sourceFilteredSongs
             SongFilter.FAVORITES -> favoriteSongs
-            SongFilter.DOWNLOADED -> loadedState?.songs.orEmpty().filter { song ->
+            SongFilter.DOWNLOADED -> sourceFilteredSongs.filter { song ->
                 song.source == MusicSource.Local || downloads[song.id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
             }
-            SongFilter.RECENTLY_ADDED -> loadedState?.songs.orEmpty().sortedByDescending { it.dateAddedMs }
+            SongFilter.RECENTLY_ADDED -> sourceFilteredSongs.sortedByDescending { it.dateAddedMs }
         }
     }
+
+    val groupedArtists = remember(filteredSongs) { filteredSongs.groupedByArtist() }
+    val groupedAlbums = remember(filteredSongs) { filteredSongs.groupedByAlbum() }
+    val groupedGenres = remember(filteredSongs) { filteredSongs.groupedByGenre() }
+    val groupedFolders = remember(filteredSongs) { filteredSongs.groupedByFolder() }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -243,10 +263,10 @@ fun LibraryScreen(
 
     fun selectedSongs(): List<Song> = when (viewMode) {
         LibraryViewMode.SONGS -> filteredSongs.filter { it.id in selectedIds }
-        LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().filter { it.artist in selectedIds }.flatMap { it.songs }
-        LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().filter { it.albumId in selectedIds }.flatMap { it.songs }
-        LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().filter { it.genre in selectedIds }.flatMap { it.songs }
-        LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().filter { it.folderPath in selectedIds }.flatMap { it.songs }
+        LibraryViewMode.ARTISTS -> groupedArtists.filter { it.artist in selectedIds }.flatMap { it.songs }
+        LibraryViewMode.ALBUMS -> groupedAlbums.filter { it.albumId in selectedIds }.flatMap { it.songs }
+        LibraryViewMode.GENRES -> groupedGenres.filter { it.genre in selectedIds }.flatMap { it.songs }
+        LibraryViewMode.FOLDERS -> groupedFolders.filter { it.folderPath in selectedIds }.flatMap { it.songs }
         LibraryViewMode.PLAYLISTS -> {
             val allSongs = loadedState?.songs.orEmpty()
             playlists.filter { it.id in selectedIds }.flatMap { it.songIds }.distinct()
@@ -256,11 +276,11 @@ fun LibraryScreen(
 
     fun allIdsForCurrentTab(): Set<String> = when (viewMode) {
         LibraryViewMode.SONGS -> filteredSongs.map { it.id }.toSet()
-        LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().map { it.artist }.toSet()
-        LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().map { it.albumId }.toSet()
-        LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().map { it.genre }.toSet()
+        LibraryViewMode.ARTISTS -> groupedArtists.map { it.artist }.toSet()
+        LibraryViewMode.ALBUMS -> groupedAlbums.map { it.albumId }.toSet()
+        LibraryViewMode.GENRES -> groupedGenres.map { it.genre }.toSet()
         LibraryViewMode.PLAYLISTS -> playlists.map { it.id }.toSet()
-        LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().map { it.folderPath }.toSet()
+        LibraryViewMode.FOLDERS -> groupedFolders.map { it.folderPath }.toSet()
     }
 
     fun shareSelected(songs: List<Song>) {
@@ -341,10 +361,10 @@ fun LibraryScreen(
                         if (loadedState != null || viewMode == LibraryViewMode.PLAYLISTS) {
                             val count = when (viewMode) {
                                 LibraryViewMode.SONGS -> filteredSongs.size
-                                LibraryViewMode.ARTISTS -> filteredSongs.groupedByArtist().size
-                                LibraryViewMode.ALBUMS -> filteredSongs.groupedByAlbum().size
-                                LibraryViewMode.GENRES -> filteredSongs.groupedByGenre().size
-                                LibraryViewMode.FOLDERS -> filteredSongs.groupedByFolder().size
+                                LibraryViewMode.ARTISTS -> groupedArtists.size
+                                LibraryViewMode.ALBUMS -> groupedAlbums.size
+                                LibraryViewMode.GENRES -> groupedGenres.size
+                                LibraryViewMode.FOLDERS -> groupedFolders.size
                                 LibraryViewMode.PLAYLISTS -> playlists.size + 1 + SmartPlaylistType.entries.size
                             }
                             val noun = when (viewMode) {
@@ -357,8 +377,13 @@ fun LibraryScreen(
                             }
                             val baseCountText = if (count == 1) "1 $noun" else "$count ${noun}s"
                             val isOffline by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+                            val subtitleText = when {
+                                isOffline -> "$baseCountText · Offline"
+                                sourceFilter != LibrarySourceFilter.ALL -> "$baseCountText · ${sourceFilter.displayName()}"
+                                else -> baseCountText
+                            }
                             Text(
-                                if (isOffline) "$baseCountText · Offline" else baseCountText,
+                                subtitleText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isOffline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp)
@@ -380,6 +405,25 @@ fun LibraryScreen(
                                 contentDescription = "New playlist",
                                 onClick = { showNewPlaylistSheet = true }
                             )
+                        } else if (loadedState != null && filteredSongs.isNotEmpty()) {
+                            PressDepthIconButton(
+                                iconRes = R.drawable.lucide_ic_play,
+                                contentDescription = "Play all",
+                                onClick = {
+                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                    playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
+                                    if (wasIdle) onNavigateToNowPlaying()
+                                }
+                            )
+                            PressDepthIconButton(
+                                iconRes = R.drawable.lucide_ic_shuffle,
+                                contentDescription = "Shuffle all",
+                                onClick = {
+                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                    playbackViewModel.shuffleAll(filteredSongs)
+                                    if (wasIdle) onNavigateToNowPlaying()
+                                }
+                            )
                         }
                         PressDepthIconButton(
                             iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
@@ -392,7 +436,11 @@ fun LibraryScreen(
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
                                 contentDescription = "Refine library",
-                                tint = if (songFilter == SongFilter.ALL) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary,
+                                tint = if (songFilter == SongFilter.ALL && sourceFilter == LibrarySourceFilter.ALL) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.tertiary
+                                },
                                 onClick = { showRefineSheet = true }
                             )
                         }
@@ -438,7 +486,32 @@ fun LibraryScreen(
                         label = "Share",
                         onClick = { shareSelected(selectedSongs()) }
                     )
+                    val selSongs = if (selectionMode) selectedSongs() else emptyList()
+                    val canAssignCover = (viewMode == LibraryViewMode.ALBUMS && selectedIds.size == 1) ||
+                        (viewMode == LibraryViewMode.SONGS && selSongs.isNotEmpty() && selSongs.map { it.album.trim().lowercase() }.distinct().size == 1)
+                    if (canAssignCover) {
+                        SelectionActionChip(
+                            iconRes = R.drawable.lucide_ic_image,
+                            label = "Cover",
+                            onClick = {
+                                val target = selSongs.firstOrNull()
+                                if (target != null) {
+                                    coverSearchSong = target
+                                    selectedIds = emptySet()
+                                }
+                            }
+                        )
+                    }
                 }
+            }
+            if (availableSources.size > 1 && !selectionMode) {
+                Spacer(Modifier.height(8.dp))
+                SourceFilterRow(
+                    sources = availableSources,
+                    selected = sourceFilter,
+                    onSelect = viewModel::setSourceFilter,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
             }
             Spacer(Modifier.height(12.dp))
 
@@ -453,7 +526,8 @@ fun LibraryScreen(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
-                userScrollEnabled = !selectionMode
+                userScrollEnabled = !selectionMode,
+                beyondViewportPageCount = 1
             ) { page ->
                 val pageMode = visibleModes.getOrElse(page) { visibleModes.first() }
                 when (pageMode) {
@@ -490,123 +564,147 @@ fun LibraryScreen(
                         )
                     }
 
-                    else -> when (val state = uiState) {
-                        is LibraryUiState.Loading -> {
-                            if (pageMode == LibraryViewMode.SONGS && collectionLayout == CollectionLayout.LIST) {
-                                Column(modifier = Modifier.fillMaxSize()) { repeat(8) { SongRowSkeleton() } }
-                            } else if (collectionLayout == CollectionLayout.GRID) {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                                ) {
-                                    items(8) { GridCardSkeleton() }
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(top = 8.dp, bottom = listBottomPadding)
-                                ) {
-                                    items(8) { SongRowSkeleton() }
+                    else -> Crossfade(
+                        targetState = uiState,
+                        animationSpec = tween(220),
+                        label = "libraryUiStateCrossfade"
+                    ) { state ->
+                        when (state) {
+                            is LibraryUiState.Loading -> {
+                                val skeletonColor = rememberSkeletonColor()
+                                if (pageMode == LibraryViewMode.SONGS && collectionLayout == CollectionLayout.LIST) {
+                                    Column(modifier = Modifier.fillMaxSize()) { repeat(8) { SongRowSkeleton(skeletonColor) } }
+                                } else if (collectionLayout == CollectionLayout.GRID) {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Fixed(2),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                                    ) {
+                                        items(8) { GridCardSkeleton(skeletonColor) }
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(top = 8.dp, bottom = listBottomPadding)
+                                    ) {
+                                        items(8) { SongRowSkeleton(skeletonColor) }
+                                    }
                                 }
                             }
-                        }
 
-                        is LibraryUiState.Empty -> {
-                            EmptyState(
-                                iconRes = R.drawable.lucide_ic_music,
-                                title = "No music found",
-                                message = "Pull down to rescan, or check your library folder settings."
-                            )
-                        }
+                            is LibraryUiState.Empty -> {
+                                EmptyState(
+                                    catRes = AppR.drawable.cat_black_cassette,
+                                    title = "No music found",
+                                    message = "Pull down to rescan, or check your library scan folders.",
+                                    actionLabel = "Scan Library",
+                                    onAction = { viewModel.refresh() },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
 
-                        is LibraryUiState.Loaded -> {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                if (state.sourceWarnings.isNotEmpty()) {
-                                    SourceWarningBanner(warnings = state.sourceWarnings)
-                                }
-                                when (pageMode) {
-                                    LibraryViewMode.SONGS -> SongsTabContent(
-                                        filteredSongs = filteredSongs,
-                                        songFilter = songFilter,
-                                        collectionLayout = collectionLayout,
-                                        selectedIds = selectedIds,
-                                        selectionMode = selectionMode,
-                                        songGridState = songGridState,
-                                        songListState = songListState,
-                                        listBottomPadding = listBottomPadding,
-                                        onPlaySong = ::playSong,
-                                        onToggleSelect = ::toggleSelected,
-                                        onSongMore = { songForMenu = it },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    LibraryViewMode.ARTISTS -> ArtistsTabContent(
-                                        filteredSongs = filteredSongs,
-                                        sortOrder = artistSortOrder,
-                                        sortDirection = artistSortDirection,
-                                        collectionLayout = collectionLayout,
-                                        gridState = artistGridState,
-                                        listState = artistListState,
-                                        listBottomPadding = listBottomPadding,
-                                        onNavigateToArtist = onNavigateToArtist,
-                                        selectedIds = selectedIds,
-                                        selectionMode = selectionMode,
-                                        onToggleSelect = ::toggleSelected,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    LibraryViewMode.ALBUMS -> AlbumsTabContent(
-                                        filteredSongs = filteredSongs,
-                                        sortOrder = albumSortOrder,
-                                        sortDirection = albumSortDirection,
-                                        collectionLayout = collectionLayout,
-                                        gridState = albumGridState,
-                                        listState = albumListState,
-                                        listBottomPadding = listBottomPadding,
-                                        onNavigateToAlbum = onNavigateToAlbum,
-                                        selectedIds = selectedIds,
-                                        selectionMode = selectionMode,
-                                        onToggleSelect = ::toggleSelected,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    LibraryViewMode.GENRES -> GenresTabContent(
-                                        filteredSongs = filteredSongs,
-                                        sortOrder = genreSortOrder,
-                                        sortDirection = genreSortDirection,
-                                        collectionLayout = collectionLayout,
-                                        gridState = genreGridState,
-                                        listState = genreListState,
-                                        listBottomPadding = listBottomPadding,
-                                        onNavigateToGenre = onNavigateToGenre,
-                                        onPlayGroup = ::playGroup,
-                                        selectedIds = selectedIds,
-                                        selectionMode = selectionMode,
-                                        onToggleSelect = ::toggleSelected,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    LibraryViewMode.FOLDERS -> {
-                                        val folders = filteredSongs.groupedByFolder().let { list ->
-                                            val sorted = list.sortedWith(folderSortOrder.comparator())
-                                            (if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted)
-                                                .map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+                            is LibraryUiState.Loaded -> {
+                                val visibleWarnings = remember(state.sourceWarnings, sourceFilter, dismissedWarnings) {
+                                    state.sourceWarnings.filter { warning ->
+                                        if (warning in dismissedWarnings) return@filter false
+                                        when (sourceFilter) {
+                                            LibrarySourceFilter.JELLYFIN -> warning.startsWith("Jellyfin:", ignoreCase = true)
+                                            LibrarySourceFilter.SUBSONIC -> warning.startsWith("Subsonic:", ignoreCase = true)
+                                            LibrarySourceFilter.LOCAL -> warning.startsWith("Local:", ignoreCase = true)
+                                            LibrarySourceFilter.ALL -> false
                                         }
-                                        FoldersTab(
-                                            folders = folders,
+                                    }
+                                }
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    if (visibleWarnings.isNotEmpty()) {
+                                        SourceWarningBanner(
+                                            warnings = visibleWarnings,
+                                            onDismiss = viewModel::dismissWarning
+                                        )
+                                    }
+                                    when (pageMode) {
+                                        LibraryViewMode.SONGS -> SongsTabContent(
+                                            filteredSongs = filteredSongs,
+                                            songFilter = songFilter,
                                             collectionLayout = collectionLayout,
-                                            gridState = folderGridState,
-                                            listState = folderListState,
+                                            selectedIds = selectedIds,
+                                            selectionMode = selectionMode,
+                                            songGridState = songGridState,
+                                            songListState = songListState,
                                             listBottomPadding = listBottomPadding,
-                                            onNavigateToFolder = onNavigateToFolder,
-                                            onPlayGroup = ::playGroup,
-                                            onChangeCover = { folder -> folderCoverActions = folder },
+                                            onPlaySong = ::playSong,
+                                            onToggleSelect = ::toggleSelected,
+                                            onSongMore = { songForMenu = it },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        LibraryViewMode.ARTISTS -> ArtistsTabContent(
+                                            filteredSongs = filteredSongs,
+                                            sortOrder = artistSortOrder,
+                                            sortDirection = artistSortDirection,
+                                            collectionLayout = collectionLayout,
+                                            gridState = artistGridState,
+                                            listState = artistListState,
+                                            listBottomPadding = listBottomPadding,
+                                            onNavigateToArtist = onNavigateToArtist,
                                             selectedIds = selectedIds,
                                             selectionMode = selectionMode,
                                             onToggleSelect = ::toggleSelected,
                                             modifier = Modifier.weight(1f)
                                         )
+                                        LibraryViewMode.ALBUMS -> AlbumsTabContent(
+                                            filteredSongs = filteredSongs,
+                                            sortOrder = albumSortOrder,
+                                            sortDirection = albumSortDirection,
+                                            collectionLayout = collectionLayout,
+                                            gridState = albumGridState,
+                                            listState = albumListState,
+                                            listBottomPadding = listBottomPadding,
+                                            onNavigateToAlbum = onNavigateToAlbum,
+                                            selectedIds = selectedIds,
+                                            selectionMode = selectionMode,
+                                            onToggleSelect = ::toggleSelected,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        LibraryViewMode.GENRES -> GenresTabContent(
+                                            filteredSongs = filteredSongs,
+                                            sortOrder = genreSortOrder,
+                                            sortDirection = genreSortDirection,
+                                            collectionLayout = collectionLayout,
+                                            gridState = genreGridState,
+                                            listState = genreListState,
+                                            listBottomPadding = listBottomPadding,
+                                            onNavigateToGenre = onNavigateToGenre,
+                                            onPlayGroup = ::playGroup,
+                                            selectedIds = selectedIds,
+                                            selectionMode = selectionMode,
+                                            onToggleSelect = ::toggleSelected,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        LibraryViewMode.FOLDERS -> {
+                                            val folders = remember(groupedFolders, folderSortOrder, folderSortDirection, folderCovers) {
+                                                val sorted = groupedFolders.sortedWith(folderSortOrder.comparator())
+                                                (if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted)
+                                                    .map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+                                            }
+                                            FoldersTab(
+                                                folders = folders,
+                                                collectionLayout = collectionLayout,
+                                                gridState = folderGridState,
+                                                listState = folderListState,
+                                                listBottomPadding = listBottomPadding,
+                                                onNavigateToFolder = onNavigateToFolder,
+                                                onPlayGroup = ::playGroup,
+                                                onChangeCover = { folder -> folderCoverActions = folder },
+                                                selectedIds = selectedIds,
+                                                selectionMode = selectionMode,
+                                                onToggleSelect = ::toggleSelected,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        LibraryViewMode.PLAYLISTS -> Unit
                                     }
-                                    LibraryViewMode.PLAYLISTS -> Unit
                                 }
                             }
                         }
@@ -629,6 +727,9 @@ fun LibraryScreen(
                     viewModel.setSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.SONGS)
                 },
+                sourceFilter = sourceFilter,
+                availableSources = availableSources,
+                onSourceFilterSelect = viewModel::setSourceFilter,
                 onDismiss = { showRefineSheet = false }
             )
 
@@ -643,6 +744,9 @@ fun LibraryScreen(
                     viewModel.setArtistSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.ARTISTS)
                 },
+                sourceFilter = sourceFilter,
+                availableSources = availableSources,
+                onSourceFilterSelect = viewModel::setSourceFilter,
                 onDismiss = { showRefineSheet = false }
             )
 
@@ -657,6 +761,9 @@ fun LibraryScreen(
                     viewModel.setAlbumSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.ALBUMS)
                 },
+                sourceFilter = sourceFilter,
+                availableSources = availableSources,
+                onSourceFilterSelect = viewModel::setSourceFilter,
                 onDismiss = { showRefineSheet = false }
             )
 
@@ -671,6 +778,9 @@ fun LibraryScreen(
                     viewModel.setGenreSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.GENRES)
                 },
+                sourceFilter = sourceFilter,
+                availableSources = availableSources,
+                onSourceFilterSelect = viewModel::setSourceFilter,
                 onDismiss = { showRefineSheet = false }
             )
 
@@ -685,6 +795,9 @@ fun LibraryScreen(
                     viewModel.setFolderSortOrder(order)
                     moveSortedListToStart(LibraryViewMode.FOLDERS)
                 },
+                sourceFilter = sourceFilter,
+                availableSources = availableSources,
+                onSourceFilterSelect = viewModel::setSourceFilter,
                 onDismiss = { showRefineSheet = false }
             )
 
@@ -723,7 +836,7 @@ fun LibraryScreen(
                         TextButton(onClick = {
                             pagerScope.launch {
                                 folderCoverRepository.clearCover(folder.folderPath)
-                                folder.customCoverPath?.let { folderCoverStorage.delete(it) }
+                                folderCoverStorage.delete(folder.customCoverPath)
                             }
                             folderCoverActions = null
                         }) { Text("Remove custom cover") }
@@ -777,7 +890,51 @@ fun LibraryScreen(
                 shareSongs(context, listOf(song))
                 songForMenu = null
             },
+            onSearchCoverOnline = {
+                coverSearchSong = song
+                songForMenu = null
+            },
+            onRemoveCustomCover = if (albumCoverRepo.getCoverPath(song.album, song.artist, song.albumId) != null) {
+                {
+                    val target = song
+                    pagerScope.launch {
+                        val path = albumCoverRepo.getCoverPath(target.album, target.artist, target.albumId)
+                        albumCoverRepo.clearCover(target.album, target.artist, target.albumId)
+                        if (path != null) {
+                            AlbumCoverStorage(context).delete(path)
+                        }
+                        invalidateAlbumArtCache(context)
+                    }
+                    songForMenu = null
+                }
+            } else null,
+            onEditTags = {
+                val s = song
+                songForMenu = null
+                songForTagEdit = s
+            },
             onDismiss = { songForMenu = null }
+        )
+    }
+
+    songForTagEdit?.let { song ->
+        SongTagEditorSheet(
+            song = song,
+            onDismiss = { songForTagEdit = null },
+            onSaved = { updated ->
+                viewModel.updateSongMetadata(updated)
+                playbackViewModel.updateSongMetadata(updated)
+                songForTagEdit = null
+            }
+        )
+    }
+
+    coverSearchSong?.let { song ->
+        OnlineAlbumCoverSearchSheet(
+            initialAlbum = song.album,
+            initialArtist = song.artist,
+            albumId = song.albumId,
+            onDismiss = { coverSearchSong = null }
         )
     }
 

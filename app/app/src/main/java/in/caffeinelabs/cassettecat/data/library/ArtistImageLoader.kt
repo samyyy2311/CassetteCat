@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
+import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import android.graphics.Bitmap
 import android.util.LruCache
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
@@ -44,6 +45,20 @@ class ArtistImageLoader {
     }
     private val fullCache = object : LruCache<String, Bitmap>(FULL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+
+    fun clearCache() {
+        thumbnailCache.evictAll()
+        fullCache.evictAll()
+    }
+
+    @Suppress("DEPRECATION")
+    fun trimCaches(level: Int) {
+        if (shouldClearArtworkThumbnails(level)) {
+            clearCache()
+        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            fullCache.evictAll()
+        }
     }
 
     fun peek(artist: String, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(artist)

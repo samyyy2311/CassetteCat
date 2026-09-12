@@ -33,18 +33,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
-import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
-import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumGroup
-import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.FolderGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.GenreGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.genreRuleFor
@@ -58,12 +55,6 @@ enum class SearchCategory(val label: String) {
     ALBUMS("Albums"),
     GENRES("Genres"),
     FOLDERS("Folders")
-}
-
-sealed class TopSearchResult {
-    data class ArtistResult(val group: ArtistGroup) : TopSearchResult()
-    data class AlbumResult(val group: AlbumGroup) : TopSearchResult()
-    data class SongResult(val song: Song) : TopSearchResult()
 }
 
 @Composable
@@ -192,222 +183,6 @@ internal fun RecentSearchesSection(
 }
 
 @Composable
-internal fun TopResultSpotlightCard(
-    result: TopSearchResult,
-    onNavigateToArtist: (String) -> Unit,
-    onNavigateToAlbum: (String) -> Unit,
-    onPlaySong: (Song) -> Unit,
-    onPlayGroup: (List<Song>) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-        Text(
-            "Top Result",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            modifier = Modifier.padding(bottom = 10.dp)
-        )
-
-        when (result) {
-            is TopSearchResult.ArtistResult -> {
-                val group = result.group
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .tapScale { onNavigateToArtist(group.artist) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                    ) {
-                        ArtistImage(artist = group.artist, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                "ARTIST",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = IbmPlexMonoFontFamily,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = group.artist,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_play,
-                        contentDescription = "Play artist",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        onClick = { onPlayGroup(group.songs) }
-                    )
-                }
-            }
-
-            is TopSearchResult.AlbumResult -> {
-                val group = result.group
-                val sampleSong = group.songs.firstOrNull()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .tapScale { onNavigateToAlbum(group.albumId) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .shadow(8.dp, RoundedCornerShape(12.dp))
-                    ) {
-                        if (sampleSong != null) {
-                            AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
-                        }
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                "ALBUM",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = IbmPlexMonoFontFamily,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = group.album,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = listOfNotNull(group.artist, sampleSong?.releaseYear?.toString()).joinToString(" · "),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_play,
-                        contentDescription = "Play album",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        onClick = { onPlayGroup(group.songs) }
-                    )
-                }
-            }
-
-            is TopSearchResult.SongResult -> {
-                val song = result.song
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .tapScale { onPlaySong(song) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .shadow(6.dp, RoundedCornerShape(10.dp))
-                    ) {
-                        AlbumArt(song = song, modifier = Modifier.fillMaxSize())
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                "SONG",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = IbmPlexMonoFontFamily,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = listOfNotNull(song.artist, song.album).joinToString(" · "),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_play,
-                        contentDescription = "Play song",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        onClick = { onPlaySong(song) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun SearchGenreTile(
     genreGroup: GenreGroup,
     onClick: () -> Unit,
@@ -486,6 +261,30 @@ internal fun SearchAlbumCard(
         ) {
             if (sampleSong != null) {
                 AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+                if (sampleSong.source != MusicSource.Local) {
+                    val (srcLabel, srcColor) = when (sampleSong.source) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        else -> "" to Color.Unspecified
+                    }
+                    if (srcLabel.isNotEmpty()) {
+                        Text(
+                            text = srcLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = IbmPlexMonoFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 9.sp
+                            ),
+                            color = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(6.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(srcColor.copy(alpha = 0.85f))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))

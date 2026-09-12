@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +58,9 @@ import `in`.caffeinelabs.cassettecat.data.library.SmartRuleType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.buildM3u
 import `in`.caffeinelabs.cassettecat.data.library.filterSongsForSmartCriteria
+import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
+import kotlinx.coroutines.launch
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
@@ -122,6 +126,10 @@ fun PlaylistDetailScreen(
     var showAddSongsSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
     var showCoverPickerSheet by remember { mutableStateOf(false) }
+    var showPlaylistPickerSheet by remember { mutableStateOf(false) }
+    var songForOptions by remember { mutableStateOf<Song?>(null) }
+    var songForTagEdit by remember { mutableStateOf<Song?>(null) }
+    val scope = rememberCoroutineScope()
     var skippedExportCount by remember { mutableStateOf<Int?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -235,9 +243,11 @@ fun PlaylistDetailScreen(
 
         if (songs.isEmpty()) {
             EmptyState(
-                iconRes = R.drawable.lucide_ic_music,
+                catRes = AppR.drawable.cat_calico_player,
                 title = "No songs yet",
-                message = "Tap Add Songs to get started.",
+                message = "Add some tracks to start this playlist.",
+                actionLabel = "Add Songs",
+                onAction = { showAddSongsSheet = true },
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -245,6 +255,7 @@ fun PlaylistDetailScreen(
                 items(sortedSongs, key = { it.id }) { song ->
                     SongRow(
                         song = song,
+                        onMoreClick = { songForOptions = song },
                         onClick = {
                             val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                             val index = sortedSongs.indexOfFirst { it.id == song.id }
@@ -354,6 +365,74 @@ fun PlaylistDetailScreen(
                 }
             },
             onDismiss = { showSortSheet = false }
+        )
+    }
+
+    if (showPlaylistPickerSheet) {
+        PlaylistPickerSheet(
+            playlists = playlists,
+            onSelect = { destPlaylist ->
+                songForOptions?.let { playlistViewModel.addSongs(destPlaylist.id, listOf(it.id)) }
+                showPlaylistPickerSheet = false
+                songForOptions = null
+            },
+            onDismiss = {
+                showPlaylistPickerSheet = false
+                songForOptions = null
+            }
+        )
+    }
+
+    if (!showPlaylistPickerSheet) songForOptions?.let { song ->
+        val isFav = song.isFavorite || song.id in favoriteIds
+        SongOptionsSheet(
+            song = song,
+            isFavorite = isFav,
+            onPlayNext = {
+                playbackViewModel.addToUpNext(listOf(song))
+                songForOptions = null
+            },
+            onAddToQueue = {
+                playbackViewModel.addToEndOfQueue(listOf(song))
+                songForOptions = null
+            },
+            onAddToPlaylist = {
+                showPlaylistPickerSheet = true
+            },
+            onToggleFavorite = {
+                scope.launch {
+                    favoritesRepository.setFavorite(song.id, !isFav)
+                }
+                songForOptions = null
+            },
+            onShare = {
+                shareSongs(context, listOf(song))
+                songForOptions = null
+            },
+            onEditTags = {
+                val s = song
+                songForOptions = null
+                songForTagEdit = s
+            },
+            onDelete = if (!playlist.isSmart) {
+                {
+                    playlistViewModel.removeSong(playlist.id, song.id)
+                    songForOptions = null
+                }
+            } else null,
+            onDismiss = { songForOptions = null }
+        )
+    }
+
+    songForTagEdit?.let { song ->
+        SongTagEditorSheet(
+            song = song,
+            onDismiss = { songForTagEdit = null },
+            onSaved = { updated ->
+                libraryViewModel.updateSongMetadata(updated)
+                playbackViewModel.updateSongMetadata(updated)
+                songForTagEdit = null
+            }
         )
     }
 }

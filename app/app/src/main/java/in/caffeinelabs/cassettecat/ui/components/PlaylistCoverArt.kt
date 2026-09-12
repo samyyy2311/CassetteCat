@@ -41,7 +41,7 @@ fun rememberLocalFileCoverBitmap(path: String?): Bitmap? {
     var bitmap by remember(path) { mutableStateOf(coverCache.get(path)) }
     LaunchedEffect(path) {
         if (bitmap == null) {
-            bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }?.also { coverCache.put(path, it) }
+            bitmap = withContext(Dispatchers.IO) { `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(java.io.File(path), 512) }?.also { coverCache.put(path, it) }
         }
     }
     return bitmap

@@ -69,7 +69,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.delay
@@ -404,7 +406,6 @@ private fun SectionHeader(title: String, modifier: Modifier = Modifier, action: 
     }
 }
 
-// Geometry for QueueRow (46dp art, 14dp gap), with refined typography
 @Composable
 private fun QueueRow(song: Song, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
@@ -434,15 +435,37 @@ private fun QueueRow(song: Song, onClick: () -> Unit, modifier: Modifier = Modif
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(2.dp))
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 13.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (song.source != MusicSource.Local) {
+                    val (tagLabel, tagColor) = when (song.source) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        MusicSource.ListeningRoomHost -> "Room" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Local -> "" to Color.Unspecified
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = tagLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+                        color = tagColor,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(tagColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    )
+                }
+            }
         }
     }
 }

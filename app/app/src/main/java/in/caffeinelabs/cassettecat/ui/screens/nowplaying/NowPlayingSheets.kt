@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -101,6 +103,8 @@ internal fun NowPlayingActionsSheet(
     onOpenPlaybackSpeed: () -> Unit,
     onOpenSleepTimer: () -> Unit,
     onOpenDriveMode: () -> Unit = {},
+    onSearchCoverOnline: () -> Unit = {},
+    onOpenArtworkViewer: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val btDevice = rememberConnectedBluetoothDevice()
@@ -139,6 +143,7 @@ internal fun NowPlayingActionsSheet(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
+                        .tapScale { onOpenArtworkViewer(); onDismiss() }
                 ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
@@ -246,11 +251,11 @@ internal fun NowPlayingActionsSheet(
                     onClick = { onShareFile(); onDismiss() }
                 )
             }
-            if (song.source == MusicSource.Local) {
+            if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_pencil,
-                    label = "Edit Song Tags",
-                    subtitle = "Title, artist, album & year",
+                    label = "Edit Details",
+                    subtitle = "Title, artist, album, genre & year",
                     onClick = { onOpenTagEditor(); onDismiss() }
                 )
             }
@@ -268,6 +273,18 @@ internal fun NowPlayingActionsSheet(
                 subtitle = "Release and source metadata",
                 hasChevron = true,
                 onClick = { onOpenCredits(); onDismiss() }
+            )
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_maximize_2,
+                label = "View Full Artwork",
+                subtitle = "Preview high-resolution cover",
+                onClick = { onOpenArtworkViewer(); onDismiss() }
+            )
+            SongActionRow(
+                iconRes = R.drawable.lucide_ic_image,
+                label = "Search Album Cover Online",
+                subtitle = "Find and apply high-resolution artwork",
+                onClick = { onSearchCoverOnline(); onDismiss() }
             )
 
             HorizontalDivider(
@@ -671,41 +688,6 @@ internal fun AudioOutputSheet(onOpenBluetoothSettings: () -> Unit, onDismiss: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ScreenshotSuggestionSheet(
-    song: Song,
-    onShare: () -> Unit,
-    onViewCredits: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    FullOpenBottomSheet(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
-            Text("Screenshot captured", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-            Text(
-                "Want to keep the song details with it?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp)
-            )
-            Spacer(Modifier.height(12.dp))
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_share_2,
-                label = "Share ${song.title}",
-                subtitle = song.artist,
-                accented = true,
-                onClick = onShare
-            )
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_book_open,
-                label = "View credits & details",
-                accented = false,
-                onClick = onViewCredits
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 internal fun NowPlayingGoToSheet(
     song: Song,
     playlists: List<Playlist>,
@@ -713,6 +695,7 @@ internal fun NowPlayingGoToSheet(
     onNavigateToAlbum: (String) -> Unit,
     onNavigateToPlaylist: (String) -> Unit,
     onOpenPlaylistPicker: () -> Unit,
+    onSearchCoverOnline: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val primaryArtist = song.artist.splitArtists().firstOrNull() ?: song.artist
@@ -757,6 +740,18 @@ internal fun NowPlayingGoToSheet(
                     onClick = { onNavigateToAlbum(song.albumId) }
                 ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
+                }
+                GoToMusicDetailRow(
+                    title = "Search Cover Online",
+                    subtitle = "Find and apply high-resolution artwork",
+                    onClick = { onSearchCoverOnline(); onDismiss() }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_image),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
             GoToMusicDetailRow(
@@ -1140,3 +1135,81 @@ internal fun SleepTimerPickerSheet(
         }
     }
 }
+
+@Composable
+internal fun FullScreenArtworkSheet(
+    song: Song,
+    onSearchCoverOnline: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    FullOpenBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            ) {
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
+            }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = song.album,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (song.releaseYear != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "${song.releaseYear}",
+                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .tapScale {
+                        onDismiss()
+                        onSearchCoverOnline()
+                    }
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_image),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    "Search Cover Online",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+

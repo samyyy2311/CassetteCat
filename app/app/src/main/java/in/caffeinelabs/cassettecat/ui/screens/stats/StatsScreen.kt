@@ -34,6 +34,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Milestone
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
@@ -41,6 +42,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRowSkeleton
+import `in`.caffeinelabs.cassettecat.ui.screens.library.rememberSkeletonColor
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import java.time.YearMonth
@@ -215,12 +217,13 @@ fun StatsScreen(
         }
 
         if (libraryState is LibraryUiState.Loading) {
+            val skeletonColor = rememberSkeletonColor()
             Column(modifier = Modifier.fillMaxSize().weight(1f)) {
-                repeat(8) { SongRowSkeleton() }
+                repeat(8) { SongRowSkeleton(skeletonColor) }
             }
         } else if (month == null || year == null) {
             EmptyState(
-                iconRes = R.drawable.lucide_ic_chart_no_axes_combined,
+                catRes = AppR.drawable.cat_orange_headphones,
                 title = "No plays yet",
                 message = "Play something past the halfway point and it'll show up here.",
                 modifier = Modifier.weight(1f)

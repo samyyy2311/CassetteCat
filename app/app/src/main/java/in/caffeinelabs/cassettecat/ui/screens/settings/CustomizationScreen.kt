@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +43,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
+import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -784,6 +792,14 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
     val prefs = uiState.preferences
     val maxCacheBytes by viewModel.maxCacheBytes.collectAsStateWithLifecycle(initialValue = DEFAULT_MAX_CACHE_BYTES)
     val autoDownloadFavorites by viewModel.autoDownloadFavorites.collectAsStateWithLifecycle(initialValue = false)
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val albumCoverRepo = remember { AlbumCoverRepository.getInstance(context) }
+    val albumCovers by albumCoverRepo.albumCovers.collectAsStateWithLifecycle()
+    val storage = remember { AlbumCoverStorage(context) }
+    var storageSizeBytes by remember(albumCovers) { mutableStateOf(storage.getStorageSizeBytes()) }
+    var showResetDialog by remember { mutableStateOf(false) }
+
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         CategoryHeader("Storage & Cache", onBack)
         Spacer(Modifier.height(16.dp))
@@ -813,7 +829,50 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
             onCheckedChange = viewModel::setIgnoreShortAudioClips,
             iconRes = R.drawable.lucide_ic_clock,
         )
+        SettingsDivider()
+        val coverCount = albumCovers.size
+        val formattedSize = if (storageSizeBytes < 1024 * 1024) {
+            "${(storageSizeBytes / 1024.0).roundToInt()} KB"
+        } else {
+            "%.1f MB".format(storageSizeBytes / (1024.0 * 1024.0))
         }
+        ActionRow(
+            title = "Custom Album Covers",
+            subtitle = if (coverCount == 0) "No custom covers applied" else "$coverCount covers ($formattedSize) · Tap to reset all",
+            iconRes = R.drawable.lucide_ic_image,
+            iconTint = MaterialTheme.colorScheme.tertiary,
+            onClick = {
+                if (coverCount > 0) showResetDialog = true
+            }
+        )
+        }
+    }
+
+    if (showResetDialog) {
+        val coverCount = albumCovers.size
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Reset all custom covers?") },
+            text = { Text("This will delete all custom downloaded and gallery artwork ($coverCount covers) and revert back to embedded media tags.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetDialog = false
+                    coroutineScope.launch {
+                        albumCoverRepo.clearAllCovers()
+                        storage.clearAll()
+                        storageSizeBytes = 0L
+                        invalidateAlbumArtCache(context)
+                    }
+                }) {
+                    Text("Reset All", color = MaterialTheme.colorScheme.tertiary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

@@ -30,7 +30,7 @@ private const val EMPTY_RADIO_MESSAGE_ID = "empty_radio_message"
 private const val SEARCH_LIBRARY_LIMIT = 25
 private const val SEARCH_RADIO_LIMIT = 15
 
-class MediaLibraryTree(context: Context) {
+class MediaLibraryTree(private val context: Context) {
     private val localLibrary = LocalLibraryRepository(context)
     private val playlistRepository = PlaylistRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
@@ -58,7 +58,7 @@ class MediaLibraryTree(context: Context) {
 
         mediaId.startsWith(RADIO_STATION_PREFIX) -> {
             val favoriteSong = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }.firstOrNull { it.id == mediaId }
-            (favoriteSong ?: cachedRadioResults[mediaId])?.toMediaItem()
+            (favoriteSong ?: cachedRadioResults[mediaId])?.toMediaItem(context)
         }
 
         mediaId.startsWith(PLAYLIST_PREFIX) -> playlistRepository.playlists.first()
@@ -71,7 +71,7 @@ class MediaLibraryTree(context: Context) {
 
         mediaId.startsWith(ARTIST_PREFIX) -> folderItem(mediaId, mediaId.removePrefix(ARTIST_PREFIX))
 
-        else -> localLibrary.getSongs().firstOrNull { it.id == mediaId }?.toMediaItem()
+        else -> localLibrary.getSongs().firstOrNull { it.id == mediaId }?.toMediaItem(context)
     }
 
     suspend fun children(parentId: String): List<MediaItem>? {
@@ -98,30 +98,30 @@ class MediaLibraryTree(context: Context) {
             parentId == RADIO_FAVORITES_ID -> {
                 val favorites = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }
                 if (favorites.isEmpty()) listOf(messageItem(EMPTY_RADIO_MESSAGE_ID, "No favorite radio stations yet"))
-                else favorites.map { it.toMediaItem() }
+                else favorites.map { it.toMediaItem(context) }
             }
 
             parentId == RADIO_TOP_ID -> {
                 val top = (runCatching { radioBrowserApiClient.topStations() }.getOrNull() ?: emptyList()).map { it.toSong() }
                 cacheRadioResults(top)
-                top.map { it.toMediaItem() }
+                top.map { it.toMediaItem(context) }
             }
 
             parentId == LIKED_SONGS_ID -> {
                 val liked = favoritesRepository.favoriteIds.first()
-                songs.filter { it.id in liked }.map { it.toMediaItem() }
+                songs.filter { it.id in liked }.map { it.toMediaItem(context) }
             }
 
-            parentId == ALL_SONGS_ID -> songs.map { it.toMediaItem() }
+            parentId == ALL_SONGS_ID -> songs.map { it.toMediaItem(context) }
 
             parentId == PLAYLISTS_ID -> playlistRepository.playlists.first()
                 .map { folderItem(PLAYLIST_PREFIX + it.id, it.name) }
 
             parentId.startsWith(PLAYLIST_PREFIX) -> {
                 val playlist = playlistRepository.playlists.first()
-                    .firstOrNull { it.id == parentId.removePrefix(PLAYLIST_PREFIX) } ?: return emptyList()
+                .firstOrNull { it.id == parentId.removePrefix(PLAYLIST_PREFIX) } ?: return emptyList()
                 val songsById = songs.associateBy { it.id }
-                playlist.songIds.mapNotNull { songsById[it] }.map { it.toMediaItem() }
+                playlist.songIds.mapNotNull { songsById[it] }.map { it.toMediaItem(context) }
             }
 
             parentId == ALBUMS_ID -> songs.groupBy { it.albumId }
@@ -129,13 +129,13 @@ class MediaLibraryTree(context: Context) {
                 .sortedBy { it.mediaMetadata.title?.toString()?.lowercase() }
 
             parentId.startsWith(ALBUM_PREFIX) ->
-                songs.filter { it.albumId == parentId.removePrefix(ALBUM_PREFIX) }.map { it.toMediaItem() }
+                songs.filter { it.albumId == parentId.removePrefix(ALBUM_PREFIX) }.map { it.toMediaItem(context) }
 
             parentId == ARTISTS_ID -> songs.map { it.artist }.distinct().sortedBy { it.lowercase() }
                 .map { folderItem(ARTIST_PREFIX + it, it) }
 
             parentId.startsWith(ARTIST_PREFIX) ->
-                songs.filter { it.artist == parentId.removePrefix(ARTIST_PREFIX) }.map { it.toMediaItem() }
+                songs.filter { it.artist == parentId.removePrefix(ARTIST_PREFIX) }.map { it.toMediaItem(context) }
 
             else -> null
         }
@@ -151,7 +151,7 @@ class MediaLibraryTree(context: Context) {
         val radioSongs = (runCatching { radioBrowserApiClient.search(query, limit = SEARCH_RADIO_LIMIT) }.getOrNull() ?: emptyList())
             .map { it.toSong() }
         cacheRadioResults(radioSongs)
-        return (librarySongs + radioSongs).map { it.toMediaItem() }
+        return (librarySongs + radioSongs).map { it.toMediaItem(context) }
     }
 
     private fun cacheRadioResults(stations: List<Song>) {

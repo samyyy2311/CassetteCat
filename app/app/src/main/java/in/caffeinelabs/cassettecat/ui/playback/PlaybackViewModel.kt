@@ -59,8 +59,8 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.random.Random
 
-private const val POSITION_TICK_MS = 100L
-private const val SAVE_EVERY_N_TICKS = 100 // ~10s at POSITION_TICK_MS
+private const val POSITION_TICK_MS = 200L
+private const val SAVE_EVERY_N_TICKS = 50 // ~10s at POSITION_TICK_MS
 private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
 private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
@@ -106,8 +106,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _positionMs = MutableStateFlow(0L)
     val positionMs: StateFlow<Long> = _positionMs.asStateFlow()
 
-    // Plain construction, no shared DI container, matching LibraryViewModel's own
-    // pattern: this only exists to dispatch setFavorite() by source, not to fetch.
+    // These repositories route favorite changes to the song's source.
     private val streamingServerRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
     private val librariesBySource: Map<MusicSource, LibraryRepository> = mapOf(
@@ -148,10 +147,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val scrobbleManager = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager(app, viewModelScope)
     private var hasAttemptedRestore = false
     private var playRecordedForSongId: String? = null
+    private var cachedMonthKey: String = YearMonth.now().toString()
     private val accumulatedListeningMs = mutableMapOf<ListeningBucket, Long>()
 
-    // Media3 doesn't push continuous position updates, so this polls while playing
-    // instead of the repository pushing it, keeping the repository a pure reactive wrapper.
+    // Media3 doesn't push continuous position updates, so this polls while playing. Are we there yet?
     private var tickerJob: Job? = null
 
     init {
@@ -318,7 +317,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             if (playbackState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
-            // adjust for ids that no longer resolve (deleted files) shifting positions
+            // Deleted files leave holes in the saved queue; close those holes before restoring.
+            // Keep the saved queue order after removing missing songs.
             val adjustedIndex = saved.queueSongIds.take(saved.currentIndex).count { it in songsById }
             repository.restoreQueue(resolvedSongs, adjustedIndex.coerceIn(0, resolvedSongs.size - 1), saved.positionMs)
         }
@@ -484,15 +484,16 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 applyCrossfade()
                 playbackState.value.currentSong?.let { song ->
                     if (song.source != MusicSource.Radio) {
-                        val bucket = ListeningBucket(YearMonth.now().toString(), song.id)
+                        val bucket = ListeningBucket(cachedMonthKey, song.id)
                         accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + POSITION_TICK_MS
                     }
                 }
                 tick++
-                if (tick % 10 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
+                if (tick % 5 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
                     publishRoomSnapshot()
                 }
                 if (tick % SAVE_EVERY_N_TICKS == 0) {
+                    cachedMonthKey = YearMonth.now().toString()
                     savePlaybackState()
                     flushListeningTime()
                 }
@@ -526,7 +527,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
         if (threshold > 0 && _positionMs.value >= threshold) {
             playRecordedForSongId = song.id
-            viewModelScope.launch { statsRepository.recordPlay(song.id, YearMonth.now().toString()) }
+            val month = cachedMonthKey
+            viewModelScope.launch { statsRepository.recordPlay(song.id, month) }
             scrobbleManager.onTrackPlayed(song)
         }
     }

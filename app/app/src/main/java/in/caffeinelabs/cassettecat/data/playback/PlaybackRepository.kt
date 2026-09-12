@@ -4,6 +4,7 @@ package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
@@ -17,6 +18,7 @@ import androidx.media3.extractor.metadata.id3.BinaryFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import com.google.common.util.concurrent.ListenableFuture
@@ -94,7 +96,7 @@ class PlaybackRepository(private val context: Context) {
                                     freshShuffle = freshShuffle.toMutableList().apply { add(1, removeAt(0)) }
                                 }
                                 currentQueue = freshShuffle
-                                val mediaItems = freshShuffle.map { it.toMediaItem() }
+                                val mediaItems = freshShuffle.map { it.toMediaItem(context) }
                                 c.setMediaItems(mediaItems, 0, 0L)
                                 c.prepare()
                                 c.play()
@@ -159,7 +161,7 @@ class PlaybackRepository(private val context: Context) {
         currentQueue = finalQueue
         shuffleEnabled = shuffle
         resetHistoryTracking(finalQueue.getOrNull(targetIndex))
-        val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem() } }
+        val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem(context) } }
         controller?.apply {
             setMediaItems(mediaItems, targetIndex, 0L)
             prepare()
@@ -176,7 +178,7 @@ class PlaybackRepository(private val context: Context) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return
         currentQueue = songs
         originalQueue = songs
-        val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem() } }
+        val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
         controller?.apply {
             setMediaItems(mediaItems, startIndex.coerceIn(0, mediaItems.size - 1), positionMs)
             prepare()
@@ -191,7 +193,7 @@ class PlaybackRepository(private val context: Context) {
             currentQueue = songs
             originalQueue = songs
             shuffleEnabled = false
-            val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem() } }
+            val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
             val prepareStartedAtMs = SystemClock.elapsedRealtime()
             c.setMediaItems(mediaItems, 0, positionMs.coerceAtLeast(0L))
             c.prepare()
@@ -358,7 +360,7 @@ class PlaybackRepository(private val context: Context) {
 
         val shuffledUpcoming = upcoming.shuffled()
         currentQueue = currentQueue.subList(0, currentIndex + 1) + shuffledUpcoming
-        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, shuffledUpcoming.map { it.toMediaItem() })
+        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, shuffledUpcoming.map { it.toMediaItem(context) })
     }
 
     private fun restoreOriginalOrder(c: MediaController) {
@@ -375,7 +377,7 @@ class PlaybackRepository(private val context: Context) {
         }
 
         currentQueue = currentQueue.subList(0, currentIndex + 1) + restoredUpcoming
-        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, restoredUpcoming.map { it.toMediaItem() })
+        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, restoredUpcoming.map { it.toMediaItem(context) })
     }
 
     // Translates upNext-list positions (what QueueList displays/drags) to absolute queue
@@ -400,7 +402,7 @@ class PlaybackRepository(private val context: Context) {
         if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty()) return
 
         val insertAt = (currentIndex + 1).coerceAtMost(currentQueue.size)
-        c.addMediaItems(insertAt, songs.map { it.toMediaItem() })
+        c.addMediaItems(insertAt, songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
         // The explicit queue is now the source of truth. This also means turning shuffle
         // off preserves newly queued songs instead of silently dropping them.
@@ -413,7 +415,7 @@ class PlaybackRepository(private val context: Context) {
         val c = controller ?: return
         if (c.currentMediaItemIndex == C.INDEX_UNSET || currentQueue.isEmpty()) return
 
-        c.addMediaItems(songs.map { it.toMediaItem() })
+        c.addMediaItems(songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue + songs
         originalQueue = currentQueue
         updateState()
@@ -424,7 +426,7 @@ class PlaybackRepository(private val context: Context) {
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
         val insertAt = if (currentIndex == C.INDEX_UNSET) currentQueue.size else (currentIndex + 1).coerceAtMost(currentQueue.size)
-        c.addMediaItems(insertAt, songs.map { it.toMediaItem() })
+        c.addMediaItems(insertAt, songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
         originalQueue = currentQueue
         c.seekTo(insertAt, 0L)
@@ -685,19 +687,32 @@ internal fun parseUsltFrame(data: ByteArray): String? {
     return String(data, textStart, data.size - textStart, charset).trim().ifEmpty { null }
 }
 
-internal fun Song.toMediaItem(): MediaItem = MediaItem.Builder()
-    .setMediaId(id)
-    .setUri(contentUri)
-    .setMediaMetadata(
-        MediaMetadata.Builder()
-            .setTitle(title)
-            .setArtist(artist)
-            .setAlbumTitle(album)
-            .setIsBrowsable(false)
-            .setIsPlayable(true)
-            .build()
-    )
-    .build()
+internal fun Song.toMediaItem(context: Context? = null): MediaItem {
+    val customCoverPath = context?.let {
+        AlbumCoverRepository.getInstance(it).getCoverPath(album, artist, albumId)
+    }
+    val artUri = when {
+        customCoverPath != null -> Uri.fromFile(java.io.File(customCoverPath))
+        albumId.isNotBlank() -> Uri.parse("content://media/external/audio/albumart/$albumId")
+        else -> null
+    }
+    return MediaItem.Builder()
+        .setMediaId(id)
+        .setUri(contentUri)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle(title)
+                .setArtist(artist)
+                .setAlbumTitle(album)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .apply {
+                    if (artUri != null) setArtworkUri(artUri)
+                }
+                .build()
+        )
+        .build()
+}
 
 // Bridges Guava's ListenableFuture to a suspend call without a Guava/coroutines-guava
 // dependency; ContextCompat.getMainExecutor is already available via androidx-core-ktx.

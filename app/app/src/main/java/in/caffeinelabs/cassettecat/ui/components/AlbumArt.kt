@@ -27,7 +27,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import `in`.caffeinelabs.cassettecat.data.library.AlbumArtLoader
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
@@ -57,6 +59,15 @@ private object AlbumArtLoaders {
         }
 }
 
+fun invalidateAlbumArtCache(context: Context) {
+    AlbumArtLoaders.local(context).clearCache()
+}
+
+fun trimAlbumArtCaches(context: Context, level: Int) {
+    AlbumArtLoaders.local(context).trimCaches(level)
+    AlbumArtLoaders.remote.trimCaches(level)
+}
+
 suspend fun prefetchAlbumArt(context: Context, song: Song?, thumbnail: Boolean = false) {
     song ?: return
     val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
@@ -81,10 +92,20 @@ suspend fun loadSongArtwork(context: Context, song: Song, thumbnail: Boolean = f
 }
 
 @Composable
-fun AlbumArt(song: Song, modifier: Modifier = Modifier, thumbnail: Boolean = true) {
+fun AlbumArt(
+    song: Song,
+    modifier: Modifier = Modifier,
+    thumbnail: Boolean = true,
+    debounce: Boolean = false
+) {
     val context = LocalContext.current
+    val albumCoverRepo = remember { AlbumCoverRepository.getInstance(context) }
+    val albumCovers by albumCoverRepo.albumCovers.collectAsStateWithLifecycle()
+    val customCoverPath = remember(song.album, song.artist, song.albumId, albumCovers) {
+        albumCoverRepo.getCoverPath(song.album, song.artist, song.albumId)
+    }
 
-    var bitmap by remember(song.id, thumbnail) {
+    var bitmap by remember(song.id, thumbnail, customCoverPath) {
         mutableStateOf(
             when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).peek(song, thumbnail)
@@ -93,9 +114,9 @@ fun AlbumArt(song: Song, modifier: Modifier = Modifier, thumbnail: Boolean = tru
             }
         )
     }
-    LaunchedEffect(song.id, thumbnail) {
+    LaunchedEffect(song.id, thumbnail, customCoverPath) {
         if (bitmap == null) {
-            if (thumbnail) delay(THUMBNAIL_LOAD_DEBOUNCE_MS)
+            if (debounce) delay(THUMBNAIL_LOAD_DEBOUNCE_MS)
             val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
             val isOffline = settings.offlineBlackoutMode
             val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)

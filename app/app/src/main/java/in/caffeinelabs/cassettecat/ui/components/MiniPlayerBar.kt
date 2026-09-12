@@ -34,7 +34,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -51,6 +53,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import kotlinx.coroutines.launch
 
 private const val MINI_PLAYER_SNAP_MS = 220
 private val SmoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
@@ -71,7 +74,6 @@ fun MiniPlayerRow(
     val song = state.currentSong ?: return
     val previousSong = state.previousInQueue
     val nextSong = state.upNext.firstOrNull()
-    val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
     val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
@@ -163,21 +165,35 @@ fun MiniPlayerRow(
         }
 
         if (preferences.showMiniPlayerProgress && state.durationMs > 0) {
-            val fraction = (positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
-            val animatedFraction by animateFloatAsState(
-                targetValue = fraction,
-                animationSpec = tween(durationMillis = 100, easing = LinearEasing),
-                label = "miniPlayerProgress"
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth(animatedFraction)
-                    .height(2.dp)
-                    .background(MaterialTheme.colorScheme.tertiary)
+            MiniPlayerProgressBar(
+                positionFlow = playbackViewModel.positionMs,
+                durationMs = state.durationMs,
+                modifier = Modifier.align(Alignment.BottomStart)
             )
         }
     }
+}
+
+@Composable
+private fun MiniPlayerProgressBar(
+    positionFlow: kotlinx.coroutines.flow.StateFlow<Long>,
+    durationMs: Long,
+    modifier: Modifier = Modifier
+) {
+    val positionMs by positionFlow.collectAsStateWithLifecycle()
+    val fraction = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    val barColor = MaterialTheme.colorScheme.tertiary
+    Spacer(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .drawBehind {
+                drawRect(
+                    color = barColor,
+                    size = Size(size.width * fraction, size.height)
+                )
+            }
+    )
 }
 
 // Same pattern as NowPlayingScreen's AlbumArtCarousel: [previousSong, currentSong, nextSong]
@@ -194,6 +210,14 @@ private fun MiniPlayerArtRow(
     onThumbnailBoundsChange: (Rect) -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
+
+    LaunchedEffect(currentSong.id, previousSong?.id, nextSong?.id) {
+        launch { prefetchAlbumArt(context, currentSong, thumbnail = true) }
+        launch { prefetchAlbumArt(context, previousSong, thumbnail = true) }
+        launch { prefetchAlbumArt(context, nextSong, thumbnail = true) }
+    }
+
     key(currentSong.id, previousSong?.id) {
         val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id, showNextPlaceholder) {
             buildList {
@@ -219,6 +243,7 @@ private fun MiniPlayerArtRow(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             userScrollEnabled = swipeEnabled,
+            beyondViewportPageCount = 1,
             flingBehavior = PagerDefaults.flingBehavior(
                 state = pagerState,
                 snapAnimationSpec = tween(MINI_PLAYER_SNAP_MS, easing = SmoothEasing)

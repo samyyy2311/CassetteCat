@@ -42,6 +42,7 @@ private val LAST_LIBRARY_TAB = stringPreferencesKey("last_library_tab")
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
 private val LIBRARY_COLLECTION_LAYOUT = stringPreferencesKey("library_collection_layout")
 private val LIBRARY_SONG_FILTER = stringPreferencesKey("library_song_filter")
+private val LIBRARY_SOURCE_FILTER = stringPreferencesKey("library_source_filter")
 private val LIBRARY_ARTIST_SORT_ORDER = stringPreferencesKey("library_artist_sort_order")
 private val LIBRARY_ARTIST_SORT_DIRECTION = stringPreferencesKey("library_artist_sort_direction")
 private val LIBRARY_ALBUM_SORT_ORDER = stringPreferencesKey("library_album_sort_order")
@@ -222,6 +223,7 @@ data class AppPreferences(
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",
+    val librarySourceFilter: String = "ALL",
     val libraryArtistSortOrder: String = "NAME",
     val libraryArtistSortDirection: String = "ASCENDING",
     val libraryAlbumSortOrder: String = "ALBUM",
@@ -313,6 +315,7 @@ class AppPreferencesRepository(private val context: Context) {
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
             librarySongFilter = prefs[LIBRARY_SONG_FILTER] ?: "ALL",
+            librarySourceFilter = prefs[LIBRARY_SOURCE_FILTER] ?: "ALL",
             libraryArtistSortOrder = prefs[LIBRARY_ARTIST_SORT_ORDER] ?: "NAME",
             libraryArtistSortDirection = prefs[LIBRARY_ARTIST_SORT_DIRECTION] ?: "ASCENDING",
             libraryAlbumSortOrder = prefs[LIBRARY_ALBUM_SORT_ORDER] ?: "ALBUM",
@@ -491,6 +494,10 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setLibrarySongFilter(filter: String) {
         context.appPreferencesDataStore.edit { it[LIBRARY_SONG_FILTER] = filter }
+    }
+
+    suspend fun setLibrarySourceFilter(filter: String) {
+        context.appPreferencesDataStore.edit { it[LIBRARY_SOURCE_FILTER] = filter }
     }
 
     suspend fun setLibraryArtistSortOrder(order: String) {
@@ -700,6 +707,7 @@ class AppPreferencesRepository(private val context: Context) {
             librarySortDirection = current.librarySortDirection,
             libraryCollectionLayout = current.libraryCollectionLayout,
             librarySongFilter = current.librarySongFilter,
+            librarySourceFilter = current.librarySourceFilter,
             libraryArtistSortOrder = current.libraryArtistSortOrder,
             libraryArtistSortDirection = current.libraryArtistSortDirection,
             libraryAlbumSortOrder = current.libraryAlbumSortOrder,
@@ -778,6 +786,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
             prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
             prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter
+            prefs[LIBRARY_SOURCE_FILTER] = backup.librarySourceFilter
             prefs[LIBRARY_ARTIST_SORT_ORDER] = backup.libraryArtistSortOrder
             prefs[LIBRARY_ARTIST_SORT_DIRECTION] = backup.libraryArtistSortDirection
             prefs[LIBRARY_ALBUM_SORT_ORDER] = backup.libraryAlbumSortOrder

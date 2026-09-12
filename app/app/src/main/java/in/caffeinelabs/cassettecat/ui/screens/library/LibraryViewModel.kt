@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
@@ -136,6 +138,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val credentialStore = CredentialStore(app)
     private val serviceSettingsRepository = ServiceSettingsRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
+    private val metadataOverridesRepo = SongMetadataOverridesRepository.getInstance(app)
     private var refreshJob: Job? = null
 
     val isOfflineMode: StateFlow<Boolean> = serviceSettingsRepository.settings
@@ -150,6 +153,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     // unsorted; re-sorting on setSortOrder doesn't need a re-fetch
+    private var rawSongs: List<Song> = emptyList()
     private var loadedSongs: List<Song> = emptyList()
     private var loadedWarnings: List<String> = emptyList()
 
@@ -164,6 +168,33 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _songFilter = MutableStateFlow(SongFilter.ALL)
     val songFilter: StateFlow<SongFilter> = _songFilter.asStateFlow()
+
+    private val _sourceFilter = MutableStateFlow(LibrarySourceFilter.ALL)
+    val sourceFilter: StateFlow<LibrarySourceFilter> = _sourceFilter.asStateFlow()
+
+    private val _availableSources = MutableStateFlow<List<LibrarySourceFilter>>(listOf(LibrarySourceFilter.LOCAL))
+    val availableSources: StateFlow<List<LibrarySourceFilter>> = _availableSources.asStateFlow()
+
+    private var lastSubsonicConnected = false
+    private var lastJellyfinConnected = false
+
+    private fun updateAvailableSources(subsonicConnected: Boolean = lastSubsonicConnected, jellyfinConnected: Boolean = lastJellyfinConnected) {
+        lastSubsonicConnected = subsonicConnected
+        lastJellyfinConnected = jellyfinConnected
+        val hasSubsonic = subsonicConnected || loadedSongs.any { it.source == MusicSource.Subsonic }
+        val hasJellyfin = jellyfinConnected || loadedSongs.any { it.source == MusicSource.Jellyfin }
+        val list = mutableListOf<LibrarySourceFilter>()
+        if (hasSubsonic || hasJellyfin) {
+            list.add(LibrarySourceFilter.ALL)
+        }
+        list.add(LibrarySourceFilter.LOCAL)
+        if (hasSubsonic) list.add(LibrarySourceFilter.SUBSONIC)
+        if (hasJellyfin) list.add(LibrarySourceFilter.JELLYFIN)
+        _availableSources.value = list
+        if (_sourceFilter.value !in list) {
+            _sourceFilter.value = if (list.contains(LibrarySourceFilter.ALL)) LibrarySourceFilter.ALL else LibrarySourceFilter.LOCAL
+        }
+    }
 
     private val _artistSortOrder = MutableStateFlow(ArtistSortOrder.NAME)
     val artistSortOrder: StateFlow<ArtistSortOrder> = _artistSortOrder.asStateFlow()
@@ -191,8 +222,16 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _uiState = MutableStateFlow<LibraryUiState>(LibraryUiState.Loading)
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
     private val _lastRefreshAtMs = MutableStateFlow<Long?>(null)
     val lastRefreshAtMs: StateFlow<Long?> = _lastRefreshAtMs.asStateFlow()
+    private val _dismissedWarnings = MutableStateFlow<Set<String>>(emptySet())
+    val dismissedWarnings: StateFlow<Set<String>> = _dismissedWarnings.asStateFlow()
+
+    fun dismissWarning(warning: String) {
+        _dismissedWarnings.value = _dismissedWarnings.value + warning
+    }
 
     init {
         viewModelScope.launch {
@@ -201,6 +240,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             _sortDirection.value = enumFromNameOrDefault(prefs.librarySortDirection, SortDirection.ASCENDING)
             _collectionLayout.value = enumFromNameOrDefault(prefs.libraryCollectionLayout, CollectionLayout.GRID)
             _songFilter.value = enumFromNameOrDefault(prefs.librarySongFilter, SongFilter.ALL)
+            _sourceFilter.value = enumFromNameOrDefault(prefs.librarySourceFilter, LibrarySourceFilter.ALL)
             _artistSortOrder.value = enumFromNameOrDefault(prefs.libraryArtistSortOrder, ArtistSortOrder.NAME)
             _artistSortDirection.value = enumFromNameOrDefault(prefs.libraryArtistSortDirection, SortDirection.ASCENDING)
             _albumSortOrder.value = enumFromNameOrDefault(prefs.libraryAlbumSortOrder, AlbumSortOrder.ALBUM)
@@ -209,33 +249,65 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             _genreSortDirection.value = enumFromNameOrDefault(prefs.libraryGenreSortDirection, SortDirection.ASCENDING)
             isOfflineMode.collect { refresh() }
         }
+        viewModelScope.launch {
+            combine(
+                serverRepository.config(StreamingProtocol.SUBSONIC),
+                serverRepository.config(StreamingProtocol.JELLYFIN)
+            ) { sub, jelly -> sub.connected to jelly.connected }
+                .collect { (sub, jelly) -> updateAvailableSources(sub, jelly) }
+        }
+        viewModelScope.launch {
+            metadataOverridesRepo.overrides.collect {
+                if (rawSongs.isNotEmpty()) {
+                    loadedSongs = metadataOverridesRepo.applyTo(rawSongs)
+                    publishLoadedSongs()
+                }
+            }
+        }
     }
 
     fun refresh() {
+        _dismissedWarnings.value = emptySet()
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch { loadSongs() }
     }
 
     private suspend fun loadSongs() {
-        _uiState.value = LibraryUiState.Loading
-        val offline = isOfflineMode.value
-        val activeSources = if (offline) sources.filter { it.label == "Local" } else sources
-
-        // per-source, so one dead server doesn't blank out the others
-        val results = coroutineScope {
-            activeSources.map { source -> async {
-                source.label to runCatching { source.repository.getSongs() }
-                    .onFailure { if (it is CancellationException) throw it }
-            } }
-                .map { it.await() }
+        if (loadedSongs.isEmpty()) {
+            _uiState.value = LibraryUiState.Loading
         }
+        _isRefreshing.value = true
+        try {
+            val offline = isOfflineMode.value
+            val activeSources = if (offline) sources.filter { it.label == "Local" } else sources
 
-        loadedSongs = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
-        loadedWarnings = results.mapNotNull { (label, result) ->
-            result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
+            // per-source, so one dead server doesn't blank out the others
+            val results = coroutineScope {
+                activeSources.map { source -> async {
+                    source.label to runCatching { source.repository.getSongs() }
+                        .onFailure { if (it is CancellationException) throw it }
+                } }
+                    .map { it.await() }
+            }
+
+            val allRaw = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
+            rawSongs = allRaw
+            loadedSongs = metadataOverridesRepo.applyTo(allRaw)
+            loadedWarnings = results.mapNotNull { (label, result) ->
+                result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
+            }
+            publishLoadedSongs()
+            updateAvailableSources()
+            _lastRefreshAtMs.value = System.currentTimeMillis()
+        } finally {
+            _isRefreshing.value = false
         }
+    }
+
+    fun updateSongMetadata(updatedSong: Song) {
+        rawSongs = rawSongs.map { if (it.id == updatedSong.id) updatedSong else it }
+        loadedSongs = loadedSongs.map { if (it.id == updatedSong.id) updatedSong else it }
         publishLoadedSongs()
-        _lastRefreshAtMs.value = System.currentTimeMillis()
     }
 
     // re-tapping the active field flips direction instead of no-op
@@ -261,6 +333,11 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     fun setSongFilter(filter: SongFilter) {
         _songFilter.value = filter
         viewModelScope.launch { appPreferencesRepository.setLibrarySongFilter(filter.name) }
+    }
+
+    fun setSourceFilter(filter: LibrarySourceFilter) {
+        _sourceFilter.value = filter
+        viewModelScope.launch { appPreferencesRepository.setLibrarySourceFilter(filter.storageKey) }
     }
 
     fun setArtistSortOrder(order: ArtistSortOrder) {

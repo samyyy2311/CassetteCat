@@ -50,6 +50,7 @@ import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -254,7 +255,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
 
         if (trackedDownloads.isEmpty()) {
             EmptyState(
-                iconRes = R.drawable.lucide_ic_download,
+                catRes = AppR.drawable.cat_calico_player,
                 title = "No downloads yet",
                 message = "Download streamed songs to play them without a connection.",
                 modifier = Modifier.weight(1f)

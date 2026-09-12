@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.AudioTrackFormat
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
@@ -245,6 +247,35 @@ internal fun TitleRow(
             ) {
                 audioFormat?.let {
                     AudioQualityBadge(audioFormat = it)
+                }
+                if (song.source != MusicSource.Local) {
+                    val (sourceLabel, sourceColor) = when (song.source) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.ListeningRoomHost -> "Room" to MaterialTheme.colorScheme.secondary
+                        MusicSource.Local -> "" to Color.Unspecified
+                    }
+                    if (sourceLabel.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(sourceColor.copy(alpha = 0.12f))
+                                .border(0.5.dp, sourceColor.copy(alpha = 0.45f), RoundedCornerShape(3.dp))
+                                .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                        ) {
+                            Text(
+                                text = sourceLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontFamily = IbmPlexMonoFontFamily,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.3.sp
+                                ),
+                                color = sourceColor
+                            )
+                        }
+                    }
                 }
                 BluetoothOutputLabel()
             }

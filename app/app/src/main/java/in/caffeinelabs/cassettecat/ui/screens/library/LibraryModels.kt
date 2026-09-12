@@ -3,6 +3,9 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import androidx.compose.ui.graphics.Color
 import com.composables.icons.lucide.R
 
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.library.Song
+
 enum class LibraryViewMode(val label: String) {
     SONGS("Songs"), ARTISTS("Artists"), ALBUMS("Albums"), GENRES("Genres"), PLAYLISTS("Playlists"), FOLDERS("Folders")
 }
@@ -11,6 +14,27 @@ enum class CollectionLayout { GRID, LIST }
 
 enum class SongFilter(val label: String) {
     ALL("All songs"), FAVORITES("Favorites"), DOWNLOADED("Downloaded"), RECENTLY_ADDED("Recently added")
+}
+
+enum class LibrarySourceFilter(val storageKey: String) {
+    ALL("ALL"),
+    LOCAL("LOCAL"),
+    SUBSONIC("SUBSONIC"),
+    JELLYFIN("JELLYFIN");
+
+    fun displayName(): String = when (this) {
+        ALL -> "All"
+        LOCAL -> "Local"
+        SUBSONIC -> "Subsonic"
+        JELLYFIN -> "Jellyfin"
+    }
+}
+
+fun List<Song>.filterBySource(filter: LibrarySourceFilter): List<Song> = when (filter) {
+    LibrarySourceFilter.ALL -> this
+    LibrarySourceFilter.LOCAL -> filter { it.source == MusicSource.Local }
+    LibrarySourceFilter.SUBSONIC -> filter { it.source == MusicSource.Subsonic }
+    LibrarySourceFilter.JELLYFIN -> filter { it.source == MusicSource.Jellyfin }
 }
 
 enum class ArtistSortOrder(val label: String) { NAME("Name"), SONG_COUNT("Song Count") }

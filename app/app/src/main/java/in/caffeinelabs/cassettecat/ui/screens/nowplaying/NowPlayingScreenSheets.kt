@@ -20,6 +20,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.OnlineAlbumCoverSearchSheet
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistNameSheet
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongTagEditorSheet
 import java.io.File
@@ -40,6 +41,8 @@ internal class NowPlayingSheetState {
     var showScreenshotSuggestion by mutableStateOf(false)
     var showSaveQueue by mutableStateOf(false)
     var showTagEditor by mutableStateOf(false)
+    var showCoverSearch by mutableStateOf(false)
+    var showArtworkViewer by mutableStateOf(false)
 }
 
 @Composable
@@ -94,6 +97,8 @@ internal fun NowPlayingScreenSheetsHost(
                 onOpenPlaybackSpeed = { sheetState.showPlaybackSpeed = true },
                 onOpenSleepTimer = { sheetState.showSleepTimerPicker = true },
                 onOpenDriveMode = onNavigateToDriveMode,
+                onSearchCoverOnline = { sheetState.showCoverSearch = true },
+                onOpenArtworkViewer = { sheetState.showArtworkViewer = true },
                 onDismiss = { sheetState.showMenu = false }
             )
         }
@@ -141,6 +146,10 @@ internal fun NowPlayingScreenSheetsHost(
                     sheetState.showGoToMenu = false
                     sheetState.showPlaylistPicker = true
                 },
+                onSearchCoverOnline = {
+                    sheetState.showGoToMenu = false
+                    sheetState.showCoverSearch = true
+                },
                 onDismiss = { sheetState.showGoToMenu = false }
             )
         }
@@ -172,6 +181,25 @@ internal fun NowPlayingScreenSheetsHost(
     if (sheetState.showCredits) {
         song?.let { currentSong ->
             SongCreditsSheet(song = currentSong, onDismiss = { sheetState.showCredits = false })
+        }
+    }
+    if (sheetState.showCoverSearch) {
+        song?.let { currentSong ->
+            OnlineAlbumCoverSearchSheet(
+                initialAlbum = currentSong.album,
+                initialArtist = currentSong.artist,
+                albumId = currentSong.albumId,
+                onDismiss = { sheetState.showCoverSearch = false }
+            )
+        }
+    }
+    if (sheetState.showArtworkViewer) {
+        song?.let { currentSong ->
+            FullScreenArtworkSheet(
+                song = currentSong,
+                onSearchCoverOnline = { sheetState.showCoverSearch = true },
+                onDismiss = { sheetState.showArtworkViewer = false }
+            )
         }
     }
     if (sheetState.showOutputPicker) {

@@ -46,6 +46,9 @@ internal fun <T> LibraryRefineSheet(
     selectedSort: T,
     sortDirection: SortDirection,
     onSortSelect: (T) -> Unit,
+    sourceFilter: LibrarySourceFilter = LibrarySourceFilter.ALL,
+    availableSources: List<LibrarySourceFilter> = emptyList(),
+    onSourceFilterSelect: (LibrarySourceFilter) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -67,7 +70,10 @@ internal fun <T> LibraryRefineSheet(
                     "Refine & Sort",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
-                val isCustomized = filter != SongFilter.ALL || selectedSort != sortOptions.firstOrNull() || sortDirection != SortDirection.ASCENDING
+                val isCustomized = filter != SongFilter.ALL ||
+                    sourceFilter != LibrarySourceFilter.ALL ||
+                    selectedSort != sortOptions.firstOrNull() ||
+                    sortDirection != SortDirection.ASCENDING
                 if (isCustomized) {
                     Row(
                         modifier = Modifier
@@ -75,6 +81,7 @@ internal fun <T> LibraryRefineSheet(
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .tapScale {
                                 onFilterSelect(SongFilter.ALL)
+                                onSourceFilterSelect(LibrarySourceFilter.ALL)
                                 sortOptions.firstOrNull()?.let { onSortSelect(it) }
                             }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -97,6 +104,26 @@ internal fun <T> LibraryRefineSheet(
             }
 
             Spacer(Modifier.height(4.dp))
+
+            if (availableSources.size > 1) {
+                Text(
+                    "SOURCE",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+                )
+
+                SourceFilterRow(
+                    sources = availableSources,
+                    selected = sourceFilter,
+                    onSelect = onSourceFilterSelect,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 6.dp)
+                )
+
+                Spacer(Modifier.height(8.dp))
+            }
 
             Text(
                 "FILTER BY",
@@ -384,6 +411,9 @@ internal fun SongOptionsSheet(
     onAddToPlaylist: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onSearchCoverOnline: (() -> Unit)? = null,
+    onRemoveCustomCover: (() -> Unit)? = null,
+    onEditTags: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
@@ -537,6 +567,30 @@ internal fun SongOptionsSheet(
                     subtitle = "Save track to a custom playlist",
                     onClick = { onAddToPlaylist(); onDismiss() }
                 )
+                if (onEditTags != null) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_pencil,
+                        title = "Edit Details",
+                        subtitle = "Title, artist, album, genre & year",
+                        onClick = { onDismiss(); onEditTags() }
+                    )
+                }
+                if (onSearchCoverOnline != null) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_image,
+                        title = "Search Album Cover Online",
+                        subtitle = "Find and apply high-resolution artwork",
+                        onClick = { onDismiss(); onSearchCoverOnline() }
+                    )
+                }
+                if (onRemoveCustomCover != null) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_rotate_ccw,
+                        title = "Reset to Original Cover",
+                        subtitle = "Restore default embedded artwork",
+                        onClick = { onDismiss(); onRemoveCustomCover() }
+                    )
+                }
                 if (onDelete != null) {
                     SongOptionCardRow(
                         iconRes = R.drawable.lucide_ic_trash_2,

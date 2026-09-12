@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.SearchHistoryRepository
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
@@ -66,11 +69,18 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistPickerSheet
+import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistViewModel
+import `in`.caffeinelabs.cassettecat.ui.screens.library.SongOptionsSheet
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRow
+import `in`.caffeinelabs.cassettecat.ui.screens.library.SongTagEditorSheet
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByAlbum
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByFolder
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByGenre
+import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
@@ -110,6 +120,7 @@ private fun scoreSongMatch(song: Song, query: String, tokens: List<String>): Int
 fun SearchScreen(
     playbackViewModel: PlaybackViewModel,
     libraryViewModel: LibraryViewModel,
+    playlistViewModel: PlaylistViewModel = viewModel(),
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToAlbum: (String) -> Unit = {},
@@ -123,10 +134,16 @@ fun SearchScreen(
     val searchHistoryRepo = remember { SearchHistoryRepository.getInstance(context) }
     val recentQueries by searchHistoryRepo.recentQueries.collectAsStateWithLifecycle(initialValue = emptyList())
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val favoritesRepository = remember { FavoritesRepository(context) }
+    val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val coroutineScope = rememberCoroutineScope()
 
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf(SearchCategory.ALL) }
+    var showPlaylistPicker by remember { mutableStateOf(false) }
+    var songForOptions by remember { mutableStateOf<Song?>(null) }
+    var songForTagEdit by remember { mutableStateOf<Song?>(null) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -161,64 +178,48 @@ fun SearchScreen(
             .map { it.first }
     }
 
-    val matchedArtists = remember(trimmed, allSongs) {
+    val allArtists = remember(allSongs) { allSongs.groupedByArtist() }
+    val allAlbums = remember(allSongs) { allSongs.groupedByAlbum() }
+    val allGenres = remember(allSongs) { allSongs.groupedByGenre() }
+    val allFolders = remember(allSongs) { allSongs.groupedByFolder() }
+
+    val matchedArtists = remember(trimmed, allArtists) {
         if (trimmed.isBlank()) emptyList()
-        else allSongs.groupedByArtist().filter {
+        else allArtists.filter {
             it.artist.contains(trimmed, ignoreCase = true) ||
                 it.songs.any { s -> s.artist.contains(trimmed, ignoreCase = true) }
         }
     }
 
-    val matchedAlbums = remember(trimmed, allSongs) {
+    val matchedAlbums = remember(trimmed, allAlbums) {
         if (trimmed.isBlank()) emptyList()
-        else allSongs.groupedByAlbum().filter {
+        else allAlbums.filter {
             it.album.contains(trimmed, ignoreCase = true) ||
                 it.artist.contains(trimmed, ignoreCase = true)
         }
     }
 
-    val matchedGenres = remember(trimmed, allSongs) {
+    val matchedGenres = remember(trimmed, allGenres) {
         if (trimmed.isBlank()) emptyList()
-        else allSongs.groupedByGenre().filter {
+        else allGenres.filter {
             it.genre.contains(trimmed, ignoreCase = true)
         }
     }
 
-    val matchedFolders = remember(trimmed, allSongs) {
+    val matchedFolders = remember(trimmed, allFolders) {
         if (trimmed.isBlank()) emptyList()
-        else allSongs.groupedByFolder().filter {
+        else allFolders.filter {
             it.folderName.contains(trimmed, ignoreCase = true) ||
                 it.folderPath.contains(trimmed, ignoreCase = true)
         }
     }
 
-    val topResult = remember(trimmed, matchedArtists, matchedAlbums, matchedSongs) {
-        if (trimmed.isBlank()) null
-        else {
-            val exactArtist = matchedArtists.firstOrNull { it.artist.equals(trimmed, ignoreCase = true) }
-                ?: matchedArtists.firstOrNull { it.artist.startsWith(trimmed, ignoreCase = true) }
-            val exactAlbum = matchedAlbums.firstOrNull { it.album.equals(trimmed, ignoreCase = true) }
-                ?: matchedAlbums.firstOrNull { it.album.startsWith(trimmed, ignoreCase = true) }
-            val exactSong = matchedSongs.firstOrNull { it.title.equals(trimmed, ignoreCase = true) }
-
-            when {
-                exactArtist != null -> TopSearchResult.ArtistResult(exactArtist)
-                exactAlbum != null -> TopSearchResult.AlbumResult(exactAlbum)
-                exactSong != null -> TopSearchResult.SongResult(exactSong)
-                matchedArtists.isNotEmpty() -> TopSearchResult.ArtistResult(matchedArtists.first())
-                matchedAlbums.isNotEmpty() -> TopSearchResult.AlbumResult(matchedAlbums.first())
-                matchedSongs.isNotEmpty() -> TopSearchResult.SongResult(matchedSongs.first())
-                else -> null
-            }
-        }
+    val topArtists = remember(allArtists) {
+        allArtists.sortedByDescending { it.songs.size }.take(10)
     }
 
-    val topArtists = remember(allSongs) {
-        allSongs.groupedByArtist().sortedByDescending { it.songs.size }.take(10)
-    }
-
-    val popularGenres = remember(allSongs) {
-        allSongs.groupedByGenre().sortedByDescending { it.songs.size }.take(8)
+    val popularGenres = remember(allGenres) {
+        allGenres.sortedByDescending { it.songs.size }.take(8)
     }
 
     fun recordQuery() {
@@ -490,6 +491,7 @@ fun SearchScreen(
                                     items(matchedSongs.take(15), key = { it.id }, contentType = { "song" }) { song ->
                                         SongRow(
                                             song = song,
+                                            onMoreClick = { songForOptions = song },
                                             onClick = { playSong(matchedSongs, song) }
                                         )
                                     }
@@ -556,6 +558,7 @@ fun SearchScreen(
                                 items(matchedSongs, key = { it.id }, contentType = { "song" }) { song ->
                                     SongRow(
                                         song = song,
+                                        onMoreClick = { songForOptions = song },
                                         onClick = { playSong(matchedSongs, song) }
                                     )
                                 }
@@ -660,6 +663,68 @@ fun SearchScreen(
             }
         }
     }
+
+    if (showPlaylistPicker) {
+        PlaylistPickerSheet(
+            playlists = playlists,
+            onSelect = { playlist ->
+                songForOptions?.let { playlistViewModel.addSongs(playlist.id, listOf(it.id)) }
+                showPlaylistPicker = false
+                songForOptions = null
+            },
+            onDismiss = {
+                showPlaylistPicker = false
+                songForOptions = null
+            }
+        )
+    }
+
+    if (!showPlaylistPicker) songForOptions?.let { song ->
+        val isFav = song.isFavorite || song.id in favoriteIds
+        SongOptionsSheet(
+            song = song,
+            isFavorite = isFav,
+            onPlayNext = {
+                playbackViewModel.addToUpNext(listOf(song))
+                songForOptions = null
+            },
+            onAddToQueue = {
+                playbackViewModel.addToEndOfQueue(listOf(song))
+                songForOptions = null
+            },
+            onAddToPlaylist = {
+                showPlaylistPicker = true
+            },
+            onToggleFavorite = {
+                coroutineScope.launch {
+                    favoritesRepository.setFavorite(song.id, !isFav)
+                }
+                songForOptions = null
+            },
+            onShare = {
+                shareSongs(context, listOf(song))
+                songForOptions = null
+            },
+            onEditTags = {
+                val s = song
+                songForOptions = null
+                songForTagEdit = s
+            },
+            onDismiss = { songForOptions = null }
+        )
+    }
+
+    songForTagEdit?.let { song ->
+        SongTagEditorSheet(
+            song = song,
+            onDismiss = { songForTagEdit = null },
+            onSaved = { updated ->
+                libraryViewModel.updateSongMetadata(updated)
+                playbackViewModel.updateSongMetadata(updated)
+                songForTagEdit = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -734,11 +799,32 @@ private fun SearchArtistRow(artistGroup: ArtistGroup, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = if (artistGroup.songs.size == 1) "1 song" else "${artistGroup.songs.size} songs",
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = if (artistGroup.songs.size == 1) "1 song" else "${artistGroup.songs.size} songs",
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val remoteSource = artistGroup.songs.firstOrNull { it.source != MusicSource.Local }?.source
+                if (remoteSource != null && artistGroup.songs.all { it.source == remoteSource }) {
+                    val (srcLabel, srcColor) = when (remoteSource) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        else -> "" to Color.Unspecified
+                    }
+                    if (srcLabel.isNotEmpty()) {
+                        Text(
+                            text = srcLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+                            color = srcColor,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(srcColor.copy(alpha = 0.12f))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
+                }
+            }
         }
         Icon(
             painter = painterResource(R.drawable.lucide_ic_chevron_right),
@@ -751,5 +837,10 @@ private fun SearchArtistRow(artistGroup: ArtistGroup, onClick: () -> Unit) {
 
 @Composable
 private fun SearchPrompt(iconRes: Int, title: String, subtitle: String, modifier: Modifier = Modifier) {
-    EmptyState(iconRes = iconRes, title = title, message = subtitle, modifier = modifier)
+    EmptyState(
+        catRes = AppR.drawable.cat_orange_headphones,
+        title = title,
+        message = subtitle,
+        modifier = modifier
+    )
 }

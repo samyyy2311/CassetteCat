@@ -12,7 +12,8 @@ internal fun decodeSampledBitmap(bytes: ByteArray, maxDimension: Int = 1440): Bi
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
     var sampleSize = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= maxDimension) {
+    val largest = maxOf(bounds.outWidth, bounds.outHeight)
+    while (largest / (sampleSize * 2) >= maxDimension) {
         sampleSize *= 2
     }
     return BitmapFactory.decodeByteArray(
@@ -25,3 +26,24 @@ internal fun decodeSampledBitmap(bytes: ByteArray, maxDimension: Int = 1440): Bi
         }
     )
 }
+
+internal fun decodeSampledBitmap(file: java.io.File, maxDimension: Int = 1440): Bitmap? {
+    if (!file.exists()) return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+    var sampleSize = 1
+    val largest = maxOf(bounds.outWidth, bounds.outHeight)
+    while (largest / (sampleSize * 2) >= maxDimension) {
+        sampleSize *= 2
+    }
+    return BitmapFactory.decodeFile(
+        file.absolutePath,
+        BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+    )
+}
+

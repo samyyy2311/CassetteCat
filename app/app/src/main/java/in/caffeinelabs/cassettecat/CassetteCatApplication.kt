@@ -14,4 +14,18 @@ class CassetteCatApplication : Application() {
         HttpsURLConnection.setDefaultSSLSocketFactory(tofuSslSocketFactory)
         runBlocking { CertificatePinRepository(this@CassetteCatApplication).loadIntoMemory() }
     }
+
+    @Suppress("DEPRECATION")
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        `in`.caffeinelabs.cassettecat.ui.components.trimAlbumArtCaches(this, level)
+        `in`.caffeinelabs.cassettecat.ui.components.trimArtistImageCaches(level)
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onLowMemory() {
+        super.onLowMemory()
+        `in`.caffeinelabs.cassettecat.ui.components.trimAlbumArtCaches(this, android.content.ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+        `in`.caffeinelabs.cassettecat.ui.components.trimArtistImageCaches(android.content.ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+    }
 }

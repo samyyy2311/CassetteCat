@@ -1,4 +1,4 @@
-﻿@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
@@ -507,6 +507,7 @@ fun MainShell(
                             onNavigateToLibrary = { navigateToTab(MainRoute.LIBRARY) },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
+                            onNavigateToScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
                             // The app navigation is a glass overlay.  Do not reserve an opaque
                             // blank strip under it: content should continue beneath the tabs.
                             listBottomPadding = contentPadding.calculateBottomPadding()

@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
 import android.content.Context
+import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.os.Build
@@ -23,20 +24,48 @@ class AlbumArtLoader(private val context: Context) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
     private val coverArtArchiveClient = CoverArtArchiveClient()
+    private val albumCoverRepository = AlbumCoverRepository.getInstance(context)
 
     fun peek(song: Song, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(song.id)
+
+    fun invalidate(songId: String) {
+        thumbnailCache.remove(songId)
+        fullCache.remove(songId)
+    }
+
+    fun clearCache() {
+        thumbnailCache.evictAll()
+        fullCache.evictAll()
+    }
+
+    @Suppress("DEPRECATION")
+    fun trimCaches(level: Int) {
+        if (shouldClearArtworkThumbnails(level)) {
+            clearCache()
+        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            fullCache.evictAll()
+        }
+    }
 
     suspend fun load(song: Song, coverArtArchiveEnabled: Boolean = true, thumbnail: Boolean = true): Bitmap? {
         val cache = cacheFor(thumbnail)
         cache.get(song.id)?.let { return it }
         val maxDimension = if (thumbnail) THUMBNAIL_DIMENSION else FULL_DIMENSION
         val bitmap = withContext(Dispatchers.IO) {
-            decode(song, maxDimension) ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
-                coverArtArchiveClient.fetchCoverArt(song.album, song.artist)
-            } else null
+            decodeCustomCover(song, maxDimension)
+                ?: decode(song, maxDimension)
+                ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
+                    coverArtArchiveClient.fetchCoverArt(song.album, song.artist)
+                } else null
         } ?: return null
         cache.put(song.id, bitmap)
         return bitmap
+    }
+
+    private fun decodeCustomCover(song: Song, maxDimension: Int): Bitmap? {
+        val path = albumCoverRepository.getCoverPath(song.album, song.artist, song.albumId) ?: return null
+        val file = java.io.File(path)
+        return decodeSampledBitmap(file, maxDimension = maxDimension)
     }
 
     private fun cacheFor(thumbnail: Boolean) = if (thumbnail) thumbnailCache else fullCache

@@ -1,5 +1,7 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.home
+package `in`.caffeinelabs.cassettecat.ui.screens.home
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
@@ -77,6 +81,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToDriveMode: () -> Unit = {},
+    onNavigateToScanFolders: (() -> Unit)? = null,
     listBottomPadding: Dp = 0.dp
 ) {
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -144,8 +149,10 @@ fun HomeScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
+
     PullToRefreshBox(
-        isRefreshing = libraryState is LibraryUiState.Loading,
+        isRefreshing = isRefreshing,
         onRefresh = { libraryViewModel.refresh() },
         modifier = modifier.fillMaxSize()
     ) {
@@ -177,26 +184,37 @@ fun HomeScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        if (libraryState is LibraryUiState.Loading) {
-            HomeSkeletonContent(listBottomPadding = listBottomPadding)
-        } else if (allSongs.isEmpty()) {
-            Box(modifier = Modifier.weight(1f).fillMaxSize().verticalScroll(rememberScrollState())) {
-                EmptyState(
-                    iconRes = R.drawable.lucide_ic_folder_search,
-                    title = "Nothing here yet",
-                    message = "Scan your library to get started.",
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
-            ) {
-                item {
-                    LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)
-                    Spacer(Modifier.height(20.dp))
+        Crossfade(
+            targetState = libraryState is LibraryUiState.Loading && allSongs.isEmpty(),
+            animationSpec = tween(220),
+            label = "homeStateCrossfade",
+            modifier = Modifier.fillMaxSize().weight(1f)
+        ) { showSkeleton ->
+            if (showSkeleton) {
+                HomeSkeletonContent(listBottomPadding = listBottomPadding)
+            } else if (allSongs.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    EmptyState(
+                        catRes = AppR.drawable.cat_black_cassette,
+                        title = "Nothing here yet",
+                        message = "Scan your device or connect a streaming source to get started.",
+                        actionLabel = "Scan Library",
+                        actionIconRes = R.drawable.lucide_ic_refresh_cw,
+                        onAction = { libraryViewModel.refresh() },
+                        secondaryActionLabel = if (onNavigateToScanFolders != null) "Manage Scan Folders" else null,
+                        onSecondaryAction = onNavigateToScanFolders,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
+                ) {
+                    item {
+                        LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)
+                        Spacer(Modifier.height(20.dp))
+                    }
                 item {
                     ShuffleAllHero(
                         heroSong = heroSong,
@@ -267,12 +285,12 @@ fun HomeScreen(
         }
     }
 }
+}
 
 @Composable
-private fun ColumnScope.HomeSkeletonContent(listBottomPadding: Dp) {
-    val color = rememberSkeletonColor()
+private fun HomeSkeletonContent(listBottomPadding: Dp, color: Color = rememberSkeletonColor()) {
     Column(
-        modifier = Modifier.fillMaxSize().weight(1f).verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Box(
@@ -289,7 +307,7 @@ private fun ColumnScope.HomeSkeletonContent(listBottomPadding: Dp) {
             Box(Modifier.width(220.dp).height(14.dp).clip(RoundedCornerShape(4.dp)).background(color))
         }
         Column {
-            repeat(7) { SongRowSkeleton() }
+            repeat(7) { SongRowSkeleton(color) }
         }
         Spacer(Modifier.height(listBottomPadding))
     }
@@ -297,8 +315,8 @@ private fun ColumnScope.HomeSkeletonContent(listBottomPadding: Dp) {
 
 @Composable
 private fun LibrarySnapshot(songs: List<Song>, onClick: () -> Unit) {
-    val artistCount = songs.groupedByArtist().size
-    val albumCount = songs.groupedByAlbum().size
+    val artistCount = remember(songs) { songs.groupedByArtist().size }
+    val albumCount = remember(songs) { songs.groupedByAlbum().size }
     Text(
         "${songs.size} songs · $artistCount artists · $albumCount albums",
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),

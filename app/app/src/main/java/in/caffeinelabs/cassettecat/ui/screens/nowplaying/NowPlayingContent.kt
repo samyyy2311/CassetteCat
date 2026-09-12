@@ -45,6 +45,7 @@ import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
@@ -200,9 +201,12 @@ fun NowPlayingContent(
         ) {
             if (song == null) {
                 EmptyState(
-                    iconRes = R.drawable.lucide_ic_music,
+                    catRes = AppR.drawable.cat_orange_headphones,
                     title = "Nothing playing",
-                    message = "Choose a song from your library to start listening."
+                    message = "Choose a track from your library to start listening.",
+                    actionLabel = "Browse Library",
+                    onAction = onCollapseRequest,
+                    modifier = Modifier.fillMaxSize()
                 )
                 return@Column
             }

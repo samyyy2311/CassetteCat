@@ -36,6 +36,10 @@ private object ArtistImageLoaderHolder {
         }
 }
 
+fun trimArtistImageCaches(level: Int) {
+    ArtistImageLoaderHolder.loader.trimCaches(level)
+}
+
 @Composable
 fun ArtistImage(
     artist: String,

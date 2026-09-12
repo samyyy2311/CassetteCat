@@ -52,6 +52,7 @@ data class BackupAppPreferences(
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",
+    val librarySourceFilter: String = "ALL",
     val libraryArtistSortOrder: String = "NAME",
     val libraryArtistSortDirection: String = "ASCENDING",
     val libraryAlbumSortOrder: String = "ALBUM",

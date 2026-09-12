@@ -65,11 +65,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
+import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullScreenArtworkSheet
 import `in`.caffeinelabs.cassettecat.data.library.ArtistBiography
 import `in`.caffeinelabs.cassettecat.data.library.WikipediaInfoLoader
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
@@ -107,7 +111,9 @@ fun ArtistDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
-    val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { artist in it.artist.splitArtists() }.orEmpty()
+    val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
+    val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { artist in it.artist.splitArtists() }.orEmpty()
+    val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
 
     ArtistCatalogScreen(
         artist = artist,
@@ -552,7 +558,9 @@ fun AlbumDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
-    val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { it.albumId == albumId }.orEmpty()
+    val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
+    val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { it.albumId == albumId }.orEmpty()
+    val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
 
     LibraryGroupDetailScreen(
         title = songs.firstOrNull()?.album ?: "Album",
@@ -567,6 +575,7 @@ fun AlbumDetailScreen(
         playbackViewModel = playbackViewModel,
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
+        onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
         modifier = modifier,
         listBottomPadding = listBottomPadding
     )
@@ -583,7 +592,9 @@ fun GenreDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
-    val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { genre in it.effectiveGenres() }.orEmpty()
+    val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
+    val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { genre in it.effectiveGenres() }.orEmpty()
+    val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
 
     LibraryGroupDetailScreen(
         title = genre,
@@ -596,6 +607,7 @@ fun GenreDetailScreen(
         playbackViewModel = playbackViewModel,
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
+        onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
         modifier = modifier,
         listBottomPadding = listBottomPadding
     )
@@ -677,6 +689,7 @@ fun FolderDetailScreen(
         playbackViewModel = playbackViewModel,
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
+        onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
         modifier = modifier,
         listBottomPadding = listBottomPadding,
         onDeleteSong = { song ->
@@ -707,7 +720,8 @@ private fun LibraryGroupDetailScreen(
     wikipediaAlbumArtist: String? = null,
     playlistViewModel: PlaylistViewModel? = null,
     listBottomPadding: Dp = 0.dp,
-    onDeleteSong: ((Song) -> Unit)? = null
+    onDeleteSong: ((Song) -> Unit)? = null,
+    onUpdateSong: ((Song) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
@@ -716,8 +730,11 @@ private fun LibraryGroupDetailScreen(
     val settingsRepo = remember { ServiceSettingsRepository(context) }
     var about by remember(wikipediaQuery) { mutableStateOf<String?>(null) }
     var showAlbumActions by remember { mutableStateOf(false) }
+    var showArtworkViewer by remember { mutableStateOf(false) }
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var songForOptions by remember { mutableStateOf<Song?>(null) }
+    var songForTagEdit by remember { mutableStateOf<Song?>(null) }
+    var coverSearchSong by remember { mutableStateOf<Song?>(null) }
     var songPendingDelete by remember { mutableStateOf<Song?>(null) }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
 
@@ -730,6 +747,9 @@ private fun LibraryGroupDetailScreen(
     val favoritesRepository = remember { FavoritesRepository(context) }
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val albumCoverRepo = remember { AlbumCoverRepository.getInstance(context) }
+    val customCovers by albumCoverRepo.albumCovers.collectAsStateWithLifecycle()
 
     // Sort/filter only apply inside a folder's track list; every other detail screen keeps its natural order.
     val songs = remember(songs, folderHeroPath, songFilter, sortOrder, sortDirection, favoriteIds, downloads) {
@@ -837,7 +857,9 @@ private fun LibraryGroupDetailScreen(
                         onPlayAll = playAll,
                         onShuffleAll = shuffleAll,
                         onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) },
-                        onMore = { showAlbumActions = true }
+                        onMore = { showAlbumActions = true },
+                        onViewArtwork = { showArtworkViewer = true },
+                        onChangeCover = { coverSearchSong = albumHeroSong }
                     )
                 } else {
                     GroupDetailHeader(
@@ -887,12 +909,45 @@ private fun LibraryGroupDetailScreen(
             }
         }
         if (showAlbumActions) {
+            val hasAlbumCustomCover = albumHeroSong?.let {
+                albumCoverRepo.getCoverPath(it.album, it.artist, it.albumId) != null
+            } ?: false
             AlbumActionsSheet(
                 onPlayNext = { playNext(); showAlbumActions = false },
                 onAddToPlaylist = { showAlbumActions = false; showPlaylistPicker = true },
                 onDownload = { downloadableSongs.forEach(downloadRepository::download); showAlbumActions = false },
                 onShare = { shareSongs(context, songs); showAlbumActions = false },
+                onViewArtwork = if (albumHeroSong != null) {
+                    { showAlbumActions = false; showArtworkViewer = true }
+                } else null,
+                onSearchCoverOnline = if (albumHeroSong != null) {
+                    { showAlbumActions = false; coverSearchSong = albumHeroSong }
+                } else null,
+                onRemoveCustomCover = if (hasAlbumCustomCover) {
+                    {
+                        showAlbumActions = false
+                        val hero = albumHeroSong
+                        coroutineScope.launch {
+                            val path = albumCoverRepo.getCoverPath(hero.album, hero.artist, hero.albumId)
+                            albumCoverRepo.clearCover(hero.album, hero.artist, hero.albumId)
+                            if (path != null) {
+                                AlbumCoverStorage(context).delete(path)
+                            }
+                            invalidateAlbumArtCache(context)
+                        }
+                    }
+                } else null,
                 onDismiss = { showAlbumActions = false }
+            )
+        }
+        if (showArtworkViewer && albumHeroSong != null) {
+            FullScreenArtworkSheet(
+                song = albumHeroSong,
+                onDismiss = { showArtworkViewer = false },
+                onSearchCoverOnline = {
+                    showArtworkViewer = false
+                    coverSearchSong = albumHeroSong
+                }
             )
         }
         if (showPlaylistPicker) {
@@ -912,7 +967,7 @@ private fun LibraryGroupDetailScreen(
         }
         if (!showPlaylistPicker) songForOptions?.let { song ->
             val isFav = song.isFavorite || song.id in favoriteIds
-            val coroutineScope = rememberCoroutineScope()
+            val hasSongCustomCover = albumCoverRepo.getCoverPath(song.album, song.artist, song.albumId) != null
 
             SongOptionsSheet(
                 song = song,
@@ -938,10 +993,45 @@ private fun LibraryGroupDetailScreen(
                     shareSongs(context, listOf(song))
                     songForOptions = null
                 },
+                onSearchCoverOnline = {
+                    val targetSong = song
+                    songForOptions = null
+                    coverSearchSong = targetSong
+                },
+                onRemoveCustomCover = if (hasSongCustomCover) {
+                    {
+                        val targetSong = song
+                        songForOptions = null
+                        coroutineScope.launch {
+                            val path = albumCoverRepo.getCoverPath(targetSong.album, targetSong.artist, targetSong.albumId)
+                            albumCoverRepo.clearCover(targetSong.album, targetSong.artist, targetSong.albumId)
+                            if (path != null) {
+                                AlbumCoverStorage(context).delete(path)
+                            }
+                            invalidateAlbumArtCache(context)
+                        }
+                    }
+                } else null,
                 onDelete = if (onDeleteSong != null) {
                     { songPendingDelete = song; songForOptions = null }
                 } else null,
+                onEditTags = {
+                    val s = song
+                    songForOptions = null
+                    songForTagEdit = s
+                },
                 onDismiss = { songForOptions = null }
+            )
+        }
+        songForTagEdit?.let { song ->
+            SongTagEditorSheet(
+                song = song,
+                onDismiss = { songForTagEdit = null },
+                onSaved = { updated ->
+                    onUpdateSong?.invoke(updated)
+                    playbackViewModel.updateSongMetadata(updated)
+                    songForTagEdit = null
+                }
             )
         }
         if (folderHeroPath != null && showRefineSheet) {
@@ -959,6 +1049,14 @@ private fun LibraryGroupDetailScreen(
                     }
                 },
                 onDismiss = { showRefineSheet = false }
+            )
+        }
+        coverSearchSong?.let { targetSong ->
+            OnlineAlbumCoverSearchSheet(
+                initialAlbum = targetSong.album,
+                initialArtist = targetSong.artist,
+                albumId = targetSong.albumId,
+                onDismiss = { coverSearchSong = null }
             )
         }
         songPendingDelete?.let { song ->
@@ -1114,6 +1212,26 @@ private fun ArtistSongRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (song.source != MusicSource.Local) {
+                    val (sourceLabel, sourceColor) = when (song.source) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Local, MusicSource.ListeningRoomHost -> "" to Color.Unspecified
+                    }
+                    if (sourceLabel.isNotEmpty()) {
+                        Text(
+                            text = sourceLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+                            color = sourceColor,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(sourceColor.copy(alpha = 0.12f))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
+                }
             }
             if (durationText.isNotEmpty()) {
                 Text(
@@ -1143,7 +1261,9 @@ private fun AlbumDetailHeader(
     onPlayAll: () -> Unit,
     onShuffleAll: () -> Unit,
     onDownloadAll: () -> Unit,
-    onMore: () -> Unit
+    onMore: () -> Unit,
+    onViewArtwork: (() -> Unit)? = null,
+    onChangeCover: (() -> Unit)? = null
 ) {
     val durationText = if (totalDurationMs > 0) {
         val totalSeconds = totalDurationMs / 1000
@@ -1208,12 +1328,32 @@ private fun AlbumDetailHeader(
                 )
                 .clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .then(if (onViewArtwork != null) Modifier.tapScale(onViewArtwork) else Modifier)
         ) {
             AlbumArt(
                 song = song,
                 modifier = Modifier.fillMaxSize(),
                 thumbnail = false
             )
+            if (onChangeCover != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .tapScale(onChangeCover),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_image),
+                        contentDescription = "Search album cover online",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
 
         Text(
@@ -1235,21 +1375,48 @@ private fun AlbumDetailHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
-        if (releaseDetails.isNotBlank()) {
+        if (releaseDetails.isNotBlank() || song.source != MusicSource.Local) {
             Spacer(Modifier.height(8.dp))
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(100.dp))
-                    .padding(horizontal = 14.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    releaseDetails,
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (song.source != MusicSource.Local) {
+                    val (sourceLabel, sourceColor) = when (song.source) {
+                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
+                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Local, MusicSource.ListeningRoomHost -> "" to Color.Unspecified
+                    }
+                    if (sourceLabel.isNotEmpty()) {
+                        Text(
+                            text = sourceLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 10.sp),
+                            color = sourceColor,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(100.dp))
+                                .background(sourceColor.copy(alpha = 0.14f))
+                                .border(1.dp, sourceColor.copy(alpha = 0.3f), RoundedCornerShape(100.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                if (releaseDetails.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(100.dp))
+                            .padding(horizontal = 14.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            releaseDetails,
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -1266,6 +1433,9 @@ private fun AlbumActionsSheet(
     onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit,
     onShare: () -> Unit,
+    onViewArtwork: (() -> Unit)? = null,
+    onSearchCoverOnline: (() -> Unit)? = null,
+    onRemoveCustomCover: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -1290,6 +1460,15 @@ private fun AlbumActionsSheet(
                 AlbumActionRow(R.drawable.lucide_ic_list_music, "Add to Playlist", "Add all tracks to a playlist", onAddToPlaylist)
                 AlbumActionRow(R.drawable.lucide_ic_download, "Download Album", "Save album for offline playback", onDownload)
                 AlbumActionRow(R.drawable.lucide_ic_share_2, "Share Album", "Share album link or info", onShare)
+                if (onViewArtwork != null) {
+                    AlbumActionRow(R.drawable.lucide_ic_maximize_2, "View Full Artwork", "Inspect cover art in full size", onViewArtwork)
+                }
+                if (onSearchCoverOnline != null) {
+                    AlbumActionRow(R.drawable.lucide_ic_image, "Search Cover Online", "Find and apply high-resolution artwork", onSearchCoverOnline)
+                }
+                if (onRemoveCustomCover != null) {
+                    AlbumActionRow(R.drawable.lucide_ic_rotate_ccw, "Reset to Original Cover", "Restore default embedded artwork", onRemoveCustomCover)
+                }
             }
         }
     }

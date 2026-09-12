@@ -22,9 +22,24 @@ class RemoteAlbumArtLoader {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
+    fun clearCache() {
+        thumbnailCache.evictAll()
+        fullCache.evictAll()
+    }
+
+    @Suppress("DEPRECATION")
+    fun trimCaches(level: Int) {
+        if (shouldClearArtworkThumbnails(level)) {
+            clearCache()
+        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            fullCache.evictAll()
+        }
+    }
+
     fun peek(artUri: Uri, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(artUri.toString())
 
     suspend fun load(artUri: Uri, thumbnail: Boolean = true): Bitmap? {
+        // Keep thumbnail and full-size artwork within separate memory budgets.
         val cache = cacheFor(thumbnail)
         val key = artUri.toString()
         cache.get(key)?.let { return it }

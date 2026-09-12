@@ -1,6 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -10,6 +10,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -49,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -87,10 +90,10 @@ internal fun formatPlaylistDuration(durationMs: Long): String {
 fun rememberSkeletonColor(): Color {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
+        initialValue = 0.25f,
+        targetValue = 0.65f,
         animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = LinearEasing),
+            animation = tween(900, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "skeletonAlpha"
@@ -99,8 +102,7 @@ fun rememberSkeletonColor(): Color {
 }
 
 @Composable
-fun SongRowSkeleton() {
-    val color = rememberSkeletonColor()
+fun SongRowSkeleton(color: Color = rememberSkeletonColor()) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -115,8 +117,7 @@ fun SongRowSkeleton() {
 }
 
 @Composable
-internal fun GridCardSkeleton() {
-    val color = rememberSkeletonColor()
+internal fun GridCardSkeleton(color: Color = rememberSkeletonColor()) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(color))
         Spacer(Modifier.height(8.dp))
@@ -165,6 +166,14 @@ internal fun RowScope.SongListRowContent(
         MusicSource.Radio -> "Radio"
     }
 
+    val sourceColor = when (song.source) {
+        MusicSource.Local -> MaterialTheme.colorScheme.onSurfaceVariant
+        MusicSource.Subsonic -> Color(0xFFFF8500)
+        MusicSource.Jellyfin -> Color(0xFF00A4DC)
+        MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.tertiary
+        MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
+    }
+
     Box(
         modifier = Modifier
             .size(artSize)
@@ -209,16 +218,18 @@ internal fun RowScope.SongListRowContent(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Text(
-            text = sourceLabel,
-            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
-            color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
-                .padding(horizontal = 4.dp, vertical = 1.dp)
-        )
+        if (song.source != MusicSource.Local) {
+            Text(
+                text = sourceLabel,
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
+                color = sourceColor,
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(sourceColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            )
+        }
     }
 
     Row(
@@ -322,18 +333,15 @@ internal fun SelectionCheckboxIcon(selected: Boolean, modifier: Modifier = Modif
 }
 
 @Composable
-internal fun BoxScope.SelectionOverlay(selected: Boolean) {
+internal fun BoxScope.SelectionOverlay(
+    selected: Boolean,
+    shape: Shape = RoundedCornerShape(12.dp)
+) {
     if (!selected) return
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.26f))
-    )
-    Icon(
-        painter = painterResource(R.drawable.lucide_ic_square_check_big),
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onTertiary,
-        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(22.dp)
+            .border(2.dp, MaterialTheme.colorScheme.tertiary, shape)
     )
 }
 
@@ -391,7 +399,7 @@ internal fun SongGridCard(
                 .clip(RoundedCornerShape(12.dp))
         ) {
             AlbumArt(song = song, modifier = Modifier.fillMaxSize())
-            SelectionOverlay(selected)
+            SelectionOverlay(selected, RoundedCornerShape(12.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -438,7 +446,7 @@ internal fun AlbumCard(
                     )
                 }
             }
-            SelectionOverlay(selected)
+            SelectionOverlay(selected, RoundedCornerShape(14.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -480,7 +488,7 @@ internal fun ArtistCard(
             contentAlignment = Alignment.Center
         ) {
             ArtistImage(artist = group.artist, modifier = Modifier.fillMaxSize())
-            SelectionOverlay(selected)
+            SelectionOverlay(selected, RoundedCornerShape(16.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -525,12 +533,12 @@ internal fun GenreCard(
                 )
             )
             .tapScaleSelectable(onClick, onLongClick)
-            .padding(14.dp)
     ) {
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth(0.72f)
+                .padding(14.dp)
         ) {
             Text(
                 text = group.genre,
@@ -553,11 +561,12 @@ internal fun GenreCard(
             tint = Color.White.copy(alpha = 0.88f),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .padding(14.dp)
                 .size(34.dp)
                 .tapScale(onPlay)
         )
 
-        SelectionOverlay(selected)
+        SelectionOverlay(selected, RoundedCornerShape(14.dp))
     }
 }
 
@@ -663,7 +672,7 @@ internal fun FolderCard(
             )
         }
 
-        SelectionOverlay(selected)
+        SelectionOverlay(selected, RoundedCornerShape(14.dp))
     }
 }
 
@@ -914,7 +923,7 @@ internal fun PlaylistCard(
                     modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
                 )
             }
-            SelectionOverlay(selected)
+            SelectionOverlay(selected, RoundedCornerShape(14.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(playlist.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1091,35 +1100,89 @@ internal fun PlaylistList(
 }
 
 @Composable
-internal fun SourceWarningBanner(warnings: List<String>) {
-    var dismissed by remember(warnings) { mutableStateOf(false) }
-    if (dismissed) return
+internal fun SourceWarningBanner(
+    warnings: List<String>,
+    onDismiss: (String) -> Unit = {}
+) {
+    if (warnings.isEmpty()) return
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 10.dp),
+            .padding(horizontal = 24.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (warning in warnings) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_triangle_alert),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    warning,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_x),
+                    contentDescription = "Dismiss",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clickable(onClick = hapticClick { onDismiss(warning) })
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SourceFilterRow(
+    sources: List<LibrarySourceFilter>,
+    selected: LibrarySourceFilter,
+    onSelect: (LibrarySourceFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_triangle_alert),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            warnings.joinToString(", "),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_x),
-            contentDescription = "Dismiss",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .size(18.dp)
-                .clickable(onClick = hapticClick { dismissed = true })
-        )
+        sources.forEach { source ->
+            val isSelected = source == selected
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                    .tapScale { onSelect(source) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = source.displayName(),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                    ),
+                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

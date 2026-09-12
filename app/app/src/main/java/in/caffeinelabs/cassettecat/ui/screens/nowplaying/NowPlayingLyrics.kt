@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
+package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -91,7 +91,6 @@ import `in`.caffeinelabs.cassettecat.ui.theme.SilkscreenFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.VT323FontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -734,81 +733,6 @@ private fun ActiveLyricLine(
 }
 
 @Composable
-internal fun LyricsSyncOffsetPill(
-    syncOffsetMs: Long,
-    onAdjust: (Long) -> Unit,
-    onReset: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f))
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                .clickable { onAdjust(-500L) }
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "-0.5s",
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .then(if (syncOffsetMs != 0L) Modifier.clickable(onClick = onReset) else Modifier)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_clock),
-                contentDescription = null,
-                tint = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(13.dp)
-            )
-            Text(
-                text = if (syncOffsetMs != 0L) "Sync %+.1fs".format(Locale.US, syncOffsetMs / 1000f) else "In sync",
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (syncOffsetMs != 0L) {
-                Text(
-                    "(reset)",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                .clickable { onAdjust(500L) }
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "+0.5s",
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
 internal fun FloatingLyricSelectionBar(
     selectedCount: Int,
     onCancel: () -> Unit,
@@ -939,7 +863,7 @@ internal fun InstrumentalWaveformView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Equalizer waveform bars
+        // Waveform bars
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -981,12 +905,12 @@ internal fun InstrumentalWaveformView(
 
         Spacer(Modifier.height(28.dp))
 
-        // Action Buttons Row
+        // Actions
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Search Online Lyrics Button
+            // Search online
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -1018,7 +942,7 @@ internal fun InstrumentalWaveformView(
                 }
             }
 
-            // Return to Album Art Button
+            // Return to album art
             Box(
                 modifier = Modifier
                     .clip(CircleShape)

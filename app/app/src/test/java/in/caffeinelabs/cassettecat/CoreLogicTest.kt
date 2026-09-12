@@ -1,5 +1,7 @@
 package `in`.caffeinelabs.cassettecat
 
+import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
+
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
@@ -93,5 +95,15 @@ class CoreLogicTest {
         assertFalse(isExtendedCut(4 * 60_000L + 59_000L))
         assertFalse(isExtendedCut(5 * 60_000L))
         assertTrue(isExtendedCut(5 * 60_000L + 1_000L))
+    }
+
+    @Test
+    fun retainsArtworkThumbnailsWhenUiIsHiddenButNotUnderMemoryPressure() {
+        for (level in listOf(0, 5, 9, 20, 39)) {
+            assertFalse("trim level $level", shouldClearArtworkThumbnails(level))
+        }
+        for (level in listOf(10, 15, 19, 40, 60, 80)) {
+            assertTrue("trim level $level", shouldClearArtworkThumbnails(level))
+        }
     }
 }
