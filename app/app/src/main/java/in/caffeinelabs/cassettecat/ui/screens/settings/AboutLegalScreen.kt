@@ -58,7 +58,7 @@ fun AboutLegalScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Header Bar
+        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()

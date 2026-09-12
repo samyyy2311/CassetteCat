@@ -25,8 +25,7 @@ private data class AudioDbBiography(val strBiographyEN: String? = null)
 
 data class ArtistBiography(val text: String, val source: String)
 
-// Free, no-auth. A miss (obscure/misspelled title, disambiguation page) just returns
-// null: no error surfaced, same as ArtistImageLoader's graceful fallback.
+// Missing biographies and failed requests return null.
 class WikipediaInfoLoader {
     companion object {
         private val summaryCache = java.util.concurrent.ConcurrentHashMap<String, String>()
@@ -66,8 +65,6 @@ class WikipediaInfoLoader {
             runCatching {
                 val encodedTitle = URLEncoder.encode(title.replace(' ', '_'), "UTF-8")
                 val url = "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&redirects=true&titles=$encodedTitle"
-                // Wikimedia rejects anonymous/default HTTP clients on some routes. An identifying
-                // through to the empty About state.
                 val request = Request.Builder()
                     .url(url)
                     .header("Accept", "application/json")

@@ -162,7 +162,7 @@ private fun adjustAtmosphereColor(r: Double, g: Double, b: Double, targetLuminan
     val delta = maxC - minC
     val sat = if (maxC > 0.0) delta / maxC else 0.0
 
-    // Enhance natural saturation slightly for rich dark tones without distorting hue
+    // Slightly increase saturation in dark tones without shifting the hue.
     val targetSat = if (sat > 0.05) (sat * 1.30).coerceIn(0.28, 0.72) else 0.0
     var adjR = r
     var adjG = g
@@ -174,7 +174,7 @@ private fun adjustAtmosphereColor(r: Double, g: Double, b: Double, targetLuminan
         adjB = maxC - (maxC - b) * (targetSat / sat)
     }
 
-    // Scale to target luminance for atmospheric depth
+    // Scale to the target luminance.
     val curLum = 0.2126 * adjR + 0.7152 * adjG + 0.0722 * adjB
     val lumScale = if (curLum > 0.001) (targetLuminance / curLum).coerceIn(0.35, 2.2) else 1.0
 

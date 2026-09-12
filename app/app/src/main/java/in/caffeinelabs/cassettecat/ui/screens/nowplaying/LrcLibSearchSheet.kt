@@ -127,7 +127,7 @@ internal fun LrcLibSearchSheet(
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         if (showCustomLyricsEditor) {
-            // In-App Custom Lyrics & LRCLIB Contribution View
+            // Custom lyrics and LRCLIB contribution
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -190,7 +190,7 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // LRCLIB Contribution Toggle Card
+                // LRCLIB contribution toggle
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -246,7 +246,7 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Action Buttons
+                // Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -328,7 +328,7 @@ internal fun LrcLibSearchSheet(
                 }
             }
         } else {
-            // Search View
+            // Search
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -368,7 +368,7 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Search Bar Input
+                // Search input
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -419,7 +419,7 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Results List
+                // Results
                 if (isSearching) {
                     Box(
                         modifier = Modifier
@@ -525,7 +525,7 @@ internal fun LrcLibSearchSheet(
 
                                         Spacer(Modifier.width(8.dp))
 
-                                        // Badge
+                                        // Match badge
                                         if (hasSynced) {
                                             Box(
                                                 modifier = Modifier
@@ -572,7 +572,7 @@ internal fun LrcLibSearchSheet(
                                         }
                                     }
 
-                                    // Preview snippet
+                                        // Lyric preview
                                     val snippet = (item.syncedLyrics ?: item.plainLyrics).orEmpty()
                                         .lineSequence()
                                         .filter { it.isNotBlank() && !it.startsWith("[") }

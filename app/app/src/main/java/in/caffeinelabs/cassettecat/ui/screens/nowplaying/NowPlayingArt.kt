@@ -315,7 +315,7 @@ private fun TurntablePlatter(modifier: Modifier = Modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
 
-        // Platter Outer Machined Bevel Rim
+        // Outer rim
         drawCircle(
             brush = Brush.sweepGradient(
                 listOf(
@@ -339,14 +339,14 @@ private fun TurntablePlatter(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.5.dp.toPx())
         )
 
-        // Anti-Static Rubber Platter Mat
+        // Platter mat
         drawCircle(
             color = Color(0xFF131316),
             radius = radius * 0.94f,
             center = center
         )
 
-        // Concentric Mat Rings
+        // Mat rings
         var matRing = radius * 0.88f
         while (matRing > radius * 0.38f) {
             drawCircle(
@@ -367,10 +367,10 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
 
-        // Deep Glossy Black Vinyl Base
+        // Vinyl base
         drawCircle(color = Color(0xFF0C0C0E), radius = radius, center = center)
 
-        // Outer Beveled Edge
+        // Outer edge
         drawCircle(
             color = Color.White.copy(alpha = 0.12f),
             radius = radius * 0.99f,
@@ -378,7 +378,7 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Dynamic Dual Light Reflections (Specular Sheen Cones)
+        // Light reflections
         drawCircle(
             brush = Brush.sweepGradient(
                 0.00f to Color.White.copy(alpha = 0.00f),
@@ -397,7 +397,7 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             center = center
         )
 
-        // Realistic High-Density Groove Bands
+        // Groove bands
         var groove = radius * 0.94f
         val innerGrooveLimit = radius * 0.44f
         var step = 0
@@ -413,7 +413,7 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             step++
         }
 
-        // Dead Wax / Run-out Groove Zone
+        // Run-out area
         drawCircle(
             color = Color(0xFF16161A),
             radius = radius * 0.44f,
@@ -426,13 +426,13 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Center Album Label
+        // Center label
         drawCircle(
             color = labelColor,
             radius = radius * 0.35f,
             center = center
         )
-        // Label Concentric Micro-rings
+        // Label rings
         drawCircle(
             color = Color.Black.copy(alpha = 0.25f),
             radius = radius * 0.30f,
@@ -446,7 +446,7 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Spindle Hole & Center Metallic Brass Ring
+        // Spindle hole and ring
         drawCircle(color = Color(0xFFC4A052), radius = radius * 0.07f, center = center)
         drawCircle(color = Color(0xFF0C0C0E), radius = radius * 0.045f, center = center)
     }
@@ -461,7 +461,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
         val playingTip = Offset(w * 0.68f, h * 0.62f)
         val armRestPos = Offset(w * 0.85f, h * 0.66f)
 
-        // Fixed Armrest Post on the turntable deck
+        // Armrest
         drawCircle(
             color = Color(0xFF1E293B),
             radius = 5.dp.toPx(),
@@ -480,7 +480,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
             cap = StrokeCap.Round
         )
 
-        // Animated Tonearm Assembly
+        // Tonearm
         rotate(degrees = liftAngleDeg, pivot = pivot) {
             // Shadow behind the tonearm
             drawLine(
@@ -491,7 +491,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 cap = StrokeCap.Round
             )
 
-            // S-Curve Metallic Arm Tube in Brushed Chrome
+            // Arm tube
             val armPath = Path().apply {
                 moveTo(pivot.x, pivot.y)
                 cubicTo(
@@ -515,7 +515,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
 
-            // Cartridge / Headshell at the needle tip (angled tangentially along the groove)
+            // Headshell
             val headshellPath = Path().apply {
                 moveTo(playingTip.x - 7.dp.toPx(), playingTip.y - 10.dp.toPx())
                 lineTo(playingTip.x + 5.dp.toPx(), playingTip.y - 6.dp.toPx())
@@ -525,14 +525,14 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
             }
             drawPath(path = headshellPath, color = Color(0xFF1E293B))
 
-            // Red Stylus Cartridge Accent Needle Point
+            // Stylus
             drawCircle(
                 color = Color(0xFFEF4444),
                 radius = 2.5.dp.toPx(),
                 center = playingTip + Offset(-3.dp.toPx(), 4.dp.toPx())
             )
 
-            // Gimbal Pivot Base Assembly
+            // Pivot
             drawCircle(
                 color = Color(0xFF1E293B),
                 radius = 16.dp.toPx(),
@@ -553,7 +553,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 center = pivot
             )
 
-            // Rear Counterweight Cylindrical Ring
+            // Counterweight
             val counterweightCenter = pivot + Offset(11.dp.toPx(), -11.dp.toPx())
             drawCircle(
                 brush = Brush.linearGradient(
@@ -666,7 +666,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                     label = "ambientPulse"
                 )
 
-                // Layer 1: Velvet Atmospheric Base Gradient
+                // Base gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -680,7 +680,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                         )
                 )
 
-                // Layer 2: 3-Node Seamless Atmospheric Mesh Glow
+                // Mesh glow
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -689,7 +689,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                     val w = size.width
                     val h = size.height
 
-                    // Main upper aura directly behind album art
+                    // Glow behind the album art
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -704,7 +704,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                         radius = w * 1.05f
                     )
 
-                    // Secondary harmonic tone off-center right
+                    // Right-side glow
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -718,7 +718,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                         radius = w * 0.90f
                     )
 
-                    // Tertiary accent tone off-center left
+                    // Left-side glow
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -733,7 +733,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                     )
                 }
 
-                // Layer 3: Top Status-Bar Scrim (Clean, legible system icons)
+                // Top scrim for status-bar icons
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -745,7 +745,7 @@ internal fun NowPlayingBackdrop(song: Song) {
                         )
                 )
 
-                // Layer 4: Bottom Transport Contrast Scrim (Deep contrast for controls & track details)
+                // Bottom scrim for controls and track details
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

@@ -107,7 +107,7 @@ fun DriveModeScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // Header Bar matching CassetteCat style
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +142,7 @@ fun DriveModeScreen(
                     )
                 }
             } else if (isLandscape) {
-                // Landscape layout matching NowPlayingPlayerView
+                // Landscape layout
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -195,7 +195,7 @@ fun DriveModeScreen(
                     }
                 }
             } else {
-                // Portrait layout matching NowPlayingPlayerView
+                // Portrait layout
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

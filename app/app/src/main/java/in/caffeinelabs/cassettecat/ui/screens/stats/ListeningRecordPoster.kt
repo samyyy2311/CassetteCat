@@ -125,7 +125,7 @@ internal fun buildListeningRecordPoster(
                 color = "#07060A".toColorInt()
             })
 
-            // Top-left/center vibrant glowing artwork flare
+            // Top-left artwork glow
             canvas.drawCircle(width * 0.20f, height * 0.10f, 1200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = RadialGradient(
                     width * 0.20f, height * 0.10f, 1200f,
@@ -135,7 +135,7 @@ internal fun buildListeningRecordPoster(
                 )
             })
 
-            // Top-right radiant bloom
+            // Top-right glow
             canvas.drawCircle(width * 0.85f, height * 0.20f, 1250f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = RadialGradient(
                     width * 0.85f, height * 0.20f, 1250f,
@@ -188,7 +188,7 @@ internal fun buildListeningRecordPoster(
     val leftMargin = 110f
     val rightMargin = width - 100f
 
-    // Bold, Clean Text Paints with Enhanced Sizes
+    // Text paints
     val sectionHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
         typeface = spaceGroteskBold
@@ -338,9 +338,9 @@ internal fun buildListeningRecordPoster(
 
     drawArtwork(topAlbumArtwork ?: topSongArtwork, rightArtLeft, art3Top, rightArtSize, isCircle = false)
 
-    // --- LEFT COLUMN TEXT SECTIONS ---
+    // Left column
 
-    // SECTION 1: Top Artists
+    // Top artists
     val sec1Top = 580f
     canvas.drawText("Top Artists", leftMargin, sec1Top, sectionHeaderPaint)
 
@@ -359,7 +359,7 @@ internal fun buildListeningRecordPoster(
         )
     }
 
-    // SECTION 2: Top Songs
+    // Top songs
     val sec2Top = 1200f
     canvas.drawText("Top Songs", leftMargin, sec2Top, sectionHeaderPaint)
 
@@ -384,7 +384,7 @@ internal fun buildListeningRecordPoster(
         )
     }
 
-    // SECTION 3: Top Albums
+    // Top albums
     val sec3Top = 1840f
     canvas.drawText("Top Albums", leftMargin, sec3Top, sectionHeaderPaint)
 
@@ -511,7 +511,7 @@ internal fun ListeningRecordPreviewCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header Bar
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -568,7 +568,7 @@ internal fun ListeningRecordPreviewCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Column (Text List with Large Fonts)
+                // Rankings
                 Column(
                     modifier = Modifier.weight(1.4f),
                     verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -682,7 +682,7 @@ internal fun ListeningRecordPreviewCard(
                     }
                 }
 
-                // Right Column (Stacked Visual Artworks)
+                // Artwork
                 Column(
                     modifier = Modifier.weight(1.0f),
                     horizontalAlignment = Alignment.End,
@@ -837,7 +837,7 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(16.dp))
 
-            // Fixed 4:5 Aspect Ratio Preview Area
+            // 4:5 preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.90f)
@@ -864,7 +864,7 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // Theme Selection Pills
+            // Theme choices
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -896,7 +896,7 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // Quick Target Action Icons Tray
+            // Share actions
             if (isGeneratingShare) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.tertiary,

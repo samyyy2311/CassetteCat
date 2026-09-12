@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +47,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -56,7 +54,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.composables.icons.lucide.R
@@ -71,38 +68,6 @@ import kotlin.math.abs
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
 
 internal fun isSeekablePlayback(durationMs: Long): Boolean = durationMs > 0L
-
-@Composable
-internal fun AppleMusicPillButton(
-    iconRes: Int,
-    contentDescription: String,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = LocalHapticFeedback.current
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    Box(
-        modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(
-                if (isActive) onSurface.copy(alpha = 0.25f) else onSurface.copy(alpha = 0.10f)
-            )
-            .clickable {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = contentDescription,
-            tint = if (isActive) onSurface else onSurface.copy(alpha = 0.70f),
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
 
 @Composable
 internal fun PlaybackControlsRow(

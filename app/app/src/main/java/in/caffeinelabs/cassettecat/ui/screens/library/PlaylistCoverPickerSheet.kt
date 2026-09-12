@@ -186,7 +186,7 @@ fun PlaylistCoverPickerSheet(
     }
 }
 
-// plain text tabs, not TabRow: matches LibraryViewModeTabs' no-ripple/no-filled-indicator style
+// Plain text tabs match LibraryViewModeTabs and avoid a filled indicator.
 @Composable
 private fun CoverPickerTabs(selected: CoverPickerTab, onSelect: (CoverPickerTab) -> Unit) {
     Row(

@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     isAmoled = preferences.amoledDarkTheme,
                     appFontFamily = preferences.appFontFamily
                 ) {
-                    // Navigation owns safe insets per surface so immersive views can intentionally
+                    // Navigation owns safe insets per surface so immersive views can
                     // draw behind the system bars without changing ordinary screens.
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         CassetteCatNavHost(

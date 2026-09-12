@@ -169,8 +169,7 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
         @Volatile private var cacheGeneration: Int = 0
         @Volatile private var observerRegistered = false
 
-        // A scan started before invalidation must not overwrite the cache after it,
-        // so publication is only honored if the generation hasn't moved since the scan began.
+        // Discard cache updates from scans started before the latest invalidation. No necromancy.
         private fun publishScan(generation: Int, songs: List<Song>): List<Song> {
             synchronized(this) {
                 if (generation == cacheGeneration) cachedRawSongs = songs

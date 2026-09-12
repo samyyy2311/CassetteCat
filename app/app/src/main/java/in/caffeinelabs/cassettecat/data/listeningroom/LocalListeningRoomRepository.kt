@@ -370,6 +370,7 @@ class LocalListeningRoomRepository(context: Context) {
                         guest.writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
                         updateParticipantCount()
                         // Blocks until socket close so disconnects are noticed immediately.
+                        // Otherwise a closed socket may look connected for too long.
                         while (reader.readLineBounded(MAX_WIRE_LINE_LENGTH) != null) { /* discard */ }
                     }
                     removeHostGuest(guest)
