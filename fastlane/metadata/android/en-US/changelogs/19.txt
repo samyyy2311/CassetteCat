@@ -1,0 +1,8 @@
+What's new in 1.7.1:
+
+- Choose album covers from your gallery or search online
+- Filter your library by Local, Subsonic, or Jellyfin
+- Updated library and search layouts
+- Improved Jellyfin album grouping and artist metadata
+- New cat illustrations and a small surprise in Credits
+- Better artwork cache handling and code cleanup

@@ -2,6 +2,15 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.1]
+
+* Choose album covers from your gallery or search for artwork online.
+* Filter the library by Local, Subsonic, or Jellyfin and use the updated library and search layouts.
+* Improved Jellyfin album grouping and artist metadata fallbacks.
+* Added cat illustrations to empty screens and a small surprise in Credits.
+* Adjusted artwork caching to release large images when the app is hidden while keeping thumbnails handy.
+* Removed unused screens and controls and cleaned up comments.
+
 ## [1.7.0]
 
 * Fixed playback pausing between songs when autoplay is on.

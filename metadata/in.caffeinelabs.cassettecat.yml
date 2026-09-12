@@ -17,12 +17,23 @@ Builds:
     versionCode: 18
     commit: c89c9813051273be454eafc8a458286d6591d7ce
     subdir: app/app
+    scandelete:
+      - exports/cassettecat-pixel-cats.zip
+    gradle:
+      - yes
+
+  - versionName: 1.7.1
+    versionCode: 19
+    commit: v1.7.1
+    subdir: app/app
+    scandelete:
+      - exports/cassettecat-pixel-cats.zip
     gradle:
       - yes
 
 AllowedAPKSigningKeys: e55ead1e67b33ffc10f29323b72cafaffbc9fb34f31f40ae069eb307dfbd2b53
 
-AutoUpdateMode: Version
+AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 1.7.0
-CurrentVersionCode: 18
+CurrentVersion: 1.7.1
+CurrentVersionCode: 19
