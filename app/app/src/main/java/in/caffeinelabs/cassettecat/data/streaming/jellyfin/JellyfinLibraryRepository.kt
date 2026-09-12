@@ -42,18 +42,28 @@ class JellyfinLibraryRepository(
 
 private fun JellyfinItem.toSong(client: JellyfinApiClient, accessToken: String): Song {
     val artItemId = if (ImageTags?.Primary != null) Id else AlbumId
+    val effectiveAlbum = (Album?.trim()?.ifBlank { null } ?: Name).trim()
+    val effectiveArtist = (AlbumArtist?.trim()?.ifBlank { null }
+        ?: Artists.firstOrNull()?.trim()?.ifBlank { null }
+        ?: "Unknown artist").trim()
+    val computedAlbumId = if (!Album.isNullOrBlank()) {
+        "jellyfin:${effectiveArtist.lowercase()}:${effectiveAlbum.lowercase()}"
+    } else {
+        "jellyfin:${AlbumId ?: Id}"
+    }
     return Song(
         id = "jellyfin:$Id",
         title = Name,
-        artist = AlbumArtist ?: "Unknown artist",
-        album = Album ?: "Unknown album",
-        albumId = "jellyfin:${AlbumId ?: Id}",
+        artist = effectiveArtist,
+        album = effectiveAlbum,
+        albumId = computedAlbumId,
         durationMs = (RunTimeTicks ?: 0) / 10_000,
         contentUri = client.streamUrl(Id, accessToken).toUri(),
         source = MusicSource.Jellyfin,
         artUri = artItemId?.let { client.imageUrl(it, accessToken).toUri() },
         isFavorite = UserData?.IsFavorite ?: false,
         genres = Genres,
-        releaseYear = ProductionYear
+        releaseYear = ProductionYear,
+        filePath = Path
     )
 }

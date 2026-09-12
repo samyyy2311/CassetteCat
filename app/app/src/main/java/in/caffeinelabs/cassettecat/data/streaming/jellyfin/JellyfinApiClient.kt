@@ -90,7 +90,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
                 .addQueryParameter("IncludeItemTypes", "Audio")
                 .addQueryParameter("Recursive", "true")
                 .addQueryParameter("SortBy", "SortName")
-                .addQueryParameter("Fields", "Genres,ProductionYear")
+                .addQueryParameter("Fields", "Genres,ProductionYear,Path,Artists")
                 .addQueryParameter("StartIndex", startIndex.toString())
                 .addQueryParameter("Limit", PAGE_SIZE.toString())
                 .build()

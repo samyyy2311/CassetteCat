@@ -37,7 +37,9 @@ data class JellyfinItem(
     val RunTimeTicks: Long? = null,
     val ImageTags: JellyfinImageTags? = null,
     val UserData: JellyfinUserData? = null,
-    val Genres: List<String> = emptyList()
+    val Genres: List<String> = emptyList(),
+    val Path: String? = null,
+    val Artists: List<String> = emptyList()
 )
 
 @Serializable
