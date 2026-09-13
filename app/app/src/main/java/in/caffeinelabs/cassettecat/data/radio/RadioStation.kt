@@ -32,8 +32,7 @@ fun RadioStation.toSong(): Song = Song(
     country = country
 )
 
-// Reverse of toSong(), needed to persist a station favorited from Now Playing
-// (which only has the generic Song, not the original RadioStation).
+// Favorites from Now Playing only keep the Song, so rebuild the station when saving it.
 fun Song.toRadioStation(): RadioStation = RadioStation(
     uuid = id.removePrefix("radio:"),
     name = title,
