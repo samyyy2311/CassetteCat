@@ -147,7 +147,6 @@ fun LyricShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // Theme choices
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -179,7 +178,6 @@ fun LyricShareSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // Share actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -308,7 +306,6 @@ private fun LyricQuoteCard(
                 .padding(22.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Song header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -340,7 +337,6 @@ private fun LyricQuoteCard(
                 }
             }
 
-            // Lyrics
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -367,7 +363,6 @@ private fun LyricQuoteCard(
                 }
             }
 
-            // Footer
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -410,7 +405,6 @@ private fun buildLyricCardPoster(
     val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
-    // Card background
     when (theme) {
         LyricCardTheme.ATMOSPHERE -> {
             if (artBitmap != null) {
@@ -464,7 +458,6 @@ private fun buildLyricCardPoster(
         }
     }
 
-    // Album thumbnail
     val thumbSize = 240f
     val thumbLeft = 180f
     val thumbTop = 160f
@@ -493,7 +486,6 @@ private fun buildLyricCardPoster(
         canvas.drawRoundRect(thumbRect, 44f, 44f, placeholderPaint)
     }
 
-    // Title and artist
     val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = 84f
@@ -511,7 +503,6 @@ private fun buildLyricCardPoster(
     val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
     canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
-    // Lyrics layout
     val validLines = lines.filter { it.isNotBlank() }
     val (fontSize, lineSpacingMult, extraSpacing, qSize, spacingBetween) = when {
         validLines.size <= 2 -> listOf(124f, 1.26f, 20f, 120f, 32f)
@@ -540,7 +531,6 @@ private fun buildLyricCardPoster(
     val totalBlockHeight = qSize + spacingBetween + staticLayout.height
     val blockStartY = maxOf(availableTop, availableTop + ((availableHeight - totalBlockHeight) / 2f).coerceAtLeast(0f))
 
-    // Quote mark
     val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
     if (quoteDrawable != null) {
         quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
@@ -553,7 +543,6 @@ private fun buildLyricCardPoster(
         staticLayout.draw(this)
     }
 
-    // Card footer
     val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.argb(128, 255, 255, 255)
         textSize = 58f

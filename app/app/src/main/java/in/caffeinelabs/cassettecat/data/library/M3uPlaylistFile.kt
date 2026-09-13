@@ -42,7 +42,7 @@ fun parseM3u(text: String): List<M3uEntry> {
     return entries
 }
 
-// filename match first (robust across devices with different absolute path prefixes),
+// Match by filename first to handle different absolute path prefixes,
 // falling back to title+artist from #EXTINF when present
 fun List<Song>.matchM3uEntries(entries: List<M3uEntry>): List<String> {
     val byFileName = filter { it.source == MusicSource.Local && it.filePath != null }

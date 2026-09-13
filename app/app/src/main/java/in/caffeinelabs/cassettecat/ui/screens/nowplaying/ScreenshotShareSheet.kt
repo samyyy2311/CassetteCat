@@ -159,7 +159,6 @@ internal fun ScreenshotShareSheet(
 
             Spacer(Modifier.height(12.dp))
 
-            // Song or lyrics
             if (hasLyrics) {
                 Row(
                     modifier = Modifier
@@ -196,7 +195,6 @@ internal fun ScreenshotShareSheet(
                 Spacer(Modifier.height(4.dp))
             }
 
-            // 4:5 preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
@@ -251,7 +249,6 @@ internal fun ScreenshotShareSheet(
                 Spacer(Modifier.height(20.dp))
             }
 
-            // Theme choices
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -283,7 +280,6 @@ internal fun ScreenshotShareSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // Share actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -686,7 +682,6 @@ private fun generateSharePoster(
     val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = loadCanvasTypefaces(context)
     val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
 
-    // Card background
     when (theme) {
         LyricCardTheme.ATMOSPHERE -> {
             if (artBitmap != null) {
@@ -697,7 +692,7 @@ private fun generateSharePoster(
                 }
                 canvas.drawBitmap(blurred, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), filterPaint)
 
-                // Dark gradient used by the Atmosphere theme
+                // Darken the artwork for text contrast.
                 val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     shader = LinearGradient(
                         0f, 0f, 0f, height.toFloat(),
@@ -742,7 +737,6 @@ private fun generateSharePoster(
     }
 
     if (mode == ShareCardMode.SONG) {
-        // Centered artwork
         val artSize = 1280f
         val artLeft = (width - artSize) / 2f
         val artTop = 360f
@@ -771,7 +765,6 @@ private fun generateSharePoster(
             canvas.drawRoundRect(artRect, 72f, 72f, placeholderPaint)
         }
 
-        // Title
         val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.WHITE
             textSize = 104f
@@ -782,7 +775,6 @@ private fun generateSharePoster(
         val safeTitle = if (song.title.length > 32) song.title.take(30) + "…" else song.title
         canvas.drawText(safeTitle, width / 2f, artTop + artSize + 220f, titlePaint)
 
-        // Artist
         val artistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(190, 255, 255, 255)
             textSize = 68f
@@ -792,7 +784,6 @@ private fun generateSharePoster(
         val safeArtist = if (song.artist.length > 40) song.artist.take(38) + "…" else song.artist
         canvas.drawText(safeArtist, width / 2f, artTop + artSize + 340f, artistPaint)
 
-        // App name
         val footerText = "CassetteCat"
         val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(128, 255, 255, 255)
@@ -819,7 +810,6 @@ private fun generateSharePoster(
         canvas.drawText(footerText, footerStartX + tapeSize + tapeSpacing, footerY, footerPaint)
 
     } else {
-        // Album thumbnail
         val thumbSize = 240f
         val thumbLeft = 180f
         val thumbTop = 160f
@@ -848,7 +838,6 @@ private fun generateSharePoster(
             canvas.drawRoundRect(thumbRect, 44f, 44f, placeholderPaint)
         }
 
-        // Title and artist
         val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.WHITE
             textSize = 84f
@@ -866,7 +855,6 @@ private fun generateSharePoster(
         val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
         canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
 
-        // Lyrics layout
         val validLines = lines.filter { it.isNotBlank() }
         val (fontSize, lineSpacingMult, extraSpacing, qSize, spacingBetween) = when {
             validLines.size <= 2 -> listOf(124f, 1.26f, 20f, 120f, 32f)
@@ -895,7 +883,6 @@ private fun generateSharePoster(
         val totalBlockHeight = qSize + spacingBetween + staticLayout.height
         val blockStartY = maxOf(availableTop, availableTop + ((availableHeight - totalBlockHeight) / 2f).coerceAtLeast(0f))
 
-        // Quote mark
         val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
         if (quoteDrawable != null) {
             quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
@@ -908,7 +895,6 @@ private fun generateSharePoster(
             staticLayout.draw(this)
         }
 
-        // Card footer
         val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(128, 255, 255, 255)
             textSize = 58f

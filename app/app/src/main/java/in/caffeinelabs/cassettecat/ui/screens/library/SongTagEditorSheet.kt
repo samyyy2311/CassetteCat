@@ -84,7 +84,6 @@ fun SongTagEditorSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
-            // Track header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,7 +120,6 @@ fun SongTagEditorSheet(
                 modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
             )
 
-            // Section title
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(
                     text = "Edit Song Details",
@@ -136,7 +134,6 @@ fun SongTagEditorSheet(
                     modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
                 )
 
-                // Tag fields
                 TagInputField(
                     label = "Title",
                     value = title,
@@ -183,7 +180,6 @@ fun SongTagEditorSheet(
 
                 Spacer(Modifier.height(24.dp))
 
-                // Actions
                 if (isOverridden) {
                     OutlinedButton(
                         onClick = {

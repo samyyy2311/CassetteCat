@@ -125,7 +125,6 @@ internal fun buildListeningRecordPoster(
                 color = "#07060A".toColorInt()
             })
 
-            // Top-left artwork glow
             canvas.drawCircle(width * 0.20f, height * 0.10f, 1200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = RadialGradient(
                     width * 0.20f, height * 0.10f, 1200f,
@@ -135,7 +134,6 @@ internal fun buildListeningRecordPoster(
                 )
             })
 
-            // Top-right glow
             canvas.drawCircle(width * 0.85f, height * 0.20f, 1250f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = RadialGradient(
                     width * 0.85f, height * 0.20f, 1250f,
@@ -145,7 +143,6 @@ internal fun buildListeningRecordPoster(
                 )
             })
 
-            // Right-side ambient artwork reflection
             canvas.drawCircle(width * 0.90f, height * 0.65f, 1100f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = RadialGradient(
                     width * 0.90f, height * 0.65f, 1100f,
@@ -155,7 +152,6 @@ internal fun buildListeningRecordPoster(
                 )
             })
 
-            // Soft dark contrast overlay
             val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 shader = LinearGradient(
                     0f, 0f, 0f, height.toFloat(),
@@ -188,7 +184,6 @@ internal fun buildListeningRecordPoster(
     val leftMargin = 110f
     val rightMargin = width - 100f
 
-    // Text paints
     val sectionHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
         typeface = spaceGroteskBold
@@ -268,7 +263,6 @@ internal fun buildListeningRecordPoster(
     fun drawArtwork(bitmap: Bitmap?, left: Float, top: Float, size: Float, isCircle: Boolean) {
         val rect = RectF(left, top, left + size, top + size)
 
-        // Drop shadow
         canvas.drawRoundRect(
             RectF(left - 12f, top + 12f, left + size + 12f, top + size + 28f),
             if (isCircle) size / 2f else 32f,
@@ -338,9 +332,7 @@ internal fun buildListeningRecordPoster(
 
     drawArtwork(topAlbumArtwork ?: topSongArtwork, rightArtLeft, art3Top, rightArtSize, isCircle = false)
 
-    // Left column
 
-    // Top artists
     val sec1Top = 580f
     canvas.drawText("Top Artists", leftMargin, sec1Top, sectionHeaderPaint)
 
@@ -359,7 +351,6 @@ internal fun buildListeningRecordPoster(
         )
     }
 
-    // Top songs
     val sec2Top = 1200f
     canvas.drawText("Top Songs", leftMargin, sec2Top, sectionHeaderPaint)
 
@@ -384,7 +375,6 @@ internal fun buildListeningRecordPoster(
         )
     }
 
-    // Top albums
     val sec3Top = 1840f
     canvas.drawText("Top Albums", leftMargin, sec3Top, sectionHeaderPaint)
 
@@ -504,14 +494,12 @@ internal fun ListeningRecordPreviewCard(
             )
         }
 
-        // Card Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -543,7 +531,6 @@ internal fun ListeningRecordPreviewCard(
                 }
             }
 
-            // Milestone
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
@@ -562,18 +549,15 @@ internal fun ListeningRecordPreviewCard(
                 )
             }
 
-            // 2-Column Split
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Rankings
                 Column(
                     modifier = Modifier.weight(1.4f),
                     verticalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    // Top Artists
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Top Artists",
@@ -602,7 +586,6 @@ internal fun ListeningRecordPreviewCard(
                         }
                     }
 
-                    // Top Songs
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Top Songs",
@@ -640,7 +623,6 @@ internal fun ListeningRecordPreviewCard(
                         }
                     }
 
-                    // Top Albums
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Top Albums",
@@ -682,13 +664,11 @@ internal fun ListeningRecordPreviewCard(
                     }
                 }
 
-                // Artwork
                 Column(
                     modifier = Modifier.weight(1.0f),
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Artist Circle
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -704,7 +684,6 @@ internal fun ListeningRecordPreviewCard(
                         }
                     }
 
-                    // Song Square
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -719,7 +698,6 @@ internal fun ListeningRecordPreviewCard(
                         }
                     }
 
-                    // Album Square
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -837,7 +815,6 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(16.dp))
 
-            // 4:5 preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.90f)
@@ -864,7 +841,6 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // Theme choices
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -896,7 +872,6 @@ internal fun ListeningRecordShareSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // Share actions
             if (isGeneratingShare) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.tertiary,

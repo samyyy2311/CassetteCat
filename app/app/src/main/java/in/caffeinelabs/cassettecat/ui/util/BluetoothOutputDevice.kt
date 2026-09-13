@@ -36,8 +36,7 @@ private fun hasBluetoothConnectPermission(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
 
-// Audio already plays to whatever device the system has active regardless of this permission,
-// this only affects whether we can show its real name instead of a generic label.
+// Audio routing still works without this permission; it only controls the device name shown here.
 @Composable
 internal fun rememberConnectedBluetoothDevice(): AudioDeviceInfo? {
     val context = LocalContext.current

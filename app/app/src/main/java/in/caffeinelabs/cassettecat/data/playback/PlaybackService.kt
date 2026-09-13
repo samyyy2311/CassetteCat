@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioManager
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -20,12 +21,15 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.service.quicksettings.TileService
+import android.util.Size
 import androidx.core.graphics.scale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -65,13 +69,17 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
+import `in`.caffeinelabs.cassettecat.data.library.use
+import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.concurrent.CopyOnWriteArraySet
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -312,9 +320,11 @@ class PlaybackService : MediaLibraryService() {
 
         val navigationPlayer = SequentialNavigationPlayer(player)
         sequentialNavigationPlayer = navigationPlayer
+        val bitmapLoader = MediaBitmapLoader(this, serviceScope)
         mediaSession = MediaLibrarySession.Builder(this, navigationPlayer, CustomMediaLibrarySessionCallback())
             .setSessionActivity(sessionActivity)
-            .setCustomLayout(buildCustomLayout(player, false))
+            .setCustomLayout(buildCustomLayout(navigationPlayer, false, false))
+            .setBitmapLoader(bitmapLoader)
             .build()
 
         val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
@@ -386,10 +396,14 @@ class PlaybackService : MediaLibraryService() {
     private fun updateNotificationLayout(player: Player) {
         val currentMediaId = player.currentMediaItem?.mediaId
         val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
-        mediaSession?.setCustomLayout(buildCustomLayout(player, isFav))
+        mediaSession?.setCustomLayout(buildCustomLayout(player, isFav, player.shuffleModeEnabled))
     }
 
-    private fun buildCustomLayout(player: Player, isFavorite: Boolean): List<CommandButton> {
+    private fun buildCustomLayout(
+        player: Player,
+        isFavorite: Boolean,
+        isShuffle: Boolean = player.shuffleModeEnabled
+    ): List<CommandButton> {
         val favoriteIconRes = if (isFavorite) {
             R.drawable.ic_notification_heart_filled
         } else {
@@ -401,30 +415,18 @@ class PlaybackService : MediaLibraryService() {
             .setDisplayName(if (isFavorite) "Unfavorite" else "Favorite")
             .build()
 
-        val shuffleButton = CommandButton.Builder(
-            if (player.shuffleModeEnabled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF
-        )
-            .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
-            .setDisplayName(if (player.shuffleModeEnabled) "Shuffle on" else "Shuffle off")
-            .build()
-
-        val repeatIcon = when (player.repeatMode) {
-            Player.REPEAT_MODE_ONE -> CommandButton.ICON_REPEAT_ONE
-            Player.REPEAT_MODE_ALL -> CommandButton.ICON_REPEAT_ALL
-            else -> CommandButton.ICON_REPEAT_OFF
+        val shuffleIconRes = if (isShuffle) {
+            R.drawable.ic_notification_shuffle_on
+        } else {
+            R.drawable.ic_notification_shuffle_off
         }
-        val repeatButton = CommandButton.Builder(repeatIcon)
-            .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE)
-            .setDisplayName(
-                when (player.repeatMode) {
-                    Player.REPEAT_MODE_ONE -> "Repeat one"
-                    Player.REPEAT_MODE_ALL -> "Repeat all"
-                    else -> "Repeat off"
-                }
-            )
+        val shuffleButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+            .setCustomIconResId(shuffleIconRes)
+            .setSessionCommand(SessionCommand(ACTION_CUSTOM_SHUFFLE, Bundle.EMPTY))
+            .setDisplayName(if (isShuffle) "Shuffle on" else "Shuffle off")
             .build()
 
-        return listOf(favoriteButton, shuffleButton, repeatButton)
+        return listOf(favoriteButton, shuffleButton)
     }
 
     private inner class CustomMediaLibrarySessionCallback : MediaLibrarySession.Callback {
@@ -434,12 +436,13 @@ class PlaybackService : MediaLibraryService() {
         ): MediaSession.ConnectionResult {
             val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
                 .add(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
+                .add(SessionCommand(ACTION_CUSTOM_SHUFFLE, Bundle.EMPTY))
                 .build()
             val currentMediaId = session.player.currentMediaItem?.mediaId
             val isFav = currentMediaId != null && currentMediaId in currentFavoriteIds
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
                 .setAvailableSessionCommands(availableSessionCommands)
-                .setCustomLayout(buildCustomLayout(session.player, isFav))
+                .setCustomLayout(buildCustomLayout(session.player, isFav, session.player.shuffleModeEnabled))
                 .build()
         }
 
@@ -457,6 +460,13 @@ class PlaybackService : MediaLibraryService() {
                         favoritesRepository.setFavorite(currentMediaId, !isFav)
                     }
                 }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            if (customCommand.customAction == ACTION_CUSTOM_SHUFFLE) {
+                val p = session.player
+                val nextShuffle = !p.shuffleModeEnabled
+                p.shuffleModeEnabled = nextShuffle
+                updateNotificationLayout(p)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             return super.onCustomCommand(session, controller, customCommand, args)
@@ -612,23 +622,7 @@ class PlaybackService : MediaLibraryService() {
                     val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options)
                     decoded?.scale(120, 120)
                 }.getOrNull()
-            } ?: runCatching {
-                val customPath = if (album != null && artist != null) {
-                    `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository.getInstance(this@PlaybackService).getCoverPath(album, artist)
-                } else null
-                if (customPath != null) {
-                    val file = java.io.File(customPath)
-                    `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(file, 120)?.scale(120, 120)
-                } else if (artworkUri != null) {
-                    if (artworkUri.scheme == "file") {
-                        artworkUri.path?.let { `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(java.io.File(it), 120)?.scale(120, 120) }
-                    } else {
-                        contentResolver.openInputStream(artworkUri)?.use { stream ->
-                            `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap(stream.readBytes(), 120)?.scale(120, 120)
-                        }
-                    }
-                } else null
-            }.getOrNull()
+            } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
             runCatching {
                 CassetteWidgetProvider.updateAllWidgets(
                     context = this@PlaybackService,
@@ -683,6 +677,7 @@ class PlaybackService : MediaLibraryService() {
     companion object {
         private const val FLIP_PAUSE_TIMEOUT_MS = 20 * 60 * 1000L
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
+        const val ACTION_CUSTOM_SHUFFLE = "in.caffeinelabs.cassettecat.action.CUSTOM_SHUFFLE"
         const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"
         const val ACTION_WIDGET_NEXT = "in.caffeinelabs.cassettecat.action.WIDGET_NEXT"
         const val ACTION_WIDGET_PREV = "in.caffeinelabs.cassettecat.action.WIDGET_PREV"
@@ -753,6 +748,27 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
     // Lets the system next button, gestures, and widget stay usable past the last queued
     // song when Autoplay is on, instead of going dead the same way they would with it off.
     var autoplayEnabled: Boolean = false
+    private val listeners = CopyOnWriteArraySet<Player.Listener>()
+    private var internalShuffleModeEnabled: Boolean = false
+
+    override fun addListener(listener: Player.Listener) {
+        listeners.add(listener)
+        super.addListener(listener)
+    }
+
+    override fun removeListener(listener: Player.Listener) {
+        listeners.remove(listener)
+        super.removeListener(listener)
+    }
+
+    override fun getShuffleModeEnabled(): Boolean = internalShuffleModeEnabled
+
+    override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
+        if (internalShuffleModeEnabled != shuffleModeEnabled) {
+            internalShuffleModeEnabled = shuffleModeEnabled
+            listeners.forEach { it.onShuffleModeEnabledChanged(shuffleModeEnabled) }
+        }
+    }
 
     override fun hasNextMediaItem(): Boolean {
         val index = currentMediaItemIndex
@@ -811,4 +827,111 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
         val index = currentMediaItemIndex
         if (index != C.INDEX_UNSET && index > 0) seekTo(index - 1, 0L)
     }
+}
+
+private class MediaBitmapLoader(
+    private val context: Context,
+    private val scope: CoroutineScope
+) : BitmapLoader {
+    override fun supportsMimeType(mimeType: String): Boolean = true
+
+    override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> {
+        val future = SettableFuture.create<Bitmap>()
+        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+        if (bitmap != null) future.set(bitmap) else future.setException(IllegalArgumentException("Failed to decode artwork"))
+        return future
+    }
+
+    override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
+        val future = SettableFuture.create<Bitmap>()
+        scope.launch(Dispatchers.IO) {
+            val bitmap = resolveArtworkBitmap(context, uri, null, null)
+            if (bitmap != null) future.set(bitmap) else future.setException(IllegalArgumentException("Artwork not found for $uri"))
+        }
+        return future
+    }
+
+    override fun loadBitmapFromMetadata(metadata: MediaMetadata): ListenableFuture<Bitmap> {
+        val data = metadata.artworkData
+        if (data != null) return decodeBitmap(data)
+
+        val uri = metadata.artworkUri
+        val artist = metadata.artist?.toString()
+        val album = metadata.albumTitle?.toString()
+
+        val future = SettableFuture.create<Bitmap>()
+        scope.launch(Dispatchers.IO) {
+            val bitmap = resolveArtworkBitmap(context, uri, artist, album)
+            if (bitmap != null) future.set(bitmap) else future.setException(IllegalArgumentException("Artwork not found for metadata"))
+        }
+        return future
+    }
+}
+
+private suspend fun resolveArtworkBitmap(
+    context: Context,
+    uri: Uri?,
+    artist: String?,
+    album: String?
+): Bitmap? {
+    val customPath = if (album != null && artist != null) {
+        `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository.getInstance(context).getCoverPath(album, artist)
+    } else null
+    if (customPath != null) {
+        val file = java.io.File(customPath)
+        val bitmap = decodeSampledBitmap(file, 360)
+        if (bitmap != null) return bitmap
+    }
+
+    if (uri != null) {
+        when (uri.scheme) {
+            "file" -> {
+                val path = uri.path
+                if (path != null) {
+                    val bitmap = decodeSampledBitmap(java.io.File(path), 360)
+                    if (bitmap != null) return bitmap
+                }
+            }
+            "http", "https" -> {
+                val bitmap = `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader().load(uri, thumbnail = true)
+                if (bitmap != null) return bitmap
+            }
+            "content" -> {
+                val embedded = runCatching {
+                    MediaMetadataRetriever().use { retriever ->
+                        retriever.setDataSource(context, uri)
+                        retriever.embeddedPicture?.let { bytes ->
+                            decodeSampledBitmap(bytes, maxDimension = 360)
+                        }
+                    }
+                }.getOrNull()
+                if (embedded != null) return embedded
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val thumb = runCatching {
+                        context.contentResolver.loadThumbnail(uri, Size(360, 360), null)
+                    }.getOrNull()
+                    if (thumb != null) return thumb
+                }
+
+                val streamBitmap = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        decodeSampledBitmap(stream.readBytes(), maxDimension = 360)
+                    }
+                }.getOrNull()
+                if (streamBitmap != null) return streamBitmap
+            }
+        }
+    }
+
+    if (album != null && artist != null) {
+        val settingsRepo = `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository(context.applicationContext)
+        val settings = settingsRepo.settings.first()
+        if (settings.isEnabled(`in`.caffeinelabs.cassettecat.data.settings.ExternalService.COVER_ART_ARCHIVE)) {
+            val archiveBitmap = `in`.caffeinelabs.cassettecat.data.library.CoverArtArchiveClient().fetchCoverArt(album, artist)
+            if (archiveBitmap != null) return archiveBitmap
+        }
+    }
+
+    return null
 }

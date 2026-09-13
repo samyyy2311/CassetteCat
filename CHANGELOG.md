@@ -2,6 +2,13 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.2]
+
+* Fixed shuffle controls in the notification center and Now Playing screen getting out of sync.
+* Improved the active shuffle state so it is clearer without changing the icon style.
+* Fixed queue drag-and-drop reordering stopping after the first move.
+* Fixed queue order updates not always continuing correctly during playback.
+
 ## [1.7.1]
 
 * Choose album covers from your gallery or search for artwork online.

@@ -114,7 +114,7 @@ class PlaybackRepository(private val context: Context) {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = updateState()
             override fun onRepeatModeChanged(repeatMode: Int) = updateState()
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                if (shuffleModeEnabled != shuffleEnabled) toggleShuffle()
+                applyShuffleMode(shuffleModeEnabled)
             }
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
             // Lyrics become known only once container tags parse during load, not at transition time.
@@ -163,6 +163,7 @@ class PlaybackRepository(private val context: Context) {
         resetHistoryTracking(finalQueue.getOrNull(targetIndex))
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem(context) } }
         controller?.apply {
+            shuffleModeEnabled = shuffle
             setMediaItems(mediaItems, targetIndex, 0L)
             prepare()
             play()
@@ -328,14 +329,16 @@ class PlaybackRepository(private val context: Context) {
         controller?.volume = replayGainVolume * volumeLimitMultiplier * fraction.coerceIn(0f, 1f)
     }
 
-    // Real toggle, not ExoPlayer's shuffleModeEnabled: on shuffles the upcoming queue for
-    // real, off restores playQueue()'s original order. Never written to the real player's
-    // own shuffleModeEnabled (an uncontrollable random order that can make native gapless
-    // auto-advance and seekToNext/Previous diverge from this queue, even ending playback early).
     fun toggleShuffle() {
+        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+    }
+
+    // Every controller changes this session state; applying it here keeps the actual queue shared.
+    private fun applyShuffleMode(enabled: Boolean) {
+        if (enabled == shuffleEnabled) return
+        shuffleEnabled = enabled
         val c = controller ?: return
-        shuffleEnabled = !shuffleEnabled
-        if (shuffleEnabled) shuffleUpNext(c) else restoreOriginalOrder(c)
+        if (enabled) shuffleUpNext(c) else restoreOriginalOrder(c)
         updateState()
     }
 
@@ -691,10 +694,13 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
     val customCoverPath = context?.let {
         AlbumCoverRepository.getInstance(it).getCoverPath(album, artist, albumId)
     }
-    val artUri = when {
+    val resolvedArtUri = when {
         customCoverPath != null -> Uri.fromFile(java.io.File(customCoverPath))
-        albumId.isNotBlank() -> Uri.parse("content://media/external/audio/albumart/$albumId")
-        else -> null
+        artUri != null -> artUri
+        else -> contentUri
+    }
+    val extras = android.os.Bundle().apply {
+        putString("mediaId", id)
     }
     return MediaItem.Builder()
         .setMediaId(id)
@@ -706,9 +712,8 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
                 .setAlbumTitle(album)
                 .setIsBrowsable(false)
                 .setIsPlayable(true)
-                .apply {
-                    if (artUri != null) setArtworkUri(artUri)
-                }
+                .setArtworkUri(resolvedArtUri)
+                .setExtras(extras)
                 .build()
         )
         .build()

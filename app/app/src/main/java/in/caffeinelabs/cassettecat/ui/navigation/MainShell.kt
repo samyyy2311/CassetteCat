@@ -292,8 +292,7 @@ fun MainShell(
             (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
         }
     }
-    // Artist, Album art & Drive Mode deliberately extend behind the transparent status bar. Other routes retain
-    // their normal safe-area layout so ordinary screen headers are never pushed under system UI.
+    // Artist, album, and drive-mode routes extend behind the transparent status bar.
     val isHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL || currentRoute == MainRoute.ALBUM_DETAIL || currentRoute == MainRoute.DRIVE_MODE
     // artist/album/playlist detail are playback-adjacent, unlike CONNECT_SERVER or DRIVE_MODE, so chrome stays visible
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER && currentRoute != MainRoute.DRIVE_MODE
@@ -508,8 +507,7 @@ fun MainShell(
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
                             onNavigateToScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
-                            // The app navigation is a glass overlay.  Do not reserve an opaque
-                            // blank strip under it: content should continue beneath the tabs.
+                            // Navigation is an overlay; content continues beneath the tabs.
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }

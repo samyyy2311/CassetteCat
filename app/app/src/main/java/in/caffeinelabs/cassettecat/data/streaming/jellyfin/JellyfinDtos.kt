@@ -2,7 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.jellyfin
 
 import kotlinx.serialization.Serializable
 
-// Property names deliberately match Jellyfin's PascalCase JSON verbatim (its backend
+// Property names match Jellyfin's PascalCase JSON (its backend
 // is .NET) rather than adding @SerialName annotations to force lowerCamelCase.
 
 @Serializable

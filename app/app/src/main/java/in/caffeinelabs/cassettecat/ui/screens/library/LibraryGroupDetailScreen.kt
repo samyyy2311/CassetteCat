@@ -186,7 +186,7 @@ private fun ArtistCatalogScreen(
         derivedStateOf {
             if (listState.firstVisibleItemIndex > 0) 1f
             else {
-                // Keep the hero in charge for the first third of its travel. The compact
+                // Keep the detail header visible for the first third of its travel. The compact
                 // header then fades over the rest of that travel instead of arriving abruptly.
                 val heroScroll = listState.firstVisibleItemScrollOffset / heroHeightPx
                 ((heroScroll - 0.35f) / 0.65f).coerceIn(0f, 1f)
@@ -269,12 +269,12 @@ private fun ArtistCatalogScreen(
                     ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
                 }
             }
-            // About is intentionally final: the library/catalog content comes first.
+            // Keep About after the library and catalog entries.
             about?.let { biography ->
                 item(key = "about", contentType = "about") { ArtistAboutSection(biography) }
             }
         }
-        // The compact title is not a second header. It fades in only as the hero title leaves,
+        // The compact title fades in only as the large title leaves,
         // while its surface gradually picks up opacity from the same scroll progress.
         if (compactHeaderProgress > 0f) {
             Row(
@@ -1097,7 +1097,7 @@ private fun ArtistDetailHeader(
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             // Artist photography is often portrait or square. Fit preserves the full source
-            // instead of cutting off faces at the edges; the surface behind it fills the hero.
+            // instead of cutting off faces at the edges; the surface behind it fills the header.
             ArtistImage(
                 artist = artist,
                 modifier = Modifier.fillMaxSize(),

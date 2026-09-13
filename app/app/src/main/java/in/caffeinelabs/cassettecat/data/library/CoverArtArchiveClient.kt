@@ -79,7 +79,7 @@ class CoverArtArchiveClient {
         val key = "$album|$artist".lowercase()
         cache.get(key)?.let { return@withContext it }
 
-        // Multi-source ultra-high-resolution cover lookup: iTunes (1400px) -> Deezer (1000px) -> MusicBrainz/CAA (1200px/original)
+        // Try the available sources in descending image quality.
         val bitmap = fetchFromITunes(album, artist)
             ?: fetchFromDeezer(album, artist)
             ?: fetchFromMusicBrainz(album, artist)

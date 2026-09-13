@@ -201,7 +201,6 @@ img { max-width: 100%; display: block; }
 .err-body p { font-size: 15px; color: var(--text-2); max-width: 420px; line-height: 1.7; margin-bottom: 32px; }
 .err-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
-/* ── Home page (index.html) ── */
 * { box-sizing: border-box; }
 a { color: inherit; text-decoration: none; }
 a:hover { color: var(--text); }

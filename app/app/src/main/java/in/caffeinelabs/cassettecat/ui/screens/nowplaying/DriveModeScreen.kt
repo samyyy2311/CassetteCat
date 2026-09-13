@@ -107,7 +107,6 @@ fun DriveModeScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +141,6 @@ fun DriveModeScreen(
                     )
                 }
             } else if (isLandscape) {
-                // Landscape layout
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -195,7 +193,6 @@ fun DriveModeScreen(
                     }
                 }
             } else {
-                // Portrait layout
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

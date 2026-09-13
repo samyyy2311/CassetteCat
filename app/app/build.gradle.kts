@@ -17,11 +17,11 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.7.1"
+        ?: "1.7.2"
 
     val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
         ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
-        ?: 19
+        ?: 20
 
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"

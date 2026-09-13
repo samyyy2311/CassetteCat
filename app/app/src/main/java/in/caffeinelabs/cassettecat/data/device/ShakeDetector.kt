@@ -84,7 +84,7 @@ class ShakeDetector(
 
         val now = System.currentTimeMillis()
 
-        // 1. Proximity Sensor: Ignore all movement while in pocket/bag
+        // Ignore movement while the phone is in a pocket or bag.
         if (event.sensor.type == Sensor.TYPE_PROXIMITY) {
             val distance = event.values.firstOrNull() ?: Float.MAX_VALUE
             val maxRange = event.sensor.maximumRange
@@ -104,7 +104,7 @@ class ShakeDetector(
         if (now - lastUncoveredTimestamp < POCKET_UNCOVER_GRACE_MS) return
         if (now - lastShakeTimestamp < SHAKE_COOLDOWN_MS) return
 
-        // 2. High-pass filter to subtract steady Earth gravity and isolate pure dynamic hand motion
+        // Remove steady gravity before measuring hand motion.
         val rawX = event.values[0]
         val rawY = event.values[1]
         val rawZ = event.values[2]
@@ -126,7 +126,7 @@ class ShakeDetector(
         val dynamicZ = (rawZ - gravity[2]) / SensorManager.GRAVITY_EARTH
         val dynamicGForce = sqrt(dynamicX * dynamicX + dynamicY * dynamicY + dynamicZ * dynamicZ)
 
-        // 3. Evaluate rapid intentional shake pulses requiring directional reversal
+        // Require rapid movement with a directional reversal.
         if (dynamicGForce >= currentLinearThresholdG) {
             val absX = abs(dynamicX)
             val absY = abs(dynamicY)

@@ -16,8 +16,8 @@ import kotlin.coroutines.resumeWithException
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
     .connectionPool(ConnectionPool(5, 1, TimeUnit.MINUTES))
-    // Hard ceiling per call: OkHttp's per-read timeouts reset on every byte, so a trickling
-    // connection could otherwise stay open indefinitely. We have songs to get to.
+    // Bound the whole call; per-read timeouts reset when a server trickles bytes.
+    // It still has to finish eventually.
     .callTimeout(45, TimeUnit.SECONDS)
     .addInterceptor { chain ->
         val request = chain.request().newBuilder()

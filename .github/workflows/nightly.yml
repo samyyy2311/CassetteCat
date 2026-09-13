@@ -1,0 +1,93 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '30 19 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    name: Build Nightly APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Skip unchanged commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit="$(git rev-parse HEAD)"
+          body="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .body 2>/dev/null || true)"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          if grep -Fq "Commit: $commit" <<< "$body"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        if: steps.check.outputs.skip != 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        if: steps.check.outputs.skip != 'true'
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build development APK
+        if: steps.check.outputs.skip != 'true'
+        working-directory: ./app
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare nightly assets
+        id: prepare
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          apk="$(find app/app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          date="$(date -u +%F)"
+          commit="${{ steps.check.outputs.commit }}"
+          short_sha="${commit:0:7}"
+          name="CassetteCat-nightly-${date}-${short_sha}.apk"
+          mkdir -p nightly-assets
+          cp "$apk" "nightly-assets/$name"
+          sha256sum "nightly-assets/$name" > "nightly-assets/$name.sha256"
+          echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Publish nightly prerelease
+        if: steps.check.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          target_commitish: ${{ steps.check.outputs.commit }}
+          name: CassetteCat Nightly - ${{ steps.prepare.outputs.date }}
+          prerelease: true
+          make_latest: false
+          body: |
+            Nightly development build. May be unstable and is intended for testing only.
+
+            Commit: ${{ steps.check.outputs.commit }}
+          files: |
+            nightly-assets/*.apk
+            nightly-assets/*.apk.sha256

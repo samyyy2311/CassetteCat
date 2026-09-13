@@ -150,7 +150,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private var cachedMonthKey: String = YearMonth.now().toString()
     private val accumulatedListeningMs = mutableMapOf<ListeningBucket, Long>()
 
-    // Media3 doesn't push continuous position updates, so this polls while playing. Are we there yet?
+    // Media3 doesn't push continuous position updates, so poll while playing.
     private var tickerJob: Job? = null
 
     init {

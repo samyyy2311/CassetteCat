@@ -80,7 +80,7 @@ fun OnboardingHeroImage(
     }
 }
 
-// Fades and settles in on entry, like a display powering on, instead of appearing static.
+// Fade and settle the icon on entry instead of showing it statically.
 @Composable
 fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp = 180.dp, iconSize: Dp = 84.dp) {
     var visible by remember { mutableStateOf(false) }
@@ -145,7 +145,7 @@ fun OnboardingProgressDots(currentStep: Int, modifier: Modifier = Modifier, tota
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         repeat(totalSteps) { index ->
-            // Each dot ticks in slightly after the last, like an LED meter filling, no bounce.
+            // Stagger each dot slightly without adding bounce.
             val filled = index <= currentStep
             val color by animateColorAsState(
                 targetValue = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,

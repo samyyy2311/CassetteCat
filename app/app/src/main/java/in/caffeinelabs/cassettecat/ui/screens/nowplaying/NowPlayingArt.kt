@@ -315,7 +315,6 @@ private fun TurntablePlatter(modifier: Modifier = Modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
 
-        // Outer rim
         drawCircle(
             brush = Brush.sweepGradient(
                 listOf(
@@ -331,7 +330,6 @@ private fun TurntablePlatter(modifier: Modifier = Modifier) {
             center = center
         )
 
-        // Strobe calibration ring
         drawCircle(
             color = Color.White.copy(alpha = 0.08f),
             radius = radius * 0.98f,
@@ -339,14 +337,12 @@ private fun TurntablePlatter(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.5.dp.toPx())
         )
 
-        // Platter mat
         drawCircle(
             color = Color(0xFF131316),
             radius = radius * 0.94f,
             center = center
         )
 
-        // Mat rings
         var matRing = radius * 0.88f
         while (matRing > radius * 0.38f) {
             drawCircle(
@@ -367,10 +363,8 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
 
-        // Vinyl base
         drawCircle(color = Color(0xFF0C0C0E), radius = radius, center = center)
 
-        // Outer edge
         drawCircle(
             color = Color.White.copy(alpha = 0.12f),
             radius = radius * 0.99f,
@@ -378,7 +372,6 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Light reflections
         drawCircle(
             brush = Brush.sweepGradient(
                 0.00f to Color.White.copy(alpha = 0.00f),
@@ -397,7 +390,6 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             center = center
         )
 
-        // Groove bands
         var groove = radius * 0.94f
         val innerGrooveLimit = radius * 0.44f
         var step = 0
@@ -426,13 +418,11 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Center label
         drawCircle(
             color = labelColor,
             radius = radius * 0.35f,
             center = center
         )
-        // Label rings
         drawCircle(
             color = Color.Black.copy(alpha = 0.25f),
             radius = radius * 0.30f,
@@ -446,7 +436,6 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx())
         )
 
-        // Spindle hole and ring
         drawCircle(color = Color(0xFFC4A052), radius = radius * 0.07f, center = center)
         drawCircle(color = Color(0xFF0C0C0E), radius = radius * 0.045f, center = center)
     }
@@ -461,7 +450,6 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
         val playingTip = Offset(w * 0.68f, h * 0.62f)
         val armRestPos = Offset(w * 0.85f, h * 0.66f)
 
-        // Armrest
         drawCircle(
             color = Color(0xFF1E293B),
             radius = 5.dp.toPx(),
@@ -480,9 +468,7 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
             cap = StrokeCap.Round
         )
 
-        // Tonearm
         rotate(degrees = liftAngleDeg, pivot = pivot) {
-            // Shadow behind the tonearm
             drawLine(
                 color = Color.Black.copy(alpha = 0.45f),
                 start = pivot + Offset(3.dp.toPx(), 3.dp.toPx()),
@@ -491,7 +477,6 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 cap = StrokeCap.Round
             )
 
-            // Arm tube
             val armPath = Path().apply {
                 moveTo(pivot.x, pivot.y)
                 cubicTo(
@@ -515,7 +500,6 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
 
-            // Headshell
             val headshellPath = Path().apply {
                 moveTo(playingTip.x - 7.dp.toPx(), playingTip.y - 10.dp.toPx())
                 lineTo(playingTip.x + 5.dp.toPx(), playingTip.y - 6.dp.toPx())
@@ -525,14 +509,12 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
             }
             drawPath(path = headshellPath, color = Color(0xFF1E293B))
 
-            // Stylus
             drawCircle(
                 color = Color(0xFFEF4444),
                 radius = 2.5.dp.toPx(),
                 center = playingTip + Offset(-3.dp.toPx(), 4.dp.toPx())
             )
 
-            // Pivot
             drawCircle(
                 color = Color(0xFF1E293B),
                 radius = 16.dp.toPx(),
@@ -553,7 +535,6 @@ private fun Tonearm(liftAngleDeg: Float, modifier: Modifier = Modifier) {
                 center = pivot
             )
 
-            // Counterweight
             val counterweightCenter = pivot + Offset(11.dp.toPx(), -11.dp.toPx())
             drawCircle(
                 brush = Brush.linearGradient(
@@ -666,7 +647,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                     label = "ambientPulse"
                 )
 
-                // Base gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -680,7 +660,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                         )
                 )
 
-                // Mesh glow
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -689,7 +668,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                     val w = size.width
                     val h = size.height
 
-                    // Glow behind the album art
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -704,7 +682,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                         radius = w * 1.05f
                     )
 
-                    // Right-side glow
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -718,7 +695,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                         radius = w * 0.90f
                     )
 
-                    // Left-side glow
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(

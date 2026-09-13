@@ -246,7 +246,6 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -328,7 +327,6 @@ internal fun LrcLibSearchSheet(
                 }
             }
         } else {
-            // Search
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -368,7 +366,6 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Search input
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -419,7 +416,6 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Results
                 if (isSearching) {
                     Box(
                         modifier = Modifier
@@ -525,7 +521,6 @@ internal fun LrcLibSearchSheet(
 
                                         Spacer(Modifier.width(8.dp))
 
-                                        // Match badge
                                         if (hasSynced) {
                                             Box(
                                                 modifier = Modifier
@@ -572,7 +567,6 @@ internal fun LrcLibSearchSheet(
                                         }
                                     }
 
-                                        // Lyric preview
                                     val snippet = (item.syncedLyrics ?: item.plainLyrics).orEmpty()
                                         .lineSequence()
                                         .filter { it.isNotBlank() && !it.startsWith("[") }

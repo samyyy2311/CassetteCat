@@ -76,9 +76,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.delay
 
-// True ease-in-out.
 private val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
-// Material You "Emphasized Accelerate": gentle start, fast exit.
 private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
 // QueueRow's actual rendered height (48dp art + 10dp padding); fixed since every
@@ -105,7 +103,7 @@ fun QueueList(
     // player's scrubber/transport chrome while this list is scrolling).
     state: LazyListState = rememberLazyListState()
 ) {
-    var order by remember(upNext) { mutableStateOf(upNext) }
+    var order by remember(upNext) { mutableStateOf(upNext.mapIndexed { index, song -> index to song }) }
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragStartIndex by remember { mutableIntStateOf(-1) }
     var dragOffsetPx by remember { mutableFloatStateOf(0f) }
@@ -212,7 +210,8 @@ fun QueueList(
             }
         }
         if (order.isNotEmpty()) {
-            itemsIndexed(order, key = { index, song -> "next:${song.id}_$index" }) { index, song ->
+            itemsIndexed(order, key = { _, entry -> "next:${entry.first}" }) { index, entry ->
+                val song = entry.second
                 val isDragging = index == draggingIndex
                 // Per-item dismissed flag: set to true on swipe confirm to trigger the
                 // AnimatedVisibility collapse animation before the data model removes the item.
@@ -334,7 +333,7 @@ fun QueueList(
                                             isReordering = false
                                         },
                                         onDragCancel = {
-                                            order = upNext
+                                            order = upNext.mapIndexed { index, song -> index to song }
                                             draggingIndex = -1
                                             dragStartIndex = -1
                                             dragOffsetPx = 0f
@@ -351,7 +350,7 @@ fun QueueList(
                                                         add(newIndex, removeAt(draggingIndex))
                                                     }
                                                     draggingIndex = newIndex
-                                                    // A tick per swap, not just on pickup, mimics a physical detent.
+                                                    // Give each swap its own haptic tick.
                                                     haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                                 }
                                                 dragOffsetPx -= steps * rowHeightPx

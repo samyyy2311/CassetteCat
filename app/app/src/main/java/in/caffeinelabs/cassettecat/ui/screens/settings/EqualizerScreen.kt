@@ -796,7 +796,6 @@ private fun BipolarEqTrack(sliderState: SliderState) {
             val centerX = size.width * centerFraction
             val thumbX = size.width * fraction
 
-            // Center zero notch
             drawLine(
                 color = centerMarkColor,
                 start = Offset(centerX, -4.dp.toPx()),

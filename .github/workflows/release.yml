@@ -40,13 +40,21 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode Release Keystore (if configured)
-        if: ${{ env.SIGNING_KEYSTORE_BASE64 != '' }}
+        if: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
         run: |
           echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > release.keystore
 
-      - name: Build Release and Debug Artifacts (APKs & AAB)
+      - name: Require release signing
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: test -n "$SIGNING_KEYSTORE_BASE64" -a -n "$KEYSTORE_PASSWORD" -a -n "$KEY_ALIAS" -a -n "$KEY_PASSWORD"
+
+      - name: Build Release Artifacts (APK & AAB)
         working-directory: ./app
         env:
           GITHUB_REF_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
@@ -55,28 +63,28 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease assembleDebug bundleRelease --stacktrace
+          ./gradlew assembleRelease bundleRelease --stacktrace
 
       - name: Upload Release AAB (Play Store Bundle)
         uses: actions/upload-artifact@v4
         with:
           name: cassettecat-release-aab
           path: app/app/build/outputs/bundle/release/app-release*.aab
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Upload Release APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cassettecat-release-apk
-          path: app/app/build/outputs/apk/release/app-release*.apk
-          if-no-files-found: warn
-
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cassettecat-debug-apk
-          path: app/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
+      - name: Prepare signed release assets
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          apk="$(find app/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          apksigner verify "$apk"
+          mkdir -p release-assets
+          name="CassetteCat-v${version}.apk"
+          cp "$apk" "release-assets/$name"
+          sha256sum "release-assets/$name" > "release-assets/$name.sha256"
 
       - name: Extract Changelog Section
         env:
@@ -102,7 +110,6 @@ jobs:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version_name) }}
           body_path: release_notes.md
           files: |
-            app/app/build/outputs/apk/release/app-release*.apk
-            app/app/build/outputs/apk/debug/app-debug.apk
-            app/app/build/outputs/bundle/release/app-release*.aab
+            release-assets/CassetteCat-v*.apk
+            release-assets/CassetteCat-v*.apk.sha256
           generate_release_notes: true

@@ -56,8 +56,8 @@ internal fun RadioNowPlayingView(
         )
     }
 
-    // A station has no artist/album page and no lyrics/queue to navigate to,
-    // so the header stays informational rather than a set of dead-end taps.
+    // Stations have no artist/album detail, lyrics, or queue destination.
+    // Keep the header informational rather than making it interactive.
     val info: @Composable () -> Unit = {
         TitleRow(
             song = song,

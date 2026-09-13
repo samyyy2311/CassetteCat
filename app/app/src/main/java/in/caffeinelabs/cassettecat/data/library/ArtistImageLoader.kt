@@ -115,9 +115,8 @@ class ArtistImageLoader {
 
     private fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")
 
-    // Search APIs happily return partial-name matches (for example, "Adele" can return
-    // unrelated releases that contain the name). A missing portrait is preferable to a
-    // confident but incorrect one, so only accept a canonical full-name match.
+    // Search APIs can return partial-name matches, so require a canonical full-name match
+    // rather than showing the wrong artist image.
     private fun String.isSameArtistAs(other: String): Boolean =
         canonicalArtistName() == other.canonicalArtistName()
 

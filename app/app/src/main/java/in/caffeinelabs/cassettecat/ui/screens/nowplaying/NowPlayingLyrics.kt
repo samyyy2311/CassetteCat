@@ -863,7 +863,6 @@ internal fun InstrumentalWaveformView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Waveform bars
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -883,7 +882,6 @@ internal fun InstrumentalWaveformView(
 
         Spacer(Modifier.height(28.dp))
 
-        // Title
         Text(
             text = "Instrumental",
             style = MaterialTheme.typography.headlineMedium,
@@ -894,7 +892,6 @@ internal fun InstrumentalWaveformView(
 
         Spacer(Modifier.height(8.dp))
 
-        // Subtitle
         Text(
             text = if (!artist.isNullOrBlank()) "Composed by $artist" else "This track has no lyrics",
             style = MaterialTheme.typography.bodyLarge,
@@ -905,12 +902,10 @@ internal fun InstrumentalWaveformView(
 
         Spacer(Modifier.height(28.dp))
 
-        // Actions
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Search online
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -942,7 +937,6 @@ internal fun InstrumentalWaveformView(
                 }
             }
 
-            // Return to album art
             Box(
                 modifier = Modifier
                     .clip(CircleShape)

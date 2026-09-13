@@ -142,7 +142,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             .build()
             .toString()
 
-    // Deprecated X-Emby-Authorization/X-MediaBrowser-Token headers intentionally not
+    // Deprecated X-Emby-Authorization/X-MediaBrowser-Token headers are not
     // used; this is the current Authorization scheme. Token is omitted pre-login.
     private fun authorizationHeader(accessToken: String?): String {
         val tokenPart = accessToken?.let { ", Token=\"$it\"" }.orEmpty()

@@ -90,7 +90,7 @@ class AlbumArtLoader(private val context: Context) {
 }
 
 // Closeable only from API 29+; this keeps `use { }` working uniformly down to minSdk 26.
-private inline fun <T> MediaMetadataRetriever.use(block: (MediaMetadataRetriever) -> T): T {
+internal inline fun <T> MediaMetadataRetriever.use(block: (MediaMetadataRetriever) -> T): T {
     try {
         return block(this)
     } finally {

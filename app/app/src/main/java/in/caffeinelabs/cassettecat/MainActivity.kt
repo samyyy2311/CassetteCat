@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         handleShortcutIntent(intent)
         requestHighestRefreshRate()
-        // The app draws the artist/album hero behind the status bar. A transparent dark style
+        // Artist and album detail screens draw behind the status bar. A transparent dark style
         // lets that artwork continue to the very top while retaining readable light icons.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
