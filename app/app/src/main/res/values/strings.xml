@@ -40,6 +40,9 @@
     <string name="action_ok">OK</string>
     <string name="action_add_folder">Add folder</string>
     <string name="action_remove_folder">Remove folder</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_share">Share</string>
+    <string name="action_clear">Clear</string>
 
     <string name="onboarding_welcome_headline">Make your library feel like yours.</string>
     <string name="onboarding_welcome_body">Play, organize, and own your music, no subscription.</string>
@@ -135,4 +138,24 @@
     <string name="pairing_protocol">Protocol</string>
     <string name="pairing_protocol_hotspot">Direct SoftAP Hotspot</string>
     <string name="pairing_protocol_local">Local Network (mDNS)</string>
+
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_listening_record">Listening Record</string>
+    <string name="privacy_collect_listening_activity">Collect listening activity</string>
+    <string name="privacy_collect_listening_activity_description">Store playback time and play counts on this device.</string>
+    <string name="privacy_server_credentials">Server credentials</string>
+    <string name="privacy_server_credentials_description">Server passwords and access tokens are encrypted with Android Keystore.</string>
+    <string name="privacy_remove_credentials">Disconnect all servers and remove credentials</string>
+    <string name="privacy_diagnostics">Diagnostics</string>
+    <string name="privacy_crash_log">Crash Log</string>
+    <string name="privacy_crash_recorded">A crash was recorded on this device</string>
+    <string name="privacy_no_crashes">No crashes recorded</string>
+    <string name="privacy_online_policy">Online Policy</string>
+    <string name="privacy_web_policy">Web Privacy Policy</string>
+    <string name="privacy_web_policy_description">Read our full online privacy policy at cassettecat.caffeinelabs.in</string>
+    <string name="privacy_remove_credentials_title">Remove server credentials?</string>
+    <string name="privacy_remove_credentials_message">This disconnects Subsonic and Jellyfin and removes their saved credentials from this device.</string>
+    <string name="privacy_share_crash_log">Share Crash Log</string>
+    <string name="privacy_crash_log_empty">No crashes recorded. Nothing is ever sent off this device.</string>
+    <string name="privacy_crash_log_help">Stored on this device only. Share it yourself if you want to report a bug.</string>
 </resources>
