@@ -61,6 +61,8 @@ fun SetupCustomizationScreen(onContinue: () -> Unit, modifier: Modifier = Modifi
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val backupRepository = remember { BackupRepository(context) }
+    val restoreSuccessMessage = stringResource(AppR.string.onboarding_restore_success)
+    val restoreFailedMessage = stringResource(AppR.string.onboarding_restore_failed)
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var isRestoring by remember { mutableStateOf(false) }
 
@@ -73,11 +75,7 @@ fun SetupCustomizationScreen(onContinue: () -> Unit, modifier: Modifier = Modifi
                         val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                         text?.let { backupRepository.restoreBackup(it) }
                     }
-                    resultMessage = if (result?.isSuccess == true) {
-                        context.getString(AppR.string.onboarding_restore_success)
-                    } else {
-                        context.getString(AppR.string.onboarding_restore_failed)
-                    }
+                    resultMessage = if (result?.isSuccess == true) restoreSuccessMessage else restoreFailedMessage
                 } finally {
                     isRestoring = false
                 }
