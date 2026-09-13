@@ -12,8 +12,6 @@ data class CanvasTypefaces(
     val ibmPlexSans: Typeface
 )
 
-// Shared by the share-card canvases (Now Playing screenshot, lyric card, Rewind poster):
-// same fonts, same runCatching fallback-to-system-typeface behavior.
 fun loadCanvasTypefaces(context: Context): CanvasTypefaces {
     val spaceGroteskRaw = runCatching {
         ResourcesCompat.getFont(context, AppR.font.space_grotesk_variable)
