@@ -11,10 +11,6 @@ android {
     namespace = "in.caffeinelabs.cassettecat"
     compileSdk = 37
 
-    androidResources {
-        generateLocaleConfig = true
-    }
-
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
