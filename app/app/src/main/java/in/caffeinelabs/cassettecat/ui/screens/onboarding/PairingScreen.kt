@@ -4,8 +4,6 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,16 +22,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.CompanionStatus
 import `in`.caffeinelabs.cassettecat.data.device.DeviceConnectionType
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
@@ -81,10 +80,10 @@ fun PairingScreen(
             Column(modifier = Modifier.padding(24.dp)) {
                 OnboardingHeaderRow(currentStep = 4, totalSteps = 5, onSkip = onFinish)
                 Spacer(Modifier.height(10.dp))
-                Text("Connect CassetteCat", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(AppR.string.pairing_onboarding_title), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Pair over Wi-Fi or direct hotspot.",
+                    stringResource(AppR.string.pairing_onboarding_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -96,18 +95,22 @@ fun PairingScreen(
                     .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onFinish)
-                Text("CassetteCat Player", style = MaterialTheme.typography.headlineSmall)
+                PressDepthIconButton(
+                    R.drawable.lucide_ic_chevron_left,
+                    stringResource(AppR.string.action_back),
+                    onFinish
+                )
+                Text(stringResource(AppR.string.pairing_player_title), style = MaterialTheme.typography.headlineSmall)
             }
 
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Text(
-                    "Companion Hardware Sync",
+                    stringResource(AppR.string.pairing_companion_label),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.tertiary
                 )
                 Text(
-                    "Pair and monitor your standalone ESP32 audio player device.",
+                    stringResource(AppR.string.pairing_companion_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -119,17 +122,17 @@ fun PairingScreen(
 
         when (val current = state) {
             is DevicePairingState.SelectingMode -> {
-                SettingsSection(title = "CONNECTION MODE") {
+                SettingsSection(title = stringResource(AppR.string.pairing_connection_mode)) {
                     NavigationRow(
-                        title = "Direct Hotspot",
-                        subtitle = "Connect directly to the player's Wi-Fi network (192.168.4.1)",
+                        title = stringResource(AppR.string.pairing_direct_hotspot_title),
+                        subtitle = stringResource(AppR.string.pairing_direct_hotspot_subtitle),
                         iconRes = R.drawable.lucide_ic_radio_tower,
                         onClick = startSoftApDiscovery
                     )
                     SettingsDivider()
                     NavigationRow(
-                        title = "Local Network (mDNS)",
-                        subtitle = "Discover player connected to the same home Wi-Fi router",
+                        title = stringResource(AppR.string.pairing_local_network_title),
+                        subtitle = stringResource(AppR.string.pairing_local_network_subtitle),
                         iconRes = R.drawable.lucide_ic_house_wifi,
                         onClick = { viewModel.selectMode(DeviceConnectionType.STATION) }
                     )
@@ -137,7 +140,7 @@ fun PairingScreen(
             }
 
             is DevicePairingState.Searching -> {
-                SettingsSection(title = "DISCOVERY") {
+                SettingsSection(title = stringResource(AppR.string.pairing_discovery)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -152,11 +155,17 @@ fun PairingScreen(
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                if (current.mode == DeviceConnectionType.SOFT_AP) "Searching for CassetteCat hotspot..." else "Looking for devices on local Wi-Fi...",
+                                stringResource(
+                                    if (current.mode == DeviceConnectionType.SOFT_AP) {
+                                        AppR.string.pairing_searching_hotspot
+                                    } else {
+                                        AppR.string.pairing_searching_local
+                                    }
+                                ),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                "Make sure player is powered on",
+                                stringResource(AppR.string.pairing_power_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -166,13 +175,13 @@ fun PairingScreen(
                         onClick = hapticClick { viewModel.cancelSearch() },
                         modifier = Modifier.padding(horizontal = 24.dp)
                     ) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.tertiary)
+                        Text(stringResource(AppR.string.action_cancel), color = MaterialTheme.colorScheme.tertiary)
                     }
                 }
             }
 
             is DevicePairingState.DeviceFound -> {
-                SettingsSection(title = "DEVICE FOUND") {
+                SettingsSection(title = stringResource(AppR.string.pairing_device_found)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -195,14 +204,14 @@ fun PairingScreen(
                             )
                         }
                         Button(onClick = hapticClick { viewModel.connect(current.device) }) {
-                            Text("Connect")
+                            Text(stringResource(AppR.string.action_connect))
                         }
                     }
                 }
             }
 
             is DevicePairingState.Connecting -> {
-                SettingsSection(title = "CONNECTING") {
+                SettingsSection(title = stringResource(AppR.string.pairing_connecting)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -215,7 +224,10 @@ fun PairingScreen(
                             strokeWidth = 2.5.dp
                         )
                         Spacer(Modifier.width(16.dp))
-                        Text("Establishing session with ${current.device.name}...", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(AppR.string.pairing_establishing_session, current.device.name),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 }
             }
@@ -233,7 +245,7 @@ fun PairingScreen(
             }
 
             is DevicePairingState.Failed -> {
-                SettingsSection(title = "CONNECTION STATUS") {
+                SettingsSection(title = stringResource(AppR.string.pairing_connection_status)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -248,7 +260,7 @@ fun PairingScreen(
                         )
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Could not connect", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(AppR.string.pairing_connection_failed), style = MaterialTheme.typography.bodyLarge)
                             Text(
                                 current.message,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -260,7 +272,7 @@ fun PairingScreen(
                         onClick = hapticClick { viewModel.selectMode(current.mode) },
                         modifier = Modifier.padding(horizontal = 24.dp)
                     ) {
-                        Text("Try again", color = MaterialTheme.colorScheme.tertiary)
+                        Text(stringResource(AppR.string.action_try_again), color = MaterialTheme.colorScheme.tertiary)
                     }
                 }
             }
@@ -284,7 +296,7 @@ private fun ConnectedCompanionView(
     val used = status.storageUsedBytes ?: (4L * 1024 * 1024 * 1024)
     val total = status.storageTotalBytes ?: (32L * 1024 * 1024 * 1024)
 
-    SettingsSection(title = "CONNECTED COMPANION") {
+    SettingsSection(title = stringResource(AppR.string.pairing_connected_companion)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -301,51 +313,51 @@ private fun ConnectedCompanionView(
             Column(modifier = Modifier.weight(1f)) {
                 Text(device.name, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Connected at ${device.host}:${device.port}",
+                    stringResource(AppR.string.pairing_connected_at, device.host, device.port),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TextButton(onClick = hapticClick(onDisconnect)) {
-                Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(AppR.string.action_disconnect), color = MaterialTheme.colorScheme.error)
             }
         }
     }
 
     Spacer(Modifier.height(24.dp))
 
-    SettingsSection(title = "CONTROL PANEL") {
+    SettingsSection(title = stringResource(AppR.string.pairing_control_panel)) {
         NavigationRow(
-            title = "Now Playing",
-            subtitle = "Remote play, pause, skip, and volume",
+            title = stringResource(AppR.string.pairing_now_playing_title),
+            subtitle = stringResource(AppR.string.pairing_now_playing_subtitle),
             iconRes = R.drawable.lucide_ic_music,
             onClick = onNavigateToNowPlaying
         )
         SettingsDivider()
         NavigationRow(
-            title = "Sync Songs",
-            subtitle = "Push local songs to the player's SD card",
+            title = stringResource(AppR.string.pairing_sync_songs_title),
+            subtitle = stringResource(AppR.string.pairing_sync_songs_subtitle),
             iconRes = R.drawable.lucide_ic_upload,
             onClick = onNavigateToSync
         )
         SettingsDivider()
         NavigationRow(
-            title = "Storage",
-            subtitle = "Browse and manage files on the SD card",
+            title = stringResource(AppR.string.pairing_storage_title),
+            subtitle = stringResource(AppR.string.pairing_storage_subtitle),
             iconRes = R.drawable.lucide_ic_folder,
             onClick = onNavigateToStorage
         )
         SettingsDivider()
         NavigationRow(
-            title = "Firmware",
-            subtitle = "v${status.firmwareVersion} installed",
+            title = stringResource(AppR.string.pairing_firmware_title),
+            subtitle = stringResource(AppR.string.pairing_firmware_installed, status.firmwareVersion),
             iconRes = R.drawable.lucide_ic_cpu,
             onClick = onNavigateToFirmware
         )
         SettingsDivider()
         NavigationRow(
-            title = "Device Settings",
-            subtitle = "Rename, Wi-Fi mode, factory reset",
+            title = stringResource(AppR.string.pairing_device_settings_title),
+            subtitle = stringResource(AppR.string.pairing_device_settings_subtitle),
             iconRes = R.drawable.lucide_ic_settings,
             onClick = onNavigateToDeviceSettings
         )
@@ -353,14 +365,37 @@ private fun ConnectedCompanionView(
 
     Spacer(Modifier.height(24.dp))
 
-    SettingsSection(title = "HARDWARE TELEMETRY") {
-        SettingsDetailRow("Firmware Version", "v${status.firmwareVersion}")
+    SettingsSection(title = stringResource(AppR.string.pairing_hardware_telemetry)) {
+        SettingsDetailRow(
+            stringResource(AppR.string.pairing_firmware_version),
+            "v${status.firmwareVersion}"
+        )
         SettingsDivider()
-        SettingsDetailRow("Battery Level", "${status.batteryPercentage ?: 100}%${if (status.isCharging) " (Charging)" else ""}")
+        val battery = status.batteryPercentage ?: 100
+        SettingsDetailRow(
+            stringResource(AppR.string.pairing_battery_level),
+            if (status.isCharging) {
+                stringResource(AppR.string.pairing_battery_charging_value, battery)
+            } else {
+                stringResource(AppR.string.pairing_battery_value, battery)
+            }
+        )
         SettingsDivider()
-        SettingsDetailRow("SD Card Storage", "${formatBytes(used)} / ${formatBytes(total)}")
+        SettingsDetailRow(
+            stringResource(AppR.string.pairing_sd_storage),
+            "${formatBytes(used)} / ${formatBytes(total)}"
+        )
         SettingsDivider()
-        SettingsDetailRow("Protocol", if (device.connectionType == DeviceConnectionType.SOFT_AP) "Direct SoftAP Hotspot" else "Local Network (mDNS)")
+        SettingsDetailRow(
+            stringResource(AppR.string.pairing_protocol),
+            stringResource(
+                if (device.connectionType == DeviceConnectionType.SOFT_AP) {
+                    AppR.string.pairing_protocol_hotspot
+                } else {
+                    AppR.string.pairing_protocol_local
+                }
+            )
+        )
     }
 }
 
