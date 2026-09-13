@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "in.caffeinelabs.cassettecat"
     compileSdk = 37
+
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false

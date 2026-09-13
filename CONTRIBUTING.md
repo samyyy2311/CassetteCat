@@ -1,6 +1,6 @@
 # Contributing to CassetteCat
 
-Thank you for contributing to CassetteCat. We welcome improvements, bug fixes, and feedback from the community.
+Thank you for contributing to CassetteCat. We welcome improvements, bug fixes, translations, and feedback from the community.
 
 ## Engineering Principles
 
@@ -38,6 +38,12 @@ cd app
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest
 ```
+
+---
+
+## Translations
+
+See [`TRANSLATING.md`](TRANSLATING.md) before adding or updating translations. English is the source language, and user-facing text should use Android string resources instead of hardcoded UI strings.
 
 ---
 

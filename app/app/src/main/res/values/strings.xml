@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CassetteCat</string>
+    <string name="app_name" translatable="false">CassetteCat</string>
     <string name="download_channel_name">Downloads</string>
     <string name="widget_description">Playback controls styled as a classic transparent cassette tape</string>
     <string name="widget_not_playing">Not playing</string>
@@ -26,7 +26,7 @@
     </plurals>
     <string name="share_listening_record">Share your record</string>
     <string name="close">Close</string>
-    <string name="share_whatsapp">WhatsApp</string>
+    <string name="share_whatsapp" translatable="false">WhatsApp</string>
     <string name="share_stories">Stories</string>
     <string name="share_more">More</string>
 </resources>
