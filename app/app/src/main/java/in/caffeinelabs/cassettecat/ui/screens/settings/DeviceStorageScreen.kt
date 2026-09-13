@@ -28,10 +28,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.DeviceFileEntry
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -72,11 +74,11 @@ fun DeviceStorageScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = { if (currentPath.isEmpty()) onBack() else currentPath = currentPath.substringBeforeLast('/', "") }
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text("Player Storage", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.device_storage_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
                     currentPath.ifEmpty { "/" },
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -91,8 +93,8 @@ fun DeviceStorageScreen(
             }
             entries.isNullOrEmpty() -> EmptyState(
                 iconRes = R.drawable.lucide_ic_folder,
-                title = "Nothing here",
-                message = "The player didn't respond, or this folder is empty.",
+                title = stringResource(AppR.string.device_storage_empty_title),
+                message = stringResource(AppR.string.device_storage_empty_message),
                 modifier = Modifier.weight(1f)
             )
             else -> LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding)) {
@@ -110,16 +112,16 @@ fun DeviceStorageScreen(
     pendingDelete?.let { entry ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete \"${entry.name}\"?") },
-            text = { Text("This permanently removes it from the player's SD card. This can't be undone.") },
+            title = { Text(stringResource(AppR.string.device_storage_delete_title, entry.name)) },
+            text = { Text(stringResource(AppR.string.device_storage_delete_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     pairingViewModel.deleteDeviceFile(entry.path) { load(currentPath) }
                     pendingDelete = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(AppR.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
@@ -146,7 +148,7 @@ private fun DeviceFileRow(entry: DeviceFileEntry, onClick: () -> Unit, onDelete:
         }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_trash_2,
-            contentDescription = "Delete",
+            contentDescription = stringResource(AppR.string.action_delete),
             onClick = onDelete
         )
     }

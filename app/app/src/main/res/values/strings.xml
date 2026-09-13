@@ -42,6 +42,7 @@
     <string name="action_add_folder">Add folder</string>
     <string name="action_remove_folder">Remove folder</string>
     <string name="action_remove">Remove</string>
+    <string name="action_delete">Delete</string>
     <string name="action_share">Share</string>
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
@@ -196,4 +197,12 @@
     <string name="server_quick_connect_instructions">Enter this code in Jellyfin under your profile’s Quick Connect page:</string>
     <string name="server_http_warning_title">Use HTTPS if possible</string>
     <string name="server_http_warning_message">HTTP can expose your login while it travels across the network. Continue only for a server you trust on a private network.</string>
+
+    <string name="device_now_playing_title">Now Playing on Device</string>
+    <string name="device_now_playing_waiting">Waiting for the player to report its status.</string>
+    <string name="device_storage_title">Player Storage</string>
+    <string name="device_storage_empty_title">Nothing here</string>
+    <string name="device_storage_empty_message">The player didn’t respond, or this folder is empty.</string>
+    <string name="device_storage_delete_title">Delete “%1$s”?</string>
+    <string name="device_storage_delete_message">This permanently removes it from the player’s SD card. This can’t be undone.</string>
 </resources>

@@ -22,10 +22,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.PlaybackControlsRow
@@ -54,17 +56,17 @@ fun DeviceNowPlayingScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
-            Text("Now Playing on Device", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(AppR.string.device_now_playing_title), style = MaterialTheme.typography.headlineSmall)
         }
 
         if (status == null) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_music,
-                title = "Not playing",
-                message = "Waiting for the player to report its status.",
+                title = stringResource(AppR.string.widget_not_playing),
+                message = stringResource(AppR.string.device_now_playing_waiting),
                 modifier = Modifier.weight(1f)
             )
         } else {
