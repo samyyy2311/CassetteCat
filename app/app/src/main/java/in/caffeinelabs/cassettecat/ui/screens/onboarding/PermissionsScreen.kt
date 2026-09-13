@@ -36,6 +36,7 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
+        // Setup can continue if a permission is denied; it can be enabled later.
         onContinue()
     }
 
