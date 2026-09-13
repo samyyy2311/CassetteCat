@@ -2,8 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.library
 
 import android.net.Uri
 
-// Which repository a Song came from. Bare marker, no serverId: only one server per
-// protocol is supported now, so the API client instance already knows which server it talks to.
+// One server per protocol is supported, so a server id is not needed here.
 sealed interface MusicSource {
     data object Local : MusicSource
     data object Subsonic : MusicSource
@@ -13,32 +12,26 @@ sealed interface MusicSource {
 }
 
 data class Song(
-    // Source-prefixed ("local:<id>", "subsonic:<id>", "jellyfin:<id>") so ids stay
-    // unique across sources once a library can mix local + streamed songs.
+    // Prefixing keeps ids unique when local and remote libraries are mixed.
     val id: String,
     val title: String,
     val artist: String,
     val album: String,
     val albumId: String,
     val durationMs: Long,
-    // Local: content:// URI. Streamed: pre-authenticated https:// stream URL (query-param
-    // auth), ExoPlayer plays either the same way.
+    // Local songs use content:// URIs. Remote songs use stream URLs.
     val contentUri: Uri,
     val source: MusicSource,
-    // Null for Local (uses the on-device AlbumArtLoader instead); populated for
-    // streamed sources with a fully-authenticated cover-art URL.
+    // Remote sources can provide cover art. Local art is loaded on-device.
     val artUri: Uri? = null,
     val isFavorite: Boolean = false,
     val genres: List<String> = emptyList(),
-    // Release year from the file/server metadata. It is null when the source doesn't provide it.
     val releaseYear: Int? = null,
-    // MediaStore provides this for local files; remote sources fall back to zero when their
-    // server does not expose a reliable library-added timestamp.
+    // Remote sources fall back to zero when there is no reliable added date.
     val dateAddedMs: Long = 0L,
-    // Local only: on-device file path (MediaStore DATA column), used to look up sidecar
-    // .lrc files. Always null for streamed sources.
+    // Local path used for sidecar .lrc files. Remote songs leave this null.
     val filePath: String? = null,
-    // Radio only: stream bitrate in kbps and station country, 0/blank for other sources.
+    // Radio metadata. Other sources keep the defaults.
     val bitrateKbps: Int = 0,
     val country: String = ""
 )
