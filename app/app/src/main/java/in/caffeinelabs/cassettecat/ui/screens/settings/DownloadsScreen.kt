@@ -22,11 +22,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,20 +36,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.exoplayer.offline.Download
 import com.composables.icons.lucide.R
-import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.DEFAULT_MAX_CACHE_BYTES
 import `in`.caffeinelabs.cassettecat.data.download.DOWNLOAD_CACHE_LIMIT_OPTIONS_MB
+import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
-import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -92,7 +94,11 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
     val favoritesRepository = remember { FavoritesRepository(context) }
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val undownloadedLiked = remember(librarySongs, favoriteIds, downloads) {
-        librarySongs.filter { (it.isFavorite || it.id in favoriteIds) && it.source != MusicSource.Local && downloads[it.id]?.state != Download.STATE_COMPLETED }
+        librarySongs.filter {
+            (it.isFavorite || it.id in favoriteIds) &&
+                it.source != MusicSource.Local &&
+                downloads[it.id]?.state != Download.STATE_COMPLETED
+        }
     }
     val totalBytes = completed.sumOf { it.second.bytesDownloaded }
     var showRemoveAllConfirm by remember { mutableStateOf(false) }
@@ -106,13 +112,17 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text("Downloads", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.downloads_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "${formatBytes(totalBytes)} of ${formatBytes(maxCacheBytes)} used",
+                    stringResource(
+                        AppR.string.downloads_storage_used,
+                        formatBytes(totalBytes),
+                        formatBytes(maxCacheBytes)
+                    ),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -120,7 +130,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             if (completed.isNotEmpty()) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_trash_2,
-                    contentDescription = "Remove all downloads",
+                    contentDescription = stringResource(AppR.string.downloads_remove_all_description),
                     onClick = { showRemoveAllConfirm = true }
                 )
             }
@@ -137,9 +147,9 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Wi-Fi only", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(AppR.string.downloads_wifi_only), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Wait for an unmetered network before downloading.",
+                    stringResource(AppR.string.downloads_wifi_only_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -166,9 +176,9 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Auto-download Favorites", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(AppR.string.downloads_auto_favorites), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Automatically download newly favorited streaming songs.",
+                    stringResource(AppR.string.downloads_auto_favorites_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -192,16 +202,20 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Download Liked Songs", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.downloads_liked_title), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "${undownloadedLiked.size} remote liked ${if (undownloadedLiked.size == 1) "song" else "songs"} available for download",
+                        pluralStringResource(
+                            AppR.plurals.downloads_liked_available,
+                            undownloadedLiked.size,
+                            undownloadedLiked.size
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_download),
-                    contentDescription = "Download liked songs",
+                    contentDescription = stringResource(AppR.string.downloads_liked_description),
                     tint = MaterialTheme.colorScheme.tertiary
                 )
             }
@@ -216,16 +230,16 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Remove oldest download", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.downloads_remove_oldest), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Free space while keeping newer downloads.",
+                        stringResource(AppR.string.downloads_remove_oldest_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_trash_2),
-                    contentDescription = "Remove oldest download",
+                    contentDescription = stringResource(AppR.string.downloads_remove_oldest),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -239,16 +253,16 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Storage limit", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(AppR.string.downloads_storage_limit), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Keep downloaded music within ${formatBytes(maxCacheBytes)}.",
+                    stringResource(AppR.string.downloads_storage_limit_description, formatBytes(maxCacheBytes)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_right),
-                contentDescription = "Choose storage limit",
+                contentDescription = stringResource(AppR.string.downloads_choose_storage_limit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -256,20 +270,20 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
         if (trackedDownloads.isEmpty()) {
             EmptyState(
                 catRes = AppR.drawable.cat_calico_player,
-                title = "No downloads yet",
-                message = "Download streamed songs to play them without a connection.",
+                title = stringResource(AppR.string.downloads_empty_title),
+                message = stringResource(AppR.string.downloads_empty_message),
                 modifier = Modifier.weight(1f)
             )
         } else {
             LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
                 if (activeDownloads.isNotEmpty()) {
-                    item { DownloadSectionHeader("In progress") }
+                    item { DownloadSectionHeader(stringResource(AppR.string.downloads_in_progress)) }
                     items(activeDownloads, key = { (song, _) -> song.id }) { (song, download) ->
                         ActiveDownloadRow(song = song, download = download, onRemove = { downloadRepository.remove(song.id) })
                     }
                 }
                 if (completed.isNotEmpty()) {
-                    item { DownloadSectionHeader("Downloaded") }
+                    item { DownloadSectionHeader(stringResource(AppR.string.downloads_downloaded)) }
                 }
                 items(completed, key = { (song, _) -> song.id }) { (song, download) ->
                     DownloadedSongRow(
@@ -285,18 +299,20 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
     if (showRemoveAllConfirm) {
         AlertDialog(
             onDismissRequest = { showRemoveAllConfirm = false },
-            title = { Text("Remove all downloads?") },
-            text = { Text("This frees up storage but you'll need a connection to play these songs again.") },
+            title = { Text(stringResource(AppR.string.downloads_remove_all_title)) },
+            text = { Text(stringResource(AppR.string.downloads_remove_all_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showRemoveAllConfirm = false
                     completed.forEach { (song, _) -> downloadRepository.remove(song.id) }
                 }) {
-                    Text("Remove All", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(AppR.string.downloads_remove_all_action), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRemoveAllConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showRemoveAllConfirm = false }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
             }
         )
     }
@@ -305,16 +321,27 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
         val oldest = completed.minByOrNull { (_, download) -> download.updateTimeMs }
         AlertDialog(
             onDismissRequest = { showRemoveOldestConfirm = false },
-            title = { Text("Remove oldest download?") },
-            text = { Text("This removes ${oldest?.first?.title.orEmpty()} from offline storage.") },
+            title = { Text(stringResource(AppR.string.downloads_remove_oldest_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        AppR.string.downloads_remove_oldest_message,
+                        oldest?.first?.title.orEmpty()
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     oldest?.let { (song, _) -> downloadRepository.remove(song.id) }
                     showRemoveOldestConfirm = false
-                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+                }) {
+                    Text(stringResource(AppR.string.action_remove), color = MaterialTheme.colorScheme.error)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showRemoveOldestConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showRemoveOldestConfirm = false }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
             }
         )
     }
@@ -326,9 +353,9 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
             tonalElevation = 0.dp
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 28.dp)) {
-                Text("Download limit", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.downloads_limit_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "Choose how much space offline music can use.",
+                    stringResource(AppR.string.downloads_limit_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
@@ -345,7 +372,8 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                             )
                             .border(
                                 if (selected) 1.dp else 0.5.dp,
-                                if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                if (selected) MaterialTheme.colorScheme.tertiary
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                                 RoundedCornerShape(16.dp)
                             )
                             .tapScale {
@@ -362,7 +390,10 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                                 color = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                if (selected) "Current limit" else "Offline music storage",
+                                stringResource(
+                                    if (selected) AppR.string.downloads_current_limit
+                                    else AppR.string.downloads_offline_storage
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -370,7 +401,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                         if (selected) {
                             Icon(
                                 painter = painterResource(R.drawable.lucide_ic_check),
-                                contentDescription = "Selected",
+                                contentDescription = stringResource(AppR.string.downloads_selected),
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
                         }
@@ -378,7 +409,7 @@ fun DownloadsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modi
                     Spacer(Modifier.height(8.dp))
                 }
                 Text(
-                    "Changes apply the next time the download cache starts.",
+                    stringResource(AppR.string.downloads_limit_restart_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
@@ -402,9 +433,11 @@ private fun DownloadSectionHeader(label: String) {
 private fun ActiveDownloadRow(song: Song, download: Download, onRemove: () -> Unit) {
     val progress = (download.percentDownloaded / 100f).takeIf { it in 0f..1f }
     val status = when (download.state) {
-        Download.STATE_DOWNLOADING -> progress?.let { "Downloading ${(it * 100).toInt()}%" } ?: "Downloading"
-        Download.STATE_RESTARTING -> "Restarting"
-        else -> "Queued"
+        Download.STATE_DOWNLOADING -> progress?.let {
+            stringResource(AppR.string.downloads_status_downloading_percent, (it * 100).toInt())
+        } ?: stringResource(AppR.string.downloads_status_downloading)
+        Download.STATE_RESTARTING -> stringResource(AppR.string.downloads_status_restarting)
+        else -> stringResource(AppR.string.downloads_status_queued)
     }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp),
@@ -428,7 +461,7 @@ private fun ActiveDownloadRow(song: Song, download: Download, onRemove: () -> Un
         }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_x,
-            contentDescription = "Cancel download",
+            contentDescription = stringResource(AppR.string.downloads_cancel_download),
             onClick = onRemove
         )
     }
@@ -448,7 +481,7 @@ private fun DownloadedSongRow(song: Song, bytes: Long, onRemove: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                "${song.artist} · ${formatBytes(bytes)}",
+                stringResource(AppR.string.downloads_song_storage, song.artist, formatBytes(bytes)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -457,7 +490,7 @@ private fun DownloadedSongRow(song: Song, bytes: Long, onRemove: () -> Unit) {
         }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_trash_2,
-            contentDescription = "Remove download",
+            contentDescription = stringResource(AppR.string.downloads_remove_download),
             onClick = onRemove
         )
     }
