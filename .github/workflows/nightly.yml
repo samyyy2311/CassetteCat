@@ -80,7 +80,7 @@ jobs:
 
       - name: Publish nightly prerelease
         if: steps.check.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly
           target_commitish: ${{ steps.check.outputs.commit }}
