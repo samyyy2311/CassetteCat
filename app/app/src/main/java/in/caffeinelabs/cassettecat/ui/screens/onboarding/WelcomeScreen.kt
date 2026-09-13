@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -33,10 +34,10 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
         )
         Spacer(Modifier.height(8.dp))
-        Text("Make your library feel like yours.", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.onboarding_welcome_headline), style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Play, organize, and own your music, no subscription.",
+            stringResource(R.string.onboarding_welcome_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -47,13 +48,13 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
             OnboardingHeroImage(imageRes = R.drawable.ic_app_icon)
         }
         Text(
-            "PRIVATE BY DEFAULT",
+            stringResource(R.string.onboarding_private_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Your listening stays on this device.",
+            stringResource(R.string.onboarding_private_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -61,7 +62,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
         Button(
             onClick = hapticClick(onGetStarted),
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Set up my library") }
+        ) { Text(stringResource(R.string.onboarding_setup_library)) }
     }
 }
 
