@@ -14,17 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,26 +33,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
+import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
-import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
-import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import java.util.Date
 
 val externalServices = ExternalService.entries.filter { it != ExternalService.GITHUB_UPDATES }
@@ -91,20 +93,6 @@ fun SettingsScreen(
     val lastRefreshAtMs by libraryViewModel.lastRefreshAtMs.collectAsStateWithLifecycle()
     var showListeningRoom by remember { mutableStateOf(false) }
 
-    fun serverStatus(config: StreamingServerConfig, source: MusicSource, label: String): String {
-        if (uiState.services.offlineBlackoutMode) return "Paused by Offline Blackout Mode"
-        if (libraryState is LibraryUiState.Loading) return "Checking connection…"
-        val loaded = libraryState as? LibraryUiState.Loaded
-        val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$label:") }
-        val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }
-        return if (warning != null) {
-            "Unavailable · ${warning.substringAfter(':').trim()}${checkedAt?.let { " · checked $it" }.orEmpty()}"
-        } else {
-            val count = loaded?.songs?.count { it.source == source } ?: 0
-            "${config.username} · $count ${if (count == 1) "song" else "songs"}${checkedAt?.let { " · refreshed $it" }.orEmpty()}"
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -116,26 +104,26 @@ fun SettingsScreen(
         SettingsHeader()
         Spacer(Modifier.height(12.dp))
 
-        SettingsSection(title = "Audio & Playback") {
+        SettingsSection(title = stringResource(AppR.string.settings_audio_playback_section)) {
             NavigationRow(
-                title = "Customisation",
-                subtitle = "Startup tab, home feed, audio, and display",
+                title = stringResource(AppR.string.settings_customisation),
+                subtitle = stringResource(AppR.string.settings_customisation_description),
                 iconRes = R.drawable.lucide_ic_palette,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToCustomization
             )
             SettingsDivider()
             NavigationRow(
-                title = "Sleep timer",
-                subtitle = "Stop playback after a set time",
+                title = stringResource(AppR.string.settings_sleep_timer),
+                subtitle = stringResource(AppR.string.settings_sleep_timer_description),
                 iconRes = R.drawable.lucide_ic_moon,
                 iconTint = Color(0xFFA5B4FC),
                 onClick = onNavigateToSleepTimer
             )
             SettingsDivider()
             NavigationRow(
-                title = "Equalizer",
-                subtitle = "Tune the current audio output",
+                title = stringResource(AppR.string.settings_equalizer),
+                subtitle = stringResource(AppR.string.settings_equalizer_description),
                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
                 iconTint = Color(0xFFF59E0B),
                 onClick = onNavigateToEqualizer
@@ -144,21 +132,30 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        SettingsSection(title = "Library & Hardware") {
+        SettingsSection(title = stringResource(AppR.string.settings_library_hardware_section)) {
             NavigationRow(
-                title = "Listening Record",
-                subtitle = "Monthly stats, artists, and repeats",
+                title = stringResource(AppR.string.settings_listening_record),
+                subtitle = stringResource(AppR.string.settings_listening_record_description),
                 iconRes = R.drawable.lucide_ic_disc_3,
                 iconTint = Color(0xFFC23B30),
                 onClick = onNavigateToStats
             )
             SettingsDivider()
+            val folderCount = uiState.folderFilter.folders.size
             NavigationRow(
-                title = "Scan Folders",
+                title = stringResource(AppR.string.settings_scan_folders),
                 subtitle = when (uiState.folderFilter.mode) {
-                    FolderFilterMode.NONE -> "All music"
-                    FolderFilterMode.WHITELIST -> "${uiState.folderFilter.folders.size} folder(s) included"
-                    FolderFilterMode.BLACKLIST -> "${uiState.folderFilter.folders.size} folder(s) excluded"
+                    FolderFilterMode.NONE -> stringResource(AppR.string.settings_scan_all_music)
+                    FolderFilterMode.WHITELIST -> pluralStringResource(
+                        AppR.plurals.settings_scan_folders_included,
+                        folderCount,
+                        folderCount
+                    )
+                    FolderFilterMode.BLACKLIST -> pluralStringResource(
+                        AppR.plurals.settings_scan_folders_excluded,
+                        folderCount,
+                        folderCount
+                    )
                 },
                 iconRes = R.drawable.lucide_ic_folder,
                 iconTint = Color(0xFFC4C4C0),
@@ -166,16 +163,16 @@ fun SettingsScreen(
             )
             SettingsDivider()
             NavigationRow(
-                title = "Downloads",
-                subtitle = "Manage songs saved for offline playback",
+                title = stringResource(AppR.string.downloads_title),
+                subtitle = stringResource(AppR.string.settings_downloads_description),
                 iconRes = R.drawable.lucide_ic_download,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToDownloads
             )
             SettingsDivider()
             NavigationRow(
-                title = "CassetteCat Player",
-                subtitle = "Pair, sync music, and hardware telemetry",
+                title = stringResource(AppR.string.settings_player_name),
+                subtitle = stringResource(AppR.string.settings_player_description),
                 iconRes = R.drawable.lucide_ic_cassette_tape,
                 iconTint = Color(0xFFF4F4F5),
                 onClick = onNavigateToPairing
@@ -184,10 +181,16 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        SettingsSection(title = "Streaming & Services") {
+        SettingsSection(title = stringResource(AppR.string.settings_streaming_services_section)) {
             ToggleRow(
-                title = "Offline Blackout Mode",
-                subtitle = if (uiState.services.offlineBlackoutMode) "All network services and streaming disabled" else "Disable all network calls, streaming, and lookups",
+                title = stringResource(AppR.string.settings_offline_blackout),
+                subtitle = stringResource(
+                    if (uiState.services.offlineBlackoutMode) {
+                        AppR.string.settings_offline_blackout_enabled
+                    } else {
+                        AppR.string.settings_offline_blackout_disabled
+                    }
+                ),
                 checked = uiState.services.offlineBlackoutMode,
                 onCheckedChange = { viewModel.setOfflineBlackoutMode(it) },
                 iconRes = R.drawable.lucide_ic_radio,
@@ -195,10 +198,17 @@ fun SettingsScreen(
             )
             SettingsDivider()
             ServerRow(
-                title = "Subsonic",
-                subtitle = "Navidrome, gonic, and other Subsonic servers",
+                title = stringResource(AppR.string.settings_subsonic_name),
+                subtitle = stringResource(AppR.string.settings_subsonic_description),
                 config = uiState.subsonic,
-                status = serverStatus(uiState.subsonic, MusicSource.Subsonic, "Subsonic"),
+                status = serverStatus(
+                    config = uiState.subsonic,
+                    source = MusicSource.Subsonic,
+                    warningLabel = "Subsonic",
+                    offline = uiState.services.offlineBlackoutMode,
+                    libraryState = libraryState,
+                    lastRefreshAtMs = lastRefreshAtMs
+                ),
                 isChecking = !uiState.services.offlineBlackoutMode && libraryState is LibraryUiState.Loading,
                 onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_subsonic,
@@ -208,10 +218,17 @@ fun SettingsScreen(
             )
             SettingsDivider()
             ServerRow(
-                title = "Jellyfin",
-                subtitle = "Connect to a Jellyfin media server",
+                title = stringResource(AppR.string.settings_jellyfin_name),
+                subtitle = stringResource(AppR.string.settings_jellyfin_description),
                 config = uiState.jellyfin,
-                status = serverStatus(uiState.jellyfin, MusicSource.Jellyfin, "Jellyfin"),
+                status = serverStatus(
+                    config = uiState.jellyfin,
+                    source = MusicSource.Jellyfin,
+                    warningLabel = "Jellyfin",
+                    offline = uiState.services.offlineBlackoutMode,
+                    libraryState = libraryState,
+                    lastRefreshAtMs = lastRefreshAtMs
+                ),
                 isChecking = !uiState.services.offlineBlackoutMode && libraryState is LibraryUiState.Loading,
                 onRetry = libraryViewModel::refresh,
                 iconRes = AppR.drawable.ic_logo_jellyfin,
@@ -221,24 +238,28 @@ fun SettingsScreen(
             )
             SettingsDivider()
             NavigationRow(
-                title = "External Services",
-                subtitle = "$enabledServices of ${externalServices.size} enabled (Lyrics, Metadata, Radio)",
+                title = stringResource(AppR.string.settings_external_services),
+                subtitle = stringResource(
+                    AppR.string.settings_external_services_count,
+                    enabledServices,
+                    externalServices.size
+                ),
                 iconRes = R.drawable.lucide_ic_globe,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onManageExternalServices
             )
             SettingsDivider()
             NavigationRow(
-                title = "Scrobbling",
-                subtitle = "ListenBrainz and Libre.fm listening sync",
+                title = stringResource(AppR.string.scrobbling_title),
+                subtitle = stringResource(AppR.string.settings_scrobbling_description),
                 iconRes = AppR.drawable.ic_logo_listenbrainz,
                 iconTint = Color.Unspecified,
                 onClick = onNavigateToScrobbling
             )
             SettingsDivider()
             NavigationRow(
-                title = "Listening Room",
-                subtitle = listeningRoom.statusSubtitle(),
+                title = stringResource(AppR.string.settings_listening_room),
+                subtitle = listeningRoomStatus(listeningRoom),
                 iconRes = R.drawable.lucide_ic_users,
                 iconTint = Color(0xFFC23B30),
                 onClick = { showListeningRoom = true }
@@ -247,18 +268,18 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        SettingsSection(title = "Data & Updates") {
+        SettingsSection(title = stringResource(AppR.string.settings_data_updates_section)) {
             NavigationRow(
-                title = "Privacy & Security",
-                subtitle = "Listening data and saved server credentials",
+                title = stringResource(AppR.string.settings_privacy_security),
+                subtitle = stringResource(AppR.string.settings_privacy_security_description),
                 iconRes = R.drawable.lucide_ic_shield,
                 iconTint = Color(0xFF10B981),
                 onClick = onNavigateToPrivacy
             )
             SettingsDivider()
             NavigationRow(
-                title = "Backup & Restore",
-                subtitle = "Keep library, playlists, and settings safe",
+                title = stringResource(AppR.string.settings_backup_restore),
+                subtitle = stringResource(AppR.string.settings_backup_restore_description),
                 iconRes = R.drawable.lucide_ic_archive_restore,
                 iconTint = Color(0xFF60A5FA),
                 onClick = onNavigateToBackupRestore
@@ -284,49 +305,49 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        SettingsSection(title = "Support & About") {
+        SettingsSection(title = stringResource(AppR.string.settings_support_about_section)) {
             NavigationRow(
-                title = "About & Legal",
-                subtitle = "Audio DSP, data sources, privacy & permissions",
+                title = stringResource(AppR.string.settings_about_legal),
+                subtitle = stringResource(AppR.string.settings_about_legal_description),
                 iconRes = R.drawable.lucide_ic_file_text,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToAboutLegal
             )
             SettingsDivider()
             NavigationRow(
-                title = "Credits & Attribution",
-                subtitle = "Contributors, open source libraries, and fonts",
+                title = stringResource(AppR.string.settings_credits),
+                subtitle = stringResource(AppR.string.settings_credits_description),
                 iconRes = R.drawable.lucide_ic_heart,
                 iconTint = Color(0xFFC23B30),
                 onClick = onNavigateToCredits
             )
             SettingsDivider()
             NavigationRow(
-                title = "GitHub Sponsors",
-                subtitle = "Support development on GitHub Sponsors",
+                title = stringResource(AppR.string.settings_github_sponsors),
+                subtitle = stringResource(AppR.string.settings_github_sponsors_description),
                 iconRes = AppR.drawable.ic_logo_github,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://github.com/sponsors/samyyy2311") }
             )
             SettingsDivider()
             NavigationRow(
-                title = "Ko-fi",
-                subtitle = "Support development on Ko-fi",
+                title = stringResource(AppR.string.settings_kofi),
+                subtitle = stringResource(AppR.string.settings_kofi_description),
                 iconRes = AppR.drawable.ic_logo_kofi,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://ko-fi.com/samyyy2311") }
             )
             SettingsDivider()
             NavigationRow(
-                title = "Buy Me a Coffee",
-                subtitle = "Support development on Buy Me a Coffee",
+                title = stringResource(AppR.string.settings_buy_me_a_coffee),
+                subtitle = stringResource(AppR.string.settings_buy_me_a_coffee_description),
                 iconRes = AppR.drawable.ic_logo_buymeacoffee,
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://buymeacoffee.com/samyyy2311") }
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "20% of sponsorship proceeds fund free lyrics infrastructure on LRCLIB.",
+                stringResource(AppR.string.settings_sponsor_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -355,14 +376,72 @@ fun SettingsScreen(
 @Composable
 private fun SettingsHeader() {
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(AppR.string.settings_title), style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Manage playback, library, hardware, services, and data",
+            stringResource(AppR.string.settings_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
         )
     }
+}
+
+@Composable
+private fun serverStatus(
+    config: StreamingServerConfig,
+    source: MusicSource,
+    warningLabel: String,
+    offline: Boolean,
+    libraryState: LibraryUiState,
+    lastRefreshAtMs: Long?
+): String {
+    if (offline) return stringResource(AppR.string.settings_server_paused)
+    if (libraryState is LibraryUiState.Loading) return stringResource(AppR.string.settings_server_checking)
+
+    val context = LocalContext.current
+    val loaded = libraryState as? LibraryUiState.Loaded
+    val warning = loaded?.sourceWarnings?.firstOrNull { it.startsWith("$warningLabel:") }
+    val checkedAt = lastRefreshAtMs?.let { DateFormat.getTimeFormat(context).format(Date(it)) }
+
+    if (warning != null) {
+        val message = warning.substringAfter(':').trim()
+        return if (checkedAt != null) {
+            stringResource(AppR.string.settings_server_unavailable_checked, message, checkedAt)
+        } else {
+            stringResource(AppR.string.settings_server_unavailable, message)
+        }
+    }
+
+    val count = loaded?.songs?.count { it.source == source } ?: 0
+    return if (checkedAt != null) {
+        pluralStringResource(
+            AppR.plurals.settings_server_songs_refreshed,
+            count,
+            config.username,
+            count,
+            checkedAt
+        )
+    } else {
+        pluralStringResource(
+            AppR.plurals.settings_server_songs,
+            count,
+            config.username,
+            count
+        )
+    }
+}
+
+@Composable
+private fun listeningRoomStatus(state: ListeningRoomState): String = when (state.role) {
+    ListeningRoomRole.HOST -> pluralStringResource(
+        AppR.plurals.settings_listening_room_hosting,
+        state.participantCount,
+        state.participantCount
+    )
+    ListeningRoomRole.GUEST -> state.roomName?.let {
+        stringResource(AppR.string.settings_listening_room_following, it)
+    } ?: stringResource(AppR.string.settings_listening_room_following_room)
+    ListeningRoomRole.NONE -> stringResource(AppR.string.settings_listening_room_inactive)
 }
 
 @Composable
@@ -375,6 +454,7 @@ fun ServiceToggleRow(
     iconTint: Color = MaterialTheme.colorScheme.secondary
 ) {
     val onSwitchToggle = hapticToggle(onToggle)
+    val description = serviceDescription(service)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -393,12 +473,12 @@ fun ServiceToggleRow(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                service.label,
+                serviceLabel(service),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (isBlackedOut) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
             )
             Text(
-                if (isBlackedOut) "${service.description} · Paused by Offline Blackout Mode" else service.description,
+                if (isBlackedOut) stringResource(AppR.string.settings_service_paused, description) else description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isBlackedOut) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -411,6 +491,32 @@ fun ServiceToggleRow(
         )
     }
 }
+
+@Composable
+private fun serviceLabel(service: ExternalService): String = stringResource(
+    when (service) {
+        ExternalService.DEEZER -> AppR.string.settings_service_deezer
+        ExternalService.AUDIODB -> AppR.string.settings_service_audiodb
+        ExternalService.LRCLIB -> AppR.string.settings_service_lrclib
+        ExternalService.COVER_ART_ARCHIVE -> AppR.string.settings_service_cover_art_archive
+        ExternalService.WIKIPEDIA -> AppR.string.settings_service_wikipedia
+        ExternalService.GITHUB_UPDATES -> AppR.string.settings_service_github
+        ExternalService.RADIO_BROWSER -> AppR.string.settings_service_radio_browser
+    }
+)
+
+@Composable
+private fun serviceDescription(service: ExternalService): String = stringResource(
+    when (service) {
+        ExternalService.DEEZER -> AppR.string.settings_service_deezer_description
+        ExternalService.AUDIODB -> AppR.string.settings_service_audiodb_description
+        ExternalService.LRCLIB -> AppR.string.settings_service_lrclib_description
+        ExternalService.COVER_ART_ARCHIVE -> AppR.string.settings_service_cover_art_archive_description
+        ExternalService.WIKIPEDIA -> AppR.string.settings_service_wikipedia_description
+        ExternalService.GITHUB_UPDATES -> AppR.string.settings_service_github_description
+        ExternalService.RADIO_BROWSER -> AppR.string.settings_service_radio_browser_description
+    }
+)
 
 @Composable
 private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, onCheck: () -> Unit) {
@@ -443,14 +549,17 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
         )
         Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("Check for Updates", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(AppR.string.settings_check_updates), style = MaterialTheme.typography.bodyLarge)
             Text(
                 when {
-                    !checkEnabled -> "Disabled above"
-                    result == null -> "Tap to check"
-                    result is UpdateCheckResult.UpToDate -> "You're up to date"
-                    result is UpdateCheckResult.UpdateAvailable -> "Version ${result.version} available, tap to view"
-                    else -> "Couldn't check, tap to retry"
+                    !checkEnabled -> stringResource(AppR.string.settings_updates_disabled)
+                    result == null -> stringResource(AppR.string.settings_updates_tap)
+                    result is UpdateCheckResult.UpToDate -> stringResource(AppR.string.settings_updates_current)
+                    result is UpdateCheckResult.UpdateAvailable -> stringResource(
+                        AppR.string.settings_updates_available,
+                        result.version
+                    )
+                    else -> stringResource(AppR.string.settings_updates_failed)
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -465,3 +574,40 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
         }
     }
 }
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 0.dp
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+fun SettingsDivider(startPadding: Dp = 56.dp, endPadding: Dp = 20.dp) {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = startPadding, end = endPadding),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    )
+}
+
+@Composable
+fun appSwitchColors() = SwitchDefaults.colors(
+    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+    checkedTrackColor = MaterialTheme.colorScheme.primary,
+    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant
+)
