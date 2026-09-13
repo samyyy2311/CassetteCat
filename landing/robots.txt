@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://cassettecat.caffeinelabs.in/sitemap.xml
