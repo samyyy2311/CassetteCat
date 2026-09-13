@@ -17,15 +17,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
@@ -45,10 +47,10 @@ fun LibraryScanScreen(
         OnboardingHeaderRow(currentStep = 1, totalSteps = 5, onSkip = { viewModel.skip(onSkip) })
         Spacer(Modifier.height(10.dp))
 
-        Text("Choose your music folders", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(AppR.string.onboarding_library_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(4.dp))
         Text(
-            "You can change this later in Settings.",
+            stringResource(AppR.string.onboarding_library_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -68,7 +70,7 @@ fun LibraryScanScreen(
             onClick = hapticClick { viewModel.save(onContinue) },
             enabled = !needsFolder,
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Continue") }
+        ) { Text(stringResource(AppR.string.action_continue)) }
     }
 }
 
@@ -86,20 +88,20 @@ fun FolderScanConfigBody(
 
     Column(modifier = modifier) {
         ScanModeOption(
-            title = "All music",
-            description = "Find audio anywhere your phone allows.",
+            title = stringResource(AppR.string.onboarding_library_all_music_title),
+            description = stringResource(AppR.string.onboarding_library_all_music_description),
             selected = config.mode == FolderFilterMode.NONE,
             onClick = { onSetMode(FolderFilterMode.NONE) }
         )
         ScanModeOption(
-            title = "Only these folders",
-            description = "Build a library from selected folders only.",
+            title = stringResource(AppR.string.onboarding_library_selected_folders_title),
+            description = stringResource(AppR.string.onboarding_library_selected_folders_description),
             selected = config.mode == FolderFilterMode.WHITELIST,
             onClick = { onSetMode(FolderFilterMode.WHITELIST) }
         )
         ScanModeOption(
-            title = "Everything except these folders",
-            description = "Ignore selected folders while scanning.",
+            title = stringResource(AppR.string.onboarding_library_excluded_folders_title),
+            description = stringResource(AppR.string.onboarding_library_excluded_folders_description),
             selected = config.mode == FolderFilterMode.BLACKLIST,
             onClick = { onSetMode(FolderFilterMode.BLACKLIST) }
         )
@@ -108,7 +110,7 @@ fun FolderScanConfigBody(
             Spacer(Modifier.height(8.dp))
             if (config.folders.isEmpty() && config.mode == FolderFilterMode.WHITELIST) {
                 Text(
-                    "Add at least one folder to continue.",
+                    stringResource(AppR.string.onboarding_library_folder_required),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -131,7 +133,7 @@ fun FolderScanConfigBody(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.width(16.dp))
-                Text("Add folder", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(AppR.string.action_add_folder), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -186,7 +188,7 @@ private fun FolderRow(path: String, onRemove: () -> Unit) {
         )
         Icon(
             painter = painterResource(R.drawable.lucide_ic_x),
-            contentDescription = "Remove folder",
+            contentDescription = stringResource(AppR.string.action_remove_folder),
             modifier = Modifier
                 .tapScale(onRemove)
                 .padding(4.dp)
