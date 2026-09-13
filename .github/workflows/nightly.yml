@@ -88,7 +88,8 @@ jobs:
           name="CassetteCat-nightly.staging.apk"
           mkdir -p nightly-assets
           cp "$apk" "nightly-assets/$name"
-          sha256sum "nightly-assets/$name" > "nightly-assets/$name.sha256"
+          checksum="$(sha256sum "nightly-assets/$name" | awk '{print $1}')"
+          printf '%s  %s\n' "$checksum" CassetteCat-nightly.apk > "nightly-assets/$name.sha256"
           echo "date=$date" >> "$GITHUB_OUTPUT"
           echo "short_sha=${commit:0:7}" >> "$GITHUB_OUTPUT"
 
