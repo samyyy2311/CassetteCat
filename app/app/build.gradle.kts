@@ -19,9 +19,19 @@ android {
         ?: (project.findProperty("versionName") as? String)
         ?: "1.7.2"
 
-    val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
-        ?: (project.findProperty("versionCode") as? String)?.toIntOrNull()
-        ?: 20
+    val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
+        gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+    val explicitVersionCode = System.getenv("VERSION_CODE")
+    val appVersionCode = if (explicitVersionCode != null) {
+        val parsed = explicitVersionCode.toIntOrNull()
+        if (isProductionRelease && (parsed == null || parsed !in 1..2_100_000_000)) {
+            error("Production VERSION_CODE must be an integer from 1 through 2100000000")
+        }
+        parsed ?: (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 20
+    } else {
+        if (isProductionRelease) error("Production VERSION_CODE is required")
+        (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 20
+    }
 
     defaultConfig {
         applicationId = "in.caffeinelabs.cassettecat"
@@ -65,6 +75,9 @@ android {
                 !releaseSigning.storePassword.isNullOrBlank() &&
                 !releaseSigning.keyAlias.isNullOrBlank() &&
                 !releaseSigning.keyPassword.isNullOrBlank()
+            if (isProductionRelease && !hasProductionSigning) {
+                error("Release signing is required in CI")
+            }
             isProfileable = hasProductionSigning
             if (hasProductionSigning) {
                 signingConfig = releaseSigning

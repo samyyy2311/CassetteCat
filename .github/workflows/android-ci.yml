@@ -8,10 +8,14 @@ on:
       - '.github/workflows/android-ci.yml'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'app/**'
-      - '.github/workflows/android-ci.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -20,34 +24,38 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Grant execute permission for gradlew
         working-directory: ./app
         run: chmod +x gradlew
 
-      - name: Build Debug APK & Run Unit Tests
+      - name: Run unit tests
         working-directory: ./app
-        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build debug APK
+        working-directory: ./app
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Run Android Lint
         working-directory: ./app
         run: ./gradlew lintDebug --stacktrace
 
       - name: Upload Lint Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cassettecat-lint-report
@@ -55,8 +63,8 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        if: always()
+        uses: actions/upload-artifact@v7
+        if: success()
         with:
           name: cassettecat-debug-apk
           path: app/app/build/outputs/apk/debug/app-debug.apk
