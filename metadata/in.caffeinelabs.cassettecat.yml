@@ -10,7 +10,7 @@ AutoName: CassetteCat
 
 RepoType: git
 Repo: https://github.com/samyyy2311/CassetteCat.git
-Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/app-release.apk
+Binaries: https://github.com/samyyy2311/CassetteCat/releases/download/v%v/CassetteCat-v%v.apk
 
 Builds:
   - versionName: 1.7.0
