@@ -39,6 +39,9 @@
     <string name="action_try_again">Try again</string>
     <string name="action_ok">OK</string>
     <string name="action_done">Done</string>
+    <string name="action_save">Save</string>
+    <string name="action_restart">Restart</string>
+    <string name="action_reset">Reset</string>
     <string name="action_add_folder">Add folder</string>
     <string name="action_remove_folder">Remove folder</string>
     <string name="action_remove">Remove</string>
@@ -205,4 +208,34 @@
     <string name="device_storage_empty_message">The player didn’t respond, or this folder is empty.</string>
     <string name="device_storage_delete_title">Delete “%1$s”?</string>
     <string name="device_storage_delete_message">This permanently removes it from the player’s SD card. This can’t be undone.</string>
+
+    <string name="device_settings_name_section">DEVICE NAME</string>
+    <string name="device_settings_wifi_section">WI-FI MODE</string>
+    <string name="device_settings_hotspot_description">Switch the player back to broadcasting its own Wi-Fi hotspot.</string>
+    <string name="device_settings_maintenance_section">MAINTENANCE</string>
+    <string name="device_settings_restart_title">Restart Player</string>
+    <string name="device_settings_restart_description">Soft reboot. Nothing is erased.</string>
+    <string name="device_settings_rescan_title">Rescan SD Card</string>
+    <string name="device_settings_rescan_description">Re-index songs copied on outside the app.</string>
+    <string name="device_settings_sync_time_title">Sync Phone Time</string>
+    <string name="device_settings_sync_time_description">The player has no clock battery, so this resets on every power cycle.</string>
+    <string name="device_settings_danger_section">DANGER ZONE</string>
+    <string name="device_settings_factory_reset_title">Factory Reset</string>
+    <string name="device_settings_factory_reset_description">Erases all songs and settings on the player.</string>
+    <string name="device_settings_renamed">Renamed to “%1$s”.</string>
+    <string name="device_settings_rename_failed">Couldn’t rename the player.</string>
+    <string name="device_settings_wifi_changed">Wi-Fi mode changed.</string>
+    <string name="device_settings_wifi_change_failed">Couldn’t change Wi-Fi mode.</string>
+    <string name="device_settings_rescan_started">Rescan started.</string>
+    <string name="device_settings_rescan_failed">Couldn’t start a rescan.</string>
+    <string name="device_settings_time_updated">Player clock updated.</string>
+    <string name="device_settings_time_update_failed">Couldn’t update the player’s clock.</string>
+    <string name="device_settings_restart_confirm_title">Restart the player?</string>
+    <string name="device_settings_restart_confirm_message">Playback will stop while it reboots.</string>
+    <string name="device_settings_restarting">Restarting…</string>
+    <string name="device_settings_restart_failed">Couldn’t restart the player.</string>
+    <string name="device_settings_reset_confirm_title">Factory reset the player?</string>
+    <string name="device_settings_reset_confirm_message">This erases every song and setting on the player. This can’t be undone.</string>
+    <string name="device_settings_reset_done">Player reset.</string>
+    <string name="device_settings_reset_failed">Couldn’t reset the player.</string>
 </resources>

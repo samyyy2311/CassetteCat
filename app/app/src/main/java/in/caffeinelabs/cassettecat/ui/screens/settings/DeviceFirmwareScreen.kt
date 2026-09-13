@@ -28,8 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
 import `in`.caffeinelabs.cassettecat.data.device.FirmwareUpdateInfo
 import `in`.caffeinelabs.cassettecat.data.device.GitHubReleaseResult
@@ -65,6 +67,10 @@ fun DeviceFirmwareScreen(
     var isBusy by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
 
+    val remoteUpdateStartedMessage = stringResource(AppR.string.device_firmware_remote_started)
+    val updateFailedMessage = stringResource(AppR.string.device_firmware_update_failed)
+    val localUpdateDoneMessage = stringResource(AppR.string.device_firmware_local_done)
+
     fun runCheck() {
         checkState = UpdateCheckState.Checking
         pairingViewModel.checkForFirmwareUpdate { result ->
@@ -95,13 +101,13 @@ fun DeviceFirmwareScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
-            Text("Firmware Update", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(AppR.string.device_firmware_title), style = MaterialTheme.typography.headlineSmall)
         }
 
-        SettingsSection(title = "CURRENT VERSION") {
+        SettingsSection(title = stringResource(AppR.string.device_firmware_current_version_section)) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text(
                     "v$currentFirmwareVersion",
@@ -112,7 +118,7 @@ fun DeviceFirmwareScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        SettingsSection(title = "UPDATES") {
+        SettingsSection(title = stringResource(AppR.string.device_firmware_updates_section)) {
             when (val state = checkState) {
                 UpdateCheckState.Checking -> Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
@@ -120,7 +126,7 @@ fun DeviceFirmwareScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(16.dp))
-                    Text("Checking GitHub for the latest release...", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.device_firmware_checking), style = MaterialTheme.typography.bodyLarge)
                 }
 
                 UpdateCheckState.UpToDate -> Row(
@@ -134,7 +140,7 @@ fun DeviceFirmwareScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(16.dp))
-                    Text("You're on the latest version", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.device_firmware_up_to_date), style = MaterialTheme.typography.bodyLarge)
                 }
 
                 is UpdateCheckState.Available -> Row(
@@ -142,14 +148,18 @@ fun DeviceFirmwareScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Update available", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(AppR.string.device_firmware_available), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "v${state.info.version} on GitHub",
+                            stringResource(AppR.string.device_firmware_version_on_github, state.info.version),
                             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text("Update Now", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
+                    Text(
+                        stringResource(AppR.string.device_firmware_update_now),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
                 }
 
                 UpdateCheckState.NoReleaseYet -> Row(
@@ -157,9 +167,9 @@ fun DeviceFirmwareScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("No firmware releases yet", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(AppR.string.device_firmware_no_releases), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "Nothing has been published to GitHub Releases.",
+                            stringResource(AppR.string.device_firmware_no_releases_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -171,29 +181,29 @@ fun DeviceFirmwareScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Couldn't check for updates", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(AppR.string.device_firmware_check_failed), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "Check your internet connection.",
+                            stringResource(AppR.string.device_firmware_check_connection),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    TextButton(onClick = { runCheck() }) { Text("Retry") }
+                    TextButton(onClick = { runCheck() }) { Text(stringResource(AppR.string.action_retry)) }
                 }
             }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        SettingsSection(title = "MANUAL UPDATE") {
+        SettingsSection(title = stringResource(AppR.string.device_firmware_manual_section)) {
             Row(
                 modifier = Modifier.fillMaxWidth().tapScale { if (!isBusy) filePicker.launch(arrayOf("application/octet-stream")) }.padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Choose Firmware File", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.device_firmware_choose_file), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Sideload a local .bin, for builds that aren't a GitHub release yet.",
+                        stringResource(AppR.string.device_firmware_choose_file_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -206,7 +216,7 @@ fun DeviceFirmwareScreen(
             Row(modifier = Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(16.dp))
-                Text("Updating firmware, don't close the app...", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(AppR.string.device_firmware_updating), style = MaterialTheme.typography.bodyLarge)
             }
         }
 
@@ -226,20 +236,20 @@ fun DeviceFirmwareScreen(
     pendingRemoteUpdate?.let { info ->
         AlertDialog(
             onDismissRequest = { pendingRemoteUpdate = null },
-            title = { Text("Update to v${info.version}?") },
-            text = { Text("The player will download the update from GitHub and reboot. Don't disconnect it or close the app while this runs.") },
+            title = { Text(stringResource(AppR.string.device_firmware_remote_confirm_title, info.version)) },
+            text = { Text(stringResource(AppR.string.device_firmware_remote_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingRemoteUpdate = null
                     isBusy = true
                     pairingViewModel.updateFirmwareFromUrl(info.downloadUrl) { ok ->
                         isBusy = false
-                        resultMessage = if (ok) "Update started. The player will restart when it's done." else "Update failed. Make sure the player is still connected and try again."
+                        resultMessage = if (ok) remoteUpdateStartedMessage else updateFailedMessage
                     }
-                }) { Text("Update", color = MaterialTheme.colorScheme.tertiary) }
+                }) { Text(stringResource(AppR.string.action_update), color = MaterialTheme.colorScheme.tertiary) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemoteUpdate = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingRemoteUpdate = null }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
@@ -247,20 +257,20 @@ fun DeviceFirmwareScreen(
     pendingLocalFile?.let { file ->
         AlertDialog(
             onDismissRequest = { pendingLocalFile = null },
-            title = { Text("Update firmware?") },
-            text = { Text("The player will flash \"${file.name}\" and reboot. Don't disconnect it or close the app while this runs.") },
+            title = { Text(stringResource(AppR.string.device_firmware_local_confirm_title)) },
+            text = { Text(stringResource(AppR.string.device_firmware_local_confirm_message, file.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingLocalFile = null
                     isBusy = true
                     pairingViewModel.uploadFirmware(file) { ok ->
                         isBusy = false
-                        resultMessage = if (ok) "Firmware updated. The player will restart." else "Update failed. Make sure the player is still connected and try again."
+                        resultMessage = if (ok) localUpdateDoneMessage else updateFailedMessage
                     }
-                }) { Text("Update", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(AppR.string.action_update), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingLocalFile = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingLocalFile = null }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
