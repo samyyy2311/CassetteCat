@@ -21,9 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -34,8 +36,6 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
-        // Result ignored on purpose: never block or retry-loop on denial, the user
-        // can always grant this later from system settings.
         onContinue()
     }
 
@@ -43,10 +43,10 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
         OnboardingHeaderRow(currentStep = 0, totalSteps = 5)
         Spacer(Modifier.height(10.dp))
 
-        Text("Give your library a starting point", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(AppR.string.onboarding_permissions_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Only what's needed to play your music.",
+            stringResource(AppR.string.onboarding_permissions_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -54,21 +54,21 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
 
         PermissionCard(
             iconRes = R.drawable.lucide_ic_music,
-            title = "Music and audio",
-            description = "Find and play music stored on your phone."
+            title = stringResource(AppR.string.onboarding_permission_music_title),
+            description = stringResource(AppR.string.onboarding_permission_music_description)
         )
         if (showNotificationRow) {
             Spacer(Modifier.height(28.dp))
             PermissionCard(
                 iconRes = R.drawable.lucide_ic_bell,
-                title = "Notifications",
-                description = "Keep playback controls available outside the app."
+                title = stringResource(AppR.string.onboarding_permission_notifications_title),
+                description = stringResource(AppR.string.onboarding_permission_notifications_description)
             )
             Spacer(Modifier.height(28.dp))
             PermissionCard(
                 iconRes = R.drawable.lucide_ic_wifi,
-                title = "Nearby devices",
-                description = "Find and pair your CassetteCat hardware player over Wi-Fi."
+                title = stringResource(AppR.string.onboarding_permission_nearby_title),
+                description = stringResource(AppR.string.onboarding_permission_nearby_description)
             )
         }
 
@@ -77,7 +77,7 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
         Button(
             onClick = hapticClick { launcher.launch(permissions.toTypedArray()) },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Continue") }
+        ) { Text(stringResource(AppR.string.action_continue)) }
     }
 }
 
