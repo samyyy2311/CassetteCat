@@ -71,7 +71,9 @@ jobs:
           version="${RELEASE_TAG#v}"
           apk="$(find app/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$apk"
-          apksigner verify "$apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          "$apksigner" verify "$apk"
           mkdir -p release-assets
           name="CassetteCat-v${version}.apk"
           cp "$apk" "release-assets/$name"
