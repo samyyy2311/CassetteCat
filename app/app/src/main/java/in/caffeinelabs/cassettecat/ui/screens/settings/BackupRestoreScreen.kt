@@ -23,8 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.backup.BackupRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,10 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val backupRepository = remember { BackupRepository(context) }
+    val backupCreatedMessage = stringResource(AppR.string.backup_created)
+    val backupFailedMessage = stringResource(AppR.string.backup_create_failed)
+    val restoreSuccessMessage = stringResource(AppR.string.backup_restore_success)
+    val restoreFailedMessage = stringResource(AppR.string.backup_restore_failed)
 
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
@@ -52,7 +58,7 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 val wrote = withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) } != null
                 }
-                resultMessage = if (wrote) "Backup created." else "Backup failed: couldn't open the destination file."
+                resultMessage = if (wrote) backupCreatedMessage else backupFailedMessage
             }
         }
     }
@@ -68,16 +74,14 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
-            Text("Backup & Restore", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(AppR.string.backup_title), style = MaterialTheme.typography.headlineSmall)
         }
 
         Text(
-            "Includes playlists, favorites, listening stats, folder filters, and settings. Listening records are also queued for Android backup when system backup is enabled. " +
-                "Server passwords aren't included because they're encrypted with a device-only key that " +
-                "can't be exported, so you'll need to re-enter them after a restore.",
+            stringResource(AppR.string.backup_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 24.dp)
@@ -85,10 +89,10 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(24.dp))
 
-        SettingsSection(title = "BACKUP") {
+        SettingsSection(title = stringResource(AppR.string.backup_section)) {
             NavigationRow(
-                title = "Create Backup",
-                subtitle = "Save a copy of your library data to a file",
+                title = stringResource(AppR.string.backup_create_title),
+                subtitle = stringResource(AppR.string.backup_create_subtitle),
                 iconRes = R.drawable.lucide_ic_download,
                 onClick = {
                     val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
@@ -96,8 +100,8 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
             )
             NavigationRow(
-                title = "Restore from Backup",
-                subtitle = "Replace current data with a backup file",
+                title = stringResource(AppR.string.backup_restore_title),
+                subtitle = stringResource(AppR.string.backup_restore_subtitle),
                 iconRes = R.drawable.lucide_ic_upload,
                 onClick = { openLauncher.launch(arrayOf("*/*")) }
             )
@@ -107,8 +111,8 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     if (restoreUri != null) {
         AlertDialog(
             onDismissRequest = { restoreUri = null },
-            title = { Text("Restore backup?") },
-            text = { Text("Restoring will replace your current playlists, favorites, and settings. This can't be undone.") },
+            title = { Text(stringResource(AppR.string.backup_restore_confirm_title)) },
+            text = { Text(stringResource(AppR.string.backup_restore_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     val uri = restoreUri
@@ -119,19 +123,15 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                 val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                                 text?.let { backupRepository.restoreBackup(it) }
                             }
-                            resultMessage = if (result?.isSuccess == true) {
-                                "Backup restored."
-                            } else {
-                                "Restore failed: the file may not be a valid CassetteCat backup."
-                            }
+                            resultMessage = if (result?.isSuccess == true) restoreSuccessMessage else restoreFailedMessage
                         }
                     }
                 }) {
-                    Text("Restore", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(AppR.string.action_restore), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { restoreUri = null }) { Text("Cancel") }
+                TextButton(onClick = { restoreUri = null }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
@@ -140,10 +140,10 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     if (message != null) {
         AlertDialog(
             onDismissRequest = { resultMessage = null },
-            title = { Text("Backup & Restore") },
+            title = { Text(stringResource(AppR.string.backup_title)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { resultMessage = null }) { Text("OK") }
+                TextButton(onClick = { resultMessage = null }) { Text(stringResource(AppR.string.action_ok)) }
             }
         )
     }

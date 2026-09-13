@@ -38,8 +38,13 @@
     <string name="action_disconnect">Disconnect</string>
     <string name="action_try_again">Try again</string>
     <string name="action_ok">OK</string>
+    <string name="action_done">Done</string>
     <string name="action_add_folder">Add folder</string>
     <string name="action_remove_folder">Remove folder</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_share">Share</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_restore">Restore</string>
 
     <string name="onboarding_welcome_headline">Make your library feel like yours.</string>
     <string name="onboarding_welcome_body">Play, organize, and own your music, no subscription.</string>
@@ -135,4 +140,60 @@
     <string name="pairing_protocol">Protocol</string>
     <string name="pairing_protocol_hotspot">Direct SoftAP Hotspot</string>
     <string name="pairing_protocol_local">Local Network (mDNS)</string>
+
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_listening_record">Listening Record</string>
+    <string name="privacy_collect_listening_activity">Collect listening activity</string>
+    <string name="privacy_collect_listening_activity_description">Store playback time and play counts on this device.</string>
+    <string name="privacy_server_credentials">Server credentials</string>
+    <string name="privacy_server_credentials_description">Server passwords and access tokens are encrypted with Android Keystore.</string>
+    <string name="privacy_remove_credentials">Disconnect all servers and remove credentials</string>
+    <string name="privacy_diagnostics">Diagnostics</string>
+    <string name="privacy_crash_log">Crash Log</string>
+    <string name="privacy_crash_recorded">A crash was recorded on this device</string>
+    <string name="privacy_no_crashes">No crashes recorded</string>
+    <string name="privacy_online_policy">Online Policy</string>
+    <string name="privacy_web_policy">Web Privacy Policy</string>
+    <string name="privacy_web_policy_description">Read our full online privacy policy at cassettecat.caffeinelabs.in</string>
+    <string name="privacy_remove_credentials_title">Remove server credentials?</string>
+    <string name="privacy_remove_credentials_message">This disconnects Subsonic and Jellyfin and removes their saved credentials from this device.</string>
+    <string name="privacy_share_crash_log">Share Crash Log</string>
+    <string name="privacy_crash_log_empty">No crashes recorded. Nothing is ever sent off this device.</string>
+    <string name="privacy_crash_log_help">Stored on this device only. Share it yourself if you want to report a bug.</string>
+
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_description">Includes playlists, favorites, listening stats, folder filters, and settings. Listening records are also queued for Android backup when system backup is enabled. Server passwords aren’t included because they’re encrypted with a device-only key that can’t be exported, so you’ll need to re-enter them after a restore.</string>
+    <string name="backup_section">BACKUP</string>
+    <string name="backup_create_title">Create Backup</string>
+    <string name="backup_create_subtitle">Save a copy of your library data to a file</string>
+    <string name="backup_restore_title">Restore from Backup</string>
+    <string name="backup_restore_subtitle">Replace current data with a backup file</string>
+    <string name="backup_restore_confirm_title">Restore backup?</string>
+    <string name="backup_restore_confirm_message">Restoring will replace your current playlists, favorites, and settings. This can’t be undone.</string>
+    <string name="backup_created">Backup created.</string>
+    <string name="backup_create_failed">Backup failed: couldn’t open the destination file.</string>
+    <string name="backup_restore_success">Backup restored.</string>
+    <string name="backup_restore_failed">Restore failed: the file may not be a valid CassetteCat backup.</string>
+
+    <string name="server_connect_subsonic">Connect to Subsonic</string>
+    <string name="server_connect_jellyfin">Connect to Jellyfin</string>
+    <string name="server_subsonic_subtitle">Works with Navidrome, gonic, and other Subsonic-API servers.</string>
+    <string name="server_jellyfin_subtitle">Connect to a Jellyfin media server.</string>
+    <string name="server_connected_as">Connected as %1$s</string>
+    <string name="server_connected_description">Your library is synchronized and ready for streaming.</string>
+    <string name="server_url">Server URL</string>
+    <string name="server_username">Username</string>
+    <string name="server_username_placeholder">Your username</string>
+    <string name="server_password">Password</string>
+    <string name="server_hide_password">Hide password</string>
+    <string name="server_show_password">Show password</string>
+    <string name="server_credentials_encrypted">Credentials are encrypted on-device via Android KeyStore.</string>
+    <string name="server_quick_connect_sign_in">Sign in with Quick Connect</string>
+    <string name="server_untrusted_certificate_title">Untrusted certificate</string>
+    <string name="server_untrusted_certificate_message">This server’s certificate isn’t signed by a recognized authority, common for self-hosted servers. Only continue if you trust this server and recognize its fingerprint:\n\n%1$s</string>
+    <string name="server_trust_and_connect">Trust &amp; Connect</string>
+    <string name="server_quick_connect_title">Quick Connect</string>
+    <string name="server_quick_connect_instructions">Enter this code in Jellyfin under your profile’s Quick Connect page:</string>
+    <string name="server_http_warning_title">Use HTTPS if possible</string>
+    <string name="server_http_warning_message">HTTP can expose your login while it travels across the network. Continue only for a server you trust on a private network.</string>
 </resources>
