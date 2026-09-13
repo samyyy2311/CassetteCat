@@ -196,4 +196,7 @@
     <string name="server_quick_connect_instructions">Enter this code in Jellyfin under your profile’s Quick Connect page:</string>
     <string name="server_http_warning_title">Use HTTPS if possible</string>
     <string name="server_http_warning_message">HTTP can expose your login while it travels across the network. Continue only for a server you trust on a private network.</string>
+
+    <string name="device_now_playing_title">Now Playing on Device</string>
+    <string name="device_now_playing_waiting">Waiting for the player to report its status.</string>
 </resources>
