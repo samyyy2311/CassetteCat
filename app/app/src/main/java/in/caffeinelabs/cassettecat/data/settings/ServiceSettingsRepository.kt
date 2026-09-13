@@ -19,14 +19,14 @@ private val COVER_ART_ARCHIVE_ENABLED = booleanPreferencesKey("cover_art_archive
 private val GITHUB_UPDATES_ENABLED = booleanPreferencesKey("github_updates_enabled")
 private val RADIO_BROWSER_ENABLED = booleanPreferencesKey("radio_browser_enabled")
 
-enum class ExternalService(val label: String, val description: String) {
-    DEEZER("Deezer", "Artist images and album artwork"),
-    AUDIODB("TheAudioDB", "Fallback for artist images"),
-    LRCLIB("LrcLib", "Synced lyrics when a track has none embedded"),
-    COVER_ART_ARCHIVE("Cover Art Archive", "Archival CD and vinyl artwork from MusicBrainz"),
-    WIKIPEDIA("Wikipedia", "About descriptions for artists and albums"),
-    GITHUB_UPDATES("GitHub", "Check for newer app releases"),
-    RADIO_BROWSER("Radio Browser", "Search and browse internet radio stations")
+enum class ExternalService {
+    DEEZER,
+    AUDIODB,
+    LRCLIB,
+    COVER_ART_ARCHIVE,
+    WIKIPEDIA,
+    GITHUB_UPDATES,
+    RADIO_BROWSER
 }
 
 @Serializable
