@@ -38,8 +38,7 @@ jobs:
         working-directory: ./app
         run: chmod +x gradlew
 
-      - name: Decode Release Keystore (if configured)
-        if: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+      - name: Decode Release Keystore
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
         run: |
