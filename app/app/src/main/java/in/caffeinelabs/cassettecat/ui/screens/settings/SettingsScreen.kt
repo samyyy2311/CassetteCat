@@ -4,7 +4,6 @@ import android.content.Intent
 import android.text.format.DateFormat
 import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,14 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,7 +48,6 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Date
@@ -574,40 +568,3 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
         }
     }
 }
-
-@Composable
-fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 0.dp
-        ) {
-            Column(content = content)
-        }
-    }
-}
-
-@Composable
-fun SettingsDivider(startPadding: Dp = 56.dp, endPadding: Dp = 20.dp) {
-    HorizontalDivider(
-        modifier = Modifier.padding(start = startPadding, end = endPadding),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-    )
-}
-
-@Composable
-fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-    checkedTrackColor = MaterialTheme.colorScheme.primary,
-    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant
-)
