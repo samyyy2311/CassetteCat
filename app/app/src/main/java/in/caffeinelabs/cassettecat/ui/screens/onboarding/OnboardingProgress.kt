@@ -34,8 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.navigation.SmoothEasing
 import `in`.caffeinelabs.cassettecat.ui.navigation.TRANSITION_MS
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -80,7 +82,6 @@ fun OnboardingHeroImage(
     }
 }
 
-// Fade and settle the icon on entry instead of showing it statically.
 @Composable
 fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp = 180.dp, iconSize: Dp = 84.dp) {
     var visible by remember { mutableStateOf(false) }
@@ -133,7 +134,7 @@ fun OnboardingHeaderRow(
                 onClick = hapticClick(onSkip),
                 contentPadding = PaddingValues(vertical = 4.dp, horizontal = 8.dp),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-            ) { Text("Skip", style = MaterialTheme.typography.bodyMedium) }
+            ) { Text(stringResource(AppR.string.action_skip), style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }
@@ -145,7 +146,6 @@ fun OnboardingProgressDots(currentStep: Int, modifier: Modifier = Modifier, tota
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         repeat(totalSteps) { index ->
-            // Stagger each dot slightly without adding bounce.
             val filled = index <= currentStep
             val color by animateColorAsState(
                 targetValue = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,

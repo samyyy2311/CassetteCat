@@ -12,9 +12,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -28,10 +30,10 @@ fun DeviceIntroScreen(
         OnboardingHeaderRow(currentStep = 3, totalSteps = 5, onSkip = onSkip)
         Spacer(Modifier.height(10.dp))
 
-        Text("Add your listening device", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(AppR.string.onboarding_device_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Optional. Connect a CassetteCat device whenever you are ready.",
+            stringResource(AppR.string.onboarding_device_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -42,14 +44,14 @@ fun DeviceIntroScreen(
             OnboardingHeroIcon(iconRes = R.drawable.lucide_ic_wifi)
         }
         Text(
-            "Connect over Wi-Fi to keep playback and device updates in sync.",
+            stringResource(AppR.string.onboarding_device_sync_description),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(12.dp))
 
         Button(onClick = hapticClick(onSetUpDevice), modifier = Modifier.fillMaxWidth()) {
-            Text("Set up device")
+            Text(stringResource(AppR.string.onboarding_device_setup))
         }
     }
 }
