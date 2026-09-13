@@ -43,6 +43,7 @@
     <string name="action_remove">Remove</string>
     <string name="action_share">Share</string>
     <string name="action_clear">Clear</string>
+    <string name="action_restore">Restore</string>
 
     <string name="onboarding_welcome_headline">Make your library feel like yours.</string>
     <string name="onboarding_welcome_body">Play, organize, and own your music, no subscription.</string>
@@ -158,4 +159,18 @@
     <string name="privacy_share_crash_log">Share Crash Log</string>
     <string name="privacy_crash_log_empty">No crashes recorded. Nothing is ever sent off this device.</string>
     <string name="privacy_crash_log_help">Stored on this device only. Share it yourself if you want to report a bug.</string>
+
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_description">Includes playlists, favorites, listening stats, folder filters, and settings. Listening records are also queued for Android backup when system backup is enabled. Server passwords aren’t included because they’re encrypted with a device-only key that can’t be exported, so you’ll need to re-enter them after a restore.</string>
+    <string name="backup_section">BACKUP</string>
+    <string name="backup_create_title">Create Backup</string>
+    <string name="backup_create_subtitle">Save a copy of your library data to a file</string>
+    <string name="backup_restore_title">Restore from Backup</string>
+    <string name="backup_restore_subtitle">Replace current data with a backup file</string>
+    <string name="backup_restore_confirm_title">Restore backup?</string>
+    <string name="backup_restore_confirm_message">Restoring will replace your current playlists, favorites, and settings. This can’t be undone.</string>
+    <string name="backup_created">Backup created.</string>
+    <string name="backup_create_failed">Backup failed: couldn’t open the destination file.</string>
+    <string name="backup_restore_success">Backup restored.</string>
+    <string name="backup_restore_failed">Restore failed: the file may not be a valid CassetteCat backup.</string>
 </resources>
