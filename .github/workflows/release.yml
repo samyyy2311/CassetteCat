@@ -62,6 +62,7 @@ jobs:
             ''|*[!0-9]*) echo 'version_code must be a positive integer'; exit 1 ;;
           esac
           test "$VERSION_CODE" -gt 0 || { echo 'version_code must be greater than zero'; exit 1; }
+          test "$VERSION_CODE" -le 2100000000 || { echo 'version_code must not exceed 2100000000'; exit 1; }
 
       - name: Decode release keystore
         env:

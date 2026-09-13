@@ -15,8 +15,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   nightly:
@@ -35,10 +35,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           commit="$(git rev-parse HEAD)"
-          body="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .body 2>/dev/null || true)"
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .id 2>/dev/null || true)"
+          body=""
+          prerelease="false"
+          assets=""
+          if [ -n "$release_id" ]; then
+            body="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" --jq .body)"
+            prerelease="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" --jq .prerelease)"
+            assets="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --jq '.[].name' | sort)"
+          fi
           tag_commit="$(git ls-remote origin refs/tags/nightly | awk '{print $1}')"
+          expected_assets="$(printf '%s\n' CassetteCat-nightly.apk CassetteCat-nightly.apk.sha256 | sort)"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-          if [ "$tag_commit" = "$commit" ] && grep -Fq "Commit: $commit" <<< "$body"; then
+          if [ "$tag_commit" = "$commit" ] && [ "$prerelease" = "true" ] &&
+            grep -Fq "Commit: $commit" <<< "$body" && [ "$assets" = "$expected_assets" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -75,14 +85,14 @@ jobs:
           test -n "$apk"
           commit="${{ steps.check.outputs.commit }}"
           date="$(date -u +%F)"
-          name="CassetteCat-nightly.apk"
+          name="CassetteCat-nightly.staging.apk"
           mkdir -p nightly-assets
           cp "$apk" "nightly-assets/$name"
           sha256sum "nightly-assets/$name" > "nightly-assets/$name.sha256"
           echo "date=$date" >> "$GITHUB_OUTPUT"
           echo "short_sha=${commit:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Move nightly tag and remove old assets
+      - name: Move nightly tag
         if: steps.check.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,15 +103,8 @@ jobs:
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref=refs/tags/nightly -f sha="$COMMIT" >/dev/null
           fi
           test "$(git ls-remote origin refs/tags/nightly | awk '{print $1}')" = "$COMMIT"
-          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .id 2>/dev/null || true)"
-          if [ -n "$release_id" ]; then
-            gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --jq '.[].id' |
-              while read -r asset_id; do
-                gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
-              done
-          fi
 
-      - name: Publish nightly prerelease
+      - name: Stage nightly assets
         if: steps.check.outputs.skip != 'true'
         uses: softprops/action-gh-release@v3
         with:
@@ -118,5 +121,37 @@ jobs:
             Short commit: ${{ steps.prepare.outputs.short_sha }}
             Built: ${{ steps.prepare.outputs.date }} UTC
           files: |
-            nightly-assets/*.apk
-            nightly-assets/*.apk.sha256
+            nightly-assets/CassetteCat-nightly.staging.apk
+            nightly-assets/CassetteCat-nightly.staging.apk.sha256
+
+      - name: Promote nightly assets
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" --jq .id)"
+          assets_url="repos/$GITHUB_REPOSITORY/releases/$release_id/assets"
+          staging_apk_id="$(gh api --paginate "$assets_url" --jq '.[] | select(.name == "CassetteCat-nightly.staging.apk") | .id' | head -n 1)"
+          staging_sha_id="$(gh api --paginate "$assets_url" --jq '.[] | select(.name == "CassetteCat-nightly.staging.apk.sha256") | .id' | head -n 1)"
+          test -n "$staging_apk_id"
+          test -n "$staging_sha_id"
+
+          for name in CassetteCat-nightly.apk CassetteCat-nightly.apk.sha256; do
+            asset_id="$(gh api --paginate "$assets_url" --jq ".[] | select(.name == \"$name\") | .id" | head -n 1)"
+            if [ -n "$asset_id" ]; then
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
+            fi
+          done
+
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/assets/$staging_apk_id" -f name=CassetteCat-nightly.apk >/dev/null
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/assets/$staging_sha_id" -f name=CassetteCat-nightly.apk.sha256 >/dev/null
+
+          gh api --paginate "$assets_url" --jq '.[] | select(.name != "CassetteCat-nightly.apk" and .name != "CassetteCat-nightly.apk.sha256") | .id' |
+            while read -r asset_id; do
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
+            done
+
+          actual_assets="$(gh api --paginate "$assets_url" --jq '.[].name' | sort)"
+          expected_assets="$(printf '%s\n' CassetteCat-nightly.apk CassetteCat-nightly.apk.sha256 | sort)"
+          test "$actual_assets" = "$expected_assets"
