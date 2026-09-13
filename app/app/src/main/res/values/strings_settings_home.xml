@@ -1,0 +1,104 @@
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Manage playback, library, hardware, services, and data</string>
+
+    <string name="settings_audio_playback_section">Audio &amp; Playback</string>
+    <string name="settings_customisation">Customisation</string>
+    <string name="settings_customisation_description">Startup tab, home feed, audio, and display</string>
+    <string name="settings_sleep_timer">Sleep timer</string>
+    <string name="settings_sleep_timer_description">Stop playback after a set time</string>
+    <string name="settings_equalizer">Equalizer</string>
+    <string name="settings_equalizer_description">Tune the current audio output</string>
+
+    <string name="settings_library_hardware_section">Library &amp; Hardware</string>
+    <string name="settings_listening_record">Listening Record</string>
+    <string name="settings_listening_record_description">Monthly stats, artists, and repeats</string>
+    <string name="settings_scan_folders">Scan Folders</string>
+    <string name="settings_scan_all_music">All music</string>
+    <plurals name="settings_scan_folders_included">
+        <item quantity="one">%d folder included</item>
+        <item quantity="other">%d folders included</item>
+    </plurals>
+    <plurals name="settings_scan_folders_excluded">
+        <item quantity="one">%d folder excluded</item>
+        <item quantity="other">%d folders excluded</item>
+    </plurals>
+    <string name="settings_downloads_description">Manage songs saved for offline playback</string>
+    <string name="settings_player_name" translatable="false">CassetteCat Player</string>
+    <string name="settings_player_description">Pair, sync music, and hardware telemetry</string>
+
+    <string name="settings_streaming_services_section">Streaming &amp; Services</string>
+    <string name="settings_offline_blackout">Offline Blackout Mode</string>
+    <string name="settings_offline_blackout_enabled">All network services and streaming disabled</string>
+    <string name="settings_offline_blackout_disabled">Disable all network calls, streaming, and lookups</string>
+    <string name="settings_subsonic_name" translatable="false">Subsonic</string>
+    <string name="settings_subsonic_description">Navidrome, gonic, and other Subsonic servers</string>
+    <string name="settings_jellyfin_name" translatable="false">Jellyfin</string>
+    <string name="settings_jellyfin_description">Connect to a Jellyfin media server</string>
+    <string name="settings_external_services">External Services</string>
+    <string name="settings_external_services_count">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</string>
+    <string name="settings_scrobbling_description">ListenBrainz and Libre.fm listening sync</string>
+    <string name="settings_listening_room">Listening Room</string>
+    <plurals name="settings_listening_room_hosting">
+        <item quantity="one">Hosting · %d connected</item>
+        <item quantity="other">Hosting · %d connected</item>
+    </plurals>
+    <string name="settings_listening_room_following">Following %1$s</string>
+    <string name="settings_listening_room_following_room">Following a room</string>
+    <string name="settings_listening_room_inactive">Share playback with people on this Wi-Fi</string>
+
+    <string name="settings_data_updates_section">Data &amp; Updates</string>
+    <string name="settings_privacy_security">Privacy &amp; Security</string>
+    <string name="settings_privacy_security_description">Listening data and saved server credentials</string>
+    <string name="settings_backup_restore">Backup &amp; Restore</string>
+    <string name="settings_backup_restore_description">Keep library, playlists, and settings safe</string>
+
+    <string name="settings_support_about_section">Support &amp; About</string>
+    <string name="settings_about_legal">About &amp; Legal</string>
+    <string name="settings_about_legal_description">Audio DSP, data sources, privacy &amp; permissions</string>
+    <string name="settings_credits">Credits &amp; Attribution</string>
+    <string name="settings_credits_description">Contributors, open source libraries, and fonts</string>
+    <string name="settings_github_sponsors" translatable="false">GitHub Sponsors</string>
+    <string name="settings_github_sponsors_description">Support development on GitHub Sponsors</string>
+    <string name="settings_kofi" translatable="false">Ko-fi</string>
+    <string name="settings_kofi_description">Support development on Ko-fi</string>
+    <string name="settings_buy_me_a_coffee" translatable="false">Buy Me a Coffee</string>
+    <string name="settings_buy_me_a_coffee_description">Support development on Buy Me a Coffee</string>
+    <string name="settings_sponsor_note">20% of sponsorship proceeds fund free lyrics infrastructure on LRCLIB.</string>
+
+    <string name="settings_service_deezer" translatable="false">Deezer</string>
+    <string name="settings_service_audiodb" translatable="false">TheAudioDB</string>
+    <string name="settings_service_lrclib" translatable="false">LrcLib</string>
+    <string name="settings_service_cover_art_archive" translatable="false">Cover Art Archive</string>
+    <string name="settings_service_wikipedia" translatable="false">Wikipedia</string>
+    <string name="settings_service_github" translatable="false">GitHub</string>
+    <string name="settings_service_radio_browser" translatable="false">Radio Browser</string>
+    <string name="settings_service_deezer_description">Artist images and album artwork</string>
+    <string name="settings_service_audiodb_description">Fallback for artist images</string>
+    <string name="settings_service_lrclib_description">Synced lyrics when a track has none embedded</string>
+    <string name="settings_service_cover_art_archive_description">Archival CD and vinyl artwork from MusicBrainz</string>
+    <string name="settings_service_wikipedia_description">About descriptions for artists and albums</string>
+    <string name="settings_service_github_description">Check for newer app releases</string>
+    <string name="settings_service_radio_browser_description">Search and browse internet radio stations</string>
+    <string name="settings_service_paused">%1$s · Paused by Offline Blackout Mode</string>
+
+    <string name="settings_server_paused">Paused by Offline Blackout Mode</string>
+    <string name="settings_server_checking">Checking connection…</string>
+    <string name="settings_server_unavailable">Unavailable · %1$s</string>
+    <string name="settings_server_unavailable_checked">Unavailable · %1$s · checked %2$s</string>
+    <plurals name="settings_server_songs">
+        <item quantity="one">%1$s · %2$d song</item>
+        <item quantity="other">%1$s · %2$d songs</item>
+    </plurals>
+    <plurals name="settings_server_songs_refreshed">
+        <item quantity="one">%1$s · %2$d song · refreshed %3$s</item>
+        <item quantity="other">%1$s · %2$d songs · refreshed %3$s</item>
+    </plurals>
+
+    <string name="settings_check_updates">Check for Updates</string>
+    <string name="settings_updates_disabled">Disabled above</string>
+    <string name="settings_updates_tap">Tap to check</string>
+    <string name="settings_updates_current">You’re up to date</string>
+    <string name="settings_updates_available">Version %1$s available, tap to view</string>
+    <string name="settings_updates_failed">Couldn’t check, tap to retry</string>
+</resources>
