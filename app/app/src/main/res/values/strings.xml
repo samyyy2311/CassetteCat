@@ -29,4 +29,39 @@
     <string name="share_whatsapp" translatable="false">WhatsApp</string>
     <string name="share_stories">Stories</string>
     <string name="share_more">More</string>
+
+    <string name="action_skip">Skip</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_add_folder">Add folder</string>
+    <string name="action_remove_folder">Remove folder</string>
+
+    <string name="onboarding_welcome_headline">Make your library feel like yours.</string>
+    <string name="onboarding_welcome_body">Play, organize, and own your music, no subscription.</string>
+    <string name="onboarding_private_label">PRIVATE BY DEFAULT</string>
+    <string name="onboarding_private_body">Your listening stays on this device.</string>
+    <string name="onboarding_setup_library">Set up my library</string>
+
+    <string name="onboarding_permissions_title">Give your library a starting point</string>
+    <string name="onboarding_permissions_body">Only what’s needed to play your music.</string>
+    <string name="onboarding_permission_music_title">Music and audio</string>
+    <string name="onboarding_permission_music_description">Find and play music stored on your phone.</string>
+    <string name="onboarding_permission_notifications_title">Notifications</string>
+    <string name="onboarding_permission_notifications_description">Keep playback controls available outside the app.</string>
+    <string name="onboarding_permission_nearby_title">Nearby devices</string>
+    <string name="onboarding_permission_nearby_description">Find and pair your CassetteCat hardware player over Wi-Fi.</string>
+
+    <string name="onboarding_library_title">Choose your music folders</string>
+    <string name="onboarding_library_subtitle">You can change this later in Settings.</string>
+    <string name="onboarding_library_all_music_title">All music</string>
+    <string name="onboarding_library_all_music_description">Find audio anywhere your phone allows.</string>
+    <string name="onboarding_library_selected_folders_title">Only these folders</string>
+    <string name="onboarding_library_selected_folders_description">Build a library from selected folders only.</string>
+    <string name="onboarding_library_excluded_folders_title">Everything except these folders</string>
+    <string name="onboarding_library_excluded_folders_description">Ignore selected folders while scanning.</string>
+    <string name="onboarding_library_folder_required">Add at least one folder to continue.</string>
+
+    <string name="onboarding_device_title">Add your listening device</string>
+    <string name="onboarding_device_subtitle">Optional. Connect a CassetteCat device whenever you are ready.</string>
+    <string name="onboarding_device_sync_description">Connect over Wi-Fi to keep playback and device updates in sync.</string>
+    <string name="onboarding_device_setup">Set up device</string>
 </resources>
