@@ -65,6 +65,12 @@ android {
                 !releaseSigning.storePassword.isNullOrBlank() &&
                 !releaseSigning.keyAlias.isNullOrBlank() &&
                 !releaseSigning.keyPassword.isNullOrBlank()
+            if (System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
+                gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
+                !hasProductionSigning
+            ) {
+                error("Release signing is required in CI")
+            }
             isProfileable = hasProductionSigning
             if (hasProductionSigning) {
                 signingConfig = releaseSigning
