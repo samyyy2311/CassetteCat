@@ -14,15 +14,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-// scale-down press feedback, no default ripple (avoids the rectangular bounds on block-shaped rows/cards)
+// Scale feedback without a rectangular ripple on rows and cards.
 fun Modifier.tapScale(onClick: () -> Unit): Modifier = pressScale(onClick = onClick)
 
-// Same feedback, plus long-press, for the few rows that need both (e.g. multi-select).
-// Kept separate from tapScale rather than adding an optional param to it: Kotlin's
-// trailing-lambda-without-parens call sites (.tapScale { ... }, used throughout the app)
-// require the function-typed param to be last, while the positional call sites
-// (.tapScale(onClick), also used throughout) require it to be first: no single parameter
-// order satisfies both existing call styles.
+// Separate helper keeps the existing .tapScale {} and .tapScale(onClick) call sites simple.
 fun Modifier.tapScaleSelectable(onClick: () -> Unit, onLongClick: () -> Unit): Modifier =
     pressScale(onClick = onClick, onLongClick = onLongClick)
 
