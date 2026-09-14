@@ -1,0 +1,16 @@
+<resources>
+    <string name="now_playing_shuffle">Shuffle</string>
+    <string name="now_playing_repeat">Repeat</string>
+    <string name="now_playing_lyrics">Lyrics</string>
+    <string name="now_playing_close_lyrics">Close lyrics</string>
+    <string name="now_playing_queue">Queue</string>
+    <string name="now_playing_close_queue">Close queue</string>
+    <string name="now_playing_live">LIVE</string>
+    <string name="now_playing_connecting">CONNECTING…</string>
+    <string name="now_playing_paused">PAUSED</string>
+
+    <string name="drive_mode_title">Drive Mode</string>
+    <string name="drive_mode_exit">Exit Drive Mode</string>
+    <string name="drive_mode_empty_title">No track playing</string>
+    <string name="drive_mode_empty_message">Play a song from your library to start listening in Drive Mode.</string>
+</resources>
