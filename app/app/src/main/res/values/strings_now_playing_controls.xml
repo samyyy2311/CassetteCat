@@ -1,0 +1,42 @@
+<resources>
+    <string name="now_playing_shuffle">Shuffle</string>
+    <string name="now_playing_repeat">Repeat</string>
+    <string name="now_playing_lyrics">Lyrics</string>
+    <string name="now_playing_close_lyrics">Close lyrics</string>
+    <string name="now_playing_queue">Queue</string>
+    <string name="now_playing_close_queue">Close queue</string>
+    <string name="now_playing_live">LIVE</string>
+    <string name="now_playing_connecting">CONNECTING…</string>
+    <string name="now_playing_paused">PAUSED</string>
+    <string name="now_playing_favorite">Favorite</string>
+    <string name="now_playing_unfavorite">Unfavorite</string>
+    <string name="now_playing_more">More</string>
+    <string name="now_playing_save_queue">Save Queue as Playlist</string>
+    <string name="now_playing_share_preparing">Preparing %1$s to share…</string>
+    <string name="now_playing_share_prepare_failed">Couldn’t prepare %1$s to share</string>
+    <string name="now_playing_share_title">Share %1$s</string>
+
+    <string name="audio_quality_hires">Hi-Res Lossless Audio</string>
+    <string name="audio_quality_lossless">Lossless Audio</string>
+    <string name="audio_quality_title">Audio Quality</string>
+    <string name="audio_quality_format">Format</string>
+    <string name="audio_quality_sample_rate">Sample Rate</string>
+    <string name="audio_quality_bit_depth">Bit Depth</string>
+    <string name="audio_quality_bitrate">Bitrate</string>
+    <string name="audio_quality_encoding">Encoding</string>
+    <string name="audio_quality_sample_rate_value">%1$d Hz (%2$.1f kHz)</string>
+    <string name="audio_quality_bit_depth_value">%1$d-bit</string>
+    <string name="audio_quality_bitrate_value">%1$d kbps</string>
+    <string name="audio_quality_lossless_encoding">Lossless Uncompressed</string>
+    <string name="audio_quality_lossy_encoding">Lossy Compressed</string>
+
+    <string name="source_subsonic" translatable="false">Subsonic</string>
+    <string name="source_jellyfin" translatable="false">Jellyfin</string>
+    <string name="source_radio">Radio</string>
+    <string name="source_room">Room</string>
+
+    <string name="drive_mode_title">Drive Mode</string>
+    <string name="drive_mode_exit">Exit Drive Mode</string>
+    <string name="drive_mode_empty_title">No track playing</string>
+    <string name="drive_mode_empty_message">Play a song from your library to start listening in Drive Mode.</string>
+</resources>

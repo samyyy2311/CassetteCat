@@ -35,11 +35,13 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.AudioTrackFormat
@@ -99,7 +101,13 @@ private fun AudioDetailsSheet(
                 .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
             Text(
-                text = if (audioFormat.isHiRes) "Hi-Res Lossless Audio" else if (audioFormat.isLossless) "Lossless Audio" else "Audio Quality",
+                text = stringResource(
+                    when {
+                        audioFormat.isHiRes -> AppR.string.audio_quality_hires
+                        audioFormat.isLossless -> AppR.string.audio_quality_lossless
+                        else -> AppR.string.audio_quality_title
+                    }
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -111,17 +119,36 @@ private fun AudioDetailsSheet(
             )
             Spacer(Modifier.height(16.dp))
 
-            AudioDetailItem("Format", audioFormat.codecName)
+            AudioDetailItem(stringResource(AppR.string.audio_quality_format), audioFormat.codecName)
             if (audioFormat.sampleRateHz > 0) {
-                AudioDetailItem("Sample Rate", "${audioFormat.sampleRateHz} Hz (${audioFormat.sampleRateHz / 1000f} kHz)")
+                AudioDetailItem(
+                    stringResource(AppR.string.audio_quality_sample_rate),
+                    stringResource(
+                        AppR.string.audio_quality_sample_rate_value,
+                        audioFormat.sampleRateHz,
+                        audioFormat.sampleRateHz / 1000f
+                    )
+                )
             }
             if (audioFormat.bitDepth > 0) {
-                AudioDetailItem("Bit Depth", "${audioFormat.bitDepth}-bit")
+                AudioDetailItem(
+                    stringResource(AppR.string.audio_quality_bit_depth),
+                    stringResource(AppR.string.audio_quality_bit_depth_value, audioFormat.bitDepth)
+                )
             }
             if (audioFormat.bitrateKbps > 0) {
-                AudioDetailItem("Bitrate", "${audioFormat.bitrateKbps} kbps")
+                AudioDetailItem(
+                    stringResource(AppR.string.audio_quality_bitrate),
+                    stringResource(AppR.string.audio_quality_bitrate_value, audioFormat.bitrateKbps)
+                )
             }
-            AudioDetailItem("Encoding", if (audioFormat.isLossless) "Lossless Uncompressed" else "Lossy Compressed")
+            AudioDetailItem(
+                stringResource(AppR.string.audio_quality_encoding),
+                stringResource(
+                    if (audioFormat.isLossless) AppR.string.audio_quality_lossless_encoding
+                    else AppR.string.audio_quality_lossy_encoding
+                )
+            )
 
             Spacer(Modifier.height(24.dp))
         }
@@ -249,32 +276,39 @@ internal fun TitleRow(
                     AudioQualityBadge(audioFormat = it)
                 }
                 if (song.source != MusicSource.Local) {
-                    val (sourceLabel, sourceColor) = when (song.source) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.ListeningRoomHost -> "Room" to MaterialTheme.colorScheme.secondary
-                        MusicSource.Local -> "" to Color.Unspecified
-                    }
-                    if (sourceLabel.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(sourceColor.copy(alpha = 0.12f))
-                                .border(0.5.dp, sourceColor.copy(alpha = 0.45f), RoundedCornerShape(3.dp))
-                                .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                        ) {
-                            Text(
-                                text = sourceLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = IbmPlexMonoFontFamily,
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.3.sp
-                                ),
-                                color = sourceColor
-                            )
+                    val sourceLabel = stringResource(
+                        when (song.source) {
+                            MusicSource.Subsonic -> AppR.string.source_subsonic
+                            MusicSource.Jellyfin -> AppR.string.source_jellyfin
+                            MusicSource.Radio -> AppR.string.source_radio
+                            MusicSource.ListeningRoomHost -> AppR.string.source_room
+                            MusicSource.Local -> AppR.string.app_name
                         }
+                    )
+                    val sourceColor = when (song.source) {
+                        MusicSource.Subsonic -> Color(0xFFFF8500)
+                        MusicSource.Jellyfin -> Color(0xFF00A4DC)
+                        MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
+                        MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.secondary
+                        MusicSource.Local -> Color.Unspecified
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(sourceColor.copy(alpha = 0.12f))
+                            .border(0.5.dp, sourceColor.copy(alpha = 0.45f), RoundedCornerShape(3.dp))
+                            .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                    ) {
+                        Text(
+                            text = sourceLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = IbmPlexMonoFontFamily,
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.3.sp
+                            ),
+                            color = sourceColor
+                        )
                     }
                 }
                 BluetoothOutputLabel()
@@ -282,13 +316,15 @@ internal fun TitleRow(
         }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_heart,
-            contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
+            contentDescription = stringResource(
+                if (isFavorite) AppR.string.now_playing_unfavorite else AppR.string.now_playing_favorite
+            ),
             tint = if (isFavorite) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onToggleFavorite
         )
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_ellipsis_vertical,
-            contentDescription = "More",
+            contentDescription = stringResource(AppR.string.now_playing_more),
             onClick = onShowMenu
         )
     }

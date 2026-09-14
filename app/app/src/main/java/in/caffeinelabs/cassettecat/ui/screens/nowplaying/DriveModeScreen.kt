@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,10 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
@@ -53,7 +54,6 @@ fun DriveModeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val activity = context as? Activity
 
     DisposableEffect(Unit) {
@@ -100,7 +100,6 @@ fun DriveModeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,12 +115,12 @@ fun DriveModeScreen(
             ) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_chevron_left,
-                    contentDescription = "Exit Drive Mode",
+                    contentDescription = stringResource(AppR.string.drive_mode_exit),
                     onClick = onBack
                 )
 
                 Text(
-                    "Drive Mode",
+                    stringResource(AppR.string.drive_mode_title),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -136,8 +135,8 @@ fun DriveModeScreen(
                 ) {
                     EmptyState(
                         iconRes = R.drawable.lucide_ic_music,
-                        title = "No track playing",
-                        message = "Play a song from your library to start listening in Drive Mode"
+                        title = stringResource(AppR.string.drive_mode_empty_title),
+                        message = stringResource(AppR.string.drive_mode_empty_message)
                     )
                 }
             } else if (isLandscape) {

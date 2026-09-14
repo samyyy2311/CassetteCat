@@ -5,17 +5,19 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
@@ -105,7 +107,7 @@ internal fun NowPlayingScreenSheetsHost(
     }
     if (sheetState.showSaveQueue) {
         PlaylistNameSheet(
-            title = "Save Queue as Playlist",
+            title = stringResource(AppR.string.now_playing_save_queue),
             initialName = "",
             onConfirm = { name ->
                 onSaveQueue(name, queueSongs.map { it.id })
@@ -257,7 +259,11 @@ private suspend fun shareAudioFile(context: Context, song: Song) {
         return
     }
 
-    Toast.makeText(context, "Preparing ${song.title} to share...", Toast.LENGTH_SHORT).show()
+    Toast.makeText(
+        context,
+        context.getString(AppR.string.now_playing_share_preparing, song.title),
+        Toast.LENGTH_SHORT
+    ).show()
     val shareUri = withContext(Dispatchers.IO) {
         runCatching {
             val response = sharedHttpClient.newCall(Request.Builder().url(song.contentUri.toString()).build()).execute()
@@ -273,7 +279,11 @@ private suspend fun shareAudioFile(context: Context, song: Song) {
     if (shareUri != null) {
         launchAudioShareIntent(context, song, shareUri)
     } else {
-        Toast.makeText(context, "Couldn't prepare ${song.title} to share", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            context.getString(AppR.string.now_playing_share_prepare_failed, song.title),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
@@ -285,7 +295,9 @@ private fun launchAudioShareIntent(context: Context, song: Song, uri: android.ne
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     runCatching {
-        context.startActivity(Intent.createChooser(intent, "Share ${song.title}"))
+        context.startActivity(
+            Intent.createChooser(intent, context.getString(AppR.string.now_playing_share_title, song.title))
+        )
     }
 }
 
