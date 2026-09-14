@@ -1,0 +1,8 @@
+<resources>
+    <string name="customization_theme_record_red_short">Record</string>
+    <string name="customization_theme_cassette_amber_short">Cassette</string>
+    <string name="customization_theme_electric_cyan_short">Electric</string>
+    <string name="customization_theme_neon_emerald_short">Neon</string>
+    <string name="customization_theme_tape_magenta_short">Tape</string>
+    <string name="customization_theme_monochrome_short">Monochrome</string>
+</resources>
