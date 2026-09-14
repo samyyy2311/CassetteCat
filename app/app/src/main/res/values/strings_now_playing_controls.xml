@@ -16,6 +16,15 @@
     <string name="now_playing_share_prepare_failed">Couldn’t prepare %1$s to share</string>
     <string name="now_playing_share_title">Share %1$s</string>
 
+    <string name="lyrics_sync_tune">Tune lyrics sync</string>
+    <string name="lyrics_sync_label">Sync</string>
+    <string name="lyrics_sync_offset_short">%1$+dms</string>
+    <string name="lyrics_sync_nudge_back">-100ms</string>
+    <string name="lyrics_sync_nudge_forward">+100ms</string>
+    <string name="lyrics_sync_zero">Sync: 0ms</string>
+    <string name="lyrics_sync_value">Sync: %1$+dms</string>
+    <string name="lyrics_sync_close">Close sync tuner</string>
+
     <string name="audio_quality_hires">Hi-Res Lossless Audio</string>
     <string name="audio_quality_lossless">Lossless Audio</string>
     <string name="audio_quality_title">Audio Quality</string>
