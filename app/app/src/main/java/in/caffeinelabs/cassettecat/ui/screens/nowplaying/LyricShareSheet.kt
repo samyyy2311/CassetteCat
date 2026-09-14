@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,9 +82,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class LyricCardTheme(val label: String) {
-    ATMOSPHERE("Atmosphere"),
-    OBSIDIAN("Obsidian")
+enum class LyricCardTheme {
+    ATMOSPHERE,
+    OBSIDIAN
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,6 +98,9 @@ fun LyricShareSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectedTheme by remember { mutableStateOf(LyricCardTheme.ATMOSPHERE) }
+    val trackCredit = stringResource(AppR.string.share_track_credit, song.title, song.artist)
+    val lyricsClipboardLabel = stringResource(AppR.string.share_mode_lyrics)
+    val lyricsCopiedMessage = stringResource(AppR.string.share_lyrics_copied)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -118,14 +122,14 @@ fun LyricShareSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Share Lyric Quote",
+                    text = stringResource(AppR.string.share_lyric_quote_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = SpaceGroteskFontFamily,
                     fontWeight = FontWeight.Bold
                 )
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_x,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(AppR.string.close),
                     onClick = onDismiss
                 )
             }
@@ -167,7 +171,7 @@ fun LyricShareSheet(
                             .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            text = theme.label,
+                            text = lyricCardThemeLabel(theme),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = textColor
@@ -185,20 +189,20 @@ fun LyricShareSheet(
             ) {
                 ShareActionPill(
                     iconRes = R.drawable.lucide_ic_copy,
-                    label = "Copy text",
+                    label = stringResource(AppR.string.share_copy_text),
                     backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = MaterialTheme.colorScheme.onSurface,
                     onClick = {
-                        val fullText = selectedLines.joinToString("\n") + "\n\n${song.title} - ${song.artist}"
+                        val fullText = selectedLines.joinToString("\n") + "\n\n$trackCredit"
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Lyrics", fullText))
-                        Toast.makeText(context, "Lyrics copied to clipboard", Toast.LENGTH_SHORT).show()
+                        clipboard.setPrimaryClip(ClipData.newPlainText(lyricsClipboardLabel, fullText))
+                        Toast.makeText(context, lyricsCopiedMessage, Toast.LENGTH_SHORT).show()
                     }
                 )
 
                 ShareActionPill(
                     iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = "WhatsApp",
+                    label = stringResource(AppR.string.share_whatsapp),
                     packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
                     backgroundColor = Color(0xFF25D366),
                     iconTint = Color.White,
@@ -211,14 +215,14 @@ fun LyricShareSheet(
                             val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
                                 runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
                             } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", targetPkg)
+                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
                         }
                     }
                 )
 
                 ShareActionPill(
                     iconRes = AppR.drawable.ic_logo_instagram,
-                    label = "Stories",
+                    label = stringResource(AppR.string.share_stories),
                     packageNames = listOf("com.instagram.android"),
                     backgroundBrush = Brush.linearGradient(
                         listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
@@ -230,14 +234,14 @@ fun LyricShareSheet(
                             val bitmap = withContext(Dispatchers.Default) {
                                 buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
                             }
-                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}")
+                            shareImageToInstagramStories(context, bitmap, trackCredit)
                         }
                     }
                 )
 
                 ShareActionPill(
                     iconRes = R.drawable.lucide_ic_share_2,
-                    label = "More",
+                    label = stringResource(AppR.string.share_more),
                     backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = MaterialTheme.colorScheme.onSurface,
                     onClick = {
@@ -246,7 +250,7 @@ fun LyricShareSheet(
                             val bitmap = withContext(Dispatchers.Default) {
                                 buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
                             }
-                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", null)
+                            shareImageWithApp(context, bitmap, trackCredit, null)
                         }
                     }
                 )
@@ -369,7 +373,7 @@ private fun LyricQuoteCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "CassetteCat",
+                    text = stringResource(AppR.string.app_name),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = Color.White.copy(alpha = 0.45f)
                 )
@@ -383,6 +387,14 @@ private fun LyricQuoteCard(
         }
     }
 }
+
+@Composable
+internal fun lyricCardThemeLabel(theme: LyricCardTheme): String = stringResource(
+    when (theme) {
+        LyricCardTheme.ATMOSPHERE -> AppR.string.share_theme_atmosphere
+        LyricCardTheme.OBSIDIAN -> AppR.string.share_theme_obsidian
+    }
+)
 
 private fun buildLyricCardPoster(
     context: Context,
@@ -548,16 +560,16 @@ private fun buildLyricCardPoster(
         textSize = 58f
         typeface = ibmPlexMono
     }
-    canvas.drawText("CassetteCat", 180f, height - 160f, footerPaint)
+    canvas.drawText(context.getString(AppR.string.app_name), 180f, height - 160f, footerPaint)
 
     val tapeSize = 78
     if (tapeDrawable != null) {
         tapeDrawable.setTint(android.graphics.Color.argb(128, 255, 255, 255))
         tapeDrawable.setBounds(
-            (width - 180 - tapeSize),
-            (height - 216),
-            (width - 180),
-            (height - 216 + tapeSize)
+            width - 180 - tapeSize,
+            height - 216,
+            width - 180,
+            height - 216 + tapeSize
         )
         tapeDrawable.draw(canvas)
     }

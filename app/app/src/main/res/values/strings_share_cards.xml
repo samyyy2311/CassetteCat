@@ -1,0 +1,14 @@
+<resources>
+    <string name="share_card_title">Share Card</string>
+    <string name="share_lyric_quote_title">Share Lyric Quote</string>
+    <string name="share_mode_song">Song</string>
+    <string name="share_mode_lyrics">Lyrics</string>
+    <string name="share_theme_atmosphere">Atmosphere</string>
+    <string name="share_theme_obsidian">Obsidian</string>
+    <string name="share_select_different_lyrics">Select different lyrics</string>
+    <string name="share_copy_text">Copy text</string>
+    <string name="share_copied">Copied to clipboard</string>
+    <string name="share_lyrics_copied">Lyrics copied to clipboard</string>
+    <string name="share_track_credit">%1$s - %2$s</string>
+    <string name="share_to_stories">Share to Stories</string>
+</resources>
