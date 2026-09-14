@@ -291,7 +291,7 @@ private fun launchAudioShareIntent(context: Context, song: Song, uri: android.ne
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "audio/*"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, "${song.title} - ${song.artist}")
+        putExtra(Intent.EXTRA_TEXT, context.getString(AppR.string.share_track_credit, song.title, song.artist))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     runCatching {
