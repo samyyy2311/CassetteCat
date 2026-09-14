@@ -12,19 +12,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
 private val sleepDurations = listOf(5L, 10L, 15L, 30L, 45L, 60L)
+private val fadeDurations = listOf(10, 20, 30, 45, 60)
 
 @Composable
 fun PlaybackPreferencesScreen(
@@ -37,6 +41,9 @@ fun PlaybackPreferencesScreen(
     val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsStateWithLifecycle()
     val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsStateWithLifecycle()
     val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsStateWithLifecycle()
+    val fadeLabels = (fadeDurations + fadeSeconds).distinct().associateWith {
+        stringResource(AppR.string.sleep_timer_seconds_short, it)
+    }
 
     Column(
         modifier = modifier
@@ -50,54 +57,55 @@ fun PlaybackPreferencesScreen(
                 .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
-            Text("Sleep timer", style = MaterialTheme.typography.headlineSmall)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
+            Text(stringResource(AppR.string.sleep_timer_title), style = MaterialTheme.typography.headlineSmall)
         }
 
         Text(
-            text = "Stop playback automatically after a chosen time.",
+            text = stringResource(AppR.string.sleep_timer_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
 
-        SettingsSection(title = "Set a timer") {
+        SettingsSection(title = stringResource(AppR.string.sleep_timer_set_section)) {
             SleepTimerRow(
-                label = "End of current song",
+                label = stringResource(AppR.string.sleep_timer_end_of_song),
                 onClick = hapticClick { playbackViewModel.startSleepTimer(-1L) }
             )
             SettingsDivider(startPadding = 24.dp)
             sleepDurations.forEachIndexed { index, minutes ->
+                val minuteCount = minutes.toInt()
                 SleepTimerRow(
-                    label = "$minutes minutes",
+                    label = pluralStringResource(AppR.plurals.sleep_timer_minutes, minuteCount, minuteCount),
                     onClick = hapticClick { playbackViewModel.startSleepTimer(minutes * 60_000) }
                 )
                 if (index != sleepDurations.lastIndex) SettingsDivider(startPadding = 24.dp)
             }
         }
 
-        SettingsSection(title = "Behavior") {
+        SettingsSection(title = stringResource(AppR.string.sleep_timer_behavior_section)) {
             ToggleRow(
-                title = "Gentle volume fade out",
-                subtitle = "Smoothly lower volume over the last ${fadeSeconds}s",
+                title = stringResource(AppR.string.sleep_timer_fade_title),
+                subtitle = stringResource(AppR.string.sleep_timer_fade_description, fadeSeconds),
                 checked = fadeOut,
                 onCheckedChange = { playbackViewModel.setSleepTimerFadeOut(it) },
                 iconRes = R.drawable.lucide_ic_volume_2
             )
             SettingsDivider(startPadding = 24.dp)
             SheetPickerRow(
-                title = "Fade-out Duration",
-                subtitle = "How long the volume takes to fade to silent",
+                title = stringResource(AppR.string.sleep_timer_fade_duration),
+                subtitle = stringResource(AppR.string.sleep_timer_fade_duration_description),
                 iconRes = R.drawable.lucide_ic_timer,
-                options = listOf(10, 20, 30, 45, 60),
+                options = fadeDurations,
                 selected = fadeSeconds,
-                label = { "${it}s" },
+                label = fadeLabels::getValue,
                 onSelect = playbackViewModel::setSleepTimerFadeSeconds
             )
             SettingsDivider(startPadding = 24.dp)
             ToggleRow(
-                title = "Wait for song to finish",
-                subtitle = "Avoid cutting off in the middle of a track",
+                title = stringResource(AppR.string.sleep_timer_finish_song),
+                subtitle = stringResource(AppR.string.sleep_timer_finish_song_description),
                 checked = finishTrack,
                 onCheckedChange = { playbackViewModel.setSleepTimerFinishTrack(it) },
                 iconRes = R.drawable.lucide_ic_disc_3
@@ -105,10 +113,10 @@ fun PlaybackPreferencesScreen(
         }
 
         if (sleepTimerEndMs != null) {
-            SettingsSection(title = "Active timer") {
+            SettingsSection(title = stringResource(AppR.string.sleep_timer_active_section)) {
                 SleepTimerRow(
-                    label = "Sleep timer is on",
-                    value = "Turn off",
+                    label = stringResource(AppR.string.sleep_timer_active),
+                    value = stringResource(AppR.string.sleep_timer_turn_off),
                     isDestructive = true,
                     onClick = hapticClick { playbackViewModel.cancelSleepTimer() }
                 )
