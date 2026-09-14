@@ -1,0 +1,123 @@
+<resources>
+    <string name="now_playing_output_bluetooth" translatable="false">Bluetooth</string>
+    <string name="now_playing_output_phone_speaker">Phone Speaker</string>
+    <string name="now_playing_timer_under_minute">&lt; 1 min</string>
+    <plurals name="now_playing_timer_remaining">
+        <item quantity="one">%d min remaining</item>
+        <item quantity="other">%d min remaining</item>
+    </plurals>
+    <string name="now_playing_off">Off</string>
+    <string name="now_playing_source_local">Local</string>
+    <string name="now_playing_source_radio_bitrate">Radio · %1$dk</string>
+    <string name="now_playing_liked">Liked</string>
+    <string name="now_playing_share">Share</string>
+    <string name="now_playing_equalizer">Equalizer</string>
+    <string name="now_playing_sleep">Sleep</string>
+    <string name="now_playing_up_next">Up Next</string>
+    <string name="now_playing_mix">Mix</string>
+    <string name="now_playing_share_song_file">Share Song File</string>
+    <string name="now_playing_send_original_audio">Send original audio</string>
+    <string name="now_playing_edit_details">Edit Details</string>
+    <string name="now_playing_edit_details_description">Title, artist, album, genre &amp; year</string>
+    <string name="now_playing_download">Download</string>
+    <string name="now_playing_download_description">Save for offline playback</string>
+    <string name="now_playing_credits_details">Credits &amp; details</string>
+    <string name="now_playing_credits_details_description">Release and source metadata</string>
+    <string name="now_playing_view_artwork">View Full Artwork</string>
+    <string name="now_playing_view_artwork_description">Preview high-resolution cover</string>
+    <string name="now_playing_search_cover">Search Album Cover Online</string>
+    <string name="now_playing_search_cover_short">Search Cover Online</string>
+    <string name="now_playing_search_cover_description">Find and apply high-resolution artwork</string>
+    <string name="now_playing_audio_output">Audio output</string>
+    <string name="now_playing_eq_badge" translatable="false">EQ</string>
+    <string name="now_playing_playback_speed">Playback Speed</string>
+    <string name="now_playing_speed_value">%1$sx</string>
+    <string name="now_playing_speed_normal_badge" translatable="false">1.0x</string>
+    <string name="now_playing_listening_room">Listening Room</string>
+    <string name="now_playing_active">Active</string>
+    <string name="now_playing_wifi_audio_sharing">Wi-Fi audio sharing</string>
+    <string name="now_playing_sleep_timer">Sleep Timer</string>
+    <string name="now_playing_drive_mode_description">Large touch HUD for safe driving</string>
+
+    <string name="playback_tuning_title">Tempo &amp; Pitch Tuning</string>
+    <string name="playback_speed_section">PLAYBACK SPEED</string>
+    <string name="playback_speed_normal">1.0x (Normal)</string>
+    <string name="playback_speed_value">%1$sx</string>
+    <string name="playback_pitch_section">PITCH SHIFT</string>
+    <string name="playback_pitch_multiplier">Pitch Multiplier</string>
+    <string name="playback_pitch_normal">Normal (1.0x)</string>
+    <plurals name="playback_pitch_semitones">
+        <item quantity="one">%1$+d semitone (%2$.2fx)</item>
+        <item quantity="other">%1$+d semitones (%2$.2fx)</item>
+    </plurals>
+
+    <string name="listening_room_description">Share playback and the queue only with people on this Wi-Fi. No account, cloud service, analytics, or listening history is sent anywhere.</string>
+    <plurals name="listening_room_host_status">
+        <item quantity="one">Room controls are on this phone • %d connected</item>
+        <item quantity="other">Room controls are on this phone • %d connected</item>
+    </plurals>
+    <string name="listening_room_code">Room code: %1$s</string>
+    <string name="listening_room_manual_address">If a guest can’t find this room automatically, have them enter: %1$s</string>
+    <string name="listening_room_end">End nearby room</string>
+    <string name="listening_room_end_description">Disconnect everyone immediately</string>
+    <string name="listening_room_following_host">Following the host’s playback and queue</string>
+    <string name="listening_room_leave">Leave room</string>
+    <string name="listening_room_leave_description">Return to your own playback controls</string>
+    <string name="listening_room_start">Start a nearby room</string>
+    <string name="listening_room_start_description">Host playback for people on this Wi-Fi</string>
+    <string name="listening_room_nearby">Nearby rooms</string>
+    <string name="listening_room_join_wifi">Join on this Wi-Fi</string>
+    <string name="listening_room_searching">Looking for nearby rooms on this Wi-Fi…</string>
+    <string name="listening_room_join_address">Join by address</string>
+    <string name="listening_room_join_address_description">Can’t find the room automatically? Ask the host for the address and code shown on their screen.</string>
+    <string name="listening_room_join">Join</string>
+
+    <string name="credits_source_local">On-device library</string>
+    <string name="credits_source_subsonic">Subsonic server</string>
+    <string name="credits_source_jellyfin">Jellyfin server</string>
+    <string name="credits_source_room">Streamed from Listening Room host</string>
+    <string name="credits_source_radio">Internet radio</string>
+    <string name="credits_not_supplied">Not supplied</string>
+    <string name="credits_performing_artist">Performing artist</string>
+    <string name="credits_release">Release</string>
+    <string name="credits_unknown_release">Unknown release</string>
+    <string name="credits_year">Year</string>
+    <string name="credits_genre">Genre</string>
+    <string name="credits_source">Source</string>
+    <string name="credits_missing_fields">Writer, producer, and engineer credits are shown when the active music source supplies them. This track did not include those fields.</string>
+
+    <string name="audio_output_bluetooth_audio" translatable="false">Bluetooth Audio</string>
+    <string name="audio_output_bluetooth_device" translatable="false">Bluetooth Device</string>
+    <string name="audio_output_active">Currently active output</string>
+    <string name="audio_output_phone_speaker_description">Built-in phone speaker</string>
+    <string name="audio_output_bluetooth_settings" translatable="false">Bluetooth Settings</string>
+    <string name="audio_output_connect_bluetooth">Connect Bluetooth Device</string>
+    <string name="audio_output_manage_bluetooth">Manage paired headsets and speakers</string>
+    <string name="audio_output_connect_bluetooth_description">Pair or connect a wireless device</string>
+
+    <string name="go_to_artist">Go to Artist</string>
+    <string name="go_to_album">Go to Album</string>
+    <string name="go_to_playlist">Go to Playlist</string>
+    <string name="go_to_no_playlists">No saved playlists yet</string>
+    <string name="go_to_choose_playlist">Choose a playlist</string>
+    <string name="go_to_no_playlists_sentence">No saved playlists yet.</string>
+    <plurals name="playlist_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+
+    <string name="sleep_timer_turn_off">Turn Off</string>
+    <string name="sleep_timer_end_status">Stopping after current song finishes</string>
+    <plurals name="sleep_timer_minutes_remaining">
+        <item quantity="one">%d minute remaining</item>
+        <item quantity="other">%d minutes remaining</item>
+    </plurals>
+    <string name="sleep_timer_end_current">End of current song</string>
+    <string name="sleep_timer_end_current_description">Stop playback after this song completes</string>
+    <string name="sleep_timer_selected">Selected</string>
+    <string name="sleep_timer_duration_section">DURATION</string>
+    <plurals name="sleep_timer_duration_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+</resources>

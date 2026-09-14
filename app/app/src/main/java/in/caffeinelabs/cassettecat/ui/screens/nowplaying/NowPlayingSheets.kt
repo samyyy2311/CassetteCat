@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -44,11 +44,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -63,7 +66,6 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -109,22 +111,34 @@ internal fun NowPlayingActionsSheet(
 ) {
     val btDevice = rememberConnectedBluetoothDevice()
     val isBtConnected = btDevice != null
-    val outputLabel = if (isBtConnected) btDevice.productName.toString().ifEmpty { "Bluetooth" } else "Phone Speaker"
+    val outputLabel = if (isBtConnected) {
+        btDevice.productName.toString().ifEmpty { stringResource(AppR.string.now_playing_output_bluetooth) }
+    } else {
+        stringResource(AppR.string.now_playing_output_phone_speaker)
+    }
     val outputIcon = if (isBtConnected) R.drawable.lucide_ic_bluetooth else R.drawable.lucide_ic_speaker
 
     val sleepTimerSubtitle = if (sleepTimerEndMs != null) {
-        val remainingMin = ((sleepTimerEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0)
-        if (remainingMin < 1) "< 1 min" else "${remainingMin}m remaining"
+        val remainingMin = ((sleepTimerEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0).toInt()
+        if (remainingMin < 1) {
+            stringResource(AppR.string.now_playing_timer_under_minute)
+        } else {
+            pluralStringResource(AppR.plurals.now_playing_timer_remaining, remainingMin, remainingMin)
+        }
     } else {
-        "Off"
+        stringResource(AppR.string.now_playing_off)
     }
 
     val sourceBadge = when (song.source) {
-        MusicSource.Local -> "Local"
-        MusicSource.Subsonic -> "Subsonic"
-        MusicSource.Jellyfin -> "Jellyfin"
-        MusicSource.Radio -> if (song.bitrateKbps > 0) "Radio · ${song.bitrateKbps}k" else "Radio"
-        MusicSource.ListeningRoomHost -> "Room"
+        MusicSource.Local -> stringResource(AppR.string.now_playing_source_local)
+        MusicSource.Subsonic -> stringResource(AppR.string.source_subsonic)
+        MusicSource.Jellyfin -> stringResource(AppR.string.source_jellyfin)
+        MusicSource.Radio -> if (song.bitrateKbps > 0) {
+            stringResource(AppR.string.now_playing_source_radio_bitrate, song.bitrateKbps)
+        } else {
+            stringResource(AppR.string.source_radio)
+        }
+        MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room)
     }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -143,7 +157,10 @@ internal fun NowPlayingActionsSheet(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .tapScale { onOpenArtworkViewer(); onDismiss() }
+                        .tapScale {
+                            onOpenArtworkViewer()
+                            onDismiss()
+                        }
                 ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
@@ -191,48 +208,65 @@ internal fun NowPlayingActionsSheet(
             ) {
                 QuickActionButton(
                     iconRes = R.drawable.lucide_ic_heart,
-                    label = if (isFavorite) "Liked" else "Favorite",
+                    label = stringResource(
+                        if (isFavorite) AppR.string.now_playing_liked else AppR.string.now_playing_favorite
+                    ),
                     accented = isFavorite,
                     modifier = Modifier.weight(1f),
-                    onClick = { onToggleFavorite() }
+                    onClick = onToggleFavorite
                 )
                 QuickActionButton(
                     iconRes = R.drawable.lucide_ic_share_2,
-                    label = "Share",
+                    label = stringResource(AppR.string.now_playing_share),
                     accented = false,
                     modifier = Modifier.weight(1f),
-                    onClick = { onShare(); onDismiss() }
+                    onClick = {
+                        onShare()
+                        onDismiss()
+                    }
                 )
                 if (song.source == MusicSource.Radio) {
                     QuickActionButton(
                         iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                        label = "Equalizer",
+                        label = stringResource(AppR.string.now_playing_equalizer),
                         accented = false,
                         modifier = Modifier.weight(1f),
-                        onClick = { onOpenEqualizer(); onDismiss() }
+                        onClick = {
+                            onOpenEqualizer()
+                            onDismiss()
+                        }
                     )
                     QuickActionButton(
                         iconRes = R.drawable.lucide_ic_timer,
-                        label = "Sleep",
+                        label = stringResource(AppR.string.now_playing_sleep),
                         accented = sleepTimerEndMs != null,
                         modifier = Modifier.weight(1f),
-                        onClick = { onOpenSleepTimer(); onDismiss() }
+                        onClick = {
+                            onOpenSleepTimer()
+                            onDismiss()
+                        }
                     )
                 } else {
                     QuickActionButton(
                         iconRes = R.drawable.lucide_ic_list_plus,
-                        label = "Up Next",
+                        label = stringResource(AppR.string.now_playing_up_next),
                         accented = false,
                         modifier = Modifier.weight(1f),
-                        onClick = { onAddToQueue(); onDismiss() }
+                        onClick = {
+                            onAddToQueue()
+                            onDismiss()
+                        }
                     )
                     if (song.source != MusicSource.ListeningRoomHost) {
                         QuickActionButton(
                             iconRes = R.drawable.lucide_ic_audio_lines,
-                            label = "Mix",
+                            label = stringResource(AppR.string.now_playing_mix),
                             accented = false,
                             modifier = Modifier.weight(1f),
-                            onClick = { onStartInstantMix(); onDismiss() }
+                            onClick = {
+                                onStartInstantMix()
+                                onDismiss()
+                            }
                         )
                     }
                 }
@@ -246,45 +280,63 @@ internal fun NowPlayingActionsSheet(
             if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_file_music,
-                    label = "Share Song File",
-                    subtitle = "Send original audio",
-                    onClick = { onShareFile(); onDismiss() }
+                    label = stringResource(AppR.string.now_playing_share_song_file),
+                    subtitle = stringResource(AppR.string.now_playing_send_original_audio),
+                    onClick = {
+                        onShareFile()
+                        onDismiss()
+                    }
                 )
             }
             if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_pencil,
-                    label = "Edit Details",
-                    subtitle = "Title, artist, album, genre & year",
-                    onClick = { onOpenTagEditor(); onDismiss() }
+                    label = stringResource(AppR.string.now_playing_edit_details),
+                    subtitle = stringResource(AppR.string.now_playing_edit_details_description),
+                    onClick = {
+                        onOpenTagEditor()
+                        onDismiss()
+                    }
                 )
             }
             if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_download,
-                    label = "Download",
-                    subtitle = "Save for offline playback",
-                    onClick = { onDownload(); onDismiss() }
+                    label = stringResource(AppR.string.now_playing_download),
+                    subtitle = stringResource(AppR.string.now_playing_download_description),
+                    onClick = {
+                        onDownload()
+                        onDismiss()
+                    }
                 )
             }
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_book_open,
-                label = "Credits & details",
-                subtitle = "Release and source metadata",
+                label = stringResource(AppR.string.now_playing_credits_details),
+                subtitle = stringResource(AppR.string.now_playing_credits_details_description),
                 hasChevron = true,
-                onClick = { onOpenCredits(); onDismiss() }
+                onClick = {
+                    onOpenCredits()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_maximize_2,
-                label = "View Full Artwork",
-                subtitle = "Preview high-resolution cover",
-                onClick = { onOpenArtworkViewer(); onDismiss() }
+                label = stringResource(AppR.string.now_playing_view_artwork),
+                subtitle = stringResource(AppR.string.now_playing_view_artwork_description),
+                onClick = {
+                    onOpenArtworkViewer()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_image,
-                label = "Search Album Cover Online",
-                subtitle = "Find and apply high-resolution artwork",
-                onClick = { onSearchCoverOnline(); onDismiss() }
+                label = stringResource(AppR.string.now_playing_search_cover),
+                subtitle = stringResource(AppR.string.now_playing_search_cover_description),
+                onClick = {
+                    onSearchCoverOnline()
+                    onDismiss()
+                }
             )
 
             HorizontalDivider(
@@ -294,50 +346,80 @@ internal fun NowPlayingActionsSheet(
 
             SongActionRow(
                 iconRes = outputIcon,
-                label = "Audio output",
+                label = stringResource(AppR.string.now_playing_audio_output),
                 badgeText = outputLabel,
                 accented = isBtConnected,
                 hasChevron = true,
-                onClick = { onOpenOutputPicker(); onDismiss() }
+                onClick = {
+                    onOpenOutputPicker()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                label = "Equalizer",
-                badgeText = "EQ",
+                label = stringResource(AppR.string.now_playing_equalizer),
+                badgeText = stringResource(AppR.string.now_playing_eq_badge),
                 hasChevron = true,
-                onClick = { onOpenEqualizer(); onDismiss() }
+                onClick = {
+                    onOpenEqualizer()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_gauge,
-                label = "Playback Speed",
-                badgeText = if (playbackSpeed == 1f) "1.0x" else "${playbackSpeed}x",
+                label = stringResource(AppR.string.now_playing_playback_speed),
+                badgeText = if (playbackSpeed == 1f) {
+                    stringResource(AppR.string.now_playing_speed_normal_badge)
+                } else {
+                    stringResource(AppR.string.now_playing_speed_value, playbackSpeed.toString())
+                },
                 accented = playbackSpeed != 1f,
                 hasChevron = true,
-                onClick = { onOpenPlaybackSpeed(); onDismiss() }
+                onClick = {
+                    onOpenPlaybackSpeed()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_users,
-                label = "Listening Room",
-                badgeText = if (listeningRoomState.role != ListeningRoomRole.NONE) "Active" else null,
-                subtitle = if (listeningRoomState.role == ListeningRoomRole.NONE) "Wi-Fi audio sharing" else listeningRoomState.statusSubtitle(),
+                label = stringResource(AppR.string.now_playing_listening_room),
+                badgeText = if (listeningRoomState.role != ListeningRoomRole.NONE) {
+                    stringResource(AppR.string.now_playing_active)
+                } else {
+                    null
+                },
+                subtitle = if (listeningRoomState.role == ListeningRoomRole.NONE) {
+                    stringResource(AppR.string.now_playing_wifi_audio_sharing)
+                } else {
+                    listeningRoomState.statusSubtitle()
+                },
                 accented = listeningRoomState.role != ListeningRoomRole.NONE,
                 hasChevron = true,
-                onClick = { onOpenListeningRoom(); onDismiss() }
+                onClick = {
+                    onOpenListeningRoom()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_moon,
-                label = "Sleep Timer",
+                label = stringResource(AppR.string.now_playing_sleep_timer),
                 badgeText = sleepTimerSubtitle,
                 accented = sleepTimerEndMs != null,
                 hasChevron = true,
-                onClick = { onOpenSleepTimer(); onDismiss() }
+                onClick = {
+                    onOpenSleepTimer()
+                    onDismiss()
+                }
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_car,
-                label = "Drive Mode",
-                subtitle = "Large touch HUD for safe driving",
+                label = stringResource(AppR.string.drive_mode_title),
+                subtitle = stringResource(AppR.string.now_playing_drive_mode_description),
                 hasChevron = true,
-                onClick = { onOpenDriveMode(); onDismiss() }
+                onClick = {
+                    onOpenDriveMode()
+                    onDismiss()
+                }
             )
         }
     }
@@ -356,13 +438,13 @@ internal fun PlaybackSpeedSheet(
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
             Text(
-                "Tempo & Pitch Tuning",
+                stringResource(AppR.string.playback_tuning_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
 
             Text(
-                "PLAYBACK SPEED",
+                stringResource(AppR.string.playback_speed_section),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -387,7 +469,11 @@ internal fun PlaybackSpeedSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            if (speed == 1f) "1.0x (Normal)" else "${speed}x",
+                            if (speed == 1f) {
+                                stringResource(AppR.string.playback_speed_normal)
+                            } else {
+                                stringResource(AppR.string.playback_speed_value, speed.toString())
+                            },
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                             ),
@@ -400,7 +486,7 @@ internal fun PlaybackSpeedSheet(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "PITCH SHIFT",
+                stringResource(AppR.string.playback_pitch_section),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -414,11 +500,20 @@ internal fun PlaybackSpeedSheet(
                 ) {
                     val semitones = (12 * (kotlin.math.ln(currentPitch.toDouble()) / kotlin.math.ln(2.0))).roundToInt()
                     Text(
-                        "Pitch Multiplier",
+                        stringResource(AppR.string.playback_pitch_multiplier),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = if (semitones == 0) "Normal (1.0x)" else String.format(Locale.US, "%+d semitones (%.2fx)", semitones, currentPitch),
+                        text = if (semitones == 0) {
+                            stringResource(AppR.string.playback_pitch_normal)
+                        } else {
+                            pluralStringResource(
+                                AppR.plurals.playback_pitch_semitones,
+                                abs(semitones),
+                                semitones,
+                                currentPitch
+                            )
+                        },
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                         color = if (semitones != 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -430,7 +525,7 @@ internal fun PlaybackSpeedSheet(
                 Spacer(Modifier.height(8.dp))
                 Slider(
                     value = currentPitch,
-                    onValueChange = { onSelectPitch(it) },
+                    onValueChange = onSelectPitch,
                     valueRange = 0.75f..1.25f,
                     steps = 10
                 )
@@ -453,15 +548,16 @@ internal fun ListeningRoomSheet(
     LaunchedEffect(Unit) {
         if (state.role == ListeningRoomRole.NONE) onFindNearby()
     }
+    val listeningRoomLabel = stringResource(AppR.string.now_playing_listening_room)
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text(
-                "Listening Room",
+                listeningRoomLabel,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             Text(
-                "Share playback and the queue only with people on this Wi-Fi. No account, cloud service, analytics, or listening history is sent anywhere.",
+                stringResource(AppR.string.listening_room_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -471,14 +567,18 @@ internal fun ListeningRoomSheet(
                 ListeningRoomRole.HOST -> {
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_users,
-                        label = state.roomName ?: "Listening Room",
-                        subtitle = "Room controls are on this phone • ${state.participantCount} connected",
+                        label = state.roomName ?: listeningRoomLabel,
+                        subtitle = pluralStringResource(
+                            AppR.plurals.listening_room_host_status,
+                            state.participantCount,
+                            state.participantCount
+                        ),
                         accented = true,
                         onClick = {}
                     )
                     state.roomCode?.let { code ->
                         Text(
-                            "Room code: $code",
+                            stringResource(AppR.string.listening_room_code, code),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -486,7 +586,7 @@ internal fun ListeningRoomSheet(
                     }
                     state.hostAddress?.let { address ->
                         Text(
-                            "If a guest can't find this room automatically, have them enter: $address",
+                            stringResource(AppR.string.listening_room_manual_address, address),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -494,33 +594,41 @@ internal fun ListeningRoomSheet(
                     }
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_x,
-                        label = "End nearby room",
-                        subtitle = "Disconnect everyone immediately",
+                        label = stringResource(AppR.string.listening_room_end),
+                        subtitle = stringResource(AppR.string.listening_room_end_description),
                         accented = false,
-                        onClick = { onLeave(); onDismiss() }
+                        onClick = {
+                            onLeave()
+                            onDismiss()
+                        }
                     )
                 }
+
                 ListeningRoomRole.GUEST -> {
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_users,
-                        label = state.roomName ?: "Listening Room",
-                        subtitle = "Following the host's playback and queue",
+                        label = state.roomName ?: listeningRoomLabel,
+                        subtitle = stringResource(AppR.string.listening_room_following_host),
                         accented = true,
                         onClick = {}
                     )
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_x,
-                        label = "Leave room",
-                        subtitle = "Return to your own playback controls",
+                        label = stringResource(AppR.string.listening_room_leave),
+                        subtitle = stringResource(AppR.string.listening_room_leave_description),
                         accented = false,
-                        onClick = { onLeave(); onDismiss() }
+                        onClick = {
+                            onLeave()
+                            onDismiss()
+                        }
                     )
                 }
+
                 ListeningRoomRole.NONE -> {
                     SongActionRow(
                         iconRes = R.drawable.lucide_ic_users,
-                        label = "Start a nearby room",
-                        subtitle = "Host playback for people on this Wi-Fi",
+                        label = stringResource(AppR.string.listening_room_start),
+                        subtitle = stringResource(AppR.string.listening_room_start_description),
                         accented = true,
                         onClick = onStart
                     )
@@ -534,7 +642,7 @@ internal fun ListeningRoomSheet(
                     }
                     if (state.nearbyRooms.isNotEmpty()) {
                         Text(
-                            "Nearby rooms",
+                            stringResource(AppR.string.listening_room_nearby),
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                         )
@@ -542,27 +650,30 @@ internal fun ListeningRoomSheet(
                             SongActionRow(
                                 iconRes = R.drawable.lucide_ic_wifi,
                                 label = room.name,
-                                subtitle = "Join on this Wi-Fi",
+                                subtitle = stringResource(AppR.string.listening_room_join_wifi),
                                 accented = false,
                                 onClick = { onJoin(room) }
                             )
                         }
                     } else if (state.notice == null) {
                         Text(
-                            "Looking for nearby rooms on this Wi-Fi…",
+                            stringResource(AppR.string.listening_room_searching),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                         )
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                    )
                     Text(
-                        "Join by address",
+                        stringResource(AppR.string.listening_room_join_address),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 4.dp)
                     )
                     Text(
-                        "Can't find the room automatically? Ask the host for the address and code shown on their screen.",
+                        stringResource(AppR.string.listening_room_join_address_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
@@ -582,7 +693,7 @@ internal fun ListeningRoomSheet(
                             enabled = manualAddress.isNotBlank(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Join")
+                            Text(stringResource(AppR.string.listening_room_join))
                         }
                     }
                 }
@@ -594,14 +705,16 @@ internal fun ListeningRoomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
+    val notSupplied = stringResource(AppR.string.credits_not_supplied)
     val source = when (song.source) {
-        MusicSource.Local -> "On-device library"
-        MusicSource.Subsonic -> "Subsonic server"
-        MusicSource.Jellyfin -> "Jellyfin server"
-        MusicSource.ListeningRoomHost -> "Streamed from Listening Room host"
-        MusicSource.Radio -> "Internet radio"
+        MusicSource.Local -> stringResource(AppR.string.credits_source_local)
+        MusicSource.Subsonic -> stringResource(AppR.string.credits_source_subsonic)
+        MusicSource.Jellyfin -> stringResource(AppR.string.credits_source_jellyfin)
+        MusicSource.ListeningRoomHost -> stringResource(AppR.string.credits_source_room)
+        MusicSource.Radio -> stringResource(AppR.string.credits_source_radio)
     }
-    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Not supplied" }
+    val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { notSupplied }
+    val release = song.album.ifBlank { stringResource(AppR.string.credits_unknown_release) }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
@@ -614,21 +727,42 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(song.artist, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        song.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        song.artist,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = 8.dp, bottom = 12.dp))
-            Text("Credits & details", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp))
-            Spacer(Modifier.height(12.dp))
-            CreditDetailRow("Performing artist", song.artist)
-            CreditDetailRow("Release", song.album.ifBlank { "Unknown release" })
-            CreditDetailRow("Year", song.releaseYear?.toString() ?: "Not supplied")
-            CreditDetailRow("Genre", genre)
-            CreditDetailRow("Source", source)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
+            )
             Text(
-                "Writer, producer, and engineer credits are shown when the active music source supplies them. This track did not include those fields.",
+                stringResource(AppR.string.now_playing_credits_details),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Spacer(Modifier.height(12.dp))
+            CreditDetailRow(stringResource(AppR.string.credits_performing_artist), song.artist)
+            CreditDetailRow(stringResource(AppR.string.credits_release), release)
+            CreditDetailRow(stringResource(AppR.string.credits_year), song.releaseYear?.toString() ?: notSupplied)
+            CreditDetailRow(stringResource(AppR.string.credits_genre), genre)
+            CreditDetailRow(stringResource(AppR.string.credits_source), source)
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+            Text(
+                stringResource(AppR.string.credits_missing_fields),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp)
@@ -650,19 +784,25 @@ private fun CreditDetailRow(label: String, value: String) {
 internal fun AudioOutputSheet(onOpenBluetoothSettings: () -> Unit, onDismiss: () -> Unit) {
     val btDevice = rememberConnectedBluetoothDevice()
     val isBtConnected = btDevice != null
-    val btName = btDevice?.productName?.toString()?.ifEmpty { "Bluetooth Audio" } ?: "Bluetooth Device"
+    val btName = btDevice?.productName?.toString()?.ifEmpty {
+        stringResource(AppR.string.audio_output_bluetooth_audio)
+    } ?: stringResource(AppR.string.audio_output_bluetooth_device)
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text(
-                "Audio output",
+                stringResource(AppR.string.now_playing_audio_output),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_smartphone,
-                label = "Phone Speaker",
-                subtitle = if (!isBtConnected) "Currently active output" else "Built-in phone speaker",
+                label = stringResource(AppR.string.now_playing_output_phone_speaker),
+                subtitle = if (!isBtConnected) {
+                    stringResource(AppR.string.audio_output_active)
+                } else {
+                    stringResource(AppR.string.audio_output_phone_speaker_description)
+                },
                 accented = !isBtConnected,
                 onClick = onDismiss
             )
@@ -670,15 +810,23 @@ internal fun AudioOutputSheet(onOpenBluetoothSettings: () -> Unit, onDismiss: ()
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_bluetooth,
                     label = btName,
-                    subtitle = "Currently active output",
+                    subtitle = stringResource(AppR.string.audio_output_active),
                     accented = true,
                     onClick = onDismiss
                 )
             }
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_bluetooth,
-                label = if (isBtConnected) "Bluetooth Settings" else "Connect Bluetooth Device",
-                subtitle = if (isBtConnected) "Manage paired headsets and speakers" else "Pair or connect a wireless device",
+                label = if (isBtConnected) {
+                    stringResource(AppR.string.audio_output_bluetooth_settings)
+                } else {
+                    stringResource(AppR.string.audio_output_connect_bluetooth)
+                },
+                subtitle = if (isBtConnected) {
+                    stringResource(AppR.string.audio_output_manage_bluetooth)
+                } else {
+                    stringResource(AppR.string.audio_output_connect_bluetooth_description)
+                },
                 accented = false,
                 onClick = onOpenBluetoothSettings
             )
@@ -712,7 +860,12 @@ internal fun NowPlayingGoToSheet(
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        song.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Text(
                         song.artist,
                         style = MaterialTheme.typography.bodyMedium,
@@ -728,23 +881,26 @@ internal fun NowPlayingGoToSheet(
             )
             if (song.source != MusicSource.Radio) {
                 GoToMusicDetailRow(
-                    title = "Go to Artist",
+                    title = stringResource(AppR.string.go_to_artist),
                     subtitle = primaryArtist,
                     onClick = { onNavigateToArtist(primaryArtist) }
                 ) {
                     ArtistImage(artist = primaryArtist, modifier = Modifier.fillMaxSize())
                 }
                 GoToMusicDetailRow(
-                    title = "Go to Album",
+                    title = stringResource(AppR.string.go_to_album),
                     subtitle = song.album,
                     onClick = { onNavigateToAlbum(song.albumId) }
                 ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
                 GoToMusicDetailRow(
-                    title = "Search Cover Online",
-                    subtitle = "Find and apply high-resolution artwork",
-                    onClick = { onSearchCoverOnline(); onDismiss() }
+                    title = stringResource(AppR.string.now_playing_search_cover_short),
+                    subtitle = stringResource(AppR.string.now_playing_search_cover_description),
+                    onClick = {
+                        onSearchCoverOnline()
+                        onDismiss()
+                    }
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_image),
@@ -755,11 +911,18 @@ internal fun NowPlayingGoToSheet(
                 }
             }
             GoToMusicDetailRow(
-                title = "Go to Playlist",
-                subtitle = matchingPlaylist?.name ?: if (playlists.isEmpty()) "No saved playlists yet" else "Choose a playlist",
+                title = stringResource(AppR.string.go_to_playlist),
+                subtitle = matchingPlaylist?.name ?: if (playlists.isEmpty()) {
+                    stringResource(AppR.string.go_to_no_playlists)
+                } else {
+                    stringResource(AppR.string.go_to_choose_playlist)
+                },
                 onClick = {
-                    if (matchingPlaylist != null) onNavigateToPlaylist(matchingPlaylist.id)
-                    else onOpenPlaylistPicker()
+                    if (matchingPlaylist != null) {
+                        onNavigateToPlaylist(matchingPlaylist.id)
+                    } else {
+                        onOpenPlaylistPicker()
+                    }
                 }
             ) {
                 if (matchingPlaylist != null) {
@@ -791,13 +954,13 @@ internal fun NowPlayingPlaylistPicker(
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             Text(
-                "Go to Playlist",
+                stringResource(AppR.string.go_to_playlist),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             if (playlists.isEmpty()) {
                 Text(
-                    "No saved playlists yet.",
+                    stringResource(AppR.string.go_to_no_playlists_sentence),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -805,17 +968,28 @@ internal fun NowPlayingPlaylistPicker(
             } else {
                 playlists.forEach { playlist ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().tapScale { onSelect(playlist.id) }.padding(horizontal = 24.dp, vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .tapScale { onSelect(playlist.id) }
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp))) {
-                            PlaylistCoverArt(playlist = playlist, fallbackSong = null, modifier = Modifier.fillMaxSize())
+                            PlaylistCoverArt(
+                                playlist = playlist,
+                                fallbackSong = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                         Spacer(Modifier.width(16.dp))
                         Column {
                             Text(playlist.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                if (playlist.songIds.size == 1) "1 song" else "${playlist.songIds.size} songs",
+                                pluralStringResource(
+                                    AppR.plurals.playlist_song_count,
+                                    playlist.songIds.size,
+                                    playlist.songIds.size
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -864,7 +1038,11 @@ private fun QuickActionButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val bg = if (accented) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainerHigh
+    val bg = if (accented) {
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
     val contentColor = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -977,8 +1155,10 @@ internal fun SleepTimerPickerSheet(
 ) {
     val isEndOfTrack = currentEndMs == -1L
     val remainingMinutes = if (currentEndMs != null && currentEndMs > 0L) {
-        ((currentEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0)
-    } else null
+        ((currentEndMs - SystemClock.elapsedRealtime()) / 60_000L).coerceAtLeast(0).toInt()
+    } else {
+        null
+    }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
@@ -995,12 +1175,12 @@ internal fun SleepTimerPickerSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Sleep Timer",
+                    stringResource(AppR.string.now_playing_sleep_timer),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 if (currentEndMs != null) {
                     Text(
-                        "Turn Off",
+                        stringResource(AppR.string.sleep_timer_turn_off),
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -1012,7 +1192,12 @@ internal fun SleepTimerPickerSheet(
             }
 
             if (currentEndMs != null) {
-                val statusText = if (isEndOfTrack) "Stopping after current song finishes" else "$remainingMinutes minutes remaining"
+                val statusText = if (isEndOfTrack) {
+                    stringResource(AppR.string.sleep_timer_end_status)
+                } else {
+                    val minutes = remainingMinutes ?: 0
+                    pluralStringResource(AppR.plurals.sleep_timer_minutes_remaining, minutes, minutes)
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1024,7 +1209,9 @@ internal fun SleepTimerPickerSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        painter = painterResource(if (isEndOfTrack) R.drawable.lucide_ic_disc_3 else R.drawable.lucide_ic_moon),
+                        painter = painterResource(
+                            if (isEndOfTrack) R.drawable.lucide_ic_disc_3 else R.drawable.lucide_ic_moon
+                        ),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(16.dp)
@@ -1045,10 +1232,14 @@ internal fun SleepTimerPickerSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 4.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isEndOfTrack) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow)
+                    .background(
+                        if (isEndOfTrack) MaterialTheme.colorScheme.surfaceContainerHighest
+                        else MaterialTheme.colorScheme.surfaceContainerLow
+                    )
                     .border(
                         1.dp,
-                        if (isEndOfTrack) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        if (isEndOfTrack) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                         RoundedCornerShape(16.dp)
                     )
                     .tapScale { onSelect(-1L) }
@@ -1064,14 +1255,14 @@ internal fun SleepTimerPickerSheet(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "End of current song",
+                        text = stringResource(AppR.string.sleep_timer_end_current),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = if (isEndOfTrack) FontWeight.SemiBold else FontWeight.Medium
                         ),
                         color = if (isEndOfTrack) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Stop playback after this song completes",
+                        text = stringResource(AppR.string.sleep_timer_end_current_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1079,7 +1270,7 @@ internal fun SleepTimerPickerSheet(
                 if (isEndOfTrack) {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_check),
-                        contentDescription = "Selected",
+                        contentDescription = stringResource(AppR.string.sleep_timer_selected),
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -1096,7 +1287,7 @@ internal fun SleepTimerPickerSheet(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                "DURATION",
+                stringResource(AppR.string.sleep_timer_duration_section),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -1108,10 +1299,22 @@ internal fun SleepTimerPickerSheet(
                 modifier = Modifier.padding(vertical = 6.dp)
             ) {
                 items(SLEEP_TIMER_DURATIONS_MIN) { minutes ->
-                    val isSelected = remainingMinutes != null && remainingMinutes == minutes.toLong()
-                    val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
-                    val border = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    val textTint = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                    val isSelected = remainingMinutes == minutes
+                    val bg = if (isSelected) {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    }
+                    val border = if (isSelected) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    }
+                    val textTint = if (isSelected) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
 
                     Box(
                         modifier = Modifier
@@ -1123,7 +1326,11 @@ internal fun SleepTimerPickerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "$minutes min",
+                            text = pluralStringResource(
+                                AppR.plurals.sleep_timer_duration_minutes,
+                                minutes,
+                                minutes
+                            ),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                             ),
@@ -1179,7 +1386,7 @@ internal fun FullScreenArtworkSheet(
             if (song.releaseYear != null) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${song.releaseYear}",
+                    text = song.releaseYear.toString(),
                     style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -1204,7 +1411,7 @@ internal fun FullScreenArtworkSheet(
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    "Search Cover Online",
+                    stringResource(AppR.string.now_playing_search_cover_short),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -1212,4 +1419,3 @@ internal fun FullScreenArtworkSheet(
         }
     }
 }
-
