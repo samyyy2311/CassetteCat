@@ -1,0 +1,18 @@
+<resources>
+    <string name="lyrics_provider_lrclib">Lyrics provided by LRCLIB</string>
+    <string name="lyrics_provider_file_metadata">Lyrics from file metadata</string>
+    <string name="lyrics_provider_local_file">Lyrics from local file</string>
+    <string name="lyrics_written_by">Written by %1$s</string>
+    <string name="lyrics_search_match">Search &amp; match different lyrics</string>
+    <string name="lyrics_loading">Loading lyrics…</string>
+    <string name="lyrics_select_up_to_five">Select up to 5 lines</string>
+    <plurals name="lyrics_selected_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="lyrics_instrumental">Instrumental</string>
+    <string name="lyrics_composed_by">Composed by %1$s</string>
+    <string name="lyrics_no_lyrics">This track has no lyrics</string>
+    <string name="lyrics_search_online">Search Online</string>
+    <string name="lyrics_album_art">Album Art</string>
+</resources>
