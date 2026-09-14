@@ -38,14 +38,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
@@ -154,7 +154,11 @@ fun NowPlayingContent(
     val skipPrevious: () -> Unit = { playbackViewModel.skipPrevious() }
     val handleCollapseRequest: () -> Unit = {
         dragScope.launch {
-            animate(headerDragOffsetPx, headerDragCapPx, animationSpec = tween(HEADER_COLLAPSE_EXIT_MS, easing = SmoothEasing)) { value, _ ->
+            animate(
+                headerDragOffsetPx,
+                headerDragCapPx,
+                animationSpec = tween(HEADER_COLLAPSE_EXIT_MS, easing = SmoothEasing)
+            ) { value, _ ->
                 headerDragOffsetPx = value
             }
             onActiveViewChange(NowPlayingView.PLAYER)
@@ -195,16 +199,18 @@ fun NowPlayingContent(
                         Modifier
                             .windowInsetsPadding(WindowInsets.statusBars)
                             .padding(top = 12.dp)
-                    } else Modifier
+                    } else {
+                        Modifier
+                    }
                 )
                 .padding(bottom = 20.dp)
         ) {
             if (song == null) {
                 EmptyState(
                     catRes = AppR.drawable.cat_orange_headphones,
-                    title = "Nothing playing",
-                    message = "Choose a track from your library to start listening.",
-                    actionLabel = "Browse Library",
+                    title = stringResource(AppR.string.now_playing_empty_title),
+                    message = stringResource(AppR.string.now_playing_empty_message),
+                    actionLabel = stringResource(AppR.string.now_playing_browse_library),
                     onAction = onCollapseRequest,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -251,9 +257,7 @@ fun NowPlayingContent(
                         onHeaderSpringBack = {},
                         onSkipNext = skipNext,
                         onSkipPrevious = skipPrevious,
-                        onPlaySong = {
-                            playbackViewModel.playFromQueue(it)
-                        },
+                        onPlaySong = { playbackViewModel.playFromQueue(it) },
                         onSaveQueue = if (song.source != MusicSource.ListeningRoomHost) {
                             { sheetState.showSaveQueue = true }
                         } else {
@@ -272,6 +276,7 @@ fun NowPlayingContent(
                             }
                         }
                     )
+
                     NowPlayingView.LYRICS -> NowPlayingLyricsView(
                         song = song,
                         state = state,
@@ -296,8 +301,11 @@ fun NowPlayingContent(
                         onSkipNext = skipNext,
                         onSkipPrevious = skipPrevious,
                         onUserSeekOrInteraction = { isSeek ->
-                            if (isSeek) lyricsControlsVisible = true
-                            else lyricsControlsVisible = !lyricsControlsVisible
+                            if (isSeek) {
+                                lyricsControlsVisible = true
+                            } else {
+                                lyricsControlsVisible = !lyricsControlsVisible
+                            }
                             userInteractionCounter++
                         },
                         onScrollDelta = { deltaY ->
@@ -309,6 +317,7 @@ fun NowPlayingContent(
                             }
                         }
                     )
+
                     NowPlayingView.PLAYER -> NowPlayingPlayerView(
                         song = song,
                         state = state,
