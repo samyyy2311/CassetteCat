@@ -52,6 +52,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -66,6 +68,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -142,13 +145,13 @@ fun RadioScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Radio", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.radio_title), style = MaterialTheme.typography.headlineSmall)
                 val subtitleText = when {
-                    serviceSettings.offlineBlackoutMode -> "Offline Blackout Mode"
-                    isOffline -> "Offline"
-                    anyFilterActive -> "Filtered stations"
-                    showingSearch -> "${stations.size} station(s) found"
-                    else -> "Explore worldwide stations & broadcasts"
+                    serviceSettings.offlineBlackoutMode -> stringResource(AppR.string.radio_offline_blackout)
+                    isOffline -> stringResource(AppR.string.radio_offline)
+                    anyFilterActive -> stringResource(AppR.string.radio_filtered_stations)
+                    showingSearch -> pluralStringResource(AppR.plurals.radio_stations_found, stations.size, stations.size)
+                    else -> stringResource(AppR.string.radio_subtitle)
                 }
                 Text(
                     subtitleText,
@@ -163,7 +166,7 @@ fun RadioScreen(
             ) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                    contentDescription = "Refine & sort stations",
+                    contentDescription = stringResource(AppR.string.radio_refine_sort),
                     tint = if (isCustomized) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = {
                         filterCategory = null
@@ -172,7 +175,7 @@ fun RadioScreen(
                 )
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_plus,
-                    contentDescription = "Add custom station",
+                    contentDescription = stringResource(AppR.string.radio_add_custom_station),
                     onClick = { showAddCustom = true }
                 )
             }
@@ -183,7 +186,7 @@ fun RadioScreen(
             onValueChange = { query = it },
             placeholder = {
                 Text(
-                    "Search stations…",
+                    stringResource(AppR.string.radio_search_stations),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium
@@ -201,7 +204,7 @@ fun RadioScreen(
                 if (query.isNotEmpty()) {
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_x,
-                        contentDescription = "Clear",
+                        contentDescription = stringResource(AppR.string.action_clear),
                         onClick = { query = "" }
                     )
                 }
@@ -232,7 +235,7 @@ fun RadioScreen(
                 if (selectedCountry != null) {
                     item(key = "country") {
                         ActiveFilterChip(
-                            label = "Country: $selectedCountry",
+                            label = stringResource(AppR.string.radio_filter_country, selectedCountry.orEmpty()),
                             onRemove = { viewModel.setCountry(null) },
                             onClick = {
                                 filterCategory = RadioFilterCategory.COUNTRY
@@ -244,7 +247,7 @@ fun RadioScreen(
                 if (selectedState != null) {
                     item(key = "state") {
                         ActiveFilterChip(
-                            label = "State: $selectedState",
+                            label = stringResource(AppR.string.radio_filter_state, selectedState.orEmpty()),
                             onRemove = { viewModel.setState(null) },
                             onClick = {
                                 filterCategory = RadioFilterCategory.STATE
@@ -256,7 +259,7 @@ fun RadioScreen(
                 if (selectedLanguage != null) {
                     item(key = "language") {
                         ActiveFilterChip(
-                            label = "Language: $selectedLanguage",
+                            label = stringResource(AppR.string.radio_filter_language, selectedLanguage.orEmpty()),
                             onRemove = { viewModel.setLanguage(null) },
                             onClick = {
                                 filterCategory = RadioFilterCategory.LANGUAGE
@@ -268,7 +271,7 @@ fun RadioScreen(
                 if (selectedTag != null) {
                     item(key = "tag") {
                         ActiveFilterChip(
-                            label = "Tag: $selectedTag",
+                            label = stringResource(AppR.string.radio_filter_tag, selectedTag.orEmpty()),
                             onRemove = { viewModel.setTag(null) },
                             onClick = {
                                 filterCategory = RadioFilterCategory.TAG
@@ -279,7 +282,7 @@ fun RadioScreen(
                 }
                 item(key = "clear_all") {
                     Text(
-                        "Clear all",
+                        stringResource(AppR.string.radio_clear_all),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -296,22 +299,22 @@ fun RadioScreen(
         if (isOffline) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_radio,
-                title = if (serviceSettings.offlineBlackoutMode) "Offline Blackout Mode" else "You're offline",
-                message = if (serviceSettings.offlineBlackoutMode) "All network streaming and external radio lookups are disabled." else "Connect to the internet to browse and play radio stations.",
+                title = stringResource(if (serviceSettings.offlineBlackoutMode) AppR.string.radio_offline_blackout else AppR.string.radio_you_are_offline),
+                message = stringResource(if (serviceSettings.offlineBlackoutMode) AppR.string.radio_offline_blackout_message else AppR.string.radio_offline_message),
                 modifier = Modifier.weight(1f)
             )
         } else if (stations.isEmpty() && favorites.isEmpty() && recentStations.isEmpty()) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_radio,
                 title = when {
-                    fetchFailed -> "Couldn't reach Radio Browser"
-                    showingSearch -> if (isSearching) "Searching..." else "No stations found"
-                    else -> "Loading stations..."
+                    fetchFailed -> stringResource(AppR.string.radio_unreachable)
+                    showingSearch -> stringResource(if (isSearching) AppR.string.radio_searching else AppR.string.radio_no_stations)
+                    else -> stringResource(AppR.string.radio_loading)
                 },
                 message = when {
-                    fetchFailed -> "Check your connection and tap to retry."
-                    showingSearch -> "Try a different search term."
-                    else -> "Fetching top stations from Radio Browser."
+                    fetchFailed -> stringResource(AppR.string.radio_retry_message)
+                    showingSearch -> stringResource(AppR.string.radio_search_empty_message)
+                    else -> stringResource(AppR.string.radio_loading_message)
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -327,7 +330,7 @@ fun RadioScreen(
             ) {
                 if (!showingSearch && favorites.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionLabel("FAVORITES")
+                        SectionLabel(stringResource(AppR.string.radio_favorites))
                     }
                     items(favorites, key = { "fav-${it.uuid}" }) { station ->
                         RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
@@ -335,14 +338,14 @@ fun RadioScreen(
                 }
                 if (!showingSearch && recentStations.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionLabel("RECENTLY PLAYED")
+                        SectionLabel(stringResource(AppR.string.radio_recently_played))
                     }
                     items(recentStations, key = { "recent-${it.uuid}" }) { station ->
                         RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
                     }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    SectionLabel(if (showingSearch) "SEARCH RESULTS" else "TOP STATIONS")
+                    SectionLabel(stringResource(if (showingSearch) AppR.string.radio_search_results else AppR.string.radio_top_stations))
                 }
                 items(stations, key = { if (showingSearch) "search-${it.uuid}" else "top-${it.uuid}" }) { station ->
                     RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
@@ -376,28 +379,28 @@ fun RadioScreen(
                 onDismiss = { showRefineSheet = false }
             )
             RadioFilterCategory.COUNTRY -> NameFilterSheet(
-                title = "Filter by Country",
+                title = stringResource(AppR.string.radio_filter_by_country),
                 options = countries,
                 selected = selectedCountry,
                 onSelect = { viewModel.setCountry(it) },
                 onDismiss = { filterCategory = null }
             )
             RadioFilterCategory.STATE -> NameFilterSheet(
-                title = "Filter by State / Province",
+                title = stringResource(AppR.string.radio_filter_by_state),
                 options = states,
                 selected = selectedState,
                 onSelect = { viewModel.setState(it) },
                 onDismiss = { filterCategory = null }
             )
             RadioFilterCategory.LANGUAGE -> NameFilterSheet(
-                title = "Filter by Language",
+                title = stringResource(AppR.string.radio_filter_by_language),
                 options = languages,
                 selected = selectedLanguage,
                 onSelect = { viewModel.setLanguage(it) },
                 onDismiss = { filterCategory = null }
             )
             RadioFilterCategory.TAG -> NameFilterSheet(
-                title = "Filter by Genre / Tag",
+                title = stringResource(AppR.string.radio_filter_by_tag),
                 options = tags,
                 selected = selectedTag,
                 onSelect = { viewModel.setTag(it) },
@@ -436,7 +439,7 @@ private fun RadioStationCard(station: RadioStation, onClick: () -> Unit, onLongC
             modifier = Modifier.padding(top = 2.dp)
         ) {
             Text(
-                text = if (song.artist.isNotBlank()) song.artist else station.country.ifEmpty { "Radio" },
+                text = if (song.artist.isNotBlank()) song.artist else station.country.ifEmpty { stringResource(AppR.string.radio_title) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -461,6 +464,17 @@ private fun RadioStationCard(station: RadioStation, onClick: () -> Unit, onLongC
         }
     }
 }
+
+@Composable
+private fun radioSortOrderLabel(order: RadioSortOrder): String = stringResource(
+    when (order) {
+        RadioSortOrder.POPULARITY -> AppR.string.radio_sort_popularity
+        RadioSortOrder.TRENDING -> AppR.string.radio_sort_trending
+        RadioSortOrder.NAME -> AppR.string.radio_sort_name
+        RadioSortOrder.COUNTRY -> AppR.string.radio_sort_country
+        RadioSortOrder.BITRATE -> AppR.string.radio_sort_bitrate
+    }
+)
 
 private enum class RadioFilterCategory { COUNTRY, STATE, LANGUAGE, TAG }
 
@@ -495,7 +509,7 @@ private fun ActiveFilterChip(
         ) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_x),
-                contentDescription = "Remove filter",
+                contentDescription = stringResource(AppR.string.radio_remove_filter),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(12.dp)
             )
@@ -536,7 +550,7 @@ private fun RadioRefineAndSortSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Refine & Sort",
+                    stringResource(AppR.string.radio_refine_sort),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 if (isCustomized) {
@@ -551,12 +565,12 @@ private fun RadioRefineAndSortSheet(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_rotate_ccw),
-                            contentDescription = "Reset",
+                            contentDescription = stringResource(AppR.string.action_reset),
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            "Reset",
+                            stringResource(AppR.string.action_reset),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.tertiary
                         )
@@ -567,7 +581,7 @@ private fun RadioRefineAndSortSheet(
             Spacer(Modifier.height(4.dp))
 
             Text(
-                "FILTER BY",
+                stringResource(AppR.string.radio_filter_by),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -581,25 +595,25 @@ private fun RadioRefineAndSortSheet(
             ) {
                 RadioFilterCategoryCard(
                     iconRes = R.drawable.lucide_ic_globe,
-                    label = "Country",
+                    label = stringResource(AppR.string.radio_country),
                     selectedValue = country,
                     onClick = { onSelectCategory(RadioFilterCategory.COUNTRY) }
                 )
                 RadioFilterCategoryCard(
                     iconRes = R.drawable.lucide_ic_map_pin,
-                    label = "State / Province",
+                    label = stringResource(AppR.string.radio_state),
                     selectedValue = state,
                     onClick = { onSelectCategory(RadioFilterCategory.STATE) }
                 )
                 RadioFilterCategoryCard(
                     iconRes = R.drawable.lucide_ic_languages,
-                    label = "Language",
+                    label = stringResource(AppR.string.radio_language),
                     selectedValue = language,
                     onClick = { onSelectCategory(RadioFilterCategory.LANGUAGE) }
                 )
                 RadioFilterCategoryCard(
                     iconRes = R.drawable.lucide_ic_tag,
-                    label = "Genre / Tag",
+                    label = stringResource(AppR.string.radio_genre_tag),
                     selectedValue = tag,
                     onClick = { onSelectCategory(RadioFilterCategory.TAG) }
                 )
@@ -608,7 +622,7 @@ private fun RadioRefineAndSortSheet(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "SORT STATIONS BY",
+                stringResource(AppR.string.radio_sort_stations_by),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -638,7 +652,7 @@ private fun RadioRefineAndSortSheet(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            option.label,
+                            radioSortOrderLabel(option),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             ),
@@ -700,7 +714,7 @@ private fun RadioFilterCategoryCard(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = selectedValue ?: "All",
+                text = selectedValue ?: stringResource(AppR.string.radio_all),
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
                     fontFamily = if (isActive) IbmPlexMonoFontFamily else null
@@ -750,7 +764,7 @@ private fun NameFilterSheet(
                 )
                 if (selected != null) {
                     Text(
-                        "Clear",
+                        stringResource(AppR.string.action_clear),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -767,7 +781,7 @@ private fun NameFilterSheet(
             OutlinedTextField(
                 value = filter,
                 onValueChange = { filter = it },
-                placeholder = { Text("Search…") },
+                placeholder = { Text(stringResource(AppR.string.radio_search)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_search),
@@ -780,7 +794,7 @@ private fun NameFilterSheet(
                     if (filter.isNotEmpty()) {
                         PressDepthIconButton(
                             iconRes = R.drawable.lucide_ic_x,
-                            contentDescription = "Clear search",
+                            contentDescription = stringResource(AppR.string.radio_clear_search),
                             onClick = { filter = "" }
                         )
                     }
@@ -806,7 +820,7 @@ private fun NameFilterSheet(
             ) {
                 item {
                     NameFilterRow(
-                        label = "All",
+                        label = stringResource(AppR.string.radio_all),
                         selected = selected == null,
                         onClick = {
                             onSelect(null)
@@ -875,13 +889,13 @@ private fun AddCustomStationDialog(onAdd: (String, String) -> Unit, onDismiss: (
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add custom station") },
+        title = { Text(stringResource(AppR.string.radio_add_custom_station)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Station name") },
+                    label = { Text(stringResource(AppR.string.radio_station_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -889,12 +903,12 @@ private fun AddCustomStationDialog(onAdd: (String, String) -> Unit, onDismiss: (
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Stream URL") },
+                    label = { Text(stringResource(AppR.string.radio_stream_url)) },
                     placeholder = { Text("https://stream.example.com/live") },
                     singleLine = true,
                     isError = url.isNotBlank() && !isUrlValid,
                     supportingText = {
-                        if (url.isNotBlank() && !isUrlValid) Text("Must start with http:// or https://")
+                        if (url.isNotBlank() && !isUrlValid) Text(stringResource(AppR.string.radio_invalid_stream_url))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -904,10 +918,10 @@ private fun AddCustomStationDialog(onAdd: (String, String) -> Unit, onDismiss: (
             TextButton(
                 enabled = name.isNotBlank() && isUrlValid,
                 onClick = hapticClick { onAdd(name.trim(), trimmedUrl) }
-            ) { Text("Add") }
+            ) { Text(stringResource(AppR.string.radio_add)) }
         },
         dismissButton = {
-            TextButton(onClick = hapticClick(onDismiss)) { Text("Cancel") }
+            TextButton(onClick = hapticClick(onDismiss)) { Text(stringResource(AppR.string.action_cancel)) }
         }
     )
 }
