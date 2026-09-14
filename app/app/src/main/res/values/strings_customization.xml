@@ -1,0 +1,235 @@
+<resources>
+    <string name="customization_title">Customisation</string>
+    <string name="customization_theme">Theme</string>
+    <string name="customization_theme_summary">%1$s · AMOLED %2$s</string>
+    <string name="customization_startup_library">Startup &amp; Library</string>
+    <string name="customization_startup_summary">%1$s · %2$s tab</string>
+    <string name="customization_now_playing">Now Playing &amp; Gestures</string>
+    <string name="customization_corner_summary">%1$s corners</string>
+    <string name="customization_audio_engine">Audio Engine</string>
+    <string name="customization_audio_summary">%1$s · ReplayGain %2$s</string>
+    <string name="customization_lyrics">Lyrics</string>
+    <string name="customization_lyrics_summary">%1$s size · %2$s</string>
+    <string name="customization_storage">Storage &amp; Cache</string>
+    <string name="customization_storage_summary">Manage offline downloads and local library filtering</string>
+    <string name="customization_home_feed">Home Feed</string>
+    <string name="customization_home_summary">%1$d of 4 sections shown</string>
+    <string name="customization_on">on</string>
+    <string name="customization_off">off</string>
+    <string name="customization_crossfade_off">Crossfade off</string>
+    <string name="customization_crossfade_summary">%1$ds crossfade</string>
+
+    <string name="customization_accent_palette">Accent Palette</string>
+    <string name="customization_accent_palette_description">Controls highlights, active sliders, and indicators</string>
+    <string name="customization_custom_accent">Custom</string>
+    <string name="customization_amoled_title">Pure Black (AMOLED Mode)</string>
+    <string name="customization_amoled_description">Use a true #000000 background on OLED displays</string>
+    <string name="customization_artwork_accent">Artwork Accent</string>
+    <string name="customization_artwork_accent_description">Use the current album artwork colour while music is playing</string>
+    <string name="customization_mini_progress">Mini-Player Progress</string>
+    <string name="customization_mini_progress_description">Show a thin progress line on the mini-player</string>
+    <string name="customization_mini_action">Mini-Player Action</string>
+    <string name="customization_mini_action_description">Choose the button beside play and pause</string>
+    <string name="customization_app_typography">App Typography</string>
+    <string name="customization_app_typography_description">Choose the font family used throughout the app</string>
+    <string name="customization_custom_colour_title">Custom Accent Colour</string>
+    <string name="customization_hex_colour">Hex colour</string>
+    <string name="customization_hex_placeholder" translatable="false">C23B30</string>
+    <string name="customization_apply">Apply</string>
+
+    <string name="customization_start_screen">Start Screen</string>
+    <string name="customization_start_screen_description">Choose where CassetteCat opens</string>
+    <string name="customization_default_library_tab">Default Library Tab</string>
+    <string name="customization_default_library_tab_description">Choose the section shown when you open the Library</string>
+    <string name="customization_library_tabs">Library Tabs</string>
+    <string name="customization_library_tabs_summary">%1$d of %2$d shown · Reorder and visibility</string>
+    <string name="customization_grid_columns">Grid Columns</string>
+    <string name="customization_grid_columns_description">Card sizing for albums and artists</string>
+    <string name="customization_columns">%1$d Columns</string>
+    <string name="customization_song_density">Song Row Density</string>
+    <string name="customization_song_density_description">Detailed shows album and quality badges. Compact fits more tracks.</string>
+    <string name="customization_default_sort">Default Sort Order</string>
+    <string name="customization_default_sort_description">How the song list is sorted when you first open it</string>
+    <string name="customization_format_badges">Show Audio Format Badges</string>
+    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows</string>
+
+    <string name="customization_album_corner">Album Art Corner Style</string>
+    <string name="customization_album_corner_description">Choose rounded or square album art</string>
+    <string name="customization_corner_curved_description">Modern 16dp rounded corners</string>
+    <string name="customization_corner_soft_description">Subtle 8dp rounded corners</string>
+    <string name="customization_corner_square_description">Classic square album art</string>
+    <string name="customization_backdrop">Backdrop Style</string>
+    <string name="customization_backdrop_description">Choose the background style for Now Playing</string>
+    <string name="customization_blurred_background">Blurred Background</string>
+    <string name="customization_blurred_background_description">Show blurred album art behind Now Playing</string>
+    <string name="customization_fullscreen_art">Full-Screen Artwork</string>
+    <string name="customization_fullscreen_art_description">Show full-bleed album art on Now Playing</string>
+    <string name="customization_remaining_time">Show Remaining Time</string>
+    <string name="customization_remaining_time_description">Show a countdown such as -02:45 instead of the full track length</string>
+    <string name="customization_mini_swipe">Mini-Player Swipe to Skip</string>
+    <string name="customization_mini_swipe_description">Swipe across the mini-player to change tracks</string>
+    <string name="customization_swipe_lyrics">Swipe Up on Art for Lyrics</string>
+    <string name="customization_swipe_lyrics_description">Swipe up on the artwork to open synced lyrics</string>
+    <string name="customization_flip_pause">Flip to Pause</string>
+    <string name="customization_flip_pause_description">Place your phone face-down to pause, then pick it up to resume</string>
+    <string name="customization_wave_skip">Wave to Skip</string>
+    <string name="customization_wave_skip_description">Wave over the proximity sensor to skip to the next track</string>
+    <string name="customization_shake_skip">Shake to Skip</string>
+    <string name="customization_shake_skip_description">Shake your phone to skip to the next track</string>
+    <string name="customization_shake_sensitivity">Shake Sensitivity</string>
+    <string name="customization_shake_sensitivity_description">Choose how firmly you need to shake the device</string>
+    <string name="customization_shake_gentle">Gentle</string>
+    <string name="customization_shake_light">Light</string>
+    <string name="customization_shake_medium">Medium</string>
+    <string name="customization_shake_firm">Firm</string>
+    <string name="customization_shake_strong">Strong</string>
+
+    <string name="customization_crossfade_duration">Crossfade Duration</string>
+    <string name="customization_crossfade_duration_description">Fade between track transitions</string>
+    <string name="customization_seconds_short">%1$ds</string>
+    <string name="customization_gapless">Gapless Playback</string>
+    <string name="customization_gapless_description">Remove gaps between continuous tracks</string>
+    <string name="customization_replaygain">Volume Normalisation (ReplayGain)</string>
+    <string name="customization_replaygain_description">Keep loudness more consistent between tracks</string>
+    <string name="customization_replaygain_preamp">ReplayGain Pre-Amp Gain</string>
+    <string name="customization_replaygain_preamp_description">Adjust tracks that do not include loudness tags</string>
+    <string name="customization_mono_audio">Mono Audio Downmix</string>
+    <string name="customization_mono_audio_description">Combine left and right channels for single-earbud listening</string>
+    <string name="customization_volume_limit">Volume Limit (Ear Protection)</string>
+    <string name="customization_volume_limit_description">Cap the maximum playback level</string>
+    <string name="customization_max_volume">Maximum Volume</string>
+    <string name="customization_max_volume_description">Set the loudest level CassetteCat can play</string>
+    <string name="customization_percent">%1$d%%</string>
+    <string name="customization_resume_queue">Resume Queue on Launch</string>
+    <string name="customization_resume_queue_description">Restore the active track and queue on startup</string>
+    <string name="customization_autoplay">Autoplay</string>
+    <string name="customization_autoplay_description">Keep playing similar songs when the queue ends</string>
+    <string name="customization_pause_disconnect">Pause on Disconnect</string>
+    <string name="customization_pause_disconnect_description">Pause when headphones or Bluetooth audio disconnect</string>
+    <string name="customization_drive_mode">Auto Drive Mode</string>
+    <string name="customization_drive_mode_description">Open Drive Mode when car Bluetooth audio connects</string>
+    <string name="customization_haptics">Tactile Haptic Feedback</string>
+    <string name="customization_haptics_description">Use vibration ticks when scrubbing, scrolling, and tapping</string>
+
+    <string name="customization_lyrics_font_size">Lyrics Font Size</string>
+    <string name="customization_lyrics_font_size_description">Text size for synced lyrics</string>
+    <string name="customization_lyrics_font_family">Lyrics Font Family</string>
+    <string name="customization_lyrics_font_family_description">Choose the typeface used for lyrics</string>
+    <string name="customization_lyrics_alignment">Lyrics Text Alignment</string>
+    <string name="customization_lyrics_alignment_description">Choose centred or left-aligned lyrics</string>
+    <string name="customization_lyrics_active_style">Active Line Focus Style</string>
+    <string name="customization_lyrics_active_style_description">Choose how the current lyric line is highlighted</string>
+    <string name="customization_keep_awake">Keep Screen Awake for Lyrics</string>
+    <string name="customization_keep_awake_description">Prevent the display from sleeping while lyrics are open</string>
+    <string name="customization_local_lrc">Prioritize Local .lrc Sidecars</string>
+    <string name="customization_local_lrc_description">Use local .lrc files before looking online</string>
+
+    <string name="customization_streaming_cache">Streaming Cache Quota</string>
+    <string name="customization_streaming_cache_description">Maximum storage used for cached streamed audio</string>
+    <string name="customization_mb">%1$d MB</string>
+    <string name="customization_gb">%1$d GB</string>
+    <string name="customization_auto_cache">Auto-Cache Favourite Tracks</string>
+    <string name="customization_auto_cache_description">Cache tracks automatically when you mark them as favourite</string>
+    <string name="customization_ignore_short">Ignore Short Audio Clips</string>
+    <string name="customization_ignore_short_description">Hide audio shorter than 30 seconds, such as ringtones and voice notes</string>
+    <string name="customization_custom_covers">Custom Album Covers</string>
+    <string name="customization_no_custom_covers">No custom covers applied</string>
+    <plurals name="customization_custom_cover_summary">
+        <item quantity="one">%1$d cover (%2$s) · Tap to reset</item>
+        <item quantity="other">%1$d covers (%2$s) · Tap to reset all</item>
+    </plurals>
+    <string name="customization_reset_covers_title">Reset all custom covers?</string>
+    <plurals name="customization_reset_covers_message">
+        <item quantity="one">This will delete the custom cover and return to the artwork in the media file.</item>
+        <item quantity="other">This will delete all %1$d custom covers and return to the artwork in the media files.</item>
+    </plurals>
+    <string name="customization_reset_all">Reset All</string>
+
+    <string name="customization_reorder">Reorder %1$s</string>
+    <string name="customization_move_up">Move up</string>
+    <string name="customization_move_down">Move down</string>
+
+    <string name="customization_theme_record_red">Record Red</string>
+    <string name="customization_theme_cassette_amber">Cassette Amber</string>
+    <string name="customization_theme_electric_cyan">Electric Cyan</string>
+    <string name="customization_theme_neon_emerald">Neon Emerald</string>
+    <string name="customization_theme_tape_magenta">Tape Magenta</string>
+    <string name="customization_theme_monochrome">Monochrome</string>
+
+    <string name="customization_library_songs">Songs</string>
+    <string name="customization_library_artists">Artists</string>
+    <string name="customization_library_albums">Albums</string>
+    <string name="customization_library_genres">Genres</string>
+    <string name="customization_library_playlists">Playlists</string>
+    <string name="customization_library_folders">Folders</string>
+
+    <string name="customization_home_heavy_rotation">Heavy Rotation</string>
+    <string name="customization_home_recently_played">Recently Played</string>
+    <string name="customization_home_recently_added">Recently Added</string>
+    <string name="customization_home_forgotten_favorites">Forgotten Favorites</string>
+
+    <string name="customization_mini_next">Next track</string>
+    <string name="customization_mini_previous">Previous track</string>
+    <string name="customization_mini_favorite">Favorite</string>
+    <string name="customization_mini_queue">Queue</string>
+    <string name="customization_mini_repeat">Repeat mode</string>
+
+    <string name="customization_corner_curved">Curved</string>
+    <string name="customization_corner_curved_full">Curved (16dp)</string>
+    <string name="customization_corner_soft">Soft</string>
+    <string name="customization_corner_soft_full">Soft (8dp)</string>
+    <string name="customization_corner_square">Square</string>
+    <string name="customization_corner_square_full">Vinyl / Square (0dp)</string>
+
+    <string name="customization_start_home">Home</string>
+    <string name="customization_start_library">Library</string>
+    <string name="customization_start_last">Last active tab</string>
+
+    <string name="customization_size_small">Small</string>
+    <string name="customization_size_standard">Standard</string>
+    <string name="customization_size_large">Large</string>
+    <string name="customization_density_detailed">Detailed</string>
+    <string name="customization_density_compact">Compact</string>
+    <string name="customization_sort_title">Title</string>
+    <string name="customization_sort_artist">Artist</string>
+    <string name="customization_sort_album">Album</string>
+    <string name="customization_alignment_center">Centre (Karaoke)</string>
+    <string name="customization_alignment_left">Left (Editorial)</string>
+    <string name="customization_active_accent">Accent Glow</string>
+    <string name="customization_active_white">Pure White</string>
+
+    <string name="customization_font_space_grotesk" translatable="false">Space Grotesk</string>
+    <string name="customization_font_space_grotesk_full">Space Grotesk (Default)</string>
+    <string name="customization_font_ibm_sans" translatable="false">IBM Plex Sans</string>
+    <string name="customization_font_ibm_sans_full">IBM Plex Sans (Clean UI)</string>
+    <string name="customization_font_ibm_mono" translatable="false">IBM Plex Mono</string>
+    <string name="customization_font_ibm_mono_full">IBM Plex Mono (Retro Tech)</string>
+    <string name="customization_font_silkscreen" translatable="false">Silkscreen</string>
+    <string name="customization_font_silkscreen_full">Silkscreen (8-bit Arcade)</string>
+    <string name="customization_font_vt323" translatable="false">VT323</string>
+    <string name="customization_font_vt323_full">VT323 (Retro CRT Terminal)</string>
+    <string name="customization_font_monocraft" translatable="false">Monocraft</string>
+    <string name="customization_font_monocraft_full">Monocraft (Pixel Monospace)</string>
+    <string name="customization_font_system_sans">System Sans</string>
+    <string name="customization_font_system_sans_full">System Default (Sans-serif)</string>
+    <string name="customization_font_system_serif">System Serif</string>
+    <string name="customization_font_system_serif_full">System Serif (Editorial)</string>
+    <string name="customization_font_system_mono">System Mono</string>
+    <string name="customization_font_system_mono_full">System Monospace</string>
+
+    <string name="customization_lyrics_font_silkscreen">Silkscreen (8-bit)</string>
+    <string name="customization_lyrics_font_vt323">VT323 (CRT)</string>
+    <string name="customization_lyrics_font_monocraft">Monocraft (Pixel)</string>
+    <string name="customization_lyrics_font_system_sans">System Sans-serif</string>
+    <string name="customization_lyrics_font_system_serif">System Serif</string>
+    <string name="customization_lyrics_font_system_mono">System Monospace</string>
+
+    <string name="customization_backdrop_atmosphere">Atmosphere Blur</string>
+    <string name="customization_backdrop_atmosphere_description">Blurred album art with a dark scrim</string>
+    <string name="customization_backdrop_liquid">Liquid Gradient</string>
+    <string name="customization_backdrop_liquid_description">A moving colour gradient based on the artwork</string>
+    <string name="customization_backdrop_glow">Ambient Glow</string>
+    <string name="customization_backdrop_glow_description">A soft glow behind the album artwork</string>
+    <string name="customization_backdrop_oled">Obsidian</string>
+    <string name="customization_backdrop_oled_description">A true black background with subtle contrast</string>
+</resources>
