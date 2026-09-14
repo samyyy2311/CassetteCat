@@ -41,7 +41,9 @@ fun PlaybackPreferencesScreen(
     val fadeOut by playbackViewModel.sleepTimerFadeOut.collectAsStateWithLifecycle()
     val finishTrack by playbackViewModel.sleepTimerFinishTrack.collectAsStateWithLifecycle()
     val fadeSeconds by playbackViewModel.sleepTimerFadeSeconds.collectAsStateWithLifecycle()
-    val fadeLabels = fadeDurations.associateWith { stringResource(AppR.string.sleep_timer_seconds_short, it) }
+    val fadeLabels = (fadeDurations + fadeSeconds).distinct().associateWith {
+        stringResource(AppR.string.sleep_timer_seconds_short, it)
+    }
 
     Column(
         modifier = modifier
@@ -97,7 +99,7 @@ fun PlaybackPreferencesScreen(
                 iconRes = R.drawable.lucide_ic_timer,
                 options = fadeDurations,
                 selected = fadeSeconds,
-                label = { fadeLabels[it].orEmpty() },
+                label = fadeLabels::getValue,
                 onSelect = playbackViewModel::setSleepTimerFadeSeconds
             )
             SettingsDivider(startPadding = 24.dp)
