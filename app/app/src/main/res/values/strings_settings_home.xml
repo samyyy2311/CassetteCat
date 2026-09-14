@@ -94,6 +94,7 @@
         <item quantity="one">%1$s · %2$d song · refreshed %3$s</item>
         <item quantity="other">%1$s · %2$d songs · refreshed %3$s</item>
     </plurals>
+    <string name="settings_server_retry">Retry %1$s</string>
 
     <string name="settings_check_updates">Check for Updates</string>
     <string name="settings_updates_disabled">Disabled above</string>
