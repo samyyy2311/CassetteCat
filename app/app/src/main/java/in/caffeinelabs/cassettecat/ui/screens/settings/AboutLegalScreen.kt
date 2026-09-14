@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,14 +65,14 @@ fun AboutLegalScreen(
                 .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
             Column {
                 Text(
-                    "About & Legal",
+                    stringResource(AppR.string.about_title),
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    "Audio DSP, Data Sources, Privacy & Permissions",
+                    stringResource(AppR.string.about_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -105,7 +106,7 @@ fun AboutLegalScreen(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            "CassetteCat",
+                            stringResource(AppR.string.app_name),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontFamily = SpaceGroteskFontFamily,
                                 fontWeight = FontWeight.Bold,
@@ -118,7 +119,7 @@ fun AboutLegalScreen(
                         color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            "v$appVersion",
+                            stringResource(AppR.string.about_version, appVersion),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontFamily = IbmPlexMonoFontFamily,
                                 fontWeight = FontWeight.SemiBold
@@ -130,78 +131,78 @@ fun AboutLegalScreen(
                 }
             }
 
-            InfoCard(title = "Audio Engine & Hi-Fi DSP") {
+            InfoCard(title = stringResource(AppR.string.about_audio_engine_title)) {
                 Text(
-                    "Bit-perfect local playback with 32-bit float internal audio processing. Parametric equalization and headphone frequency response correction curves are powered by Jaakko Pasanen's calibrated AutoEq database.",
+                    stringResource(AppR.string.about_audio_engine_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
                 )
             }
 
-            InfoCard(title = "Data Sources") {
+            InfoCard(title = stringResource(AppR.string.about_data_sources_title)) {
                 Text(
-                    "Real-time synchronized and plain lyrics are provided by LRCLIB. Album cover artwork and metadata are fetched from MusicBrainz and Cover Art Archive. Artist biographies and background information are sourced from Wikipedia & Wikimedia (CC BY-SA 4.0).",
+                    stringResource(AppR.string.about_data_sources_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Metadata and lyrics are cached on-device for uninterrupted offline playback.",
+                    stringResource(AppR.string.about_data_sources_cache),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
-            InfoCard(title = "Privacy & Local-First Data") {
+            InfoCard(title = stringResource(AppR.string.about_privacy_title)) {
                 Text(
-                    "Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings → Privacy → Crash Log.",
+                    stringResource(AppR.string.about_privacy_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Saved streaming server passwords and access tokens are encrypted with the hardware-backed Android Keystore.",
+                    stringResource(AppR.string.about_privacy_credentials),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
                 )
             }
 
-            InfoCard(title = "Permissions Used") {
+            InfoCard(title = stringResource(AppR.string.about_permissions_title)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     PermissionRow(
                         iconRes = R.drawable.lucide_ic_music,
                         iconTint = Color(0xFF38BDF8),
-                        title = "Music & Audio",
-                        description = "Required to discover and play audio files stored on your device."
+                        title = stringResource(AppR.string.about_permission_music_title),
+                        description = stringResource(AppR.string.about_permission_music_description)
                     )
                     PermissionRow(
                         iconRes = R.drawable.lucide_ic_bell,
                         iconTint = Color(0xFFA78BFA),
-                        title = "Notifications",
-                        description = "Optional. Used for background playback controls in the status bar and lockscreen."
+                        title = stringResource(AppR.string.about_permission_notifications_title),
+                        description = stringResource(AppR.string.about_permission_notifications_description)
                     )
                     PermissionRow(
                         iconRes = R.drawable.lucide_ic_radio,
                         iconTint = Color(0xFF10B981),
-                        title = "Nearby Wi-Fi Devices",
-                        description = "Optional. Used to find the CassetteCat companion player on your Wi-Fi network."
+                        title = stringResource(AppR.string.about_permission_wifi_title),
+                        description = stringResource(AppR.string.about_permission_wifi_description)
                     )
                     PermissionRow(
                         iconRes = R.drawable.lucide_ic_bluetooth_connected,
                         iconTint = Color(0xFF10B981),
-                        title = "Bluetooth",
-                        description = "Optional. Used only to show the name of the Bluetooth speaker or headphones you're playing to."
+                        title = stringResource(AppR.string.about_permission_bluetooth_title),
+                        description = stringResource(AppR.string.about_permission_bluetooth_description)
                     )
                 }
             }
 
-            InfoCard(title = "Feedback & Open Source") {
+            InfoCard(title = stringResource(AppR.string.about_feedback_title)) {
                 Text(
-                    "Found a bug, want to request a feature, or explore the source code? CassetteCat is free and open source software licensed under GNU GPL v3.0.",
+                    stringResource(AppR.string.about_feedback_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
@@ -209,28 +210,28 @@ fun AboutLegalScreen(
                 Spacer(Modifier.height(16.dp))
 
                 LegalLinkRow(
-                    title = "Official Website",
+                    title = stringResource(AppR.string.about_website),
                     subtitle = "cassettecat.caffeinelabs.in",
                     iconRes = R.drawable.lucide_ic_globe,
                     iconTint = Color(0xFF38BDF8),
                     onClick = { openUrl("https://cassettecat.caffeinelabs.in") }
                 )
                 LegalLinkRow(
-                    title = "Privacy Policy",
+                    title = stringResource(AppR.string.about_privacy_policy),
                     subtitle = "cassettecat.caffeinelabs.in/privacy",
                     iconRes = R.drawable.lucide_ic_shield,
                     iconTint = Color(0xFF10B981),
                     onClick = { openUrl("https://cassettecat.caffeinelabs.in/privacy/") }
                 )
                 LegalLinkRow(
-                    title = "Terms of Service",
+                    title = stringResource(AppR.string.about_terms),
                     subtitle = "cassettecat.caffeinelabs.in/terms",
                     iconRes = R.drawable.lucide_ic_file_text,
                     iconTint = Color(0xFFA78BFA),
                     onClick = { openUrl("https://cassettecat.caffeinelabs.in/terms/") }
                 )
                 LegalLinkRow(
-                    title = "GitHub Issues & Source Code",
+                    title = stringResource(AppR.string.about_github),
                     subtitle = "github.com/samyyy2311/CassetteCat",
                     iconRes = AppR.drawable.ic_logo_github,
                     iconTint = Color.Unspecified,
