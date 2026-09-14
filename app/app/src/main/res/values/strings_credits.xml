@@ -1,0 +1,71 @@
+<resources>
+    <string name="credits_title">Credits &amp; Attribution</string>
+    <string name="credits_brand_prefix" translatable="false">Cassette</string>
+    <string name="credits_brand_accent" translatable="false">Cat</string>
+    <string name="credits_version">v%1$s</string>
+    <string name="credits_intro">An open-source, local-first hi-fi audio player with audio DSP and companion hardware sync.</string>
+
+    <string name="credits_services_section">SERVICES &amp; DATA</string>
+    <string name="credits_lrclib" translatable="false">LRCLIB</string>
+    <string name="credits_lrclib_description">Real-time synchronized and plain lyrics (lrclib.net)</string>
+    <string name="credits_deezer" translatable="false">Deezer</string>
+    <string name="credits_deezer_description">Artist photos and high-resolution album artwork (deezer.com)</string>
+    <string name="credits_itunes" translatable="false">Apple iTunes Search API</string>
+    <string name="credits_itunes_description">Official high-resolution album artwork catalog (itunes.apple.com)</string>
+    <string name="credits_audiodb" translatable="false">TheAudioDB</string>
+    <string name="credits_audiodb_description">Fallback artist images and biographies (theaudiodb.com)</string>
+    <string name="credits_radio_browser" translatable="false">Radio Browser</string>
+    <string name="credits_radio_browser_description">Community-run internet radio station directory (radio-browser.info)</string>
+    <string name="credits_wikipedia" translatable="false">Wikipedia &amp; Wikimedia</string>
+    <string name="credits_wikipedia_description">Artist biographies and album background (CC BY-SA 4.0)</string>
+    <string name="credits_musicbrainz" translatable="false">MusicBrainz</string>
+    <string name="credits_musicbrainz_description">Open music encyclopedia and metadata references</string>
+    <string name="credits_cover_art_archive" translatable="false">Cover Art Archive</string>
+    <string name="credits_cover_art_archive_description">Archival CD and vinyl cover scans (Internet Archive &amp; MusicBrainz)</string>
+    <string name="credits_listenbrainz" translatable="false">ListenBrainz</string>
+    <string name="credits_listenbrainz_description">Open scrobbling platform and CC0 listening data</string>
+    <string name="credits_librefm" translatable="false">Libre.fm</string>
+    <string name="credits_librefm_description">Free software music scrobbling network (GNU FM)</string>
+    <string name="credits_subsonic" translatable="false">Subsonic API</string>
+    <string name="credits_subsonic_description">Open streaming protocol for Navidrome, Gonic, and Subsonic servers</string>
+    <string name="credits_jellyfin" translatable="false">Jellyfin API</string>
+    <string name="credits_jellyfin_description">Free software media streaming system and server protocol</string>
+    <string name="credits_github" translatable="false">GitHub</string>
+    <string name="credits_github_description">Release update checks (github.com)</string>
+
+    <string name="credits_audio_section">CORE AUDIO &amp; ARCHITECTURE</string>
+    <string name="credits_autoeq" translatable="false">AutoEq</string>
+    <string name="credits_autoeq_description">Calibrated headphone equalizer response curves by Jaakko Pasanen</string>
+    <string name="credits_media3" translatable="false">AndroidX Media3 (ExoPlayer)</string>
+    <string name="credits_media3_description">Audio streaming, session management, and offline cache</string>
+    <string name="credits_audiofx" translatable="false">Android AudioFX</string>
+    <string name="credits_audiofx_description">Parametric equalizer, bass boost, and virtualizer DSP</string>
+    <string name="credits_kotlinx" translatable="false">KotlinX Coroutines &amp; Serialization</string>
+    <string name="credits_kotlinx_description">Asynchronous flows, reactive state, and JSON persistence</string>
+    <string name="credits_datastore" translatable="false">Jetpack DataStore</string>
+    <string name="credits_datastore_description">Local-first atomic persistence and data stores</string>
+    <string name="credits_okhttp" translatable="false">OkHttp</string>
+    <string name="credits_okhttp_description">HTTP client for lyrics, artwork, and streaming</string>
+
+    <string name="credits_design_section">DESIGN &amp; TYPOGRAPHY</string>
+    <string name="credits_lucide" translatable="false">Lucide Icons</string>
+    <string name="credits_lucide_description">Open-source iconography (lucide.dev, ISC License)</string>
+    <string name="credits_simple_icons" translatable="false">Simple Icons</string>
+    <string name="credits_simple_icons_description">Brand SVG icons (simpleicons.org, CC0 1.0)</string>
+    <string name="credits_ibm_plex" translatable="false">IBM Plex (Sans &amp; Mono)</string>
+    <string name="credits_ibm_plex_description">Designed by Mike Abbink and Bold Monday for IBM (OFL 1.1)</string>
+    <string name="credits_space_grotesk" translatable="false">Space Grotesk</string>
+    <string name="credits_space_grotesk_description">Display typeface by Florian Karsten (OFL 1.1)</string>
+    <string name="credits_compose" translatable="false">Jetpack Compose &amp; Material 3</string>
+    <string name="credits_compose_description">Declarative Android UI toolkit and dynamic theming</string>
+
+    <string name="credits_license_section">OPEN SOURCE LICENSE</string>
+    <string name="credits_gpl" translatable="false">GNU General Public License v3.0</string>
+    <string name="credits_gpl_description">View source code and contribute on GitHub</string>
+
+    <string name="credits_easter_egg_title">(=^･ω･^=) Cassette Cat Lounge</string>
+    <string name="credits_easter_egg_message">You found the Cassette Cat Lounge. Tap a cat to make it purr.</string>
+    <string name="credits_easter_egg_cat_description">CassetteCat</string>
+    <string name="credits_easter_egg_footer">Made for audiophiles and tape deck people.</string>
+    <string name="credits_easter_egg_close">Purr &amp; Close</string>
+</resources>
