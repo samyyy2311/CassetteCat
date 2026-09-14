@@ -50,12 +50,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LrcLibClient
 import `in`.caffeinelabs.cassettecat.data.playback.LrcLibSearchResultItem
@@ -94,8 +96,6 @@ internal fun LrcLibSearchSheet(
     var results by remember { mutableStateOf<List<LrcLibSearchResultItem>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     var hasSearched by remember { mutableStateOf(false) }
-
-    // In-app custom lyrics editor state
     var showCustomLyricsEditor by remember { mutableStateOf(false) }
     var customLyricsText by remember { mutableStateOf("") }
     var contributeToLrcLib by remember { mutableStateOf(true) }
@@ -112,7 +112,9 @@ internal fun LrcLibSearchSheet(
                 val cleanedTitle = cleanSearchTitle(query)
                 val fallbackList = if (cleanedTitle.isNotBlank() && cleanedTitle != query) {
                     lrcLibClient.search(cleanedTitle)
-                } else emptyList()
+                } else {
+                    emptyList()
+                }
                 results = fallbackList.ifEmpty { list }
             } else {
                 results = list
@@ -127,7 +129,6 @@ internal fun LrcLibSearchSheet(
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
         if (showCustomLyricsEditor) {
-            // Custom lyrics and LRCLIB contribution
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,13 +143,13 @@ internal fun LrcLibSearchSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Add Custom Lyrics",
+                            text = stringResource(AppR.string.lrclib_add_custom_lyrics),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${song.title} • ${song.artist}",
+                            text = stringResource(AppR.string.lrclib_track_artist, song.title, song.artist),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -156,7 +157,10 @@ internal fun LrcLibSearchSheet(
                         )
                     }
                     TextButton(onClick = { showCustomLyricsEditor = false }) {
-                        Text("Search", color = MaterialTheme.colorScheme.tertiary)
+                        Text(
+                            stringResource(AppR.string.lrclib_search),
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
                     }
                 }
 
@@ -170,7 +174,7 @@ internal fun LrcLibSearchSheet(
                         .heightIn(min = 180.dp, max = 280.dp),
                     placeholder = {
                         Text(
-                            "Paste synchronized LRC or plain lyrics here...\n\nExample synced format:\n[00:12.30]First line of the song\n[00:16.80]Second line of the song...",
+                            stringResource(AppR.string.lrclib_editor_placeholder),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = IbmPlexMonoFontFamily,
                                 fontSize = 12.sp,
@@ -179,7 +183,10 @@ internal fun LrcLibSearchSheet(
                         )
                     },
                     shape = RoundedCornerShape(16.dp),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 13.sp),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = IbmPlexMonoFontFamily,
+                        fontSize = 13.sp
+                    ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.tertiary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -190,7 +197,6 @@ internal fun LrcLibSearchSheet(
 
                 Spacer(Modifier.height(14.dp))
 
-                // LRCLIB contribution toggle
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -217,13 +223,13 @@ internal fun LrcLibSearchSheet(
                             )
                             Column {
                                 Text(
-                                    text = "Contribute to LRCLIB",
+                                    text = stringResource(AppR.string.lrclib_contribute),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Share with the open-source global lyrics database",
+                                    text = stringResource(AppR.string.lrclib_contribute_description),
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -255,7 +261,10 @@ internal fun LrcLibSearchSheet(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            stringResource(AppR.string.action_cancel),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     Button(
@@ -291,16 +300,21 @@ internal fun LrcLibSearchSheet(
                                     )
                                     isPublishing = false
                                     withContext(Dispatchers.Main) {
-                                        if (published) {
-                                            Toast.makeText(context, "Lyrics applied & contributed to LRCLIB! 🌐", Toast.LENGTH_SHORT).show()
+                                        val message = if (published) {
+                                            AppR.string.lrclib_applied_and_contributed
                                         } else {
-                                            Toast.makeText(context, "Lyrics applied locally", Toast.LENGTH_SHORT).show()
+                                            AppR.string.lrclib_applied_locally
                                         }
+                                        Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
                                     }
                                     onDismiss()
                                 }
                             } else {
-                                Toast.makeText(context, "Lyrics applied locally", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(AppR.string.lrclib_applied_locally),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 onDismiss()
                             }
                         },
@@ -319,9 +333,9 @@ internal fun LrcLibSearchSheet(
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Publishing...")
+                            Text(stringResource(AppR.string.lrclib_publishing))
                         } else {
-                            Text("Save & Apply Lyrics")
+                            Text(stringResource(AppR.string.lrclib_save_apply))
                         }
                     }
                 }
@@ -340,13 +354,13 @@ internal fun LrcLibSearchSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Search Online Lyrics",
+                            text = stringResource(AppR.string.lrclib_search_online),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Powered by LRCLIB database",
+                            text = stringResource(AppR.string.lrclib_powered_by),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -360,7 +374,11 @@ internal fun LrcLibSearchSheet(
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Add Custom", color = MaterialTheme.colorScheme.tertiary, fontSize = 13.sp)
+                        Text(
+                            stringResource(AppR.string.lrclib_add_custom),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontSize = 13.sp
+                        )
                     }
                 }
 
@@ -375,7 +393,7 @@ internal fun LrcLibSearchSheet(
                         value = query,
                         onValueChange = { query = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Track title...") },
+                        placeholder = { Text(stringResource(AppR.string.lrclib_track_title_hint)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { executeSearch() }),
@@ -392,7 +410,11 @@ internal fun LrcLibSearchSheet(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                            .border(
+                                0.5.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                RoundedCornerShape(16.dp)
+                            )
                             .clickable { executeSearch() }
                             .padding(horizontal = 18.dp, vertical = 15.dp),
                         contentAlignment = Alignment.Center
@@ -406,7 +428,7 @@ internal fun LrcLibSearchSheet(
                         } else {
                             Icon(
                                 painter = painterResource(R.drawable.lucide_ic_search),
-                                contentDescription = "Search",
+                                contentDescription = stringResource(AppR.string.lrclib_search),
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -443,7 +465,7 @@ internal fun LrcLibSearchSheet(
                                 modifier = Modifier.size(36.dp)
                             )
                             Text(
-                                text = "No lyrics found for this query",
+                                text = stringResource(AppR.string.lrclib_no_results),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -462,7 +484,7 @@ internal fun LrcLibSearchSheet(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(Modifier.width(6.dp))
-                                Text("Add & Contribute Lyrics", fontSize = 13.sp)
+                                Text(stringResource(AppR.string.lrclib_add_contribute), fontSize = 13.sp)
                             }
                         }
                     }
@@ -511,7 +533,11 @@ internal fun LrcLibSearchSheet(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = "${item.artistName.orEmpty()} • ${item.albumName.orEmpty()}",
+                                                text = stringResource(
+                                                    AppR.string.lrclib_result_artist_album,
+                                                    item.artistName.orEmpty(),
+                                                    item.albumName.orEmpty()
+                                                ),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -539,7 +565,7 @@ internal fun LrcLibSearchSheet(
                                                         modifier = Modifier.size(11.dp)
                                                     )
                                                     Text(
-                                                        text = "SYNCED",
+                                                        text = stringResource(AppR.string.lrclib_badge_synced),
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 10.sp
@@ -556,7 +582,7 @@ internal fun LrcLibSearchSheet(
                                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                                             ) {
                                                 Text(
-                                                    text = "PLAIN",
+                                                    text = stringResource(AppR.string.lrclib_badge_plain),
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.SemiBold,
                                                         fontSize = 10.sp
