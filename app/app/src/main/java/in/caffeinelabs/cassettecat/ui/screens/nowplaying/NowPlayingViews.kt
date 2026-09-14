@@ -2,13 +2,10 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,14 +24,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -42,22 +40,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
-import java.util.Locale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -65,10 +63,9 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 
 @Composable
@@ -169,12 +166,8 @@ internal fun NowPlayingPlayerView(
             }
         }
     } else if (preferences.fullScreenNowPlayingArt) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            art(
-                Modifier.fillMaxSize()
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            art(Modifier.fillMaxSize())
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -331,7 +324,9 @@ internal fun NowPlayingQueueView(
                                     indication = null,
                                     onClick = { }
                                 )
-                            } else Modifier
+                            } else {
+                                Modifier
+                            }
                         )
                 ) {
                     Column(Modifier.fillMaxWidth()) {
@@ -440,13 +435,17 @@ internal fun NowPlayingLyricsView(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_timer),
-                            contentDescription = "Tune Lyrics Sync",
+                            contentDescription = stringResource(AppR.string.lyrics_sync_tune),
                             tint = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = if (syncOffsetMs == 0L) "Sync" else String.format(Locale.US, "%+dms", syncOffsetMs),
+                            text = if (syncOffsetMs == 0L) {
+                                stringResource(AppR.string.lyrics_sync_label)
+                            } else {
+                                stringResource(AppR.string.lyrics_sync_offset_short, syncOffsetMs)
+                            },
                             style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                             color = if (syncOffsetMs != 0L) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -556,7 +555,9 @@ internal fun NowPlayingLyricsView(
                                         indication = null,
                                         onClick = { }
                                     )
-                                } else Modifier
+                                } else {
+                                    Modifier
+                                }
                             )
                     ) {
                         Column(Modifier.fillMaxWidth()) {
@@ -641,7 +642,10 @@ private fun LyricsSyncTunerBar(
                 }
                 .padding(horizontal = 8.dp, vertical = 5.dp)
         ) {
-            Text("-100ms", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+            Text(
+                stringResource(AppR.string.lyrics_sync_nudge_back),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily)
+            )
         }
 
         val isAdjusted = syncOffsetMs != 0L
@@ -660,7 +664,11 @@ private fun LyricsSyncTunerBar(
                 }
                 .padding(horizontal = 8.dp, vertical = 5.dp)
         ) {
-            val text = if (syncOffsetMs == 0L) "Sync: 0ms" else String.format(Locale.US, "Sync: %+dms", syncOffsetMs)
+            val text = if (syncOffsetMs == 0L) {
+                stringResource(AppR.string.lyrics_sync_zero)
+            } else {
+                stringResource(AppR.string.lyrics_sync_value, syncOffsetMs)
+            }
             Text(
                 text,
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -678,7 +686,10 @@ private fun LyricsSyncTunerBar(
                 }
                 .padding(horizontal = 8.dp, vertical = 5.dp)
         ) {
-            Text("+100ms", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily))
+            Text(
+                stringResource(AppR.string.lyrics_sync_nudge_forward),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily)
+            )
         }
 
         Box(
@@ -690,7 +701,7 @@ private fun LyricsSyncTunerBar(
         ) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_x),
-                contentDescription = "Close Sync Tuner",
+                contentDescription = stringResource(AppR.string.lyrics_sync_close),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(13.dp)
             )
