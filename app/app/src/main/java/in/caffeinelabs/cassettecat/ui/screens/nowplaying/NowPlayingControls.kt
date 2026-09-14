@@ -9,11 +9,9 @@ import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -30,12 +28,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,9 +50,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
@@ -99,7 +98,7 @@ internal fun PlaybackControlsRow(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_shuffle,
-                contentDescription = "Shuffle",
+                contentDescription = stringResource(AppR.string.now_playing_shuffle),
                 tint = if (isShuffleEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onToggleShuffle
             )
@@ -134,7 +133,7 @@ internal fun PlaybackControlsRow(
             }
             PressDepthIconButton(
                 iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
-                contentDescription = "Repeat",
+                contentDescription = stringResource(AppR.string.now_playing_repeat),
                 tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onCycleRepeatMode
             )
@@ -152,7 +151,10 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
     ) {
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_mic_vocal,
-            contentDescription = if (activeView == NowPlayingView.LYRICS) "Close lyrics" else "Lyrics",
+            contentDescription = stringResource(
+                if (activeView == NowPlayingView.LYRICS) AppR.string.now_playing_close_lyrics
+                else AppR.string.now_playing_lyrics
+            ),
             tint = if (activeView == NowPlayingView.LYRICS) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = {
                 onActiveViewChange(if (activeView == NowPlayingView.LYRICS) NowPlayingView.PLAYER else NowPlayingView.LYRICS)
@@ -160,7 +162,10 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
         )
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_list,
-            contentDescription = if (activeView == NowPlayingView.QUEUE) "Close queue" else "Queue",
+            contentDescription = stringResource(
+                if (activeView == NowPlayingView.QUEUE) AppR.string.now_playing_close_queue
+                else AppR.string.now_playing_queue
+            ),
             tint = if (activeView == NowPlayingView.QUEUE) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = {
                 onActiveViewChange(if (activeView == NowPlayingView.QUEUE) NowPlayingView.PLAYER else NowPlayingView.QUEUE)
@@ -260,9 +265,9 @@ internal fun LiveIndicator(isPlaying: Boolean = true, isBuffering: Boolean = fal
         Spacer(Modifier.width(10.dp))
         Text(
             when {
-                isBuffering -> "CONNECTING…"
-                isPlaying -> "LIVE"
-                else -> "PAUSED"
+                isBuffering -> stringResource(AppR.string.now_playing_connecting)
+                isPlaying -> stringResource(AppR.string.now_playing_live)
+                else -> stringResource(AppR.string.now_playing_paused)
             },
             style = readoutStyle()
         )
