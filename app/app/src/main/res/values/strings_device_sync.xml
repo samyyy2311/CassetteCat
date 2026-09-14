@@ -1,0 +1,11 @@
+<resources>
+    <string name="device_sync_title">Library Sync</string>
+    <string name="device_sync_summary">%1$d of %2$d songs on device</string>
+    <string name="device_sync_empty_title">No local songs</string>
+    <string name="device_sync_empty_message">Only songs stored on this phone can be synced to the player.</string>
+    <string name="device_sync_all_missing">Sync All Missing (%1$d)</string>
+    <string name="device_sync_uploading">Uploading</string>
+    <string name="device_sync_queued">Queued</string>
+    <string name="device_sync_on_device">On device</string>
+    <string name="device_sync_not_synced">Not synced</string>
+</resources>

@@ -39,8 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,9 +67,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
-import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -81,15 +78,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexSansFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.MonocraftFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SilkscreenFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.VT323FontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -148,10 +151,14 @@ internal fun LyricsView(
     }
 
     val providerCredit = when (lyricsProvider) {
-        "LRCLIB" -> "Lyrics provided by LRCLIB"
-        "Embedded metadata" -> "Lyrics from file metadata"
-        "Local file" -> "Lyrics from local file"
-        else -> if (!lyrics.isNullOrBlank() || !syncedLyrics.isNullOrEmpty()) "Lyrics from file metadata" else null
+        "LRCLIB" -> stringResource(AppR.string.lyrics_provider_lrclib)
+        "Embedded metadata" -> stringResource(AppR.string.lyrics_provider_file_metadata)
+        "Local file" -> stringResource(AppR.string.lyrics_provider_local_file)
+        else -> if (!lyrics.isNullOrBlank() || !syncedLyrics.isNullOrEmpty()) {
+            stringResource(AppR.string.lyrics_provider_file_metadata)
+        } else {
+            null
+        }
     }
 
     val lyricBottomPadDp by animateDpAsState(
@@ -224,7 +231,7 @@ internal fun LyricsView(
                     displayItems.indexOfLast { item ->
                         when (item) {
                             is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
-                            is LyricDisplayItem.Gap  -> item.fromMs <= effectivePositionMs
+                            is LyricDisplayItem.Gap -> item.fromMs <= effectivePositionMs
                         }
                     }.coerceAtLeast(0)
                 }
@@ -273,8 +280,16 @@ internal fun LyricsView(
                 }
             }
 
-            val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) TextAlign.Center else TextAlign.Start
-            val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) Alignment.CenterHorizontally else Alignment.Start
+            val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
+                TextAlign.Center
+            } else {
+                TextAlign.Start
+            }
+            val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
+                Alignment.CenterHorizontally
+            } else {
+                Alignment.Start
+            }
             val fontScale = preferences.lyricsFontSize.scaleMultiplier
             val lyricsFont = when (preferences.lyricsFontFamily) {
                 LyricsFontFamily.SPACE_GROTESK -> SpaceGroteskFontFamily
@@ -341,10 +356,12 @@ internal fun LyricsView(
             ) {
                 itemsIndexed(
                     items = displayItems,
-                    key = { idx, it -> when (it) {
-                        is LyricDisplayItem.Line -> "line_${it.lyricLine.timestampMs}_${idx}"
-                        is LyricDisplayItem.Gap  -> "gap_${it.fromMs}_${idx}"
-                    }}
+                    key = { idx, item ->
+                        when (item) {
+                            is LyricDisplayItem.Line -> "line_${item.lyricLine.timestampMs}_${idx}"
+                            is LyricDisplayItem.Gap -> "gap_${item.fromMs}_${idx}"
+                        }
+                    }
                 ) { displayIdx, item ->
                     when (item) {
                         is LyricDisplayItem.Gap -> {
@@ -368,7 +385,9 @@ internal fun LyricsView(
                             val index = item.originalIndex
                             val isSelected = selectedIndices.contains(index)
                             val distanceFromActive = abs(index - activeLineIndex)
-                            val isActive = !selectionMode && currentActiveItem is LyricDisplayItem.Line && currentActiveItem.originalIndex == index
+                            val isActive = !selectionMode &&
+                                currentActiveItem is LyricDisplayItem.Line &&
+                                currentActiveItem.originalIndex == index
 
                             val lineScale by animateFloatAsState(
                                 targetValue = if (isActive || isSelected) 1.025f else 0.965f,
@@ -454,7 +473,7 @@ internal fun LyricsView(
                     ) {
                         if (!artist.isNullOrBlank()) {
                             Text(
-                                text = "Written by $artist",
+                                text = stringResource(AppR.string.lyrics_written_by, artist),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
@@ -484,7 +503,7 @@ internal fun LyricsView(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "Search & match different lyrics",
+                                text = stringResource(AppR.string.lyrics_search_match),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.tertiary
                             )
@@ -518,7 +537,7 @@ internal fun LyricsView(
                 Spacer(Modifier.height(36.dp))
                 if (!artist.isNullOrBlank()) {
                     Text(
-                        text = "Written by $artist",
+                        text = stringResource(AppR.string.lyrics_written_by, artist),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
@@ -548,7 +567,7 @@ internal fun LyricsView(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "Search & match different lyrics",
+                        text = stringResource(AppR.string.lyrics_search_match),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.tertiary
                     )
@@ -560,7 +579,7 @@ internal fun LyricsView(
         isLoading -> {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Loading lyrics...",
+                    stringResource(AppR.string.lyrics_loading),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -711,9 +730,12 @@ private fun ActiveLyricLine(
                 progress >= slotStart -> {
                     val linearFraction = if (slotEnd > slotStart) {
                         ((progress - slotStart) / (slotEnd - slotStart)).coerceIn(0f, 1f)
-                    } else 1f
+                    } else {
+                        1f
+                    }
                     linearFraction * linearFraction * (3f - 2f * linearFraction)
                 }
+
                 else -> 0f
             }
             val color = lerp(dimColor, activeWordColor, revealFraction)
@@ -760,13 +782,17 @@ internal fun FloatingLyricSelectionBar(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_x),
-                    contentDescription = "Cancel",
+                    contentDescription = stringResource(AppR.string.action_cancel),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(16.dp)
                 )
             }
             Text(
-                text = if (selectedCount == 0) "Select up to 5 lines" else "$selectedCount selected",
+                text = if (selectedCount == 0) {
+                    stringResource(AppR.string.lyrics_select_up_to_five)
+                } else {
+                    pluralStringResource(AppR.plurals.lyrics_selected_count, selectedCount, selectedCount)
+                },
                 style = MaterialTheme.typography.labelLarge,
                 fontFamily = SpaceGroteskFontFamily,
                 fontWeight = FontWeight.SemiBold,
@@ -798,7 +824,7 @@ internal fun FloatingLyricSelectionBar(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "Share Card",
+                    text = stringResource(AppR.string.share_card_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (selectedCount > 0) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -819,37 +845,44 @@ internal fun InstrumentalWaveformView(
     val transition = rememberInfiniteTransition(label = "waveformPulse")
 
     val bar1 by transition.animateFloat(
-        initialValue = 0.25f, targetValue = 0.85f,
+        initialValue = 0.25f,
+        targetValue = 0.85f,
         animationSpec = infiniteRepeatable(tween(580, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b1"
     )
     val bar2 by transition.animateFloat(
-        initialValue = 0.40f, targetValue = 1.00f,
+        initialValue = 0.40f,
+        targetValue = 1.00f,
         animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b2"
     )
     val bar3 by transition.animateFloat(
-        initialValue = 0.20f, targetValue = 0.70f,
+        initialValue = 0.20f,
+        targetValue = 0.70f,
         animationSpec = infiniteRepeatable(tween(650, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b3"
     )
     val bar4 by transition.animateFloat(
-        initialValue = 0.50f, targetValue = 0.95f,
+        initialValue = 0.50f,
+        targetValue = 0.95f,
         animationSpec = infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b4"
     )
     val bar5 by transition.animateFloat(
-        initialValue = 0.15f, targetValue = 0.60f,
+        initialValue = 0.15f,
+        targetValue = 0.60f,
         animationSpec = infiniteRepeatable(tween(720, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b5"
     )
     val bar6 by transition.animateFloat(
-        initialValue = 0.35f, targetValue = 0.88f,
+        initialValue = 0.35f,
+        targetValue = 0.88f,
         animationSpec = infiniteRepeatable(tween(490, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b6"
     )
     val bar7 by transition.animateFloat(
-        initialValue = 0.20f, targetValue = 0.75f,
+        initialValue = 0.20f,
+        targetValue = 0.75f,
         animationSpec = infiniteRepeatable(tween(540, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b7"
     )
@@ -883,7 +916,7 @@ internal fun InstrumentalWaveformView(
         Spacer(Modifier.height(28.dp))
 
         Text(
-            text = "Instrumental",
+            text = stringResource(AppR.string.lyrics_instrumental),
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = SpaceGroteskFontFamily,
             fontWeight = FontWeight.Bold,
@@ -893,7 +926,11 @@ internal fun InstrumentalWaveformView(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = if (!artist.isNullOrBlank()) "Composed by $artist" else "This track has no lyrics",
+            text = if (!artist.isNullOrBlank()) {
+                stringResource(AppR.string.lyrics_composed_by, artist)
+            } else {
+                stringResource(AppR.string.lyrics_no_lyrics)
+            },
             style = MaterialTheme.typography.bodyLarge,
             fontFamily = IbmPlexSansFontFamily,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
@@ -929,7 +966,7 @@ internal fun InstrumentalWaveformView(
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
-                        text = "Search Online",
+                        text = stringResource(AppR.string.lyrics_search_online),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -960,7 +997,7 @@ internal fun InstrumentalWaveformView(
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
-                        text = "Album Art",
+                        text = stringResource(AppR.string.lyrics_album_art),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface

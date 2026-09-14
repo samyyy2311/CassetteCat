@@ -28,12 +28,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
@@ -231,7 +232,7 @@ fun ServerRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
-                if (config.connected) status ?: "Connected as ${config.username}" else subtitle,
+                if (config.connected) status ?: stringResource(AppR.string.server_connected_as, config.username) else subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -240,12 +241,14 @@ fun ServerRow(
             IconButton(onClick = hapticClick(onRetry), enabled = !isChecking) {
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_refresh_cw),
-                    contentDescription = "Retry $title",
+                    contentDescription = stringResource(AppR.string.settings_server_retry, title),
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            TextButton(onClick = hapticClick(onDisconnect)) { Text("Disconnect") }
+            TextButton(onClick = hapticClick(onDisconnect)) {
+                Text(stringResource(AppR.string.action_disconnect))
+            }
         } else {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_right),

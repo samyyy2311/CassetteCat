@@ -1,0 +1,42 @@
+<resources>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_storage_used">%1$s of %2$s used</string>
+    <string name="downloads_remove_all_description">Remove all downloads</string>
+    <string name="downloads_wifi_only">Wi-Fi only</string>
+    <string name="downloads_wifi_only_description">Wait for an unmetered network before downloading.</string>
+    <string name="downloads_auto_favorites">Auto-download Favorites</string>
+    <string name="downloads_auto_favorites_description">Automatically download newly favorited streaming songs.</string>
+    <string name="downloads_liked_title">Download Liked Songs</string>
+    <plurals name="downloads_liked_available">
+        <item quantity="one">%d remote liked song available for download</item>
+        <item quantity="other">%d remote liked songs available for download</item>
+    </plurals>
+    <string name="downloads_liked_description">Download liked songs</string>
+    <string name="downloads_remove_oldest">Remove oldest download</string>
+    <string name="downloads_remove_oldest_description">Free space while keeping newer downloads.</string>
+    <string name="downloads_storage_limit">Storage limit</string>
+    <string name="downloads_storage_limit_description">Keep downloaded music within %1$s.</string>
+    <string name="downloads_choose_storage_limit">Choose storage limit</string>
+    <string name="downloads_empty_title">No downloads yet</string>
+    <string name="downloads_empty_message">Download streamed songs to play them without a connection.</string>
+    <string name="downloads_in_progress">In progress</string>
+    <string name="downloads_downloaded">Downloaded</string>
+    <string name="downloads_remove_all_title">Remove all downloads?</string>
+    <string name="downloads_remove_all_message">This frees up storage but you’ll need a connection to play these songs again.</string>
+    <string name="downloads_remove_all_action">Remove All</string>
+    <string name="downloads_remove_oldest_title">Remove oldest download?</string>
+    <string name="downloads_remove_oldest_message">This removes %1$s from offline storage.</string>
+    <string name="downloads_limit_title">Download limit</string>
+    <string name="downloads_limit_message">Choose how much space offline music can use.</string>
+    <string name="downloads_current_limit">Current limit</string>
+    <string name="downloads_offline_storage">Offline music storage</string>
+    <string name="downloads_selected">Selected</string>
+    <string name="downloads_limit_restart_note">Changes apply the next time the download cache starts.</string>
+    <string name="downloads_status_downloading_percent">Downloading %1$d%%</string>
+    <string name="downloads_status_downloading">Downloading</string>
+    <string name="downloads_status_restarting">Restarting</string>
+    <string name="downloads_status_queued">Queued</string>
+    <string name="downloads_cancel_download">Cancel download</string>
+    <string name="downloads_song_storage">%1$s · %2$s</string>
+    <string name="downloads_remove_download">Remove download</string>
+</resources>

@@ -22,15 +22,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.SyncItemState
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -69,13 +71,17 @@ fun DeviceSyncScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text("Library Sync", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.device_sync_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "${localSongs.size - pending.size} of ${localSongs.size} songs on device",
+                    stringResource(
+                        AppR.string.device_sync_summary,
+                        localSongs.size - pending.size,
+                        localSongs.size
+                    ),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -85,8 +91,8 @@ fun DeviceSyncScreen(
         if (localSongs.isEmpty()) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_cassette_tape,
-                title = "No local songs",
-                message = "Only songs stored on this phone can be synced to the player.",
+                title = stringResource(AppR.string.device_sync_empty_title),
+                message = stringResource(AppR.string.device_sync_empty_message),
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -95,7 +101,7 @@ fun DeviceSyncScreen(
                     onClick = { pairingViewModel.syncSongs(pending) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
-                    Text("Sync All Missing (${pending.size})")
+                    Text(stringResource(AppR.string.device_sync_all_missing, pending.size))
                 }
             }
             LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)) {
@@ -121,7 +127,11 @@ private fun SyncSongRow(song: Song, state: SyncItemState?, isPending: Boolean) {
             Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             when (state) {
                 is SyncItemState.Uploading -> {
-                    Text("Uploading", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(AppR.string.device_sync_uploading),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         color = MaterialTheme.colorScheme.tertiary,
@@ -129,10 +139,19 @@ private fun SyncSongRow(song: Song, state: SyncItemState?, isPending: Boolean) {
                     )
                 }
                 is SyncItemState.Failed -> Text(state.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                SyncItemState.Queued -> Text("Queued", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                SyncItemState.Done -> Text("On device", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
+                SyncItemState.Queued -> Text(
+                    stringResource(AppR.string.device_sync_queued),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SyncItemState.Done -> Text(
+                    stringResource(AppR.string.device_sync_on_device),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
                 null -> Text(
-                    if (isPending) "Not synced" else "On device",
+                    if (isPending) stringResource(AppR.string.device_sync_not_synced)
+                    else stringResource(AppR.string.device_sync_on_device),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isPending) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary
                 )

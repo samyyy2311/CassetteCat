@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.diagnostics.CrashLogRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -56,25 +57,26 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val crashLogRepository = remember { CrashLogRepository(context) }
     var hasCrashLog by remember { mutableStateOf(crashLogRepository.hasCrashLog()) }
     var showCrashLog by remember { mutableStateOf(false) }
+    val shareCrashLogTitle = stringResource(AppR.string.privacy_share_crash_log)
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
-            Text("Privacy", style = MaterialTheme.typography.headlineSmall)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
+            Text(stringResource(AppR.string.privacy_title), style = MaterialTheme.typography.headlineSmall)
         }
 
-        SettingsSection(title = "Listening Record") {
+        SettingsSection(title = stringResource(AppR.string.privacy_listening_record)) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Collect listening activity", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(AppR.string.privacy_collect_listening_activity), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Store playback time and play counts on this device.",
+                        stringResource(AppR.string.privacy_collect_listening_activity_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -87,9 +89,9 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
 
-        SettingsSection(title = "Server credentials", content = {
+        SettingsSection(title = stringResource(AppR.string.privacy_server_credentials), content = {
             Text(
-                "Server passwords and access tokens are encrypted with Android Keystore.",
+                stringResource(AppR.string.privacy_server_credentials_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp)
@@ -98,16 +100,18 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 onClick = hapticClick { showClearCredentialsConfirm = true },
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
             ) {
-                Text("Disconnect all servers and remove credentials", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(AppR.string.privacy_remove_credentials), color = MaterialTheme.colorScheme.error)
             }
         })
 
         Spacer(Modifier.height(16.dp))
 
-        SettingsSection(title = "Diagnostics") {
+        SettingsSection(title = stringResource(AppR.string.privacy_diagnostics)) {
             ActionRow(
-                title = "Crash Log",
-                subtitle = if (hasCrashLog) "A crash was recorded on this device" else "No crashes recorded",
+                title = stringResource(AppR.string.privacy_crash_log),
+                subtitle = stringResource(
+                    if (hasCrashLog) AppR.string.privacy_crash_recorded else AppR.string.privacy_no_crashes
+                ),
                 iconRes = R.drawable.lucide_ic_bug,
                 onClick = hapticClick { showCrashLog = true }
             )
@@ -115,10 +119,10 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(16.dp))
 
-        SettingsSection(title = "Online Policy") {
+        SettingsSection(title = stringResource(AppR.string.privacy_online_policy)) {
             NavigationRow(
-                title = "Web Privacy Policy",
-                subtitle = "Read our full online privacy policy at cassettecat.caffeinelabs.in",
+                title = stringResource(AppR.string.privacy_web_policy),
+                subtitle = stringResource(AppR.string.privacy_web_policy_description),
                 iconRes = R.drawable.lucide_ic_globe,
                 iconTint = Color(0xFF10B981),
                 onClick = {
@@ -136,8 +140,8 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     if (showClearCredentialsConfirm) {
         AlertDialog(
             onDismissRequest = { showClearCredentialsConfirm = false },
-            title = { Text("Remove server credentials?") },
-            text = { Text("This disconnects Subsonic and Jellyfin and removes their saved credentials from this device.") },
+            title = { Text(stringResource(AppR.string.privacy_remove_credentials_title)) },
+            text = { Text(stringResource(AppR.string.privacy_remove_credentials_message)) },
             confirmButton = {
                 TextButton(onClick = hapticClick {
                     showClearCredentialsConfirm = false
@@ -149,9 +153,13 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             credentials.clear(protocol)
                         }
                     }
-                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(AppR.string.action_remove), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = hapticClick { showClearCredentialsConfirm = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = hapticClick { showClearCredentialsConfirm = false }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
+            }
         )
     }
 
@@ -164,7 +172,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, text)
                 }
-                context.startActivity(Intent.createChooser(intent, "Share Crash Log"))
+                context.startActivity(Intent.createChooser(intent, shareCrashLogTitle))
             },
             onClear = {
                 crashLogRepository.clearCrashLog()
@@ -194,19 +202,19 @@ private fun CrashLogSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Crash Log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                PressDepthIconButton(R.drawable.lucide_ic_x, "Close", onDismiss)
+                Text(stringResource(AppR.string.privacy_crash_log), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                PressDepthIconButton(R.drawable.lucide_ic_x, stringResource(AppR.string.close), onDismiss)
             }
             Spacer(Modifier.height(16.dp))
             if (logText.isEmpty()) {
                 Text(
-                    "No crashes recorded. Nothing is ever sent off this device.",
+                    stringResource(AppR.string.privacy_crash_log_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    "Stored on this device only. Share it yourself if you want to report a bug.",
+                    stringResource(AppR.string.privacy_crash_log_help),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -222,8 +230,12 @@ private fun CrashLogSheet(
                 )
                 Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextButton(onClick = hapticClick { onShare(logText) }) { Text("Share") }
-                    TextButton(onClick = hapticClick(onClear)) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = hapticClick { onShare(logText) }) {
+                        Text(stringResource(AppR.string.action_share))
+                    }
+                    TextButton(onClick = hapticClick(onClear)) {
+                        Text(stringResource(AppR.string.action_clear), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

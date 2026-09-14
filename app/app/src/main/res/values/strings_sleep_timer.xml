@@ -1,0 +1,21 @@
+<resources>
+    <string name="sleep_timer_title">Sleep timer</string>
+    <string name="sleep_timer_description">Stop playback automatically after a chosen time.</string>
+    <string name="sleep_timer_set_section">Set a timer</string>
+    <string name="sleep_timer_end_of_song">End of current song</string>
+    <plurals name="sleep_timer_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="sleep_timer_behavior_section">Behavior</string>
+    <string name="sleep_timer_fade_title">Gentle volume fade out</string>
+    <string name="sleep_timer_fade_description">Smoothly lower volume over the last %1$ds</string>
+    <string name="sleep_timer_fade_duration">Fade-out Duration</string>
+    <string name="sleep_timer_fade_duration_description">How long the volume takes to fade to silent</string>
+    <string name="sleep_timer_seconds_short">%1$ds</string>
+    <string name="sleep_timer_finish_song">Wait for song to finish</string>
+    <string name="sleep_timer_finish_song_description">Avoid cutting off in the middle of a track</string>
+    <string name="sleep_timer_active_section">Active timer</string>
+    <string name="sleep_timer_active">Sleep timer is on</string>
+    <string name="sleep_timer_turn_off">Turn off</string>
+</resources>

@@ -1,0 +1,33 @@
+<resources>
+    <string name="scrobbling_title">Scrobbling</string>
+    <string name="scrobbling_services_label">Open Scrobbler Services</string>
+    <string name="scrobbling_description">Automatically submit your listening history and live now-playing status to open community databases.</string>
+
+    <string name="scrobbling_listenbrainz_name" translatable="false">ListenBrainz</string>
+    <string name="scrobbling_listenbrainz_section" translatable="false">LISTENBRAINZ</string>
+    <string name="scrobbling_librefm_name" translatable="false">Libre.fm</string>
+    <string name="scrobbling_librefm_section" translatable="false">LIBRE.FM</string>
+    <string name="scrobbling_connected">Connected</string>
+    <string name="scrobbling_connected_as">Connected as %1$s</string>
+    <string name="scrobbling_not_connected">Not connected</string>
+    <string name="scrobbling_connect_account">Connect Account</string>
+    <string name="scrobbling_listenbrainz_connect_description">Enter your user token from listenbrainz.org</string>
+    <string name="scrobbling_librefm_connect_description">Log in with your Libre.fm username and password</string>
+    <string name="scrobbling_disconnect_listenbrainz">Disconnect ListenBrainz account</string>
+    <string name="scrobbling_disconnect_librefm">Disconnect Libre.fm account</string>
+
+    <string name="scrobbling_listenbrainz_dialog_title">Connect ListenBrainz</string>
+    <string name="scrobbling_listenbrainz_dialog_description">Paste your ListenBrainz User Token to enable scrobbling.</string>
+    <string name="scrobbling_user_token">User Token</string>
+    <string name="scrobbling_get_listenbrainz_token">Get user token from ListenBrainz website</string>
+    <string name="scrobbling_token_required">Please enter a valid token</string>
+    <string name="scrobbling_token_invalid">Invalid user token or network error</string>
+
+    <string name="scrobbling_librefm_dialog_title">Connect Libre.fm</string>
+    <string name="scrobbling_librefm_dialog_description">Log in with your Libre.fm account credentials.</string>
+    <string name="scrobbling_username">Username</string>
+    <string name="scrobbling_password">Password</string>
+    <string name="scrobbling_credentials_required">Please enter username and password</string>
+    <string name="scrobbling_auth_failed">Authentication failed. Check your username and password.</string>
+    <string name="scrobbling_log_in">Log In</string>
+</resources>

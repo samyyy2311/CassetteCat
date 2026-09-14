@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -111,9 +112,9 @@ fun ConnectServerScreen(
             }
             Spacer(Modifier.width(14.dp))
             Column {
-                Text(protocolTitle(protocol), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(protocolTitleRes(protocol)), style = MaterialTheme.typography.titleLarge)
                 Text(
-                    protocolSubtitle(protocol),
+                    stringResource(protocolSubtitleRes(protocol)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,15 +141,20 @@ fun ConnectServerScreen(
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Spacer(Modifier.height(14.dp))
-                    Text("Connected as ${current.displayName}", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(AppR.string.server_connected_as, current.displayName),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Your library is synchronized and ready for streaming.",
+                        stringResource(AppR.string.server_connected_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(20.dp))
-                    Button(onClick = hapticClick(onDone), modifier = Modifier.fillMaxWidth()) { Text("Done") }
+                    Button(onClick = hapticClick(onDone), modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(AppR.string.action_done))
+                    }
                 }
             }
 
@@ -165,7 +171,7 @@ fun ConnectServerScreen(
                     OutlinedTextField(
                         value = serverUrl,
                         onValueChange = { serverUrl = it },
-                        label = { Text("Server URL") },
+                        label = { Text(stringResource(AppR.string.server_url)) },
                         placeholder = { Text("https://music.example.com", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         leadingIcon = {
                             Icon(
@@ -189,8 +195,8 @@ fun ConnectServerScreen(
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
-                        placeholder = { Text("Your username") },
+                        label = { Text(stringResource(AppR.string.server_username)) },
+                        placeholder = { Text(stringResource(AppR.string.server_username_placeholder)) },
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.lucide_ic_user),
@@ -213,7 +219,7 @@ fun ConnectServerScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(stringResource(AppR.string.server_password)) },
                         placeholder = { Text("••••••••") },
                         leadingIcon = {
                             Icon(
@@ -237,7 +243,9 @@ fun ConnectServerScreen(
                                 painter = painterResource(
                                     if (passwordVisible) R.drawable.lucide_ic_eye_off else R.drawable.lucide_ic_eye
                                 ),
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                contentDescription = stringResource(
+                                    if (passwordVisible) AppR.string.server_hide_password else AppR.string.server_show_password
+                                ),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(20.dp)
@@ -276,7 +284,7 @@ fun ConnectServerScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Credentials are encrypted on-device via Android KeyStore.",
+                        stringResource(AppR.string.server_credentials_encrypted),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -303,7 +311,7 @@ fun ConnectServerScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Connect")
+                        Text(stringResource(AppR.string.action_connect))
                     }
                 }
 
@@ -321,13 +329,13 @@ fun ConnectServerScreen(
                         enabled = current != ConnectionState.Connecting && serverUrl.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Sign in with Quick Connect")
+                        Text(stringResource(AppR.string.server_quick_connect_sign_in))
                     }
                 }
 
                 Spacer(Modifier.height(4.dp))
                 TextButton(onClick = hapticClick(onCancel), modifier = Modifier.fillMaxWidth()) {
-                    Text("Cancel")
+                    Text(stringResource(AppR.string.action_cancel))
                 }
             }
         }
@@ -337,18 +345,19 @@ fun ConnectServerScreen(
     if (untrustedCertificateState != null) {
         AlertDialog(
             onDismissRequest = hapticClick { viewModel.cancelPendingConnection() },
-            title = { Text("Untrusted certificate") },
+            title = { Text(stringResource(AppR.string.server_untrusted_certificate_title)) },
             text = {
-                Text(
-                    "This server's certificate isn't signed by a recognized authority, common for self-hosted servers. " +
-                        "Only continue if you trust this server and recognize its fingerprint:\n\n${untrustedCertificateState.fingerprint}"
-                )
+                Text(stringResource(AppR.string.server_untrusted_certificate_message, untrustedCertificateState.fingerprint))
             },
             confirmButton = {
-                TextButton(onClick = hapticClick { viewModel.trustCertificateAndRetry() }) { Text("Trust & Connect") }
+                TextButton(onClick = hapticClick { viewModel.trustCertificateAndRetry() }) {
+                    Text(stringResource(AppR.string.server_trust_and_connect))
+                }
             },
             dismissButton = {
-                TextButton(onClick = hapticClick { viewModel.cancelPendingConnection() }) { Text("Cancel") }
+                TextButton(onClick = hapticClick { viewModel.cancelPendingConnection() }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
             }
         )
     }
@@ -357,10 +366,10 @@ fun ConnectServerScreen(
     if (awaitingApproval != null) {
         AlertDialog(
             onDismissRequest = hapticClick { viewModel.cancelQuickConnect() },
-            title = { Text("Quick Connect") },
+            title = { Text(stringResource(AppR.string.server_quick_connect_title)) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text("Enter this code in Jellyfin under your profile's Quick Connect page:")
+                    Text(stringResource(AppR.string.server_quick_connect_instructions))
                     Spacer(Modifier.height(16.dp))
                     Text(awaitingApproval.code, style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(16.dp))
@@ -369,7 +378,9 @@ fun ConnectServerScreen(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = hapticClick { viewModel.cancelQuickConnect() }) { Text("Cancel") }
+                TextButton(onClick = hapticClick { viewModel.cancelQuickConnect() }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
             }
         )
     }
@@ -377,8 +388,8 @@ fun ConnectServerScreen(
     if (showHttpWarning) {
         AlertDialog(
             onDismissRequest = { showHttpWarning = false; pendingQuickConnect = false },
-            title = { Text("Use HTTPS if possible") },
-            text = { Text("HTTP can expose your login while it travels across the network. Continue only for a server you trust on a private network.") },
+            title = { Text(stringResource(AppR.string.server_http_warning_title)) },
+            text = { Text(stringResource(AppR.string.server_http_warning_message)) },
             confirmButton = {
                 TextButton(onClick = hapticClick {
                     showHttpWarning = false
@@ -388,21 +399,23 @@ fun ConnectServerScreen(
                     } else {
                         viewModel.connect(protocol, normalizedServerUrl(), username.trim(), password)
                     }
-                }) { Text("Connect") }
+                }) { Text(stringResource(AppR.string.action_connect)) }
             },
             dismissButton = {
-                TextButton(onClick = hapticClick { showHttpWarning = false; pendingQuickConnect = false }) { Text("Cancel") }
+                TextButton(onClick = hapticClick { showHttpWarning = false; pendingQuickConnect = false }) {
+                    Text(stringResource(AppR.string.action_cancel))
+                }
             }
         )
     }
 }
 
-private fun protocolTitle(protocol: StreamingProtocol) = when (protocol) {
-    StreamingProtocol.SUBSONIC -> "Connect to Subsonic"
-    StreamingProtocol.JELLYFIN -> "Connect to Jellyfin"
+private fun protocolTitleRes(protocol: StreamingProtocol): Int = when (protocol) {
+    StreamingProtocol.SUBSONIC -> AppR.string.server_connect_subsonic
+    StreamingProtocol.JELLYFIN -> AppR.string.server_connect_jellyfin
 }
 
-private fun protocolSubtitle(protocol: StreamingProtocol) = when (protocol) {
-    StreamingProtocol.SUBSONIC -> "Works with Navidrome, gonic, and other Subsonic-API servers."
-    StreamingProtocol.JELLYFIN -> "Connect to a Jellyfin media server."
+private fun protocolSubtitleRes(protocol: StreamingProtocol): Int = when (protocol) {
+    StreamingProtocol.SUBSONIC -> AppR.string.server_subsonic_subtitle
+    StreamingProtocol.JELLYFIN -> AppR.string.server_jellyfin_subtitle
 }

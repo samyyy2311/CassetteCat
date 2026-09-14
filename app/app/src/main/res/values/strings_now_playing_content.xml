@@ -1,0 +1,5 @@
+<resources>
+    <string name="now_playing_empty_title">Nothing playing</string>
+    <string name="now_playing_empty_message">Choose a track from your library to start listening.</string>
+    <string name="now_playing_browse_library">Browse Library</string>
+</resources>

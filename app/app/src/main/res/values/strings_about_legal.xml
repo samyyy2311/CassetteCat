@@ -1,0 +1,33 @@
+<resources>
+    <string name="about_title">About &amp; Legal</string>
+    <string name="about_subtitle">Audio DSP, Data Sources, Privacy &amp; Permissions</string>
+    <string name="about_version">v%1$s</string>
+
+    <string name="about_audio_engine_title">Audio Engine &amp; Hi-Fi DSP</string>
+    <string name="about_audio_engine_body">Bit-perfect local playback with 32-bit float internal audio processing. Parametric equalization and headphone frequency response correction curves are powered by Jaakko Pasanen’s calibrated AutoEq database.</string>
+
+    <string name="about_data_sources_title">Data Sources</string>
+    <string name="about_data_sources_body">Real-time synchronized and plain lyrics are provided by LRCLIB. Album cover artwork and metadata are fetched from MusicBrainz and Cover Art Archive. Artist biographies and background information are sourced from Wikipedia &amp; Wikimedia (CC BY-SA 4.0).</string>
+    <string name="about_data_sources_cache">Metadata and lyrics are cached on-device for uninterrupted offline playback.</string>
+
+    <string name="about_privacy_title">Privacy &amp; Local-First Data</string>
+    <string name="about_privacy_body">Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings → Privacy → Crash Log.</string>
+    <string name="about_privacy_credentials">Saved streaming server passwords and access tokens are encrypted with the hardware-backed Android Keystore.</string>
+
+    <string name="about_permissions_title">Permissions Used</string>
+    <string name="about_permission_music_title">Music &amp; Audio</string>
+    <string name="about_permission_music_description">Required to discover and play audio files stored on your device.</string>
+    <string name="about_permission_notifications_title">Notifications</string>
+    <string name="about_permission_notifications_description">Optional. Used for background playback controls in the status bar and lockscreen.</string>
+    <string name="about_permission_wifi_title">Nearby Wi-Fi Devices</string>
+    <string name="about_permission_wifi_description">Optional. Used to find the CassetteCat companion player on your Wi-Fi network.</string>
+    <string name="about_permission_bluetooth_title">Bluetooth</string>
+    <string name="about_permission_bluetooth_description">Optional. Used only to show the name of the Bluetooth speaker or headphones you’re playing to.</string>
+
+    <string name="about_feedback_title">Feedback &amp; Open Source</string>
+    <string name="about_feedback_body">Found a bug, want to request a feature, or explore the source code? CassetteCat is free and open source software licensed under GNU GPL v3.0.</string>
+    <string name="about_website">Official Website</string>
+    <string name="about_privacy_policy">Privacy Policy</string>
+    <string name="about_terms">Terms of Service</string>
+    <string name="about_github">GitHub Issues &amp; Source Code</string>
+</resources>

@@ -1,0 +1,28 @@
+<resources>
+    <string name="action_retry">Retry</string>
+    <string name="action_update">Update</string>
+
+    <string name="device_firmware_title">Firmware Update</string>
+    <string name="device_firmware_current_version_section">CURRENT VERSION</string>
+    <string name="device_firmware_updates_section">UPDATES</string>
+    <string name="device_firmware_checking">Checking GitHub for the latest release…</string>
+    <string name="device_firmware_up_to_date">You’re on the latest version</string>
+    <string name="device_firmware_available">Update available</string>
+    <string name="device_firmware_version_on_github">v%1$s on GitHub</string>
+    <string name="device_firmware_update_now">Update Now</string>
+    <string name="device_firmware_no_releases">No firmware releases yet</string>
+    <string name="device_firmware_no_releases_description">Nothing has been published to GitHub Releases.</string>
+    <string name="device_firmware_check_failed">Couldn’t check for updates</string>
+    <string name="device_firmware_check_connection">Check your internet connection.</string>
+    <string name="device_firmware_manual_section">MANUAL UPDATE</string>
+    <string name="device_firmware_choose_file">Choose Firmware File</string>
+    <string name="device_firmware_choose_file_description">Sideload a local .bin for builds that aren’t a GitHub release yet.</string>
+    <string name="device_firmware_updating">Updating firmware, don’t close the app…</string>
+    <string name="device_firmware_remote_confirm_title">Update to v%1$s?</string>
+    <string name="device_firmware_remote_confirm_message">The player will download the update from GitHub and reboot. Don’t disconnect it or close the app while this runs.</string>
+    <string name="device_firmware_local_confirm_title">Update firmware?</string>
+    <string name="device_firmware_local_confirm_message">The player will flash “%1$s” and reboot. Don’t disconnect it or close the app while this runs.</string>
+    <string name="device_firmware_remote_started">Update started. The player will restart when it’s done.</string>
+    <string name="device_firmware_local_done">Firmware updated. The player will restart.</string>
+    <string name="device_firmware_update_failed">Update failed. Make sure the player is still connected and try again.</string>
+</resources>
