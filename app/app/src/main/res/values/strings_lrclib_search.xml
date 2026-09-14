@@ -1,0 +1,21 @@
+<resources>
+    <string name="lrclib_add_custom_lyrics">Add Custom Lyrics</string>
+    <string name="lrclib_track_artist">%1$s • %2$s</string>
+    <string name="lrclib_search">Search</string>
+    <string name="lrclib_editor_placeholder">Paste synchronized LRC or plain lyrics here…\n\nExample synced format:\n[00:12.30]First line of the song\n[00:16.80]Second line of the song…</string>
+    <string name="lrclib_contribute">Contribute to LRCLIB</string>
+    <string name="lrclib_contribute_description">Share with the open-source global lyrics database</string>
+    <string name="lrclib_applied_and_contributed">Lyrics applied and contributed to LRCLIB</string>
+    <string name="lrclib_applied_locally">Lyrics applied locally</string>
+    <string name="lrclib_publishing">Publishing…</string>
+    <string name="lrclib_save_apply">Save &amp; Apply Lyrics</string>
+    <string name="lrclib_search_online">Search Online Lyrics</string>
+    <string name="lrclib_powered_by">Powered by LRCLIB</string>
+    <string name="lrclib_add_custom">Add Custom</string>
+    <string name="lrclib_track_title_hint">Track title…</string>
+    <string name="lrclib_no_results">No lyrics found for this query</string>
+    <string name="lrclib_add_contribute">Add &amp; Contribute Lyrics</string>
+    <string name="lrclib_result_artist_album">%1$s • %2$s</string>
+    <string name="lrclib_badge_synced">SYNCED</string>
+    <string name="lrclib_badge_plain">PLAIN</string>
+</resources>
