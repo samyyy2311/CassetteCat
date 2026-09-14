@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,9 +91,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class ShareCardMode(val label: String) {
-    SONG("Song"),
-    LYRICS("Lyrics")
+enum class ShareCardMode {
+    SONG,
+    LYRICS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,6 +125,8 @@ internal fun ScreenshotShareSheet(
     val hasLyrics = availableLyrics.isNotEmpty()
     var mode by remember { mutableStateOf(ShareCardMode.SONG) }
     var selectedTheme by remember { mutableStateOf(LyricCardTheme.ATMOSPHERE) }
+    val trackCredit = stringResource(AppR.string.share_track_credit, song.title, song.artist)
+    val copiedMessage = stringResource(AppR.string.share_copied)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -145,14 +148,14 @@ internal fun ScreenshotShareSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Share Card",
+                    text = stringResource(AppR.string.share_card_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = SpaceGroteskFontFamily,
                     fontWeight = FontWeight.Bold
                 )
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_x,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(AppR.string.close),
                     onClick = onDismiss
                 )
             }
@@ -182,7 +185,7 @@ internal fun ScreenshotShareSheet(
                                 .padding(horizontal = 24.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = entry.label,
+                                text = shareCardModeLabel(entry),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -239,7 +242,7 @@ internal fun ScreenshotShareSheet(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "Select different lyrics",
+                        text = stringResource(AppR.string.share_select_different_lyrics),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -269,7 +272,7 @@ internal fun ScreenshotShareSheet(
                             .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            text = theme.label,
+                            text = lyricCardThemeLabel(theme),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = textColor
@@ -287,24 +290,24 @@ internal fun ScreenshotShareSheet(
             ) {
                 ShareActionPill(
                     iconRes = R.drawable.lucide_ic_copy,
-                    label = "Copy text",
+                    label = stringResource(AppR.string.share_copy_text),
                     backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = MaterialTheme.colorScheme.onSurface,
                     onClick = {
                         val text = if (mode == ShareCardMode.SONG) {
-                            "${song.title} - ${song.artist}"
+                            trackCredit
                         } else {
-                            "${availableLyrics.joinToString("\n")}\n\n${song.title} - ${song.artist}"
+                            "${availableLyrics.joinToString("\n")}\n\n$trackCredit"
                         }
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("CassetteCat", text))
-                        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                        clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(AppR.string.app_name), text))
+                        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                     }
                 )
 
                 ShareActionPill(
                     iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = "WhatsApp",
+                    label = stringResource(AppR.string.share_whatsapp),
                     packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
                     backgroundColor = Color(0xFF25D366),
                     iconTint = Color.White,
@@ -317,14 +320,14 @@ internal fun ScreenshotShareSheet(
                             val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
                                 runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
                             } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", targetPkg)
+                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
                         }
                     }
                 )
 
                 ShareActionPill(
                     iconRes = AppR.drawable.ic_logo_instagram,
-                    label = "Stories",
+                    label = stringResource(AppR.string.share_stories),
                     packageNames = listOf("com.instagram.android"),
                     backgroundBrush = Brush.linearGradient(
                         listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
@@ -336,14 +339,14 @@ internal fun ScreenshotShareSheet(
                             val bitmap = withContext(Dispatchers.Default) {
                                 generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
                             }
-                            shareImageToInstagramStories(context, bitmap, "${song.title} - ${song.artist}", selectedTheme)
+                            shareImageToInstagramStories(context, bitmap, trackCredit, selectedTheme)
                         }
                     }
                 )
 
                 ShareActionPill(
                     iconRes = R.drawable.lucide_ic_share_2,
-                    label = "More",
+                    label = stringResource(AppR.string.share_more),
                     backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = MaterialTheme.colorScheme.onSurface,
                     onClick = {
@@ -352,7 +355,7 @@ internal fun ScreenshotShareSheet(
                             val bitmap = withContext(Dispatchers.Default) {
                                 generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
                             }
-                            shareImageWithApp(context, bitmap, "${song.title} - ${song.artist}", null)
+                            shareImageWithApp(context, bitmap, trackCredit, null)
                         }
                     }
                 )
@@ -360,6 +363,14 @@ internal fun ScreenshotShareSheet(
         }
     }
 }
+
+@Composable
+private fun shareCardModeLabel(mode: ShareCardMode): String = stringResource(
+    when (mode) {
+        ShareCardMode.SONG -> AppR.string.share_mode_song
+        ShareCardMode.LYRICS -> AppR.string.share_mode_lyrics
+    }
+)
 
 @Composable
 private fun SongSharePreviewCard(
@@ -452,7 +463,7 @@ private fun SongSharePreviewCard(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "CassetteCat",
+                    text = stringResource(AppR.string.app_name),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = Color.White.copy(alpha = 0.5f)
                 )
@@ -569,7 +580,7 @@ private fun LyricSharePreviewCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "CassetteCat",
+                    text = stringResource(AppR.string.app_name),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = Color.White.copy(alpha = 0.45f)
                 )
@@ -692,7 +703,6 @@ private fun generateSharePoster(
                 }
                 canvas.drawBitmap(blurred, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), filterPaint)
 
-                // Darken the artwork for text contrast.
                 val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     shader = LinearGradient(
                         0f, 0f, 0f, height.toFloat(),
@@ -784,7 +794,7 @@ private fun generateSharePoster(
         val safeArtist = if (song.artist.length > 40) song.artist.take(38) + "…" else song.artist
         canvas.drawText(safeArtist, width / 2f, artTop + artSize + 340f, artistPaint)
 
-        val footerText = "CassetteCat"
+        val footerText = context.getString(AppR.string.app_name)
         val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = android.graphics.Color.argb(128, 255, 255, 255)
             textSize = 56f
@@ -808,7 +818,6 @@ private fun generateSharePoster(
             tapeDrawable.draw(canvas)
         }
         canvas.drawText(footerText, footerStartX + tapeSize + tapeSpacing, footerY, footerPaint)
-
     } else {
         val thumbSize = 240f
         val thumbLeft = 180f
@@ -900,16 +909,16 @@ private fun generateSharePoster(
             textSize = 58f
             typeface = ibmPlexMono
         }
-        canvas.drawText("CassetteCat", 180f, height - 160f, footerPaint)
+        canvas.drawText(context.getString(AppR.string.app_name), 180f, height - 160f, footerPaint)
 
         val tapeSize = 78
         if (tapeDrawable != null) {
             tapeDrawable.setTint(android.graphics.Color.argb(128, 255, 255, 255))
             tapeDrawable.setBounds(
-                (width - 180 - tapeSize),
-                (height - 216),
-                (width - 180),
-                (height - 216 + tapeSize)
+                width - 180 - tapeSize,
+                height - 216,
+                width - 180,
+                height - 216 + tapeSize
             )
             tapeDrawable.draw(canvas)
         }
@@ -936,7 +945,6 @@ internal suspend fun shareImageToInstagramStories(
 ) {
     val uri = cacheBitmapAndGetUri(context, bitmap, "story")
 
-    // Grant permission to Instagram package specifically
     context.grantUriPermission(
         "com.instagram.android",
         uri,
@@ -997,7 +1005,9 @@ internal suspend fun shareImageToInstagramStories(
         context.startActivity(fallbackIntent)
     }.onFailure {
         val chooserIntent = Intent(fallbackIntent).apply { setPackage(null) }
-        runCatching { context.startActivity(Intent.createChooser(chooserIntent, "Share to Stories")) }
+        runCatching {
+            context.startActivity(Intent.createChooser(chooserIntent, context.getString(AppR.string.share_to_stories)))
+        }
     }
 }
 
@@ -1022,11 +1032,13 @@ internal suspend fun shareImageWithApp(
         if (targetPackage != null) {
             context.startActivity(intent)
         } else {
-            context.startActivity(Intent.createChooser(intent, "Share Card"))
+            context.startActivity(Intent.createChooser(intent, context.getString(AppR.string.share_card_title)))
         }
     }.onFailure {
         val chooserIntent = Intent(intent).apply { setPackage(null) }
-        runCatching { context.startActivity(Intent.createChooser(chooserIntent, "Share Card")) }
+        runCatching {
+            context.startActivity(Intent.createChooser(chooserIntent, context.getString(AppR.string.share_card_title)))
+        }
     }
 }
 
@@ -1048,7 +1060,10 @@ private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
     for (y in 0 until h) {
         val rowOffset = y * w
         for (x in 0 until w) {
-            var r = 0; var g = 0; var b = 0; var count = 0
+            var r = 0
+            var g = 0
+            var b = 0
+            var count = 0
             for (dx in -radius..radius) {
                 val nx = (x + dx).coerceIn(0, w - 1)
                 val c = pixels[rowOffset + nx]
@@ -1062,7 +1077,10 @@ private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
     }
     for (x in 0 until w) {
         for (y in 0 until h) {
-            var r = 0; var g = 0; var b = 0; var count = 0
+            var r = 0
+            var g = 0
+            var b = 0
+            var count = 0
             for (dy in -radius..radius) {
                 val ny = (y + dy).coerceIn(0, h - 1)
                 val c = temp[ny * w + x]
