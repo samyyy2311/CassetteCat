@@ -1,0 +1,32 @@
+<resources>
+    <string name="equalizer_title">Equalizer</string>
+    <string name="equalizer_reset">Reset EQ</string>
+    <string name="equalizer_idle_title">Audio DSP Idle</string>
+    <string name="equalizer_idle_message">Play a song to attach the equalizer and audio effects.</string>
+
+    <string name="equalizer_headphone_calibration_section">HEADPHONE CALIBRATION (AUTOEQ)</string>
+    <string name="equalizer_select_headphone">Select Headphone Model</string>
+    <string name="equalizer_autoeq_applied">AutoEq target curve applied</string>
+    <string name="equalizer_calibrated_models">%1$d+ calibrated models</string>
+
+    <string name="equalizer_presets_section">PRESETS</string>
+    <string name="equalizer_save_preset">Save Preset</string>
+    <string name="equalizer_frequency_bands_section">FREQUENCY BANDS</string>
+    <string name="equalizer_audio_enhancements_section">AUDIO ENHANCEMENTS</string>
+    <string name="equalizer_bass_boost">Bass Boost</string>
+    <string name="equalizer_surround_virtualizer">Surround Virtualizer</string>
+    <string name="equalizer_loudness_dynamics_section">LOUDNESS &amp; DYNAMICS</string>
+    <string name="equalizer_preamp_gain">Preamp Gain</string>
+    <string name="equalizer_loudness_normalization">Loudness Normalization</string>
+    <string name="equalizer_loudness_normalization_description">Balance output volume across diverse audio sources</string>
+
+    <string name="equalizer_save_dialog_title">Save Equalizer Preset</string>
+    <string name="equalizer_save_dialog_message">Save the current band levels, bass boost, and preamp gain as a custom preset.</string>
+    <string name="equalizer_save_dialog_placeholder">e.g. Bass Boost Max, Vocal Clarity</string>
+
+    <string name="equalizer_calibration_title">Headphone Calibration</string>
+    <string name="equalizer_calibration_description">Calibrated frequency response curves from AutoEq</string>
+    <string name="equalizer_search_placeholder">Search brand or model (e.g. Sony, HD 600)…</string>
+    <string name="equalizer_selected">Selected</string>
+    <string name="equalizer_delete_preset">Delete preset</string>
+</resources>

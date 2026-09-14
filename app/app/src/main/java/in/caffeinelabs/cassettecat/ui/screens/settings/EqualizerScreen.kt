@@ -65,12 +65,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfile
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfiles
 import `in`.caffeinelabs.cassettecat.data.playback.CustomEqualizerPreset
@@ -115,18 +117,18 @@ fun EqualizerScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
             Text(
-                "Equalizer",
+                stringResource(AppR.string.equalizer_title),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f)
             )
             AnimatedVisibility(visible = hasCustomModifications && isAvailable) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_rotate_ccw,
-                    contentDescription = "Reset EQ",
+                    contentDescription = stringResource(AppR.string.equalizer_reset),
                     onClick = {
                         viewModel.reset()
                         selectedAutoEqName = null
@@ -151,13 +153,13 @@ fun EqualizerScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "Audio DSP Idle",
+                        stringResource(AppR.string.equalizer_idle_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Play a song to attach the equalizer and audio effects.",
+                        stringResource(AppR.string.equalizer_idle_message),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -178,7 +180,7 @@ fun EqualizerScreen(
                     .padding(bottom = listBottomPadding + 32.dp)
             ) {
                 Text(
-                    "HEADPHONE CALIBRATION (AUTOEQ)",
+                    stringResource(AppR.string.equalizer_headphone_calibration_section),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -203,12 +205,16 @@ fun EqualizerScreen(
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = selectedAutoEqName ?: "Select Headphone Model",
+                            text = selectedAutoEqName ?: stringResource(AppR.string.equalizer_select_headphone),
                             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = if (selectedAutoEqName != null) IbmPlexMonoFontFamily else MaterialTheme.typography.bodyMedium.fontFamily),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (selectedAutoEqName != null) "AutoEq target curve applied" else "${AutoEqProfiles.profiles.size}+ calibrated models",
+                            text = if (selectedAutoEqName != null) {
+                                stringResource(AppR.string.equalizer_autoeq_applied)
+                            } else {
+                                stringResource(AppR.string.equalizer_calibrated_models, AutoEqProfiles.profiles.size)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -224,7 +230,7 @@ fun EqualizerScreen(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    "PRESETS",
+                    stringResource(AppR.string.equalizer_presets_section),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -245,13 +251,13 @@ fun EqualizerScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.lucide_ic_plus),
-                                contentDescription = "Save Preset",
+                                contentDescription = stringResource(AppR.string.equalizer_save_preset),
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "Save Preset",
+                                stringResource(AppR.string.equalizer_save_preset),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.tertiary
                             )
@@ -288,7 +294,7 @@ fun EqualizerScreen(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    "FREQUENCY BANDS",
+                    stringResource(AppR.string.equalizer_frequency_bands_section),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -319,7 +325,7 @@ fun EqualizerScreen(
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        "AUDIO ENHANCEMENTS",
+                        stringResource(AppR.string.equalizer_audio_enhancements_section),
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -328,7 +334,7 @@ fun EqualizerScreen(
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         if (isBassBoostSupported) {
                             UnipolarAudioSlider(
-                                label = "Bass Boost",
+                                label = stringResource(AppR.string.equalizer_bass_boost),
                                 value = levels.bassBoostStrength,
                                 maxVal = 1000,
                                 enabled = isEnabled,
@@ -341,7 +347,7 @@ fun EqualizerScreen(
 
                         if (isVirtualizerSupported) {
                             UnipolarAudioSlider(
-                                label = "Surround Virtualizer",
+                                label = stringResource(AppR.string.equalizer_surround_virtualizer),
                                 value = levels.virtualizerStrength,
                                 maxVal = 1000,
                                 enabled = isEnabled,
@@ -355,7 +361,7 @@ fun EqualizerScreen(
                     Spacer(Modifier.height(20.dp))
 
                     Text(
-                        "LOUDNESS & DYNAMICS",
+                        stringResource(AppR.string.equalizer_loudness_dynamics_section),
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -363,7 +369,7 @@ fun EqualizerScreen(
 
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         UnipolarAudioSlider(
-                            label = "Preamp Gain",
+                            label = stringResource(AppR.string.equalizer_preamp_gain),
                             value = levels.preampGainMb,
                             maxVal = 1200,
                             enabled = isEnabled,
@@ -373,8 +379,8 @@ fun EqualizerScreen(
                         )
                         Spacer(Modifier.height(16.dp))
                         ToggleRow(
-                            title = "Loudness Normalization",
-                            subtitle = "Balance output volume across diverse audio sources",
+                            title = stringResource(AppR.string.equalizer_loudness_normalization),
+                            subtitle = stringResource(AppR.string.equalizer_loudness_normalization_description),
                             checked = levels.loudnessNormalization,
                             onCheckedChange = { viewModel.setLoudnessNormalization(it) },
                             iconRes = R.drawable.lucide_ic_volume_2,
@@ -402,11 +408,11 @@ fun EqualizerScreen(
         var presetNameInput by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showSavePresetDialog = false },
-            title = { Text("Save Equalizer Preset") },
+            title = { Text(stringResource(AppR.string.equalizer_save_dialog_title)) },
             text = {
                 Column {
                     Text(
-                        "Save the current band levels, bass boost, and preamp gain as a custom preset.",
+                        stringResource(AppR.string.equalizer_save_dialog_message),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -414,7 +420,7 @@ fun EqualizerScreen(
                     TextField(
                         value = presetNameInput,
                         onValueChange = { presetNameInput = it },
-                        placeholder = { Text("e.g. Bass Boost Max, Vocal Clarity") },
+                        placeholder = { Text(stringResource(AppR.string.equalizer_save_dialog_placeholder)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -430,12 +436,12 @@ fun EqualizerScreen(
                     },
                     enabled = presetNameInput.isNotBlank()
                 ) {
-                    Text("Save")
+                    Text(stringResource(AppR.string.action_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSavePresetDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(AppR.string.action_cancel))
                 }
             }
         )
@@ -473,12 +479,12 @@ private fun AutoEqPickerSheet(
                 .padding(top = 20.dp, bottom = 32.dp)
         ) {
             Text(
-                "Headphone Calibration",
+                stringResource(AppR.string.equalizer_calibration_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
             Text(
-                "Calibrated frequency response curves from AutoEq",
+                stringResource(AppR.string.equalizer_calibration_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -489,7 +495,7 @@ private fun AutoEqPickerSheet(
             TextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search brand or model (e.g. Sony, HD 600)...") },
+                placeholder = { Text(stringResource(AppR.string.equalizer_search_placeholder)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -534,7 +540,7 @@ private fun AutoEqPickerSheet(
                         if (isSelected) {
                             Icon(
                                 painter = painterResource(R.drawable.lucide_ic_check),
-                                contentDescription = "Selected",
+                                contentDescription = stringResource(AppR.string.equalizer_selected),
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -635,7 +641,7 @@ private fun CustomPresetChip(
         ) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_x),
-                contentDescription = "Delete preset",
+                contentDescription = stringResource(AppR.string.equalizer_delete_preset),
                 tint = fg.copy(alpha = 0.6f),
                 modifier = Modifier.size(12.dp)
             )
@@ -803,7 +809,6 @@ private fun BipolarEqTrack(sliderState: SliderState) {
                 strokeWidth = 2.dp.toPx()
             )
 
-            // Active bar radiating from center to thumb
             if (thumbX > centerX + 1f) {
                 drawRoundRect(
                     color = activeColor,
