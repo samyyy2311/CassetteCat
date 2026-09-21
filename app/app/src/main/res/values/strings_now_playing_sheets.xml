@@ -36,6 +36,13 @@
     <string name="now_playing_listening_room">Listening Room</string>
     <string name="now_playing_active">Active</string>
     <string name="now_playing_wifi_audio_sharing">Wi-Fi audio sharing</string>
+    <string name="now_playing_listening_room_hosting">Hosting · %1$s</string>
+    <plurals name="now_playing_listening_room_connected_count">
+        <item quantity="one">%d connected</item>
+        <item quantity="other">%d connected</item>
+    </plurals>
+    <string name="now_playing_listening_room_following">Following %1$s</string>
+    <string name="now_playing_listening_room_fallback_room">a room</string>
     <string name="now_playing_sleep_timer">Sleep Timer</string>
     <string name="now_playing_drive_mode_description">Large touch HUD for safe driving</string>
 
@@ -86,11 +93,11 @@
     <string name="credits_source">Source</string>
     <string name="credits_missing_fields">Writer, producer, and engineer credits are shown when the active music source supplies them. This track did not include those fields.</string>
 
-    <string name="audio_output_bluetooth_audio" translatable="false">Bluetooth Audio</string>
-    <string name="audio_output_bluetooth_device" translatable="false">Bluetooth Device</string>
+    <string name="audio_output_bluetooth_audio">Bluetooth Audio</string>
+    <string name="audio_output_bluetooth_device">Bluetooth Device</string>
     <string name="audio_output_active">Currently active output</string>
     <string name="audio_output_phone_speaker_description">Built-in phone speaker</string>
-    <string name="audio_output_bluetooth_settings" translatable="false">Bluetooth Settings</string>
+    <string name="audio_output_bluetooth_settings">Bluetooth Settings</string>
     <string name="audio_output_connect_bluetooth">Connect Bluetooth Device</string>
     <string name="audio_output_manage_bluetooth">Manage paired headsets and speakers</string>
     <string name="audio_output_connect_bluetooth_description">Pair or connect a wireless device</string>
@@ -106,7 +113,6 @@
         <item quantity="other">%d songs</item>
     </plurals>
 
-    <string name="sleep_timer_turn_off">Turn Off</string>
     <string name="sleep_timer_end_status">Stopping after current song finishes</string>
     <plurals name="sleep_timer_minutes_remaining">
         <item quantity="one">%d minute remaining</item>

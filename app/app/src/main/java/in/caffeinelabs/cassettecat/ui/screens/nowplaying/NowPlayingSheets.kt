@@ -58,7 +58,6 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.listeningroom.NearbyListeningRoom
-import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
@@ -388,10 +387,20 @@ internal fun NowPlayingActionsSheet(
                 } else {
                     null
                 },
-                subtitle = if (listeningRoomState.role == ListeningRoomRole.NONE) {
-                    stringResource(AppR.string.now_playing_wifi_audio_sharing)
-                } else {
-                    listeningRoomState.statusSubtitle()
+                subtitle = when (listeningRoomState.role) {
+                    ListeningRoomRole.NONE -> stringResource(AppR.string.now_playing_wifi_audio_sharing)
+                    ListeningRoomRole.HOST -> stringResource(
+                        AppR.string.now_playing_listening_room_hosting,
+                        pluralStringResource(
+                            AppR.plurals.now_playing_listening_room_connected_count,
+                            listeningRoomState.participantCount,
+                            listeningRoomState.participantCount
+                        )
+                    )
+                    ListeningRoomRole.GUEST -> stringResource(
+                        AppR.string.now_playing_listening_room_following,
+                        listeningRoomState.roomName ?: stringResource(AppR.string.now_playing_listening_room_fallback_room)
+                    )
                 },
                 accented = listeningRoomState.role != ListeningRoomRole.NONE,
                 hasChevron = true,
