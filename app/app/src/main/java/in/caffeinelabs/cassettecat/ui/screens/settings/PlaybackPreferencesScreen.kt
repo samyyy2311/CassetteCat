@@ -99,7 +99,7 @@ fun PlaybackPreferencesScreen(
                 iconRes = R.drawable.lucide_ic_timer,
                 options = fadeDurations,
                 selected = fadeSeconds,
-                label = fadeLabels::getValue,
+                label = { fadeLabels.getValue(it) },
                 onSelect = playbackViewModel::setSleepTimerFadeSeconds
             )
             SettingsDivider(startPadding = 24.dp)
