@@ -127,6 +127,7 @@ internal fun ScreenshotShareSheet(
     var selectedTheme by remember { mutableStateOf(LyricCardTheme.ATMOSPHERE) }
     val trackCredit = stringResource(AppR.string.share_track_credit, song.title, song.artist)
     val copiedMessage = stringResource(AppR.string.share_copied)
+    val appName = stringResource(AppR.string.app_name)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -300,7 +301,7 @@ internal fun ScreenshotShareSheet(
                             "${availableLyrics.joinToString("\n")}\n\n$trackCredit"
                         }
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(AppR.string.app_name), text))
+                        clipboard.setPrimaryClip(ClipData.newPlainText(appName, text))
                         Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                     }
                 )

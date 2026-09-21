@@ -91,6 +91,8 @@ internal fun LrcLibSearchSheet(
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val lrcLibClient = remember { LrcLibClient(context.cacheDir) }
+    val appliedAndContributedMessage = stringResource(AppR.string.lrclib_applied_and_contributed)
+    val appliedLocallyMessage = stringResource(AppR.string.lrclib_applied_locally)
 
     var query by remember(song.id) { mutableStateOf(song.title.trim()) }
     var results by remember { mutableStateOf<List<LrcLibSearchResultItem>>(emptyList()) }
@@ -300,19 +302,18 @@ internal fun LrcLibSearchSheet(
                                     )
                                     isPublishing = false
                                     withContext(Dispatchers.Main) {
-                                        val message = if (published) {
-                                            AppR.string.lrclib_applied_and_contributed
-                                        } else {
-                                            AppR.string.lrclib_applied_locally
-                                        }
-                                        Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            if (published) appliedAndContributedMessage else appliedLocallyMessage,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                     onDismiss()
                                 }
                             } else {
                                 Toast.makeText(
                                     context,
-                                    context.getString(AppR.string.lrclib_applied_locally),
+                                    appliedLocallyMessage,
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onDismiss()
