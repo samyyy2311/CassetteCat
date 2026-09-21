@@ -16,13 +16,16 @@ object SmartShuffle {
         val (skipped, nonSkipped) = upcoming.partition { it.id in skippedIds }
         val (history, fresh) = nonSkipped.partition { it.id in recentHistoryIds }
 
-        val candidatePool = ArrayList<Song>(upcoming.size).apply {
+        val candidatePool = ArrayList<Song>(nonSkipped.size).apply {
             addAll(fresh.shuffled())
             addAll(history.shuffled())
-            addAll(skipped.shuffled())
         }
 
-        return spreadArtists(candidatePool, previousSong)
+        val spreadNonSkipped = spreadArtists(candidatePool, previousSong)
+        if (skipped.isEmpty()) return spreadNonSkipped
+
+        val spreadSkipped = spreadArtists(skipped.shuffled().toMutableList(), spreadNonSkipped.lastOrNull())
+        return spreadNonSkipped + spreadSkipped
     }
 
     fun shuffleAll(
