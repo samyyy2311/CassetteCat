@@ -97,12 +97,6 @@ jobs:
           name="CassetteCat-v${version}.apk"
           cp "$apk" "release-assets/$name"
           sha256sum "release-assets/$name" > "release-assets/$name.sha256"
-          aab="$(find app/app/build/outputs/bundle/release -maxdepth 1 -type f -name '*.aab' -print -quit || true)"
-          if [ -n "$aab" ]; then
-            bundle_name="CassetteCat-v${version}.aab"
-            cp "$aab" "release-assets/$bundle_name"
-            sha256sum "release-assets/$bundle_name" > "release-assets/$bundle_name.sha256"
-          fi
 
       - name: Remove temporary release keystore
         if: always()
@@ -133,6 +127,4 @@ jobs:
           files: |
             release-assets/CassetteCat-v*.apk
             release-assets/CassetteCat-v*.apk.sha256
-            release-assets/CassetteCat-v*.aab
-            release-assets/CassetteCat-v*.aab.sha256
           generate_release_notes: false
