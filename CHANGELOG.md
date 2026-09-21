@@ -2,6 +2,15 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.3]
+
+* Smart shuffle now remembers what you skipped and pushes those tracks to the end of the queue so they don't come back right away.
+* Lyrics search has a new optional artist field and cleaner result cards to make picking the right match easier.
+* The track actions sheet is now split into labeled sections, scrolls past the navigation bar, and highlights active options like Bluetooth, Sleep Timer, and Playback Speed in red.
+* Autoplay is smarter about collaborations, related genres, and era when picking what to play next.
+* Playback now fades in and out slightly when you pause or resume.
+* All in-app text is now stored in Android string resources, laying the groundwork for translations.
+
 ## [1.7.2]
 
 * Fixed shuffle controls in the notification center and Now Playing screen getting out of sync.
