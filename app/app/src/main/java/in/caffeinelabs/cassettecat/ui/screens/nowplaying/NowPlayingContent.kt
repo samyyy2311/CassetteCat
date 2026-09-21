@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
@@ -108,8 +107,6 @@ fun NowPlayingContent(
         !syncedLyrics.isNullOrEmpty() || !state.currentLyrics.isNullOrBlank() || !fallbackLyrics.isNullOrBlank()
     }
 
-    BackHandler(enabled = activeView != NowPlayingView.PLAYER) { onActiveViewChange(NowPlayingView.PLAYER) }
-
     val queueListState = rememberLazyListState()
     val lyricsScrollState = rememberScrollState()
     val lyricsListState = rememberLazyListState()
@@ -194,16 +191,8 @@ fun NowPlayingContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (!preferences.fullScreenNowPlayingArt || activeView != NowPlayingView.PLAYER) {
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(top = 12.dp)
-                    } else {
-                        Modifier
-                    }
-                )
-                .padding(bottom = 20.dp)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = 12.dp, bottom = 20.dp)
         ) {
             if (song == null) {
                 EmptyState(

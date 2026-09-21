@@ -78,7 +78,9 @@ import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 @Composable
@@ -554,14 +556,6 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             )
             SettingsDivider()
             ToggleRow(
-                title = stringResource(AppR.string.customization_fullscreen_art),
-                subtitle = stringResource(AppR.string.customization_fullscreen_art_description),
-                checked = prefs.fullScreenNowPlayingArt,
-                onCheckedChange = viewModel::setFullScreenNowPlayingArt,
-                iconRes = R.drawable.lucide_ic_image,
-            )
-            SettingsDivider()
-            ToggleRow(
                 title = stringResource(AppR.string.customization_remaining_time),
                 subtitle = stringResource(AppR.string.customization_remaining_time_description),
                 checked = prefs.showRemainingTime,
@@ -857,7 +851,7 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
                 iconRes = R.drawable.lucide_ic_clock,
             )
             SettingsDivider()
-            val coverCount = albumCovers.size
+            val coverCount = albumCovers.values.toSet().size
             val formattedSize = if (storageSizeBytes < 1024 * 1024) {
                 "${(storageSizeBytes / 1024.0).roundToInt()} KB"
             } else {
@@ -885,7 +879,7 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
     }
 
     if (showResetDialog) {
-        val coverCount = albumCovers.size
+        val coverCount = albumCovers.values.toSet().size
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text(stringResource(AppR.string.customization_reset_covers_title)) },
@@ -903,7 +897,7 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
                     showResetDialog = false
                     coroutineScope.launch {
                         albumCoverRepo.clearAllCovers()
-                        storage.clearAll()
+                        withContext(Dispatchers.IO) { storage.clearAll() }
                         storageSizeBytes = 0L
                         invalidateAlbumArtCache(context)
                     }

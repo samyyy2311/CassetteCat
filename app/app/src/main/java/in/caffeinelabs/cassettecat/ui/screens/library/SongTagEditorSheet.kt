@@ -38,11 +38,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverride
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
@@ -135,46 +137,46 @@ fun SongTagEditorSheet(
                 )
 
                 TagInputField(
-                    label = "Title",
+                    label = stringResource(AppR.string.tag_editor_title),
                     value = title,
                     onValueChange = { title = it },
-                    placeholder = "Song title"
+                    placeholder = stringResource(AppR.string.tag_editor_title_placeholder)
                 )
 
                 Spacer(Modifier.height(14.dp))
 
                 TagInputField(
-                    label = "Artist",
+                    label = stringResource(AppR.string.tag_editor_artist),
                     value = artist,
                     onValueChange = { artist = it },
-                    placeholder = "Artist name"
+                    placeholder = stringResource(AppR.string.tag_editor_artist_placeholder)
                 )
 
                 Spacer(Modifier.height(14.dp))
 
                 TagInputField(
-                    label = "Album",
+                    label = stringResource(AppR.string.tag_editor_album),
                     value = album,
                     onValueChange = { album = it },
-                    placeholder = "Album title"
+                    placeholder = stringResource(AppR.string.tag_editor_album_placeholder)
                 )
 
                 Spacer(Modifier.height(14.dp))
 
                 TagInputField(
-                    label = "Genre",
+                    label = stringResource(AppR.string.tag_editor_genre),
                     value = genreText,
                     onValueChange = { genreText = it },
-                    placeholder = "e.g. Rock, Pop, Electronic"
+                    placeholder = stringResource(AppR.string.tag_editor_genre_placeholder)
                 )
 
                 Spacer(Modifier.height(14.dp))
 
                 TagInputField(
-                    label = "Release Year",
+                    label = stringResource(AppR.string.tag_editor_year),
                     value = yearText,
                     onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) yearText = it },
-                    placeholder = "e.g. 2024",
+                    placeholder = stringResource(AppR.string.tag_editor_year_placeholder),
                     keyboardType = KeyboardType.Number
                 )
 
@@ -212,7 +214,7 @@ fun SongTagEditorSheet(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Revert to Original Tags")
+                        Text(stringResource(AppR.string.tag_editor_revert))
                     }
                     Spacer(Modifier.height(10.dp))
                 }
@@ -234,7 +236,7 @@ fun SongTagEditorSheet(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Reset")
+                            Text(stringResource(AppR.string.action_reset))
                         }
                     }
 
@@ -284,7 +286,7 @@ fun SongTagEditorSheet(
                         modifier = Modifier.weight(if (hasChanges) 2f else 1f)
                     ) {
                         Text(
-                            text = "Save Changes",
+                            text = stringResource(AppR.string.tag_editor_save_changes),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )

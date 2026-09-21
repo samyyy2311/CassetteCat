@@ -58,6 +58,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -65,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
 import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
@@ -73,7 +76,6 @@ import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
-import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullScreenArtworkSheet
 import `in`.caffeinelabs.cassettecat.data.library.ArtistBiography
 import `in`.caffeinelabs.cassettecat.data.library.WikipediaInfoLoader
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
@@ -326,7 +328,7 @@ private fun ArtistAboutSection(biography: ArtistBiography) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("About the Artist", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text(stringResource(AppR.string.library_about_artist), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
@@ -439,7 +441,7 @@ private fun ArtistCatalogHero(
 
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_chevron_left,
-            contentDescription = "Back",
+            contentDescription = stringResource(AppR.string.action_back),
             onClick = onBack,
             tint = Color.White,
             modifier = Modifier
@@ -723,7 +725,6 @@ private fun LibraryGroupDetailScreen(
     val settingsRepo = remember { ServiceSettingsRepository(context) }
     var about by remember(wikipediaQuery) { mutableStateOf<String?>(null) }
     var showAlbumActions by remember { mutableStateOf(false) }
-    var showArtworkViewer by remember { mutableStateOf(false) }
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var songForOptions by remember { mutableStateOf<Song?>(null) }
     var songForTagEdit by remember { mutableStateOf<Song?>(null) }
@@ -778,7 +779,7 @@ private fun LibraryGroupDetailScreen(
     var atmospherePalette by remember(albumHeroSong?.id) { mutableStateOf<ArtworkAtmospherePalette?>(null) }
     LaunchedEffect(albumHeroSong?.id) {
         val hero = albumHeroSong ?: return@LaunchedEffect
-        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, hero) }
+        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, hero, thumbnail = true) }
         if (bitmap != null) {
             atmospherePalette = withContext(Dispatchers.Default) { extractArtworkAtmospherePalette(bitmap) }
         }
@@ -849,7 +850,6 @@ private fun LibraryGroupDetailScreen(
                         onShuffleAll = shuffleAll,
                         onDownloadAll = { downloadableSongs.forEach(downloadRepository::download) },
                         onMore = { showAlbumActions = true },
-                        onViewArtwork = { showArtworkViewer = true },
                         onChangeCover = { coverSearchSong = albumHeroSong }
                     )
                 } else {
@@ -908,9 +908,6 @@ private fun LibraryGroupDetailScreen(
                 onAddToPlaylist = { showAlbumActions = false; showPlaylistPicker = true },
                 onDownload = { downloadableSongs.forEach(downloadRepository::download); showAlbumActions = false },
                 onShare = { shareSongs(context, songs); showAlbumActions = false },
-                onViewArtwork = if (albumHeroSong != null) {
-                    { showAlbumActions = false; showArtworkViewer = true }
-                } else null,
                 onSearchCoverOnline = if (albumHeroSong != null) {
                     { showAlbumActions = false; coverSearchSong = albumHeroSong }
                 } else null,
@@ -929,16 +926,6 @@ private fun LibraryGroupDetailScreen(
                     }
                 } else null,
                 onDismiss = { showAlbumActions = false }
-            )
-        }
-        if (showArtworkViewer && albumHeroSong != null) {
-            FullScreenArtworkSheet(
-                song = albumHeroSong,
-                onDismiss = { showArtworkViewer = false },
-                onSearchCoverOnline = {
-                    showArtworkViewer = false
-                    coverSearchSong = albumHeroSong
-                }
             )
         }
         if (showPlaylistPicker) {
@@ -1053,16 +1040,16 @@ private fun LibraryGroupDetailScreen(
         songPendingDelete?.let { song ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { songPendingDelete = null },
-                title = { Text("Delete \"${song.title}\"?") },
-                text = { Text("This permanently removes the file from your device. This can't be undone.") },
+                title = { Text(stringResource(AppR.string.library_delete_song_title, song.title)) },
+                text = { Text(stringResource(AppR.string.library_delete_song_message)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         onDeleteSong?.invoke(song)
                         songPendingDelete = null
-                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(AppR.string.action_delete), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = { songPendingDelete = null }) { Text("Cancel") }
+                    androidx.compose.material3.TextButton(onClick = { songPendingDelete = null }) { Text(stringResource(AppR.string.action_cancel)) }
                 }
             )
         }
@@ -1108,12 +1095,12 @@ private fun ArtistDetailHeader(
                 modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
                 Spacer(Modifier.weight(1f))
                 if (canDownload) {
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_download,
-                        contentDescription = "Download all songs",
+                        contentDescription = stringResource(AppR.string.library_action_download_all_songs),
                         onClick = onDownloadAll
                     )
                 }
@@ -1128,8 +1115,10 @@ private fun ArtistDetailHeader(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val songsPart = pluralStringResource(AppR.plurals.library_songs, songCount, songCount)
+            val albumsPart = pluralStringResource(AppR.plurals.library_albums, albumCount, albumCount)
             Text(
-                "$songCount ${if (songCount == 1) "song" else "songs"} · $albumCount ${if (albumCount == 1) "album" else "albums"}",
+                "$songsPart · $albumsPart",
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
@@ -1251,7 +1240,6 @@ private fun AlbumDetailHeader(
     onShuffleAll: () -> Unit,
     onDownloadAll: () -> Unit,
     onMore: () -> Unit,
-    onViewArtwork: (() -> Unit)? = null,
     onChangeCover: (() -> Unit)? = null
 ) {
     val durationText = if (totalDurationMs > 0) {
@@ -1284,7 +1272,7 @@ private fun AlbumDetailHeader(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack,
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -1292,14 +1280,14 @@ private fun AlbumDetailHeader(
             if (canDownload) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_download,
-                    contentDescription = "Download album",
+                    contentDescription = stringResource(AppR.string.desc_download_album),
                     onClick = onDownloadAll,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_ellipsis_vertical,
-                contentDescription = "Album actions",
+                contentDescription = stringResource(AppR.string.desc_album_actions),
                 onClick = onMore,
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -1317,7 +1305,6 @@ private fun AlbumDetailHeader(
                 )
                 .clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .then(if (onViewArtwork != null) Modifier.tapScale(onViewArtwork) else Modifier)
         ) {
             AlbumArt(
                 song = song,
@@ -1337,7 +1324,7 @@ private fun AlbumDetailHeader(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_image),
-                        contentDescription = "Search album cover online",
+                        contentDescription = stringResource(AppR.string.desc_search_cover_online),
                         tint = Color.White,
                         modifier = Modifier.size(16.dp)
                     )
@@ -1422,7 +1409,6 @@ private fun AlbumActionsSheet(
     onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit,
     onShare: () -> Unit,
-    onViewArtwork: (() -> Unit)? = null,
     onSearchCoverOnline: (() -> Unit)? = null,
     onRemoveCustomCover: (() -> Unit)? = null,
     onDismiss: () -> Unit
@@ -1445,18 +1431,15 @@ private fun AlbumActionsSheet(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                AlbumActionRow(R.drawable.lucide_ic_play, "Play Next", "Add album tracks next in queue", onPlayNext)
-                AlbumActionRow(R.drawable.lucide_ic_list_music, "Add to Playlist", "Add all tracks to a playlist", onAddToPlaylist)
-                AlbumActionRow(R.drawable.lucide_ic_download, "Download Album", "Save album for offline playback", onDownload)
-                AlbumActionRow(R.drawable.lucide_ic_share_2, "Share Album", "Share album link or info", onShare)
-                if (onViewArtwork != null) {
-                    AlbumActionRow(R.drawable.lucide_ic_maximize_2, "View Full Artwork", "Inspect cover art in full size", onViewArtwork)
-                }
+                AlbumActionRow(R.drawable.lucide_ic_play, stringResource(AppR.string.library_play_next), stringResource(AppR.string.library_album_play_next_desc), onPlayNext)
+                AlbumActionRow(R.drawable.lucide_ic_list_music, stringResource(AppR.string.library_add_to_playlist), stringResource(AppR.string.library_album_add_to_playlist_desc), onAddToPlaylist)
+                AlbumActionRow(R.drawable.lucide_ic_download, stringResource(AppR.string.library_action_download_album), stringResource(AppR.string.library_action_download_album_desc), onDownload)
+                AlbumActionRow(R.drawable.lucide_ic_share_2, stringResource(AppR.string.library_share_album), stringResource(AppR.string.library_share_album_desc), onShare)
                 if (onSearchCoverOnline != null) {
-                    AlbumActionRow(R.drawable.lucide_ic_image, "Search Cover Online", "Find and apply high-resolution artwork", onSearchCoverOnline)
+                    AlbumActionRow(R.drawable.lucide_ic_image, stringResource(AppR.string.library_search_cover), stringResource(AppR.string.library_search_cover_description), onSearchCoverOnline)
                 }
                 if (onRemoveCustomCover != null) {
-                    AlbumActionRow(R.drawable.lucide_ic_rotate_ccw, "Reset to Original Cover", "Restore default embedded artwork", onRemoveCustomCover)
+                    AlbumActionRow(R.drawable.lucide_ic_rotate_ccw, stringResource(AppR.string.library_reset_cover), stringResource(AppR.string.library_reset_cover_description), onRemoveCustomCover)
                 }
             }
         }
@@ -1540,10 +1523,10 @@ private fun FolderDetailHeader(
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
             Spacer(Modifier.weight(1f))
             if (canDownload) {
-                PressDepthIconButton(R.drawable.lucide_ic_download, "Download folder", onDownloadAll)
+                PressDepthIconButton(R.drawable.lucide_ic_download, stringResource(AppR.string.library_action_download_folder), onDownloadAll)
             }
         }
 
@@ -1596,7 +1579,7 @@ private fun FolderDetailHeader(
                 if (customCoverPath != null) {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_trash_2),
-                        contentDescription = "Remove folder cover",
+                        contentDescription = stringResource(AppR.string.desc_remove_folder_cover),
                         tint = Color.White,
                         modifier = Modifier
                             .size(20.dp)
@@ -1608,7 +1591,7 @@ private fun FolderDetailHeader(
                 }
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_image_plus),
-                    contentDescription = "Change folder cover",
+                    contentDescription = stringResource(AppR.string.desc_change_folder_cover),
                     tint = Color.White,
                     modifier = Modifier
                         .size(20.dp)
@@ -1684,7 +1667,7 @@ private fun GroupDetailHeader(
             )
         }
         if (canDownload) {
-            PressDepthIconButton(R.drawable.lucide_ic_download, "Download all songs", onDownloadAll)
+            PressDepthIconButton(R.drawable.lucide_ic_download, stringResource(AppR.string.library_action_download_all_songs), onDownloadAll)
         }
     }
 }
@@ -1750,7 +1733,7 @@ private fun SongSectionHeader(
         } else if (onRefine != null) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                contentDescription = "Refine tracks",
+                contentDescription = stringResource(AppR.string.desc_refine_tracks),
                 tint = if (isRefined) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onRefine
             )
@@ -1762,7 +1745,7 @@ private fun SongSectionHeader(
 private fun MusicMetadataBlock(metadata: List<Pair<String, String>>) {
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
         Text(
-            "DETAILS",
+            stringResource(AppR.string.library_section_details),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1791,7 +1774,7 @@ private fun WikipediaAboutBlock(aboutText: String) {
             .animateContentSize()
     ) {
         Text(
-            "ABOUT",
+            stringResource(AppR.string.library_section_about),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1805,7 +1788,7 @@ private fun WikipediaAboutBlock(aboutText: String) {
         )
         if (aboutText.length > 160 || aboutText.lines().size > 2) {
             Text(
-                text = if (expanded) "Show less" else "Read more",
+                text = if (expanded) stringResource(AppR.string.library_show_less) else stringResource(AppR.string.library_read_more),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
@@ -1825,9 +1808,9 @@ private fun WikipediaAboutBlock(aboutText: String) {
             )
             Spacer(Modifier.width(10.dp))
             Column {
-                Text("Wikipedia", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(AppR.string.library_wikipedia_source), style = MaterialTheme.typography.labelMedium)
                 Text(
-                    "Description source / CC BY-SA",
+                    stringResource(AppR.string.library_wikipedia_license),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

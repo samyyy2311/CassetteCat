@@ -35,9 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
@@ -46,7 +48,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.PLAYLIST_ICON_OPTIONS
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
 
-private enum class CoverPickerTab(val label: String) { PHOTO("Photo"), ICON("Icon"), EMOJI("Emoji") }
+private enum class CoverPickerTab { PHOTO, ICON, EMOJI }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +81,7 @@ fun PlaylistCoverPickerSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             Text(
-                "Change Cover",
+                stringResource(AppR.string.playlist_action_change_cover),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
@@ -106,7 +108,7 @@ fun PlaylistCoverPickerSheet(
                         )
                         Spacer(Modifier.width(16.dp))
                         Text(
-                            if (isSaving) "Saving…" else "Choose from Photos",
+                            if (isSaving) stringResource(AppR.string.cover_saving) else stringResource(AppR.string.cover_choose_from_photos),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -179,7 +181,7 @@ fun PlaylistCoverPickerSheet(
                         tint = MaterialTheme.colorScheme.error
                     )
                     Spacer(Modifier.width(16.dp))
-                    Text("Remove Cover", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(AppR.string.playlist_cover_remove), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -200,7 +202,14 @@ private fun CoverPickerTabs(selected: CoverPickerTab, onSelect: (CoverPickerTab)
                 modifier = Modifier.tapScale { onSelect(entry) }.padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(entry.label, style = MaterialTheme.typography.titleSmall, color = tint)
+                val label = stringResource(
+                    when (entry) {
+                        CoverPickerTab.PHOTO -> AppR.string.cover_tab_photo
+                        CoverPickerTab.ICON -> AppR.string.cover_tab_icon
+                        CoverPickerTab.EMOJI -> AppR.string.cover_tab_emoji
+                    }
+                )
+                Text(label, style = MaterialTheme.typography.titleSmall, color = tint)
                 Spacer(Modifier.height(4.dp))
                 Box(
                     modifier = Modifier

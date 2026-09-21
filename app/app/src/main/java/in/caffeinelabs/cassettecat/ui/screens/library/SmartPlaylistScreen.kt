@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -37,56 +40,56 @@ import androidx.compose.ui.graphics.Color
 
 enum class SmartPlaylistType(
     val id: String,
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     val iconRes: Int,
     val color: Color = Color(0xFFE57A3A),
     val gradient: List<Color> = listOf(Color(0xFFFF5E3A), Color(0xFFFF2A68))
 ) {
     TOP_50(
         id = "top_50",
-        title = "Top 50 Most Played",
-        description = "Your most listened tracks of all time",
+        titleRes = AppR.string.smart_playlist_top_50_title,
+        descriptionRes = AppR.string.smart_playlist_top_50_desc,
         iconRes = R.drawable.lucide_ic_flame,
         color = Color(0xFFFF5E3A),
         gradient = listOf(Color(0xFFFF5E3A), Color(0xFFFF2A68))
     ),
     RECENTLY_ADDED(
         id = "recently_added",
-        title = "Recently Added",
-        description = "Newest tracks in your library",
+        titleRes = AppR.string.smart_playlist_recently_added_title,
+        descriptionRes = AppR.string.smart_playlist_recently_added_desc,
         iconRes = R.drawable.lucide_ic_clock,
         color = Color(0xFF6A11CB),
         gradient = listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
     ),
     FORGOTTEN_GEMS(
         id = "forgotten_gems",
-        title = "Forgotten Gems",
-        description = "Tracks you have not listened to recently",
+        titleRes = AppR.string.smart_playlist_forgotten_gems_title,
+        descriptionRes = AppR.string.smart_playlist_forgotten_gems_desc,
         iconRes = R.drawable.lucide_ic_compass,
         color = Color(0xFF0BA360),
         gradient = listOf(Color(0xFF0BA360), Color(0xFF3CBA92))
     ),
     HEAVY_ROTATION(
         id = "heavy_rotation",
-        title = "Heavy Rotation",
-        description = "Your top repeats and favorites",
+        titleRes = AppR.string.smart_playlist_heavy_rotation_title,
+        descriptionRes = AppR.string.smart_playlist_heavy_rotation_desc,
         iconRes = R.drawable.lucide_ic_repeat,
         color = Color(0xFF8E2DE2),
         gradient = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
     ),
     EXTENDED_CUTS(
         id = "extended_cuts",
-        title = "Extended Mixes",
-        description = "Long plays and deep cuts over 5 minutes",
+        titleRes = AppR.string.smart_playlist_extended_cuts_title,
+        descriptionRes = AppR.string.smart_playlist_extended_cuts_desc,
         iconRes = R.drawable.lucide_ic_timer,
         color = Color(0xFF0072FF),
         gradient = listOf(Color(0xFF0072FF), Color(0xFF00C6FF))
     ),
     VINTAGE_HITS(
         id = "vintage_hits",
-        title = "Vintage Classics",
-        description = "Tracks released before 2005",
+        titleRes = AppR.string.smart_playlist_vintage_hits_title,
+        descriptionRes = AppR.string.smart_playlist_vintage_hits_desc,
         iconRes = R.drawable.lucide_ic_disc_3,
         color = Color(0xFFF37335),
         gradient = listOf(Color(0xFFF37335), Color(0xFFFDC830))
@@ -174,17 +177,20 @@ fun SmartPlaylistScreen(
     val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
 
     val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
-    val durationText = remember(totalDurationMs) {
-        if (totalDurationMs > 0) {
-            val totalSeconds = totalDurationMs / 1000
-            val hours = totalSeconds / 3600
-            val minutes = (totalSeconds % 3600) / 60
-            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
-        } else ""
-    }
+    val durationText = if (totalDurationMs > 0) {
+        val totalSeconds = totalDurationMs / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        if (hours > 0) {
+            stringResource(AppR.string.smart_playlist_duration_hours_minutes, hours, minutes)
+        } else {
+            stringResource(AppR.string.smart_playlist_duration_minutes, minutes)
+        }
+    } else ""
 
+    val songsCountText = pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size)
     val subtitleDetails = listOfNotNull(
-        if (songs.size == 1) "1 song" else "${songs.size} songs",
+        songsCountText,
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -204,10 +210,10 @@ fun SmartPlaylistScreen(
             modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(playlistType.title, style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(playlistType.titleRes), style = MaterialTheme.typography.headlineSmall)
                 Text(
                     subtitleDetails,
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -217,7 +223,7 @@ fun SmartPlaylistScreen(
             if (downloadableSongs.isNotEmpty()) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_download,
-                    contentDescription = "Download smart playlist",
+                    contentDescription = stringResource(AppR.string.desc_download_smart_playlist),
                     onClick = { downloadableSongs.forEach(downloadRepository::download) }
                 )
                 Spacer(Modifier.width(4.dp))
@@ -241,8 +247,8 @@ fun SmartPlaylistScreen(
         if (songs.isEmpty()) {
             EmptyState(
                 catRes = AppR.drawable.cat_gray_dancing,
-                title = "No songs found",
-                message = playlistType.description,
+                title = stringResource(AppR.string.smart_playlist_empty_title),
+                message = stringResource(playlistType.descriptionRes),
                 modifier = Modifier.weight(1f)
             )
         } else {

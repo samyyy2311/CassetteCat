@@ -60,8 +60,9 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.random.Random
 
-private const val POSITION_TICK_MS = 200L
-private const val SAVE_EVERY_N_TICKS = 50 // ~10s at POSITION_TICK_MS
+private const val POSITION_TICK_ACTIVE_MS = 250L
+private const val POSITION_TICK_IDLE_MS = 1000L
+private const val SAVE_EVERY_N_TICKS = 40 // ~10s at POSITION_TICK_ACTIVE_MS
 private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
 private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
@@ -496,26 +497,36 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (tickerJob?.isActive == true) return
         tickerJob = viewModelScope.launch {
             var tick = 0
+            var lastTickRealtime = SystemClock.elapsedRealtime()
             while (true) {
+                val hasSubscribers = _positionMs.subscriptionCount.value > 0
+                val tickDelay = if (hasSubscribers) POSITION_TICK_ACTIVE_MS else POSITION_TICK_IDLE_MS
+
                 _positionMs.value = repository.currentPositionMs()
                 applyCrossfade()
+
+                val nowRealtime = SystemClock.elapsedRealtime()
+                val deltaMs = (nowRealtime - lastTickRealtime).coerceAtLeast(0L)
+                lastTickRealtime = nowRealtime
+
                 playbackState.value.currentSong?.let { song ->
                     if (song.source != MusicSource.Radio) {
                         val bucket = ListeningBucket(cachedMonthKey, song.id)
-                        accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + POSITION_TICK_MS
+                        accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + deltaMs
                     }
                 }
                 tick++
                 if (tick % 5 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
                     publishRoomSnapshot()
                 }
-                if (tick % SAVE_EVERY_N_TICKS == 0) {
+                val saveInterval = if (hasSubscribers) SAVE_EVERY_N_TICKS else 10
+                if (tick % saveInterval == 0) {
                     cachedMonthKey = YearMonth.now().toString()
                     savePlaybackState()
                     flushListeningTime()
                 }
                 maybeRecordPlay()
-                delay(POSITION_TICK_MS)
+                delay(tickDelay)
             }
         }
     }

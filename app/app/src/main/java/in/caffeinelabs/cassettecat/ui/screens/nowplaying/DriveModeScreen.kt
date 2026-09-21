@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 import android.app.Activity
 import android.content.res.Configuration
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -55,6 +56,8 @@ fun DriveModeScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
+
+    BackHandler(onBack = onBack)
 
     DisposableEffect(Unit) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

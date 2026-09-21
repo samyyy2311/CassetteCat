@@ -62,8 +62,6 @@
     <string name="customization_backdrop_description">Choose the background style for Now Playing</string>
     <string name="customization_blurred_background">Blurred Background</string>
     <string name="customization_blurred_background_description">Show blurred album art behind Now Playing</string>
-    <string name="customization_fullscreen_art">Full-Screen Artwork</string>
-    <string name="customization_fullscreen_art_description">Show full-bleed album art on Now Playing</string>
     <string name="customization_remaining_time">Show Remaining Time</string>
     <string name="customization_remaining_time_description">Show a countdown such as -02:45 instead of the full track length</string>
     <string name="customization_mini_swipe">Mini-Player Swipe to Skip</string>

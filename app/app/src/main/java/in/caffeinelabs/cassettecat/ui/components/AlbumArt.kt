@@ -35,13 +35,14 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
+import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 private const val THUMBNAIL_LOAD_DEBOUNCE_MS = 120L
 
-// Process-wide, not per-composable: a remember{}-scoped loader wouldn't share its LRU
-// cache across LazyColumn rows, causing repeated decode/network work (visible scroll jank).
 @Suppress("StaticFieldLeak")
 private object AlbumArtLoaders {
     @Volatile private var local: AlbumArtLoader? = null
@@ -61,6 +62,7 @@ private object AlbumArtLoaders {
 
 fun invalidateAlbumArtCache(context: Context) {
     AlbumArtLoaders.local(context).clearCache()
+    AlbumArtLoaders.remote.clearCache()
 }
 
 fun trimAlbumArtCaches(context: Context, level: Int) {
@@ -81,6 +83,15 @@ suspend fun prefetchAlbumArt(context: Context, song: Song?, thumbnail: Boolean =
 }
 
 suspend fun loadSongArtwork(context: Context, song: Song, thumbnail: Boolean = false): Bitmap? {
+    val customPath = AlbumCoverRepository.getInstance(context).getCoverPath(song.album, song.artist, song.albumId)
+    if (customPath != null) {
+        val file = java.io.File(customPath)
+        if (file.exists()) {
+            val maxDim = if (thumbnail) 300 else 1440
+            val customBitmap = decodeSampledBitmap(file, maxDimension = maxDim)
+            if (customBitmap != null) return customBitmap
+        }
+    }
     val settings = AlbumArtLoaders.settingsRepository(context).settings.first()
     val isOffline = settings.offlineBlackoutMode
     val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
@@ -107,14 +118,29 @@ fun AlbumArt(
 
     var bitmap by remember(song.id, thumbnail, customCoverPath) {
         mutableStateOf(
-            when (song.source) {
-                MusicSource.Local -> AlbumArtLoaders.local(context).peek(song, thumbnail)
-                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it, thumbnail) }
-                MusicSource.ListeningRoomHost -> null
+            if (customCoverPath != null) {
+                AlbumArtLoaders.local(context).peek(song, thumbnail)
+            } else {
+                when (song.source) {
+                    MusicSource.Local -> AlbumArtLoaders.local(context).peek(song, thumbnail)
+                    MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it, thumbnail) }
+                    MusicSource.ListeningRoomHost -> null
+                }
             }
         )
     }
     LaunchedEffect(song.id, thumbnail, customCoverPath) {
+        if (customCoverPath != null) {
+            val file = java.io.File(customCoverPath)
+            if (file.exists()) {
+                val maxDim = if (thumbnail) 300 else 1440
+                val decoded = withContext(Dispatchers.IO) { decodeSampledBitmap(file, maxDimension = maxDim) }
+                if (decoded != null) {
+                    bitmap = decoded
+                    return@LaunchedEffect
+                }
+            }
+        }
         if (bitmap == null) {
             if (debounce) delay(THUMBNAIL_LOAD_DEBOUNCE_MS)
             val settings = AlbumArtLoaders.settingsRepository(context).settings.first()

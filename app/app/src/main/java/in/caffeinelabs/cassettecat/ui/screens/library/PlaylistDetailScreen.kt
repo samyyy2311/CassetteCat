@@ -45,11 +45,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -60,7 +62,6 @@ import `in`.caffeinelabs.cassettecat.data.library.buildM3u
 import `in`.caffeinelabs.cassettecat.data.library.filterSongsForSmartCriteria
 import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import kotlinx.coroutines.launch
-import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
@@ -159,7 +160,7 @@ fun PlaylistDetailScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
             Spacer(Modifier.width(4.dp))
@@ -211,13 +212,13 @@ fun PlaylistDetailScreen(
                 Spacer(Modifier.width(2.dp))
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_arrow_up_down,
-                    contentDescription = "Sort by",
+                    contentDescription = stringResource(AppR.string.desc_sort_by),
                     onClick = { showSortSheet = true }
                 )
             }
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_ellipsis_vertical,
-                contentDescription = "Playlist options",
+                contentDescription = stringResource(AppR.string.desc_playlist_options),
                 onClick = { showActionsSheet = true }
             )
         }
@@ -237,7 +238,7 @@ fun PlaylistDetailScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(16.dp))
-                Text("Add Songs", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
+                Text(stringResource(AppR.string.playlist_add_songs), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
             }
         }
 
@@ -290,10 +291,15 @@ fun PlaylistDetailScreen(
     if (skipped != null) {
         AlertDialog(
             onDismissRequest = { skippedExportCount = null },
-            title = { Text("Some songs weren't included") },
-            text = { Text(if (skipped == 1) "1 streamed song was not included, only local files can be exported." else "$skipped streamed songs were not included, only local files can be exported.") },
+            title = { Text(stringResource(AppR.string.playlist_export_skipped_title)) },
+            text = {
+                Text(
+                    if (skipped == 1) stringResource(AppR.string.playlist_export_skipped_one)
+                    else stringResource(AppR.string.playlist_export_skipped_many, skipped)
+                )
+            },
             confirmButton = {
-                TextButton(onClick = { skippedExportCount = null }) { Text("OK") }
+                TextButton(onClick = { skippedExportCount = null }) { Text(stringResource(AppR.string.action_ok)) }
             }
         )
     }
@@ -309,7 +315,7 @@ fun PlaylistDetailScreen(
 
     if (showRenameSheet) {
         PlaylistNameSheet(
-            title = "Rename Playlist",
+            title = stringResource(AppR.string.playlist_action_rename),
             initialName = playlist.name,
             onConfirm = { name ->
                 showRenameSheet = false
@@ -322,19 +328,19 @@ fun PlaylistDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete \"${playlist.name}\"?") },
-            text = { Text("This can't be undone.") },
+            title = { Text(stringResource(AppR.string.playlist_delete_confirm_title, playlist.name)) },
+            text = { Text(stringResource(AppR.string.playlist_delete_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     playlistViewModel.delete(playlist.id)
                     onBack()
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(AppR.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
@@ -464,11 +470,11 @@ private fun PlaylistActionsSheet(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                PlaylistActionRow(iconRes = R.drawable.lucide_ic_image, label = "Change Cover", subtitle = "Customize playlist artwork or emoji", destructive = false, onClick = onChangeCover)
-                PlaylistActionRow(iconRes = R.drawable.lucide_ic_download, label = "Download All", subtitle = "Save all playlist tracks for offline listening", destructive = false, onClick = onDownloadAll)
-                PlaylistActionRow(iconRes = R.drawable.lucide_ic_upload, label = "Export as M3U8", subtitle = "Export playlist playlist file to storage", destructive = false, onClick = onExport)
-                PlaylistActionRow(iconRes = R.drawable.lucide_ic_pencil, label = "Rename Playlist", subtitle = "Update playlist title and rules", destructive = false, onClick = onRename)
-                PlaylistActionRow(iconRes = R.drawable.lucide_ic_trash_2, label = "Delete Playlist", subtitle = "Permanently remove this playlist", destructive = true, onClick = onDelete)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_image, label = stringResource(AppR.string.playlist_action_change_cover), subtitle = stringResource(AppR.string.playlist_action_change_cover_desc), destructive = false, onClick = onChangeCover)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_download, label = stringResource(AppR.string.playlist_action_download_all), subtitle = stringResource(AppR.string.playlist_action_download_all_desc), destructive = false, onClick = onDownloadAll)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_upload, label = stringResource(AppR.string.playlist_action_export), subtitle = stringResource(AppR.string.playlist_action_export_desc), destructive = false, onClick = onExport)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_pencil, label = stringResource(AppR.string.playlist_action_rename), subtitle = stringResource(AppR.string.playlist_action_rename_desc), destructive = false, onClick = onRename)
+                PlaylistActionRow(iconRes = R.drawable.lucide_ic_trash_2, label = stringResource(AppR.string.playlist_action_delete), subtitle = stringResource(AppR.string.playlist_action_delete_desc), destructive = true, onClick = onDelete)
             }
         }
     }
@@ -587,7 +593,7 @@ fun PlaylistNameSheet(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text(if (isSmartMode) "Smart Playlist name (e.g. 90s Favorites)" else "Playlist name") },
+                placeholder = { Text(if (isSmartMode) stringResource(AppR.string.playlist_smart_name_placeholder) else stringResource(AppR.string.playlist_name_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -595,7 +601,7 @@ fun PlaylistNameSheet(
             if (isSmartMode) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "AUTO-FILTER RULES",
+                    stringResource(AppR.string.playlist_auto_filter_rules),
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -629,8 +635,20 @@ fun PlaylistNameSheet(
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
+                            val ruleLabel = stringResource(
+                                when (rule) {
+                                    SmartRuleType.RECENTLY_ADDED -> AppR.string.smart_rule_recently_added
+                                    SmartRuleType.FAVORITES_ONLY -> AppR.string.smart_rule_favorites_only
+                                    SmartRuleType.MIN_DURATION -> AppR.string.smart_rule_min_duration
+                                    SmartRuleType.MAX_DURATION -> AppR.string.smart_rule_max_duration
+                                    SmartRuleType.DECADE_90S -> AppR.string.smart_rule_decade_90s
+                                    SmartRuleType.DECADE_2000S -> AppR.string.smart_rule_decade_2000s
+                                    SmartRuleType.DECADE_2010S -> AppR.string.smart_rule_decade_2010s
+                                    SmartRuleType.DECADE_2020S -> AppR.string.smart_rule_decade_2020s
+                                }
+                            )
                             Text(
-                                rule.label,
+                                ruleLabel,
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium
                                 ),
@@ -655,7 +673,7 @@ fun PlaylistNameSheet(
                 enabled = name.isNotBlank() && (!isSmartMode || selectedRules.isNotEmpty()),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isSmartMode) "Create Smart Playlist" else "Save")
+                Text(if (isSmartMode) stringResource(AppR.string.playlist_create_smart) else stringResource(AppR.string.action_save))
             }
         }
     }
@@ -685,14 +703,14 @@ private fun AddSongsSheet(
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                "Add Songs",
+                stringResource(AppR.string.playlist_add_songs),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Search songs") },
+                placeholder = { Text(stringResource(AppR.string.playlist_search_placeholder)) },
                 leadingIcon = {
                     Icon(painter = painterResource(R.drawable.lucide_ic_search), contentDescription = null)
                 },
@@ -700,7 +718,7 @@ private fun AddSongsSheet(
                     if (query.isNotEmpty()) {
                         PressDepthIconButton(
                             iconRes = R.drawable.lucide_ic_x,
-                            contentDescription = "Clear",
+                            contentDescription = stringResource(AppR.string.action_clear),
                             onClick = { query = "" }
                         )
                     }

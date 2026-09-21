@@ -32,7 +32,9 @@ class AlbumCoverRepository private constructor(private val context: Context) {
     fun getCoverPath(album: String, artist: String, albumId: String = ""): String? {
         val current = albumCovers.value
         val key = albumKey(album, artist)
-        return current[key] ?: if (albumId.isNotBlank()) current[albumId] else null
+        return current[key]
+            ?: (if (albumId.isNotBlank()) current[albumId] else null)
+            ?: (if (album.isNotBlank()) current[albumOnlyKey(album)] else null)
     }
 
     suspend fun setCover(album: String, artist: String, albumId: String = "", coverPath: String) {
@@ -45,6 +47,9 @@ class AlbumCoverRepository private constructor(private val context: Context) {
             updated[key] = coverPath
             if (albumId.isNotBlank()) {
                 updated[albumId] = coverPath
+            }
+            if (album.isNotBlank()) {
+                updated[albumOnlyKey(album)] = coverPath
             }
             prefs[ALBUM_COVERS] = sharedJson.encodeToString(updated)
         }
@@ -61,6 +66,9 @@ class AlbumCoverRepository private constructor(private val context: Context) {
             if (albumId.isNotBlank()) {
                 updated.remove(albumId)
             }
+            if (album.isNotBlank()) {
+                updated.remove(albumOnlyKey(album))
+            }
             prefs[ALBUM_COVERS] = sharedJson.encodeToString(updated)
         }
     }
@@ -74,6 +82,9 @@ class AlbumCoverRepository private constructor(private val context: Context) {
     companion object {
         fun albumKey(album: String, artist: String): String =
             "${album.trim().lowercase()}|${artist.trim().lowercase()}"
+
+        fun albumOnlyKey(album: String): String =
+            "album:${album.trim().lowercase()}"
 
         @Volatile private var instance: AlbumCoverRepository? = null
 

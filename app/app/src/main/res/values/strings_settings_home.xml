@@ -101,5 +101,8 @@
     <string name="settings_updates_tap">Tap to check</string>
     <string name="settings_updates_current">You’re up to date</string>
     <string name="settings_updates_available">Version %1$s available, tap to view</string>
+    <string name="settings_updates_available_download">Version %1$s available, tap to update</string>
+    <string name="settings_updates_downloading">Downloading update (%1$d%%)…</string>
+    <string name="settings_updates_ready">Downloaded, tap to install</string>
     <string name="settings_updates_failed">Couldn’t check, tap to retry</string>
 </resources>

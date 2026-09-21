@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import java.io.File
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +84,8 @@ fun SettingsScreen(
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
+    val downloadedApk by viewModel.downloadedApk.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val lastRefreshAtMs by libraryViewModel.lastRefreshAtMs.collectAsStateWithLifecycle()
@@ -291,8 +295,12 @@ fun SettingsScreen(
                 SettingsDivider(startPadding = 24.dp)
                 UpdateCheckRow(
                     result = updateCheckResult,
+                    downloadProgress = downloadProgress,
+                    downloadedApk = downloadedApk,
                     checkEnabled = true,
-                    onCheck = { viewModel.checkForUpdate() }
+                    onCheck = { viewModel.checkForUpdate() },
+                    onDownloadAndInstall = { available -> viewModel.downloadAndInstallUpdate(context, available) },
+                    onInstall = { viewModel.installDownloadedApk(context) }
                 )
             }
         }
@@ -513,19 +521,36 @@ private fun serviceDescription(service: ExternalService): String = stringResourc
 )
 
 @Composable
-private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, onCheck: () -> Unit) {
+private fun UpdateCheckRow(
+    result: UpdateCheckResult?,
+    downloadProgress: Float?,
+    downloadedApk: File?,
+    checkEnabled: Boolean,
+    onCheck: () -> Unit,
+    onDownloadAndInstall: (UpdateCheckResult.UpdateAvailable) -> Unit,
+    onInstall: () -> Unit
+) {
     val context = LocalContext.current
     val available = result as? UpdateCheckResult.UpdateAvailable
+    val isDownloading = downloadProgress != null
+    val isDownloaded = downloadedApk != null && downloadedApk.exists()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (checkEnabled) {
+                if (checkEnabled && !isDownloading) {
                     Modifier.tapScale {
-                        if (available != null) {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, available.url.toUri()))
-                        } else {
-                            onCheck()
+                        when {
+                            isDownloaded -> onInstall()
+                            available != null -> {
+                                if (available.downloadUrl != null) {
+                                    onDownloadAndInstall(available)
+                                } else {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, available.url.toUri()))
+                                }
+                            }
+                            else -> onCheck()
                         }
                     }
                 } else {
@@ -536,9 +561,15 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            painter = painterResource(R.drawable.lucide_ic_refresh_cw),
+            painter = painterResource(
+                when {
+                    isDownloaded -> R.drawable.lucide_ic_download
+                    isDownloading -> R.drawable.lucide_ic_refresh_cw
+                    else -> R.drawable.lucide_ic_refresh_cw
+                }
+            ),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
+            tint = if (isDownloaded || available != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(18.dp))
@@ -547,20 +578,35 @@ private fun UpdateCheckRow(result: UpdateCheckResult?, checkEnabled: Boolean, on
             Text(
                 when {
                     !checkEnabled -> stringResource(AppR.string.settings_updates_disabled)
+                    isDownloading -> stringResource(AppR.string.settings_updates_downloading, ((downloadProgress ?: 0f) * 100).toInt())
+                    isDownloaded -> stringResource(AppR.string.settings_updates_ready)
                     result == null -> stringResource(AppR.string.settings_updates_tap)
                     result is UpdateCheckResult.UpToDate -> stringResource(AppR.string.settings_updates_current)
-                    result is UpdateCheckResult.UpdateAvailable -> stringResource(
-                        AppR.string.settings_updates_available,
-                        result.version
-                    )
+                    available != null -> {
+                        if (available.downloadUrl != null) {
+                            stringResource(AppR.string.settings_updates_available_download, available.version)
+                        } else {
+                            stringResource(AppR.string.settings_updates_available, available.version)
+                        }
+                    }
                     else -> stringResource(AppR.string.settings_updates_failed)
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
+            if (isDownloading) {
+                LinearProgressIndicator(
+                    progress = { downloadProgress ?: 0f },
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                )
+            }
         }
-        if (available != null) {
+        if (available != null && !isDownloading) {
             Icon(
-                painter = painterResource(R.drawable.lucide_ic_chevron_right),
+                painter = painterResource(
+                    if (isDownloaded || available.downloadUrl != null) R.drawable.lucide_ic_download else R.drawable.lucide_ic_chevron_right
+                ),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(16.dp)

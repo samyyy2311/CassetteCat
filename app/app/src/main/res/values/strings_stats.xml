@@ -1,0 +1,30 @@
+<resources>
+    <string name="stats_listening_record">Listening Record</string>
+    <string name="stats_clear_stats_desc">Clear stats</string>
+    <string name="stats_clear_confirm_title">Clear listening stats?</string>
+    <string name="stats_clear_confirm_message">This can’t be undone.</string>
+    <string name="stats_empty_title">No plays yet</string>
+    <string name="stats_empty_message">Play something past the halfway point and it’ll show up here.</string>
+    <string name="stats_most_played">Most played</string>
+    <string name="stats_most_played_artists">MOST PLAYED ARTISTS</string>
+    <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
+    <string name="stats_most_played_albums">MOST PLAYED ALBUMS</string>
+    <string name="stats_milestones">MILESTONES</string>
+    <string name="stats_view_all_most_played">View all most played</string>
+    <string name="stats_save_as_playlist">Save these tracks as a playlist</string>
+    <string name="stats_playlist_title">Listening Record: %1$s %2$d</string>
+    <string name="stats_rewind_title">Cassette Rewind %1$d</string>
+    <string name="stats_period_title">%1$s %2$d</string>
+    <string name="stats_year_title">Year %1$d</string>
+    <string name="stats_share_rewind">Share Rewind</string>
+    <string name="stats_theme_atmosphere">Atmosphere</string>
+    <string name="stats_theme_obsidian">Obsidian</string>
+    <string name="milestone_listening_time">Listening time</string>
+    <string name="milestone_tracks_completed">Tracks completed</string>
+    <string name="milestone_unlocked_this_month">Unlocked this month</string>
+    <string name="poster_top_artists">Top Artists</string>
+    <string name="poster_top_songs">Top Songs</string>
+    <string name="poster_top_albums">Top Albums</string>
+    <string name="poster_minutes">%1$s minutes</string>
+    <string name="poster_rewind">Rewind</string>
+</resources>

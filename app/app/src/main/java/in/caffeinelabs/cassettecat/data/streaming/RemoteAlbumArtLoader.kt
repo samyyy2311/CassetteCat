@@ -57,4 +57,14 @@ class RemoteAlbumArtLoader {
             response.body.bytes().let { decodeSampledBitmap(it, maxDimension = maxDimension) }
         }
     }.getOrNull()
+
+    companion object {
+        @Volatile
+        private var instance: RemoteAlbumArtLoader? = null
+
+        fun getInstance(): RemoteAlbumArtLoader =
+            instance ?: synchronized(this) {
+                instance ?: RemoteAlbumArtLoader().also { instance = it }
+            }
+    }
 }

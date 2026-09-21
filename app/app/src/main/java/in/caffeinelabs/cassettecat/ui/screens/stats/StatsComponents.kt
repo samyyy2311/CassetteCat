@@ -28,11 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.stats.Milestone
 import `in`.caffeinelabs.cassettecat.data.stats.MilestoneType
@@ -213,11 +215,11 @@ internal fun ListeningRecordReadout(
             horizontalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             RecordMetric(
-                label = "PLAYS",
+                label = stringResource(AppR.string.poster_plays),
                 value = totalPlays.toString().padStart(2, '0')
             )
             RecordMetric(
-                label = "TRACKS",
+                label = stringResource(AppR.string.poster_tracks),
                 value = uniqueSongs.toString().padStart(2, '0')
             )
         }
@@ -318,11 +320,11 @@ internal fun MostPlayedTracksScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text("Most played", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(AppR.string.stats_most_played), style = MaterialTheme.typography.titleLarge)
                 Text(
                     monthName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -365,12 +367,12 @@ internal fun MilestoneRow(milestone: Milestone) {
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             val label = when (milestone.type) {
-                MilestoneType.MINUTES_PLAYED -> "Listening time"
-                MilestoneType.SONGS_PLAYED -> "Tracks completed"
+                MilestoneType.MINUTES_PLAYED -> stringResource(AppR.string.milestone_listening_time)
+                MilestoneType.SONGS_PLAYED -> stringResource(AppR.string.milestone_tracks_completed)
             }
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(
-                "Unlocked this month",
+                stringResource(AppR.string.milestone_unlocked_this_month),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -395,7 +397,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
 ) {
     if (computed.topArtists.isNotEmpty()) {
         item {
-            SectionHeader("MOST PLAYED ARTISTS")
+            SectionHeader(stringResource(AppR.string.stats_most_played_artists))
             Spacer(Modifier.height(12.dp))
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp),
@@ -417,7 +419,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
 
     if (computed.topSongs.isNotEmpty()) {
         item {
-            SectionHeader("MOST PLAYED TRACKS")
+            SectionHeader(stringResource(AppR.string.stats_most_played_tracks))
         }
         items(computed.topSongs.take(5), key = { it.song.id }) { stat ->
             StatSongRow(
@@ -436,7 +438,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "View all most played",
+                        stringResource(AppR.string.stats_view_all_most_played),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f)
@@ -463,7 +465,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(
-                    "Save these tracks as a playlist",
+                    stringResource(AppR.string.stats_save_as_playlist),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -474,7 +476,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
 
     if (computed.topAlbums.isNotEmpty()) {
         item {
-            SectionHeader("MOST PLAYED ALBUMS")
+            SectionHeader(stringResource(AppR.string.stats_most_played_albums))
             Spacer(Modifier.height(12.dp))
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp),
@@ -496,7 +498,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
     }
 
     if (monthMilestones.isNotEmpty()) {
-        item { SectionHeader("MILESTONES") }
+        item { SectionHeader(stringResource(AppR.string.stats_milestones)) }
         items(monthMilestones) { milestone -> MilestoneRow(milestone) }
     }
 }

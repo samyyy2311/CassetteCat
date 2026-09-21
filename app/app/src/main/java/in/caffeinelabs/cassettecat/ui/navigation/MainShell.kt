@@ -45,6 +45,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,6 +58,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.caffeinelabs.cassettecat.AppShortcutAction
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
@@ -267,7 +269,7 @@ fun MainShell(
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
                     popUpTo(MainRoute.LIBRARY) {
-                        inclusive = false
+                        inclusive = true
                     }
                     launchSingleTop = true
                 }
@@ -296,7 +298,7 @@ fun MainShell(
         artworkAccent = if (preferences.artworkAccentEnabled) {
             playbackState.currentSong?.let { song ->
                 runCatching {
-                    loadSongArtwork(context, song)?.let { bitmap ->
+                    loadSongArtwork(context, song, thumbnail = true)?.let { bitmap ->
                         withContext(Dispatchers.Default) { dominantArtworkAccent(bitmap) }
                     }
                 }.getOrNull()
@@ -345,7 +347,7 @@ fun MainShell(
         }
         onShortcutHandled()
         if (songs.isEmpty()) {
-            Toast.makeText(context, "Nothing to play yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, AppR.string.toast_nothing_to_play, Toast.LENGTH_SHORT).show()
         } else {
             if (isShuffle) {
                 playbackViewModel.shuffleAll(songs)
@@ -356,6 +358,7 @@ fun MainShell(
             scaffoldState.bottomSheetState.expand()
         }
     }
+    val queueSavedMessageFormat = stringResource(AppR.string.toast_queue_saved)
     var headerDragRevealFraction by remember { mutableFloatStateOf(0f) }
 
     val isSheetExpanded = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded ||
@@ -369,7 +372,7 @@ fun MainShell(
         }
     }
 
-    BackHandler(enabled = nowPlayingView != NowPlayingView.PLAYER) {
+    BackHandler(enabled = isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER) {
         nowPlayingView = NowPlayingView.PLAYER
     }
 
@@ -460,7 +463,7 @@ fun MainShell(
                                     allSongs = librarySongs,
                                     onSaveQueue = { name, songIds ->
                                         playlistViewModel.create(name, songIds)
-                                        Toast.makeText(context, "Queue saved to $name", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, String.format(queueSavedMessageFormat, name), Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateToPlaylist = { playlistId -> navigateFromNowPlaying(MainRoute.playlistDetail(playlistId)) },
                                     onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },

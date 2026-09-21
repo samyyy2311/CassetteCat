@@ -155,8 +155,8 @@ internal fun AlbumArtCard(
 ) {
     val context = LocalContext.current
     val preferences = LocalAppPreferences.current
-    val cornerRadius = if (preferences.fullScreenNowPlayingArt) 0.dp else preferences.albumArtCornerRadiusDp.dp
-    val cardElevation = if (preferences.fullScreenNowPlayingArt) 0.dp else 20.dp
+    val cornerRadius = preferences.albumArtCornerRadiusDp.dp
+    val cardElevation = 20.dp
     val haptics = LocalHapticFeedback.current
 
     var expandedArtRect by remember(song.id) { mutableStateOf<Rect?>(null) }
@@ -240,23 +240,6 @@ internal fun AlbumArtCard(
                 }
             } else {
                 AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
-            }
-            if (preferences.fullScreenNowPlayingArt) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.Black.copy(alpha = 0.35f),
-                                    Color.Transparent,
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
-                                    MaterialTheme.colorScheme.surface
-                                )
-                            )
-                        )
-                )
             }
         }
     }
@@ -557,7 +540,7 @@ internal fun NowPlayingBackdrop(song: Song) {
     var palette by remember { mutableStateOf<ArtworkAtmospherePalette?>(null) }
 
     LaunchedEffect(song.id) {
-        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, song) }
+        val bitmap = withContext(Dispatchers.IO) { loadSongArtwork(context, song, thumbnail = true) }
         if (bitmap != null) {
             val extracted = withContext(Dispatchers.Default) { extractArtworkAtmospherePalette(bitmap) }
             palette = extracted

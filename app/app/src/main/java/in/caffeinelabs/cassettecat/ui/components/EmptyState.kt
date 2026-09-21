@@ -46,6 +46,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -120,7 +121,7 @@ fun EmptyState(
 
             Image(
                 painter = painterResource(currentCatRes!!),
-                contentDescription = "CassetteCat",
+                contentDescription = stringResource(AppR.string.app_name),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .size(130.dp)

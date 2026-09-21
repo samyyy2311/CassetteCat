@@ -23,8 +23,6 @@
     <string name="now_playing_download_description">Save for offline playback</string>
     <string name="now_playing_credits_details">Credits &amp; details</string>
     <string name="now_playing_credits_details_description">Release and source metadata</string>
-    <string name="now_playing_view_artwork">View Full Artwork</string>
-    <string name="now_playing_view_artwork_description">Preview high-resolution cover</string>
     <string name="now_playing_search_cover">Search Album Cover Online</string>
     <string name="now_playing_search_cover_short">Search Cover Online</string>
     <string name="now_playing_search_cover_description">Find and apply high-resolution artwork</string>

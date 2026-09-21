@@ -56,7 +56,7 @@ class ShakeDetector(
         if (isListening || accelerometer == null) return
         resetTracking()
         isGravityInitialized = false
-        sensorManager?.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
+        sensorManager?.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
         proximitySensor?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }

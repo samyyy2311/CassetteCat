@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.OnlineAlbumCoverClient
@@ -95,8 +97,15 @@ internal fun OnlineAlbumCoverSearchSheet(
         repository.getCoverPath(initialAlbum, initialArtist, albumId) != null
     }
 
-    var albumQuery by remember(initialAlbum) { mutableStateOf(initialAlbum.trim()) }
-    var artistQuery by remember(initialArtist) { mutableStateOf(initialArtist.trim()) }
+    val cleanInitialAlbum = initialAlbum.trim().takeUnless {
+        it.equals("<unknown>", ignoreCase = true) || it.equals("unknown", ignoreCase = true)
+    }.orEmpty()
+    val cleanInitialArtist = initialArtist.trim().takeUnless {
+        it.equals("<unknown>", ignoreCase = true) || it.equals("unknown", ignoreCase = true)
+    }.orEmpty()
+
+    var albumQuery by remember(initialAlbum) { mutableStateOf(cleanInitialAlbum) }
+    var artistQuery by remember(initialArtist) { mutableStateOf(cleanInitialArtist) }
     var results by remember { mutableStateOf<List<OnlineCoverResult>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     var hasSearched by remember { mutableStateOf(false) }
@@ -107,19 +116,21 @@ internal fun OnlineAlbumCoverSearchSheet(
     ) { uri ->
         if (uri != null) {
             coroutineScope.launch {
-                val key = AlbumCoverRepository.albumKey(initialAlbum, initialArtist)
+                val targetAlbum = initialAlbum.ifBlank { albumQuery }
+                val targetArtist = initialArtist.ifBlank { artistQuery }
+                val key = AlbumCoverRepository.albumKey(targetAlbum, targetArtist)
                 val path = storage.save(key, uri)
                 if (path != null) {
-                    val previousPath = repository.getCoverPath(initialAlbum, initialArtist, albumId)
-                    repository.setCover(initialAlbum, initialArtist, albumId, path)
+                    val previousPath = repository.getCoverPath(targetAlbum, targetArtist, albumId)
+                    repository.setCover(targetAlbum, targetArtist, albumId, path)
                     if (previousPath != null && previousPath != path) {
                         storage.delete(previousPath)
                     }
                     invalidateAlbumArtCache(context)
-                    Toast.makeText(context, "Cover applied from device", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, AppR.string.cover_applied_toast, Toast.LENGTH_SHORT).show()
                     onDismiss()
                 } else {
-                    Toast.makeText(context, "Failed to load image", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, AppR.string.cover_failed_load_toast, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -156,18 +167,18 @@ internal fun OnlineAlbumCoverSearchSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Choose album cover",
+                        stringResource(AppR.string.cover_choose_album_cover),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        "${albumQuery.ifBlank { "Unknown Album" }} • ${artistQuery.ifBlank { "Unknown Artist" }}",
+                        "${albumQuery.ifBlank { stringResource(AppR.string.cover_unknown_album) }} • ${artistQuery.ifBlank { stringResource(AppR.string.cover_unknown_artist) }}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                PressDepthIconButton(R.drawable.lucide_ic_x, "Close", onDismiss)
+                PressDepthIconButton(R.drawable.lucide_ic_x, stringResource(AppR.string.close), onDismiss)
             }
 
             Row(
@@ -180,7 +191,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                 OutlinedTextField(
                     value = albumQuery,
                     onValueChange = { albumQuery = it },
-                    placeholder = { Text("Album", maxLines = 1) },
+                    placeholder = { Text(stringResource(AppR.string.search_album_placeholder), maxLines = 1) },
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
@@ -196,7 +207,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                 OutlinedTextField(
                     value = artistQuery,
                     onValueChange = { artistQuery = it },
-                    placeholder = { Text("Artist", maxLines = 1) },
+                    placeholder = { Text(stringResource(AppR.string.search_artist_placeholder), maxLines = 1) },
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(0.85f),
@@ -220,7 +231,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_search),
-                        contentDescription = "Search",
+                        contentDescription = stringResource(AppR.string.lrclib_search),
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -236,13 +247,13 @@ internal fun OnlineAlbumCoverSearchSheet(
             ) {
                 if (isSearching) {
                     Text(
-                        "Searching catalogs…",
+                        stringResource(AppR.string.cover_searching_catalogs),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else if (hasSearched) {
                     Text(
-                        "${results.size} artworks found",
+                        stringResource(AppR.string.cover_artworks_found, results.size),
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = IbmPlexMonoFontFamily,
                             fontWeight = FontWeight.SemiBold
@@ -250,7 +261,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        "Select a cover to apply",
+                        stringResource(AppR.string.cover_select_prompt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -283,7 +294,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        "Choose from device",
+                        stringResource(AppR.string.cover_choose_from_device),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -300,7 +311,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                                     repository.clearCover(initialAlbum, initialArtist, albumId)
                                     if (previousPath != null) storage.delete(previousPath)
                                     invalidateAlbumArtCache(context)
-                                    Toast.makeText(context, "Custom cover removed", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppR.string.cover_removed_toast, Toast.LENGTH_SHORT).show()
                                     onDismiss()
                                 }
                             })
@@ -315,7 +326,7 @@ internal fun OnlineAlbumCoverSearchSheet(
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            "Revert to original",
+                            stringResource(AppR.string.cover_revert_to_original),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
@@ -351,12 +362,12 @@ internal fun OnlineAlbumCoverSearchSheet(
                         )
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            "No covers found",
+                            stringResource(AppR.string.cover_no_covers_found),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Try editing the album or artist search terms",
+                            stringResource(AppR.string.cover_no_covers_suggestion),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -381,23 +392,25 @@ internal fun OnlineAlbumCoverSearchSheet(
                                 if (applyingCoverId != null) return@OnlineCoverCard
                                 applyingCoverId = item.id
                                 coroutineScope.launch {
-                                    val bitmap = client.downloadCover(item.downloadUrl)
+                                    val bitmap = client.downloadCover(item.downloadUrl, fallbackUrl = item.previewUrl)
                                     if (bitmap != null) {
-                                        val key = AlbumCoverRepository.albumKey(initialAlbum, initialArtist)
+                                        val targetAlbum = initialAlbum.ifBlank { albumQuery }
+                                        val targetArtist = initialArtist.ifBlank { artistQuery }
+                                        val key = AlbumCoverRepository.albumKey(targetAlbum, targetArtist)
                                         val path = storage.save(key, bitmap)
                                         if (path != null) {
-                                            val previousPath = repository.getCoverPath(initialAlbum, initialArtist, albumId)
-                                            repository.setCover(initialAlbum, initialArtist, albumId, path)
+                                            val previousPath = repository.getCoverPath(targetAlbum, targetArtist, albumId)
+                                            repository.setCover(targetAlbum, targetArtist, albumId, path)
                                             if (previousPath != null && previousPath != path) {
                                                 storage.delete(previousPath)
                                             }
                                             invalidateAlbumArtCache(context)
-                                            Toast.makeText(context, "Album cover updated", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, AppR.string.cover_updated_toast, Toast.LENGTH_SHORT).show()
                                             onDismiss()
                                             return@launch
                                         }
                                     }
-                                    Toast.makeText(context, "Failed to download cover", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, AppR.string.cover_failed_download_toast, Toast.LENGTH_SHORT).show()
                                     applyingCoverId = null
                                 }
                             }

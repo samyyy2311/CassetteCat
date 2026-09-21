@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.stats
+package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -207,7 +207,7 @@ internal fun buildListeningRecordPoster(
 
     val headerY = 175f
     canvas.drawText(
-        "Rewind",
+        context.getString(AppR.string.poster_rewind),
         leftMargin,
         headerY,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -247,7 +247,7 @@ internal fun buildListeningRecordPoster(
     canvas.drawText(heroTitle, width / 2f, heroY, heroYearPaint)
 
     val formattedMinutes = NumberFormat.getNumberInstance(Locale.US).format(listeningMinutes)
-    val minutesText = "$formattedMinutes minutes"
+    val minutesText = context.getString(AppR.string.poster_minutes, formattedMinutes)
     val minutesPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.argb(200, 255, 255, 255)
         typeface = ibmPlexSans
@@ -334,7 +334,7 @@ internal fun buildListeningRecordPoster(
 
 
     val sec1Top = 580f
-    canvas.drawText("Top Artists", leftMargin, sec1Top, sectionHeaderPaint)
+    canvas.drawText(context.getString(AppR.string.poster_top_artists), leftMargin, sec1Top, sectionHeaderPaint)
 
     val artistsList = topArtists.take(3)
     val artRowH = 125f
@@ -352,7 +352,7 @@ internal fun buildListeningRecordPoster(
     }
 
     val sec2Top = 1200f
-    canvas.drawText("Top Songs", leftMargin, sec2Top, sectionHeaderPaint)
+    canvas.drawText(context.getString(AppR.string.poster_top_songs), leftMargin, sec2Top, sectionHeaderPaint)
 
     val songsList = topSongs.take(3)
     val songRowH = 145f
@@ -376,7 +376,7 @@ internal fun buildListeningRecordPoster(
     }
 
     val sec3Top = 1840f
-    canvas.drawText("Top Albums", leftMargin, sec3Top, sectionHeaderPaint)
+    canvas.drawText(context.getString(AppR.string.poster_top_albums), leftMargin, sec3Top, sectionHeaderPaint)
 
     val albumsList = topAlbums.take(3)
     val albumRowH = 145f
@@ -543,7 +543,7 @@ internal fun ListeningRecordPreviewCard(
                     color = Color.White
                 )
                 Text(
-                    text = "$formattedMinutes minutes",
+                    text = stringResource(AppR.string.poster_minutes, formattedMinutes),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = Color.White.copy(alpha = 0.75f)
                 )
@@ -560,7 +560,7 @@ internal fun ListeningRecordPreviewCard(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Top Artists",
+                            text = stringResource(AppR.string.poster_top_artists),
                             style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                             fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold,
@@ -588,7 +588,7 @@ internal fun ListeningRecordPreviewCard(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Top Songs",
+                            text = stringResource(AppR.string.poster_top_songs),
                             style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                             fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold,
@@ -625,7 +625,7 @@ internal fun ListeningRecordPreviewCard(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Top Albums",
+                            text = stringResource(AppR.string.poster_top_albums),
                             style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                             fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold,
@@ -801,7 +801,7 @@ internal fun ListeningRecordShareSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Share Rewind",
+                    text = stringResource(AppR.string.stats_share_rewind),
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = SpaceGroteskFontFamily,
                     fontWeight = FontWeight.Bold
@@ -861,7 +861,10 @@ internal fun ListeningRecordShareSheet(
                             .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            text = theme.label,
+                            text = when (theme) {
+                                ListeningRecordTheme.ATMOSPHERE -> stringResource(AppR.string.stats_theme_atmosphere)
+                                ListeningRecordTheme.OBSIDIAN -> stringResource(AppR.string.stats_theme_obsidian)
+                            },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = textColor

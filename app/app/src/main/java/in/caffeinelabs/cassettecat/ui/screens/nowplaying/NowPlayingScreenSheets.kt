@@ -44,7 +44,6 @@ internal class NowPlayingSheetState {
     var showSaveQueue by mutableStateOf(false)
     var showTagEditor by mutableStateOf(false)
     var showCoverSearch by mutableStateOf(false)
-    var showArtworkViewer by mutableStateOf(false)
 }
 
 @Composable
@@ -100,7 +99,6 @@ internal fun NowPlayingScreenSheetsHost(
                 onOpenSleepTimer = { sheetState.showSleepTimerPicker = true },
                 onOpenDriveMode = onNavigateToDriveMode,
                 onSearchCoverOnline = { sheetState.showCoverSearch = true },
-                onOpenArtworkViewer = { sheetState.showArtworkViewer = true },
                 onDismiss = { sheetState.showMenu = false }
             )
         }
@@ -192,15 +190,6 @@ internal fun NowPlayingScreenSheetsHost(
                 initialArtist = currentSong.artist,
                 albumId = currentSong.albumId,
                 onDismiss = { sheetState.showCoverSearch = false }
-            )
-        }
-    }
-    if (sheetState.showArtworkViewer) {
-        song?.let { currentSong ->
-            FullScreenArtworkSheet(
-                song = currentSong,
-                onSearchCoverOnline = { sheetState.showCoverSearch = true },
-                onDismiss = { sheetState.showArtworkViewer = false }
             )
         }
     }

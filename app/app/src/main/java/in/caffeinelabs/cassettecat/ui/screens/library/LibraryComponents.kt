@@ -653,7 +653,7 @@ internal fun FolderCard(
 
         Icon(
             painter = painterResource(R.drawable.lucide_ic_folder),
-            contentDescription = "Play",
+            contentDescription = stringResource(AppR.string.library_play),
             tint = if (hasArt) Color.White else MaterialTheme.colorScheme.tertiary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -665,7 +665,7 @@ internal fun FolderCard(
         if (onChangeCover != null && !selectionMode) {
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_image_plus),
-                contentDescription = "Change cover",
+                contentDescription = stringResource(AppR.string.desc_change_folder_cover),
                 tint = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -728,7 +728,7 @@ internal fun CollectionListRow(
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     painter = painterResource(secondaryActionIconRes),
-                    contentDescription = "Change cover",
+                    contentDescription = stringResource(AppR.string.desc_change_folder_cover),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp).tapScale(onSecondaryAction)
                 )
@@ -889,9 +889,9 @@ internal fun LikedSongsCard(songs: List<Song>, onClick: () -> Unit, onPlay: () -
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text("Liked Songs", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
+        Text(stringResource(AppR.string.library_liked_songs_title), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
         Text(
-            if (songs.size == 1) "1 song" else "${songs.size} songs",
+            pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -931,7 +931,7 @@ internal fun PlaylistCard(
         Spacer(Modifier.height(8.dp))
         Text(playlist.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
-            if (songs.size == 1) "1 song" else "${songs.size} songs",
+            pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1017,9 +1017,9 @@ internal fun SmartPlaylistCard(
             )
         }
         Spacer(Modifier.height(8.dp))
-        Text(type.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(stringResource(type.titleRes), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
-            type.description,
+            stringResource(type.descriptionRes),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -1051,8 +1051,8 @@ internal fun PlaylistList(
     ) {
         item(key = "liked-songs") {
             CollectionListRow(
-                title = "Liked Songs",
-                subtitle = if (likedSongs.size == 1) "1 song" else "${likedSongs.size} songs",
+                title = stringResource(AppR.string.library_liked_songs_title),
+                subtitle = pluralStringResource(AppR.plurals.library_songs, likedSongs.size, likedSongs.size),
                 onClick = { if (!selectionMode) onOpenLikedSongs() },
                 onPlay = { if (likedSongs.isNotEmpty()) onPlay(likedSongs) }
             ) {
@@ -1066,8 +1066,8 @@ internal fun PlaylistList(
         }
         items(SmartPlaylistType.entries.toTypedArray(), key = { "smart-${it.id}" }) { type ->
             CollectionListRow(
-                title = type.title,
-                subtitle = type.description,
+                title = stringResource(type.titleRes),
+                subtitle = stringResource(type.descriptionRes),
                 onClick = { if (!selectionMode) onOpenSmartPlaylist(type) },
                 onPlay = { onOpenSmartPlaylist(type) }
             ) {
@@ -1085,7 +1085,7 @@ internal fun PlaylistList(
             }
             CollectionListRow(
                 title = playlist.name,
-                subtitle = if (songs.size == 1) "1 song" else "${songs.size} songs",
+                subtitle = pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
                 onClick = { if (selectionMode) onToggleSelect(playlist.id) else onClick(playlist.id) },
                 onPlay = { if (songs.isNotEmpty()) onPlay(songs) },
                 onLongClick = { onToggleSelect(playlist.id) },
@@ -1142,7 +1142,7 @@ internal fun SourceWarningBanner(
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     painter = painterResource(R.drawable.lucide_ic_x),
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(AppR.string.action_dismiss),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(18.dp)

@@ -617,6 +617,8 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private var syncWidgetJob: Job? = null
+
     private fun syncWidgetState(player: Player) {
         val metadata = player.mediaMetadata
         val title = metadata.title?.toString()
@@ -625,20 +627,28 @@ class PlaybackService : MediaLibraryService() {
         val isPlaying = player.isPlaying
         val artworkData = metadata.artworkData
         val artworkUri = metadata.artworkUri
-        serviceScope.launch(Dispatchers.Default) {
-            val artBitmap = artworkData?.let { data ->
+
+        syncWidgetJob?.cancel()
+        syncWidgetJob = serviceScope.launch(Dispatchers.Default) {
+            val hasWidgets = CassetteWidgetProvider.hasActiveWidgets(this@PlaybackService)
+            val artBitmap = if (hasWidgets) {
+                artworkData?.let { data ->
+                    runCatching {
+                        decodeSampledBitmap(data, maxDimension = 120)?.scale(120, 120)
+                    }.getOrNull()
+                } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
+            } else null
+
+            if (hasWidgets) {
                 runCatching {
-                    decodeSampledBitmap(data, maxDimension = 120)?.scale(120, 120)
-                }.getOrNull()
-            } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
-            runCatching {
-                CassetteWidgetProvider.updateAllWidgets(
-                    context = this@PlaybackService,
-                    title = title,
-                    artist = artist,
-                    isPlaying = isPlaying,
-                    artBitmap = artBitmap
-                )
+                    CassetteWidgetProvider.updateAllWidgets(
+                        context = this@PlaybackService,
+                        title = title,
+                        artist = artist,
+                        isPlaying = isPlaying,
+                        artBitmap = artBitmap
+                    )
+                }
             }
             runCatching {
                 TileService.requestListeningState(this@PlaybackService, ComponentName(this@PlaybackService, PlaybackTileService::class.java))
@@ -900,7 +910,7 @@ private suspend fun resolveArtworkBitmap(
                 }
             }
             "http", "https" -> {
-                val bitmap = `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader().load(uri, thumbnail = true)
+                val bitmap = `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader.getInstance().load(uri, thumbnail = true)
                 if (bitmap != null) return bitmap
             }
             "content" -> {

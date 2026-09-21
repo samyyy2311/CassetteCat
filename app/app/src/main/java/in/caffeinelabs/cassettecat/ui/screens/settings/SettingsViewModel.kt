@@ -1,8 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import java.io.File
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
@@ -75,6 +77,12 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val _updateCheckResult = MutableStateFlow<UpdateCheckResult?>(null)
     val updateCheckResult: StateFlow<UpdateCheckResult?> = _updateCheckResult.asStateFlow()
 
+    private val _downloadProgress = MutableStateFlow<Float?>(null)
+    val downloadProgress: StateFlow<Float?> = _downloadProgress.asStateFlow()
+
+    private val _downloadedApk = MutableStateFlow<File?>(null)
+    val downloadedApk: StateFlow<File?> = _downloadedApk.asStateFlow()
+
     fun disconnect(protocol: StreamingProtocol) {
         viewModelScope.launch {
             serverRepository.disconnect(protocol)
@@ -97,7 +105,36 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 return@launch
             }
             _updateCheckResult.value = null
+            _downloadProgress.value = null
+            _downloadedApk.value = null
             _updateCheckResult.value = updateChecker.checkForUpdate(currentVersion)
+        }
+    }
+
+    fun downloadAndInstallUpdate(context: Context, update: UpdateCheckResult.UpdateAvailable) {
+        val downloadUrl = update.downloadUrl ?: return
+        if (_downloadProgress.value != null) return
+        viewModelScope.launch {
+            _downloadProgress.value = 0f
+            updateChecker.cleanOldUpdates(context.cacheDir)
+            val apkFile = File(File(context.cacheDir, "updates"), "CassetteCat-v${update.version}.apk")
+            val success = updateChecker.downloadApk(downloadUrl, apkFile) { progress ->
+                _downloadProgress.value = progress
+            }
+            _downloadProgress.value = null
+            if (success) {
+                _downloadedApk.value = apkFile
+                updateChecker.installApk(context, apkFile)
+            }
+        }
+    }
+
+    fun installDownloadedApk(context: Context) {
+        val file = _downloadedApk.value ?: return
+        if (file.exists()) {
+            updateChecker.installApk(context, file)
+        } else {
+            _downloadedApk.value = null
         }
     }
 
@@ -259,10 +296,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setShowNowPlayingBlur(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setShowNowPlayingBlur(enabled) }
-    }
-
-    fun setFullScreenNowPlayingArt(enabled: Boolean) {
-        viewModelScope.launch { appPreferencesRepository.setFullScreenNowPlayingArt(enabled) }
     }
 
     fun setSwipeUpLyricsEnabled(enabled: Boolean) {

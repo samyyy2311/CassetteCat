@@ -22,10 +22,23 @@ object SmartShuffle {
         }
 
         val spreadNonSkipped = spreadArtists(candidatePool, previousSong)
-        if (skipped.isEmpty()) return spreadNonSkipped
+        val orderedNonSkipped = if (fresh.isNotEmpty() && spreadNonSkipped.isNotEmpty() && spreadNonSkipped.first().id in recentHistoryIds) {
+            val freshIndex = spreadNonSkipped.indexOfFirst { it.id !in recentHistoryIds }
+            if (freshIndex > 0) {
+                val list = spreadNonSkipped.toMutableList()
+                val freshSong = list.removeAt(freshIndex)
+                list.add(0, freshSong)
+                list
+            } else {
+                spreadNonSkipped
+            }
+        } else {
+            spreadNonSkipped
+        }
+        if (skipped.isEmpty()) return orderedNonSkipped
 
-        val spreadSkipped = spreadArtists(skipped.shuffled().toMutableList(), spreadNonSkipped.lastOrNull())
-        return spreadNonSkipped + spreadSkipped
+        val spreadSkipped = spreadArtists(skipped.shuffled().toMutableList(), orderedNonSkipped.lastOrNull())
+        return orderedNonSkipped + spreadSkipped
     }
 
     fun shuffleAll(
@@ -99,7 +112,7 @@ object SmartShuffle {
                     }
                 }
                 if (!moved) {
-                    for (k in 0 until i) {
+                    for (k in (i - 1) downTo 0) {
                         val prevNeighbor = pool.getOrNull(k - 1)
                         val nextNeighbor = pool.getOrNull(k)
                         val prevMatches = prevNeighbor != null && prevNeighbor.artist.isNotBlank() && prevNeighbor.artist.equals(currentArtist, ignoreCase = true)

@@ -13,9 +13,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.offline.Download
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -34,7 +36,7 @@ fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
     when (state) {
         Download.STATE_COMPLETED -> Icon(
             painter = painterResource(R.drawable.lucide_ic_circle_check),
-            contentDescription = "Downloaded",
+            contentDescription = stringResource(AppR.string.desc_downloaded),
             tint = MaterialTheme.colorScheme.tertiary,
             modifier = modifier.size(16.dp)
         )
@@ -45,7 +47,7 @@ fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
         )
         Download.STATE_FAILED -> Icon(
             painter = painterResource(R.drawable.lucide_ic_circle_alert),
-            contentDescription = "Download failed",
+            contentDescription = stringResource(AppR.string.desc_download_failed),
             tint = MaterialTheme.colorScheme.error,
             modifier = modifier.size(16.dp)
         )

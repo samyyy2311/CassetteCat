@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -106,7 +107,7 @@ fun HomeScreen(
     }
     val heroSong = remember(allSongs) { allSongs.randomOrNull() }
 
-    val greeting = remember { getDynamicGreeting() }
+    val greetingRes = remember { getDynamicGreetingRes() }
 
     val heavyRotation = remember(allSongs, monthlyStats) {
         val counts = monthlyStats.values
@@ -166,11 +167,11 @@ fun HomeScreen(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    greeting,
+                    stringResource(greetingRes),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
-                    "Quick picks, recently played, and your favorites",
+                    stringResource(AppR.string.home_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
@@ -178,7 +179,7 @@ fun HomeScreen(
             }
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_car,
-                contentDescription = "Drive Mode",
+                contentDescription = stringResource(AppR.string.home_drive_mode),
                 onClick = onNavigateToDriveMode
             )
         }
@@ -196,12 +197,12 @@ fun HomeScreen(
                 Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     EmptyState(
                         catRes = AppR.drawable.cat_black_cassette,
-                        title = "Nothing here yet",
-                        message = "Scan your device or connect a streaming source to get started.",
-                        actionLabel = "Scan Library",
+                        title = stringResource(AppR.string.home_empty_title),
+                        message = stringResource(AppR.string.home_empty_message),
+                        actionLabel = stringResource(AppR.string.home_empty_action),
                         actionIconRes = R.drawable.lucide_ic_refresh_cw,
                         onAction = { libraryViewModel.refresh() },
-                        secondaryActionLabel = if (onNavigateToScanFolders != null) "Manage Scan Folders" else null,
+                        secondaryActionLabel = if (onNavigateToScanFolders != null) stringResource(AppR.string.home_empty_secondary_action) else null,
                         onSecondaryAction = onNavigateToScanFolders,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -252,13 +253,18 @@ fun HomeScreen(
                         if (songs.isNotEmpty()) {
                             item(key = "home_${section.name}") {
                                 HomeSongSection(
-                                    title = section.label,
-                                    subtitle = when (section) {
-                                        HomeSection.HEAVY_ROTATION -> "Your most played tracks"
-                                        HomeSection.RECENTLY_PLAYED -> "Pick up where you left off"
-                                        HomeSection.RECENTLY_ADDED -> "Fresh in your library"
-                                        HomeSection.FORGOTTEN_FAVORITES -> "Rediscover what you loved"
-                                    },
+                                    title = stringResource(when (section) {
+                                        HomeSection.HEAVY_ROTATION -> AppR.string.customization_home_heavy_rotation
+                                        HomeSection.RECENTLY_PLAYED -> AppR.string.customization_home_recently_played
+                                        HomeSection.RECENTLY_ADDED -> AppR.string.customization_home_recently_added
+                                        HomeSection.FORGOTTEN_FAVORITES -> AppR.string.customization_home_forgotten_favorites
+                                    }),
+                                    subtitle = stringResource(when (section) {
+                                        HomeSection.HEAVY_ROTATION -> AppR.string.home_section_heavy_rotation_desc
+                                        HomeSection.RECENTLY_PLAYED -> AppR.string.home_section_recently_played_desc
+                                        HomeSection.RECENTLY_ADDED -> AppR.string.home_section_recently_added_desc
+                                        HomeSection.FORGOTTEN_FAVORITES -> AppR.string.home_section_forgotten_favorites_desc
+                                    }),
                                     songs = songs,
                                     onSongClick = { play(songs, it) },
                                     onPlay = { playAll(songs, shuffle = false) },
@@ -271,8 +277,8 @@ fun HomeScreen(
                     if (favorites.isNotEmpty()) {
                         item {
                             HomeSongSection(
-                                title = "Favorites",
-                                subtitle = "Songs you've loved",
+                                title = stringResource(AppR.string.home_favorites),
+                                subtitle = stringResource(AppR.string.home_favorites_desc),
                                 songs = favorites,
                                 onSongClick = { play(favorites, it) },
                                 onPlay = { playAll(favorites, shuffle = false) },
@@ -318,7 +324,7 @@ private fun LibrarySnapshot(songs: List<Song>, onClick: () -> Unit) {
     val artistCount = remember(songs) { songs.groupedByArtist().size }
     val albumCount = remember(songs) { songs.groupedByAlbum().size }
     Text(
-        "${songs.size} songs · $artistCount artists · $albumCount albums",
+        stringResource(AppR.string.home_library_snapshot, songs.size, artistCount, albumCount),
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 24.dp).tapScale(onClick)
@@ -357,16 +363,16 @@ private fun ShuffleAllHero(heroSong: Song?, songCount: Int, onClick: () -> Unit)
             verticalAlignment = Alignment.Bottom
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Start somewhere new", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.home_start_somewhere_new), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    if (songCount == 1) "Shuffle 1 song" else "Shuffle all $songCount songs",
+                    if (songCount == 1) stringResource(AppR.string.home_shuffle_one_song) else stringResource(AppR.string.home_shuffle_all_songs, songCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_shuffle,
-                contentDescription = "Shuffle library",
+                contentDescription = stringResource(AppR.string.home_shuffle_library),
                 onClick = onClick
             )
         }
@@ -439,9 +445,9 @@ private fun HomeSongCard(song: Song, onClick: () -> Unit) {
 @Composable
 private fun ShufflePicksHeader() {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        Text("For right now", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(AppR.string.home_for_right_now), style = MaterialTheme.typography.titleLarge)
         Text(
-            "A few picks from your library",
+            stringResource(AppR.string.home_for_right_now_desc),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -452,7 +458,7 @@ private val SOFT_GENRE_KEYWORDS = setOf("ambient", "chill", "lofi", "lo-fi", "ja
 
 private fun Song.isSoftGenre(): Boolean = genres.any { g -> SOFT_GENRE_KEYWORDS.any { g.lowercase().contains(it) } }
 
-private fun getDynamicGreeting(): String {
+private fun getDynamicGreetingRes(): Int {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
@@ -460,46 +466,46 @@ private fun getDynamicGreeting(): String {
 
     val options = when (hour) {
         in 5..8 -> listOf(
-            "Good morning",
-            "Early rise soundtrack",
-            "Morning coffee & tape",
-            "Start your day"
+            AppR.string.greeting_good_morning,
+            AppR.string.greeting_early_rise,
+            AppR.string.greeting_morning_coffee,
+            AppR.string.greeting_start_day
         )
         in 9..11 -> listOf(
-            "Good morning",
-            "Morning focus",
-            "The daily rotation",
-            "Morning soundscape",
-            if (isWeekend) "Weekend morning" else "Workday soundtrack"
+            AppR.string.greeting_good_morning,
+            AppR.string.greeting_morning_focus,
+            AppR.string.greeting_daily_rotation,
+            AppR.string.greeting_morning_soundscape,
+            if (isWeekend) AppR.string.greeting_weekend_morning else AppR.string.greeting_workday_soundtrack
         )
         in 12..16 -> listOf(
-            "Good afternoon",
-            "Afternoon session",
-            "Midday rhythm",
-            "Afternoon groove",
-            if (isWeekend) "Weekend afternoon" else "Afternoon flow"
+            AppR.string.greeting_good_afternoon,
+            AppR.string.greeting_afternoon_session,
+            AppR.string.greeting_midday_rhythm,
+            AppR.string.greeting_afternoon_groove,
+            if (isWeekend) AppR.string.greeting_weekend_afternoon else AppR.string.greeting_afternoon_flow
         )
         in 17..21 -> listOf(
-            "Good evening",
-            "Golden hour grooves",
-            "Evening listening",
-            "Winding down",
-            if (isWeekend) "Saturday night session" else "Evening unwind"
+            AppR.string.greeting_good_evening,
+            AppR.string.greeting_golden_hour,
+            AppR.string.greeting_evening_listening,
+            AppR.string.greeting_winding_down,
+            if (isWeekend) AppR.string.greeting_saturday_night else AppR.string.greeting_evening_unwind
         )
         in 22..23 -> listOf(
-            "Late night session",
-            "Midnight frequencies",
-            "Night owl tunes",
-            "Low-light listening",
-            "Late night rotation"
+            AppR.string.greeting_late_night_session,
+            AppR.string.greeting_midnight_frequencies,
+            AppR.string.greeting_night_owl,
+            AppR.string.greeting_low_light,
+            AppR.string.greeting_late_night_rotation
         )
         else -> listOf(
-            "Late night session",
-            "Deep night vibes",
-            "Midnight tape",
-            "Insomnia session",
-            "Quiet hours",
-            "After-hours rotation"
+            AppR.string.greeting_late_night_session,
+            AppR.string.greeting_deep_night,
+            AppR.string.greeting_midnight_tape,
+            AppR.string.greeting_insomnia_session,
+            AppR.string.greeting_quiet_hours,
+            AppR.string.greeting_after_hours_rotation
         )
     }
     return options.random()

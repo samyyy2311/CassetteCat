@@ -5,10 +5,14 @@ All notable changes to CassetteCat are documented in this file.
 ## [1.7.3]
 
 * Smart shuffle now remembers what you skipped and pushes those tracks to the end of the queue so they don't come back right away.
+* Online cover search is much more reliable with search fallbacks and support across local and streaming music libraries.
+* Big battery and memory tune-ups: reduced background CPU wakeups during playback, lighter accelerometer polling for shake to skip, and leaner image caching.
+* The system back button now behaves consistently everywhere, including the player sheet, drive mode, and your chosen start screen.
+* Removed full-screen artwork viewer to keep the player fast and focused.
 * Lyrics search has a new optional artist field and cleaner result cards to make picking the right match easier.
-* The track actions sheet is now split into labeled sections, scrolls past the navigation bar, and highlights active options like Bluetooth, Sleep Timer, and Playback Speed in red.
+* Track actions sheet is now split into labeled sections, scrolls past the navigation bar, and highlights active options like Bluetooth, Sleep Timer, and Playback Speed in red.
 * Autoplay is smarter about collaborations, related genres, and era when picking what to play next.
-* Playback now fades in and out slightly when you pause or resume.
+* Direct in-app updates: download and install new releases right from Settings without needing to open GitHub in a browser.
 * All in-app text is now stored in Android string resources, laying the groundwork for translations.
 
 ## [1.7.2]

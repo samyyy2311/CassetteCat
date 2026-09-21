@@ -47,6 +47,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -289,7 +290,7 @@ fun SearchScreen(
                 if (query.isNotEmpty()) {
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_x,
-                        contentDescription = "Clear",
+                        contentDescription = stringResource(AppR.string.action_clear),
                         onClick = {
                             query = ""
                             selectedCategory = SearchCategory.ALL
@@ -355,7 +356,7 @@ fun SearchScreen(
 
                     if (topArtists.isNotEmpty()) {
                         item(key = "top_artists") {
-                            SearchSectionHeader("Top Artists")
+                            SearchSectionHeader(stringResource(AppR.string.search_section_top_artists))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 24.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -376,7 +377,7 @@ fun SearchScreen(
 
                     if (popularGenres.isNotEmpty()) {
                         item(key = "explore_genres") {
-                            SearchSectionHeader("Explore Genres")
+                            SearchSectionHeader(stringResource(AppR.string.search_section_explore_genres))
                             Spacer(Modifier.height(12.dp))
                             Column(
                                 modifier = Modifier
@@ -443,7 +444,7 @@ fun SearchScreen(
                             SearchCategory.ALL -> {
                                 if (matchedArtists.isNotEmpty()) {
                                     item(key = "section_artists", contentType = "section_artists") {
-                                        SearchSectionHeader("Artists")
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_artists))
                                         LazyRow(
                                             contentPadding = PaddingValues(horizontal = 24.dp),
                                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -464,7 +465,7 @@ fun SearchScreen(
 
                                 if (matchedAlbums.isNotEmpty()) {
                                     item(key = "section_albums", contentType = "section_albums") {
-                                        SearchSectionHeader("Albums")
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_albums))
                                         LazyRow(
                                             contentPadding = PaddingValues(horizontal = 24.dp),
                                             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -485,7 +486,7 @@ fun SearchScreen(
 
                                 if (matchedSongs.isNotEmpty()) {
                                     item(key = "section_songs_header", contentType = "section_songs_header") {
-                                        SearchSectionHeader("Songs")
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_songs))
                                         Spacer(Modifier.height(6.dp))
                                     }
                                     items(matchedSongs.take(15), key = { it.id }, contentType = { "song" }) { song ->
@@ -500,7 +501,7 @@ fun SearchScreen(
                                 if (matchedGenres.isNotEmpty()) {
                                     item(key = "section_genres", contentType = "section_genres") {
                                         Spacer(Modifier.height(12.dp))
-                                        SearchSectionHeader("Genres")
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_genres))
                                         Spacer(Modifier.height(8.dp))
                                         Column(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -534,7 +535,7 @@ fun SearchScreen(
                                 if (matchedFolders.isNotEmpty()) {
                                     item(key = "section_folders", contentType = "section_folders") {
                                         Spacer(Modifier.height(16.dp))
-                                        SearchSectionHeader("Folders")
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_folders))
                                         Spacer(Modifier.height(8.dp))
                                         Column(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),

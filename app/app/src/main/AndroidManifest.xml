@@ -25,6 +25,7 @@
         tools:targetApi="33" />
     <!-- Android 14+: lets the player offer a contextual share suggestion after a screenshot. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Package visibility for direct app icons and share targets (WhatsApp, Instagram) -->
     <queries>
@@ -47,6 +48,7 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
+        android:localeConfig="@xml/locales_config"
         tools:targetApi="33">
 
         <activity

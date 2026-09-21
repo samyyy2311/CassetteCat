@@ -34,11 +34,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumGroup
@@ -74,6 +76,16 @@ internal fun SearchCategoryPills(
             val contentColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
             val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
 
+            val label = stringResource(
+                when (category) {
+                    SearchCategory.ALL -> AppR.string.search_category_all
+                    SearchCategory.SONGS -> AppR.string.search_section_songs
+                    SearchCategory.ARTISTS -> AppR.string.search_section_artists
+                    SearchCategory.ALBUMS -> AppR.string.search_section_albums
+                    SearchCategory.GENRES -> AppR.string.search_section_genres
+                    SearchCategory.FOLDERS -> AppR.string.search_section_folders
+                }
+            )
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
@@ -84,7 +96,7 @@ internal fun SearchCategoryPills(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = category.label,
+                    text = label,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     ),
@@ -113,7 +125,7 @@ internal fun RecentSearchesSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Recent Searches",
+                stringResource(AppR.string.search_recent_searches),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
             TextButton(
@@ -121,7 +133,7 @@ internal fun RecentSearchesSection(
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    "Clear",
+                    stringResource(AppR.string.action_clear),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -171,7 +183,7 @@ internal fun RecentSearchesSection(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_x),
-                            contentDescription = "Remove",
+                            contentDescription = stringResource(AppR.string.action_remove),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(12.dp)
                         )
@@ -224,7 +236,7 @@ internal fun SearchGenreTile(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (genreGroup.songs.size == 1) "1 song" else "${genreGroup.songs.size} songs",
+                text = if (genreGroup.songs.size == 1) stringResource(AppR.string.search_one_song) else stringResource(AppR.string.search_songs_count, genreGroup.songs.size),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = Color.White.copy(alpha = 0.85f)
             )
@@ -351,7 +363,7 @@ internal fun SearchFolderRow(
             )
         }
         Text(
-            text = if (folderGroup.songs.size == 1) "1 song" else "${folderGroup.songs.size} songs",
+            text = if (folderGroup.songs.size == 1) stringResource(AppR.string.search_one_song) else stringResource(AppR.string.search_songs_count, folderGroup.songs.size),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)

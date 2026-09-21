@@ -464,32 +464,32 @@ fun LibraryScreen(
                 ) {
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_check_check,
-                        label = "Select All",
+                        label = stringResource(AppR.string.library_select_all),
                         onClick = { selectedIds = allIdsForCurrentTab() }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_play,
-                        label = "Play Next",
+                        label = stringResource(AppR.string.library_play_next),
                         onClick = { addSelectedToUpNext(selectedSongs()) }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_list_plus,
-                        label = "Queue",
+                        label = stringResource(AppR.string.library_queue),
                         onClick = { addSelectedToQueue(selectedSongs()) }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_list_music,
-                        label = "Playlist",
+                        label = stringResource(AppR.string.library_playlist),
                         onClick = { showPlaylistPicker = true }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_download,
-                        label = "Download",
+                        label = stringResource(AppR.string.library_download),
                         onClick = { downloadSelected(selectedSongs()) }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_share_2,
-                        label = "Share",
+                        label = stringResource(AppR.string.library_share),
                         onClick = { shareSelected(selectedSongs()) }
                     )
                     val selSongs = if (selectionMode) selectedSongs() else emptyList()
@@ -498,7 +498,7 @@ fun LibraryScreen(
                     if (canAssignCover) {
                         SelectionActionChip(
                             iconRes = R.drawable.lucide_ic_image,
-                            label = "Cover",
+                            label = stringResource(AppR.string.library_cover),
                             onClick = {
                                 val target = selSongs.firstOrNull()
                                 if (target != null) {

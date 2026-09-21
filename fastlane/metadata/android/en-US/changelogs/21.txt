@@ -1,7 +1,9 @@
 What's new in 1.7.3:
 
 - Smarter shuffle: skips-aware queue ordering that remembers what you skipped and avoids replaying it right away
+- Reliable cover search: query fallbacks and custom artwork overrides for local and streaming libraries
+- Battery and memory optimizations: reduced background CPU wakeups and lighter sensor polling
+- Consistent back button navigation across the player sheet, drive mode, and start screens
 - Better lyrics search: side-by-side artist and title search with cleaner match results
 - Refined track actions sheet: categorized menu options, smoother scrolling, and clearer active indicators
-- Library localization and smoother playback queue transitions
-- Release bundles: added AAB package support for release builds
+- Direct in-app updates: download and install new releases from Settings without needing a browser

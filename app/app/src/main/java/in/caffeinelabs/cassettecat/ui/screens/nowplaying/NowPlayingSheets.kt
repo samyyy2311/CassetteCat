@@ -123,7 +123,6 @@ internal fun NowPlayingActionsSheet(
     onOpenSleepTimer: () -> Unit,
     onOpenDriveMode: () -> Unit = {},
     onSearchCoverOnline: () -> Unit = {},
-    onOpenArtworkViewer: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val btDevice = rememberConnectedBluetoothDevice()
@@ -181,10 +180,6 @@ internal fun NowPlayingActionsSheet(
                             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                             RoundedCornerShape(10.dp)
                         )
-                        .tapScale {
-                            onOpenArtworkViewer()
-                            onDismiss()
-                        }
                 ) {
                     AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
                 }
@@ -346,16 +341,6 @@ internal fun NowPlayingActionsSheet(
                 hasChevron = true,
                 onClick = {
                     onOpenCredits()
-                    onDismiss()
-                }
-            )
-            SongActionRow(
-                iconRes = R.drawable.lucide_ic_maximize_2,
-                label = stringResource(AppR.string.now_playing_view_artwork),
-                subtitle = stringResource(AppR.string.now_playing_view_artwork_description),
-                hasChevron = true,
-                onClick = {
-                    onOpenArtworkViewer()
                     onDismiss()
                 }
             )
@@ -1403,83 +1388,6 @@ internal fun SleepTimerPickerSheet(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun FullScreenArtworkSheet(
-    song: Song,
-    onSearchCoverOnline: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    FullOpenBottomSheet(onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            ) {
-                AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
-            }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = song.album,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (song.releaseYear != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = song.releaseYear.toString(),
-                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .tapScale {
-                        onDismiss()
-                        onSearchCoverOnline()
-                    }
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_image),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    stringResource(AppR.string.now_playing_search_cover_short),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
             }
         }
     }

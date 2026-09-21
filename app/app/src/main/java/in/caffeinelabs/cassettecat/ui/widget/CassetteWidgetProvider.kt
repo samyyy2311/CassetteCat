@@ -25,6 +25,13 @@ class CassetteWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        fun hasActiveWidgets(context: Context): Boolean = runCatching {
+            val appWidgetManager = AppWidgetManager.getInstance(context) ?: return@runCatching false
+            val componentName = ComponentName(context, CassetteWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            appWidgetIds != null && appWidgetIds.isNotEmpty()
+        }.getOrDefault(false)
+
         fun updateAllWidgets(
             context: Context,
             title: String?,

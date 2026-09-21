@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -93,6 +94,7 @@ fun StatsScreen(
     var showClearConfirm by remember { mutableStateOf(false) }
     var showAllMostPlayed by rememberSaveable { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
+    val playlistTitleTemplate = stringResource(AppR.string.stats_playlist_title)
 
     val availableMonths = remember(monthlyStats) {
         monthlyStats.keys.mapNotNull { runCatching { YearMonth.parse(it) }.getOrNull() }.sortedDescending()
@@ -176,7 +178,7 @@ fun StatsScreen(
         BackHandler { showAllMostPlayed = false }
         MostPlayedTracksScreen(
             songs = computed.topSongs,
-            monthName = if (isRewindMode) "Year $year" else monthName,
+            monthName = if (isRewindMode) stringResource(AppR.string.stats_year_title, year ?: 0) else monthName,
             onBack = { showAllMostPlayed = false },
             onPlay = { stat ->
                 val wasIdle = playbackViewModel.playbackState.value.currentSong == null
@@ -196,21 +198,21 @@ fun StatsScreen(
         ) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = "Back",
+                contentDescription = stringResource(AppR.string.action_back),
                 onClick = onBack
             )
-            Text("Listening Record", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(AppR.string.stats_listening_record), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             if (activeStats != null && year != null) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_share_2,
-                    contentDescription = "Share",
+                    contentDescription = stringResource(AppR.string.action_share),
                     onClick = { showShareSheet = true }
                 )
             }
             if (monthlyStats.isNotEmpty()) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_trash_2,
-                    contentDescription = "Clear stats",
+                    contentDescription = stringResource(AppR.string.stats_clear_stats_desc),
                     onClick = { showClearConfirm = true }
                 )
             }
@@ -224,8 +226,8 @@ fun StatsScreen(
         } else if (month == null || year == null) {
             EmptyState(
                 catRes = AppR.drawable.cat_orange_headphones,
-                title = "No plays yet",
-                message = "Play something past the halfway point and it'll show up here.",
+                title = stringResource(AppR.string.stats_empty_title),
+                message = stringResource(AppR.string.stats_empty_message),
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -276,7 +278,7 @@ fun StatsScreen(
                     onViewAllMostPlayed = { showAllMostPlayed = true },
                     onSavePlaylist = {
                         val monthNameFormatted = month.month.getDisplayName(TextStyle.FULL, locale)
-                        val name = "Listening Record: $monthNameFormatted ${month.year}"
+                        val name = String.format(locale, playlistTitleTemplate, monthNameFormatted, month.year)
                         val songIds = computed.topSongs.map { it.song.id }
                         playlistViewModel.create(name) { playlist: Playlist ->
                             playlistViewModel.addSongs(playlist.id, songIds)
@@ -291,24 +293,28 @@ fun StatsScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear listening stats?") },
-            text = { Text("This can't be undone.") },
+            title = { Text(stringResource(AppR.string.stats_clear_confirm_title)) },
+            text = { Text(stringResource(AppR.string.stats_clear_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = hapticClick {
                     showClearConfirm = false
                     scope.launch { repository.clearAll() }
                 }) {
-                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(AppR.string.action_clear), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = hapticClick { showClearConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = hapticClick { showClearConfirm = false }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }
 
     if (showShareSheet && year != null) {
-        val titleLabel = if (isRewindMode) "Cassette Rewind $year" else "$monthName $year"
+        val titleLabel = if (isRewindMode) {
+            stringResource(AppR.string.stats_rewind_title, year)
+        } else {
+            stringResource(AppR.string.stats_period_title, monthName, year)
+        }
         ListeningRecordShareSheet(
             monthAbbreviation = monthAbbreviation,
             yearLabel = year.toString(),

@@ -165,32 +165,6 @@ internal fun NowPlayingPlayerView(
                 LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
             }
         }
-    } else if (preferences.fullScreenNowPlayingArt) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            art(Modifier.fillMaxSize())
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.38f to Color.Transparent,
-                            0.70f to Color.Black.copy(alpha = 0.75f),
-                            1f to Color.Black.copy(alpha = 0.95f)
-                        )
-                    )
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 20.dp)
-            ) {
-                info()
-                Spacer(Modifier.height(48.dp))
-                LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
-            }
-        }
     } else {
         Column(
             modifier = Modifier

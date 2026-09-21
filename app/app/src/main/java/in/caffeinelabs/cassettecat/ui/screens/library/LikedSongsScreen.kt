@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
@@ -86,10 +87,10 @@ fun LikedSongsScreen(
             modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Liked Songs", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(AppR.string.library_liked_songs_title), style = MaterialTheme.typography.headlineSmall)
                 Text(
                     subtitleDetails,
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
@@ -99,7 +100,7 @@ fun LikedSongsScreen(
             if (downloadableSongs.isNotEmpty()) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_download,
-                    contentDescription = "Download liked songs",
+                    contentDescription = stringResource(AppR.string.desc_download_liked_songs),
                     onClick = { downloadableSongs.forEach(downloadRepository::download) }
                 )
                 Spacer(Modifier.width(4.dp))

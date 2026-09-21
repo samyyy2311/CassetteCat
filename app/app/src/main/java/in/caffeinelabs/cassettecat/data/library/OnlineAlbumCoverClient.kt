@@ -66,18 +66,26 @@ class OnlineAlbumCoverClient {
     suspend fun searchCovers(album: String, artist: String): List<OnlineCoverResult> = withContext(Dispatchers.IO) {
         val cleanAlbum = sanitizeQuery(album)
         val cleanArtist = sanitizeQuery(artist)
-        val query = "$cleanAlbum $cleanArtist".trim().ifBlank { cleanAlbum.ifBlank { cleanArtist } }
-        if (query.isBlank()) return@withContext emptyList()
+        val combinedQuery = "$cleanAlbum $cleanArtist".trim().ifBlank { cleanAlbum.ifBlank { cleanArtist } }
+        if (combinedQuery.isBlank()) return@withContext emptyList()
 
         coroutineScope {
-            val iTunesDeferred = async { searchITunes(query) }
-            val deezerDeferred = async { searchDeezer(query) }
+            val primaryResults = queryAllSources(combinedQuery)
+            if (primaryResults.size >= 4 || cleanAlbum.isBlank() || cleanAlbum == combinedQuery) {
+                return@coroutineScope primaryResults
+            }
 
-            val iTunesResults = iTunesDeferred.await()
-            val deezerResults = deezerDeferred.await()
-
-            (iTunesResults + deezerResults).distinctBy { it.downloadUrl }
+            val albumOnlyResults = queryAllSources(cleanAlbum)
+            (primaryResults + albumOnlyResults).distinctBy { it.downloadUrl }
         }
+    }
+
+    private suspend fun queryAllSources(query: String): List<OnlineCoverResult> = coroutineScope {
+        val iTunesDeferred = async { searchITunes(query) }
+        val deezerDeferred = async { searchDeezer(query) }
+        val iTunesResults = iTunesDeferred.await()
+        val deezerResults = deezerDeferred.await()
+        (iTunesResults + deezerResults).distinctBy { it.downloadUrl }
     }
 
     private fun searchITunes(query: String): List<OnlineCoverResult> = runCatching {
@@ -93,14 +101,14 @@ class OnlineAlbumCoverClient {
                 .replace(Regex("\\d+x\\d+bb[^\"]*"), "1200x1200bb.jpg")
                 .replace(Regex("/\\d+x\\d+[^\"]*"), "/1200x1200bb.jpg")
             OnlineCoverResult(
-                id = "itunes_${item.hashCode()}",
+                id = "itunes_${url100.hashCode()}_${albumName.hashCode()}",
                 album = albumName,
                 artist = artistName,
                 year = year,
                 previewUrl = url100,
                 downloadUrl = highRes,
                 source = CoverSource.ITUNES,
-                resolutionLabel = "1200×1200"
+                resolutionLabel = "1200x1200"
             )
         }
     }.getOrDefault(emptyList())
@@ -122,37 +130,38 @@ class OnlineAlbumCoverClient {
                 previewUrl = preview,
                 downloadUrl = download,
                 source = CoverSource.DEEZER,
-                resolutionLabel = "1000×1000"
+                resolutionLabel = "1000x1000"
             )
         }
     }.getOrDefault(emptyList())
 
-    suspend fun downloadCover(url: String): Bitmap? = withContext(Dispatchers.IO) {
-        runCatching {
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "CassetteCat/1.0")
-                .build()
-            sharedHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@runCatching null
-                val bytes = response.body.bytes()
-                decodeSampledBitmap(bytes, maxDimension = 1440)
-            }
-        }.getOrNull()
+    suspend fun downloadCover(url: String, fallbackUrl: String? = null): Bitmap? = withContext(Dispatchers.IO) {
+        downloadBitmap(url) ?: fallbackUrl?.let { downloadBitmap(it) }
     }
+
+    private fun downloadBitmap(url: String): Bitmap? = runCatching {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        sharedHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return@runCatching null
+            val bytes = response.body.bytes()
+            decodeSampledBitmap(bytes, maxDimension = 1440)
+        }
+    }.getOrNull()
 
     private fun getBody(url: String): String? =
         sharedHttpClient.newCall(
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "CassetteCat/1.0")
                 .build()
         ).execute().use {
             if (!it.isSuccessful) null else it.body.string()
         }
 
     private fun sanitizeQuery(input: String): String =
-        input.replace(Regex("(?i)\\[(remastered|deluxe|bonus|explicit|expanded|anniversary|edition|version|mono|stereo|reissue)[^\\]]*\\]"), "")
+        input.replace(Regex("(?i)<unknown>"), "")
+            .replace(Regex("(?i)\\[(remastered|deluxe|bonus|explicit|expanded|anniversary|edition|version|mono|stereo|reissue)[^\\]]*\\]"), "")
             .replace(Regex("(?i)\\((remastered|deluxe|bonus|explicit|expanded|anniversary|edition|version|mono|stereo|reissue|feat\\.?)[^\\)]*\\)"), "")
             .replace(Regex("(?i)-\\s*(remastered|deluxe|bonus|expanded|anniversary).*$"), "")
             .trim()

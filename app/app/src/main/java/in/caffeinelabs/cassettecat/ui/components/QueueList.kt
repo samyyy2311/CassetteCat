@@ -61,6 +61,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.abs
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -167,9 +169,9 @@ fun QueueList(
     ) {
         if (history.isNotEmpty()) {
             item(key = "history-header") {
-                SectionHeader("History") {
+                SectionHeader(stringResource(AppR.string.queue_section_history)) {
                     Text(
-                        "Clear",
+                        stringResource(AppR.string.action_clear),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
@@ -192,10 +194,10 @@ fun QueueList(
             }
         }
         item(key = "up-next-header") {
-            SectionHeader("Playing Next") {
+            SectionHeader(stringResource(AppR.string.queue_section_playing_next)) {
                 onSaveQueue?.let { save ->
                     Text(
-                        "Save",
+                        stringResource(AppR.string.action_save),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, fontSize = 14.sp),
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.clickable(onClick = hapticClick(save)).padding(horizontal = 8.dp, vertical = 4.dp)
@@ -261,7 +263,7 @@ fun QueueList(
                                     val iconScale = (abs(offsetPx) / 120f).coerceIn(0.6f, 1.15f)
                                     Icon(
                                         painter = painterResource(R.drawable.lucide_ic_trash_2),
-                                        contentDescription = "Remove from queue",
+                                        contentDescription = stringResource(AppR.string.queue_remove_from_queue),
                                         tint = Color.White,
                                         modifier = Modifier
                                             .size(22.dp)
@@ -295,7 +297,7 @@ fun QueueList(
                         )
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_grip_vertical),
-                            contentDescription = "Drag to reorder",
+                            contentDescription = stringResource(AppR.string.queue_drag_to_reorder),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .graphicsLayer { alpha = handleAlpha }
