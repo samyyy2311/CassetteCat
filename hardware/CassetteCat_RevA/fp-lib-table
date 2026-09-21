@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "CassetteCat_Modules") (type "KiCad") (uri "C:/Users/ladsa/Downloads/Adafruit_TLV320DAC3100_KiCad_Module/Adafruit_TLV320DAC3100_KiCad/CassetteCat_Modules.pretty") (options "") (descr ""))
+)

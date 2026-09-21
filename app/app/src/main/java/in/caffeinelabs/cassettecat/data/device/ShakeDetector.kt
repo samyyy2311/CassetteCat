@@ -27,7 +27,6 @@ class ShakeDetector(
     private var firstPulseTimestamp = 0L
     private var lastPulseTimestamp = 0L
 
-    // Low-pass filtered gravity estimation for gravity-isolated dynamic acceleration
     private val gravity = FloatArray(3) { 0f }
     private var isGravityInitialized = false
 
@@ -104,7 +103,7 @@ class ShakeDetector(
         if (now - lastUncoveredTimestamp < POCKET_UNCOVER_GRACE_MS) return
         if (now - lastShakeTimestamp < SHAKE_COOLDOWN_MS) return
 
-        // Remove steady gravity before measuring hand motion.
+        // Remove gravity before measuring shake acceleration.
         val rawX = event.values[0]
         val rawY = event.values[1]
         val rawZ = event.values[2]
@@ -126,7 +125,7 @@ class ShakeDetector(
         val dynamicZ = (rawZ - gravity[2]) / SensorManager.GRAVITY_EARTH
         val dynamicGForce = sqrt(dynamicX * dynamicX + dynamicY * dynamicY + dynamicZ * dynamicZ)
 
-        // Require rapid movement with a directional reversal.
+        // Require directional reversal to distinguish shakes from single bumps.
         if (dynamicGForce >= currentLinearThresholdG) {
             val absX = abs(dynamicX)
             val absY = abs(dynamicY)

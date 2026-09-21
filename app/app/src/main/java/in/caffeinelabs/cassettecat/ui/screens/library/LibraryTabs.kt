@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,7 +60,6 @@ internal fun LibraryViewModeTabs(
 
     LaunchedEffect(selectedIndex) {
         if (modes.size > 4) {
-            // Scroll the active tab into view.
             val targetOffset = (selectedIndex * 180 - 100).coerceAtLeast(0)
             scrollState.animateScrollTo(targetOffset)
         }
@@ -125,15 +125,15 @@ internal fun SongsTabContent(
 
     if (filteredSongs.isEmpty()) {
         val emptyTitle = when (songFilter) {
-            SongFilter.ALL -> "No songs found"
-            SongFilter.FAVORITES -> "No favorite songs found"
-            SongFilter.DOWNLOADED -> "No downloaded songs found"
-            SongFilter.RECENTLY_ADDED -> "No recently added songs found"
+            SongFilter.ALL -> stringResource(AppR.string.library_no_songs)
+            SongFilter.FAVORITES -> stringResource(AppR.string.library_no_favorite_songs)
+            SongFilter.DOWNLOADED -> stringResource(AppR.string.library_no_downloaded_songs)
+            SongFilter.RECENTLY_ADDED -> stringResource(AppR.string.library_no_recent_songs)
         }
         EmptyState(
             catRes = AppR.drawable.cat_black_cassette,
             title = emptyTitle,
-            message = "Try switching sources or clearing filters.",
+            message = stringResource(AppR.string.library_empty_message),
             modifier = modifier.fillMaxSize()
         )
     } else {
@@ -243,8 +243,8 @@ internal fun ArtistsTabContent(
     if (artists.isEmpty()) {
         EmptyState(
             catRes = AppR.drawable.cat_calico_player,
-            title = "No artists found",
-            message = "Try switching sources or clearing filters.",
+            title = stringResource(AppR.string.library_no_artists),
+            message = stringResource(AppR.string.library_empty_message),
             modifier = modifier.fillMaxSize()
         )
     } else {
@@ -341,8 +341,8 @@ internal fun AlbumsTabContent(
     if (albums.isEmpty()) {
         EmptyState(
             catRes = AppR.drawable.cat_orange_headphones,
-            title = "No albums found",
-            message = "Try switching sources or clearing filters.",
+            title = stringResource(AppR.string.library_no_albums),
+            message = stringResource(AppR.string.library_empty_message),
             modifier = modifier.fillMaxSize()
         )
     } else {
@@ -440,8 +440,8 @@ internal fun GenresTabContent(
     if (genres.isEmpty()) {
         EmptyState(
             catRes = AppR.drawable.cat_gray_dancing,
-            title = "No genres found",
-            message = "Try switching sources or clearing filters.",
+            title = stringResource(AppR.string.library_no_genres),
+            message = stringResource(AppR.string.library_empty_message),
             modifier = modifier.fillMaxSize()
         )
     } else {
@@ -530,8 +530,8 @@ internal fun FoldersTab(
     if (folders.isEmpty()) {
         EmptyState(
             catRes = AppR.drawable.cat_calico_player,
-            title = "No folders found",
-            message = "Try switching sources or clearing filters.",
+            title = stringResource(AppR.string.library_no_folders),
+            message = stringResource(AppR.string.library_empty_message),
             modifier = modifier.fillMaxSize()
         )
     } else {

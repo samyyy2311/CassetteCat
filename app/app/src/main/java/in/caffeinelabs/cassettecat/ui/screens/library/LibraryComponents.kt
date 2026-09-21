@@ -55,12 +55,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -269,7 +272,7 @@ internal fun RowScope.SongListRowContent(
         if (onMoreClick != null) {
             PressDepthIconButton(
                 iconRes = R.drawable.lucide_ic_ellipsis_vertical,
-                contentDescription = "Song options",
+                contentDescription = stringResource(AppR.string.library_song_options),
                 onClick = onMoreClick,
                 modifier = Modifier.padding(start = 4.dp).size(30.dp)
             )
@@ -549,7 +552,7 @@ internal fun GenreCard(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+                text = pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = Color.White.copy(alpha = 0.82f)
             )
@@ -557,7 +560,7 @@ internal fun GenreCard(
 
         Icon(
             painter = painterResource(iconRes),
-            contentDescription = "Play",
+            contentDescription = stringResource(AppR.string.library_play),
             tint = Color.White.copy(alpha = 0.88f),
             modifier = Modifier
                 .align(Alignment.BottomEnd)

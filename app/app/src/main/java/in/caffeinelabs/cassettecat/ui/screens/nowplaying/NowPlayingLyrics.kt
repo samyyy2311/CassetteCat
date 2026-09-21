@@ -368,6 +368,7 @@ internal fun LyricsView(
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
                             GapItemView(
                                 isInGap = isInGap,
+                                isPlaying = isPlaying,
                                 isCenterAligned = lyricsTextAlign == TextAlign.Center,
                                 onClick = {
                                     userIsDragging = false
@@ -601,16 +602,28 @@ internal fun LyricsView(
 @Composable
 private fun GapItemView(
     isInGap: Boolean,
+    isPlaying: Boolean,
     isCenterAligned: Boolean = true,
     onClick: () -> Unit
 ) {
     val dotsAlpha by animateFloatAsState(
-        targetValue = if (isInGap) 1.0f else 0.20f,
-        animationSpec = tween(260, easing = SmoothEasing),
+        targetValue = if (isInGap) 1.0f else 0.22f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
         label = "gapDotsAlpha"
     )
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val dotColor = MaterialTheme.colorScheme.tertiary
+    val density = LocalDensity.current.density
+
+    val infiniteTransition = rememberInfiniteTransition(label = "gapSequentialBounce")
+    val loopTimeMs by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 820f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(820, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "gapLoopTime"
+    )
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -621,52 +634,35 @@ private fun GapItemView(
             .graphicsLayer { alpha = dotsAlpha }
             .padding(horizontal = 24.dp, vertical = if (isInGap) 20.dp else 12.dp)
     ) {
-        if (isInGap) {
-            val infiniteTransition = rememberInfiniteTransition(label = "dotsWave")
-            val wavePhase by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = (2 * Math.PI).toFloat(),
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "dotsWavePhase"
-            )
-
-            val dotOffsets = listOf(0f, 0.9f, 1.8f)
-            dotOffsets.forEachIndexed { index, phaseOffset ->
-                val wave = kotlin.math.sin(wavePhase + phaseOffset)
-                val norm = (wave + 1f) / 2f
-                val scale = 0.85f + 0.40f * norm
-                val alpha = 0.45f + 0.55f * norm
-                val translateY = -5f * norm
-
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            this.alpha = alpha
-                            translationY = translateY
-                        }
-                        .background(primaryColor, CircleShape)
-                )
-                if (index < dotOffsets.lastIndex) {
-                    Spacer(Modifier.width(10.dp))
+        repeat(3) { index ->
+            val yOffsetDp = if (isInGap && isPlaying) {
+                val startOffset = index * 150f
+                val timeInDot = (loopTimeMs - startOffset + 820f) % 820f
+                when {
+                    timeInDot < 260f -> {
+                        val progress = timeInDot / 260f
+                        -6f * kotlin.math.sin(progress * (Math.PI / 2).toFloat())
+                    }
+                    timeInDot < 520f -> {
+                        val progress = (timeInDot - 260f) / 260f
+                        -6f * kotlin.math.cos(progress * (Math.PI / 2).toFloat())
+                    }
+                    else -> 0f
                 }
+            } else {
+                0f
             }
-        } else {
-            repeat(3) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .graphicsLayer { alpha = 0.25f }
-                        .background(onSurface, CircleShape)
-                )
-                if (index < 2) {
-                    Spacer(Modifier.width(9.dp))
-                }
+
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .graphicsLayer {
+                        translationY = yOffsetDp * density
+                    }
+                    .background(dotColor, CircleShape)
+            )
+            if (index < 2) {
+                Spacer(Modifier.width(10.dp))
             }
         }
     }
@@ -835,6 +831,28 @@ internal fun FloatingLyricSelectionBar(
 }
 
 @Composable
+private fun WaveformBar(
+    weight: Float,
+    amplitude: Float,
+    isPlaying: Boolean,
+    index: Int
+) {
+    val targetHeight = if (isPlaying) (10f + 52f * weight * amplitude).dp else 10.dp
+    val barHeight by animateDpAsState(
+        targetValue = targetHeight,
+        animationSpec = tween(90, easing = FastOutSlowInEasing),
+        label = "barHeight$index"
+    )
+    Box(
+        modifier = Modifier
+            .width(6.dp)
+            .height(barHeight)
+            .clip(RoundedCornerShape(3.dp))
+            .background(MaterialTheme.colorScheme.tertiary)
+    )
+}
+
+@Composable
 internal fun InstrumentalWaveformView(
     artist: String?,
     isPlaying: Boolean,
@@ -842,52 +860,53 @@ internal fun InstrumentalWaveformView(
     onSearchLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val barWeights = remember { floatArrayOf(0.42f, 0.72f, 0.56f, 1.0f, 0.62f, 0.82f, 0.46f) }
     val transition = rememberInfiniteTransition(label = "waveformPulse")
 
-    val bar1 by transition.animateFloat(
+    val b1 by transition.animateFloat(
         initialValue = 0.25f,
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(tween(580, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b1"
     )
-    val bar2 by transition.animateFloat(
+    val b2 by transition.animateFloat(
         initialValue = 0.40f,
         targetValue = 1.00f,
         animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b2"
     )
-    val bar3 by transition.animateFloat(
+    val b3 by transition.animateFloat(
         initialValue = 0.20f,
-        targetValue = 0.70f,
+        targetValue = 0.75f,
         animationSpec = infiniteRepeatable(tween(650, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b3"
     )
-    val bar4 by transition.animateFloat(
-        initialValue = 0.50f,
-        targetValue = 0.95f,
+    val b4 by transition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 1.00f,
         animationSpec = infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b4"
     )
-    val bar5 by transition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.60f,
+    val b5 by transition.animateFloat(
+        initialValue = 0.20f,
+        targetValue = 0.70f,
         animationSpec = infiniteRepeatable(tween(720, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b5"
     )
-    val bar6 by transition.animateFloat(
+    val b6 by transition.animateFloat(
         initialValue = 0.35f,
-        targetValue = 0.88f,
+        targetValue = 0.90f,
         animationSpec = infiniteRepeatable(tween(490, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b6"
     )
-    val bar7 by transition.animateFloat(
-        initialValue = 0.20f,
-        targetValue = 0.75f,
+    val b7 by transition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.80f,
         animationSpec = infiniteRepeatable(tween(540, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
         label = "b7"
     )
 
-    val bars = listOf(bar1, bar2, bar3, bar4, bar5, bar6, bar7)
+    val amplitudes = listOf(b1, b2, b3, b4, b5, b6, b7)
 
     Column(
         modifier = modifier
@@ -897,18 +916,16 @@ internal fun InstrumentalWaveformView(
         verticalArrangement = Arrangement.Center
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.height(48.dp)
+            modifier = Modifier.height(64.dp)
         ) {
-            bars.forEach { amplitude ->
-                val barHeight = if (isPlaying) (amplitude * 44f).coerceAtLeast(6f).dp else 8.dp
-                Box(
-                    modifier = Modifier
-                        .width(4.5.dp)
-                        .height(barHeight)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiary)
+            barWeights.forEachIndexed { index, weight ->
+                WaveformBar(
+                    weight = weight,
+                    amplitude = amplitudes[index],
+                    isPlaying = isPlaying,
+                    index = index
                 )
             }
         }

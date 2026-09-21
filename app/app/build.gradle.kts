@@ -18,7 +18,7 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.7.2"
+        ?: "1.7.3"
 
     val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
         gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
@@ -28,10 +28,10 @@ android {
         if (isProductionRelease && (parsed == null || parsed !in 1..2_100_000_000)) {
             error("Production VERSION_CODE must be an integer from 1 through 2100000000")
         }
-        parsed ?: (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 20
+        parsed ?: (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 21
     } else {
         if (isProductionRelease) error("Production VERSION_CODE is required")
-        (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 20
+        (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 21
     }
 
     defaultConfig {

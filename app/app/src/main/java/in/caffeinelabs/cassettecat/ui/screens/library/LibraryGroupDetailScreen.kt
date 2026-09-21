@@ -157,8 +157,6 @@ private fun ArtistCatalogScreen(
             .map { (_, tracks) -> ArtistAlbum(tracks.first(), tracks) }
             .sortedByDescending { it.cover.releaseYear ?: 0 }
     }
-    // A release belongs to exactly one shelf. The old `drop(6).ifEmpty { albums }`
-    // fallback repeated the same albums under a second heading.
     val appearsOn = remember(albums, artist) {
         albums.filter { it.cover.artist.splitArtists().firstOrNull() != artist }
     }
@@ -186,8 +184,6 @@ private fun ArtistCatalogScreen(
         derivedStateOf {
             if (listState.firstVisibleItemIndex > 0) 1f
             else {
-                // Keep the detail header visible for the first third of its travel. The compact
-                // header then fades over the rest of that travel instead of arriving abruptly.
                 val heroScroll = listState.firstVisibleItemScrollOffset / heroHeightPx
                 ((heroScroll - 0.35f) / 0.65f).coerceIn(0f, 1f)
             }
@@ -269,13 +265,10 @@ private fun ArtistCatalogScreen(
                     ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
                 }
             }
-            // Keep About after the library and catalog entries.
             about?.let { biography ->
                 item(key = "about", contentType = "about") { ArtistAboutSection(biography) }
             }
         }
-        // The compact title fades in only as the large title leaves,
-        // while its surface gradually picks up opacity from the same scroll progress.
         if (compactHeaderProgress > 0f) {
             Row(
                 modifier = Modifier
@@ -817,8 +810,6 @@ private fun LibraryGroupDetailScreen(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = listBottomPadding)
         ) {
-            // The complete detail header belongs to the scroll content. This lets artwork,
-            // actions, and metadata move naturally out of the way as the song list takes over.
             item(key = "header", contentType = "header") {
                 if (artistForHero != null) {
                     ArtistDetailHeader(
@@ -1096,8 +1087,6 @@ private fun ArtistDetailHeader(
                 .height(360.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
-            // Artist photography is often portrait or square. Fit preserves the full source
-            // instead of cutting off faces at the edges; the surface behind it fills the header.
             ArtistImage(
                 artist = artist,
                 modifier = Modifier.fillMaxSize(),

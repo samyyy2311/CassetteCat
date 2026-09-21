@@ -54,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
@@ -75,7 +78,6 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.matchM3uEntries
 import `in`.caffeinelabs.cassettecat.data.library.parseM3u
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
-import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
@@ -345,11 +347,11 @@ fun LibraryScreen(
                 if (selectionMode) {
                     PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_x,
-                        contentDescription = "Cancel selection",
+                        contentDescription = stringResource(AppR.string.library_cancel_selection),
                         onClick = { selectedIds = emptySet() }
                     )
                     Text(
-                        "${selectedIds.size} selected",
+                        pluralStringResource(AppR.plurals.library_selected, selectedIds.size, selectedIds.size),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -357,7 +359,7 @@ fun LibraryScreen(
                     )
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Library", style = MaterialTheme.typography.headlineSmall)
+                        Text(stringResource(AppR.string.library_title), style = MaterialTheme.typography.headlineSmall)
                         if (loadedState != null || viewMode == LibraryViewMode.PLAYLISTS) {
                             val count = when (viewMode) {
                                 LibraryViewMode.SONGS -> filteredSongs.size
@@ -367,18 +369,18 @@ fun LibraryScreen(
                                 LibraryViewMode.FOLDERS -> groupedFolders.size
                                 LibraryViewMode.PLAYLISTS -> playlists.size + 1 + SmartPlaylistType.entries.size
                             }
-                            val noun = when (viewMode) {
-                                LibraryViewMode.SONGS -> "song"
-                                LibraryViewMode.ARTISTS -> "artist"
-                                LibraryViewMode.ALBUMS -> "album"
-                                LibraryViewMode.GENRES -> "genre"
-                                LibraryViewMode.FOLDERS -> "folder"
-                                LibraryViewMode.PLAYLISTS -> "collection"
+                            val baseCountText = when (viewMode) {
+                                LibraryViewMode.SONGS -> pluralStringResource(AppR.plurals.library_songs, count, count)
+                                LibraryViewMode.ARTISTS -> pluralStringResource(AppR.plurals.library_artists, count, count)
+                                LibraryViewMode.ALBUMS -> pluralStringResource(AppR.plurals.library_albums, count, count)
+                                LibraryViewMode.GENRES -> pluralStringResource(AppR.plurals.library_genres, count, count)
+                                LibraryViewMode.FOLDERS -> pluralStringResource(AppR.plurals.library_folders, count, count)
+                                LibraryViewMode.PLAYLISTS -> pluralStringResource(AppR.plurals.library_collections, count, count)
                             }
-                            val baseCountText = if (count == 1) "1 $noun" else "$count ${noun}s"
                             val isOffline by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+                            val offlineText = stringResource(AppR.string.library_offline)
                             val subtitleText = when {
-                                isOffline -> "$baseCountText · Offline"
+                                isOffline -> "$baseCountText · $offlineText"
                                 sourceFilter != LibrarySourceFilter.ALL -> "$baseCountText · ${sourceFilter.displayName()}"
                                 else -> baseCountText
                             }
@@ -397,18 +399,18 @@ fun LibraryScreen(
                         if (viewMode == LibraryViewMode.PLAYLISTS) {
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_import,
-                                contentDescription = "Import playlist",
+                                contentDescription = stringResource(AppR.string.library_import_playlist),
                                 onClick = { importLauncher.launch(arrayOf("*/*")) }
                             )
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_plus,
-                                contentDescription = "New playlist",
+                                contentDescription = stringResource(AppR.string.library_new_playlist),
                                 onClick = { showNewPlaylistSheet = true }
                             )
                         } else if (loadedState != null && filteredSongs.isNotEmpty()) {
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_play,
-                                contentDescription = "Play all",
+                                contentDescription = stringResource(AppR.string.library_play_all),
                                 onClick = {
                                     val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                                     playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
@@ -417,7 +419,7 @@ fun LibraryScreen(
                             )
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_shuffle,
-                                contentDescription = "Shuffle all",
+                                contentDescription = stringResource(AppR.string.library_shuffle_all),
                                 onClick = {
                                     val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                                     playbackViewModel.shuffleAll(filteredSongs)
@@ -427,7 +429,11 @@ fun LibraryScreen(
                         }
                         PressDepthIconButton(
                             iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
-                            contentDescription = if (collectionLayout == CollectionLayout.GRID) "Use list layout" else "Use artwork layout",
+                            contentDescription = if (collectionLayout == CollectionLayout.GRID) {
+                                stringResource(AppR.string.library_use_list_layout)
+                            } else {
+                                stringResource(AppR.string.library_use_artwork_layout)
+                            },
                             onClick = {
                                 viewModel.setCollectionLayout(if (collectionLayout == CollectionLayout.GRID) CollectionLayout.LIST else CollectionLayout.GRID)
                             }
@@ -435,7 +441,7 @@ fun LibraryScreen(
                         if (viewMode != LibraryViewMode.PLAYLISTS && loadedState != null) {
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                                contentDescription = "Refine library",
+                                contentDescription = stringResource(AppR.string.library_refine),
                                 tint = if (songFilter == SongFilter.ALL && sourceFilter == LibrarySourceFilter.ALL) {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 } else {
@@ -831,7 +837,7 @@ fun LibraryScreen(
                         folderForCover = folder
                         folderCoverActions = null
                         folderCoverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text("Change cover") }
+                    }) { Text(stringResource(AppR.string.library_change_cover)) }
                     if (folder.customCoverPath != null) {
                         TextButton(onClick = {
                             pagerScope.launch {
@@ -839,11 +845,11 @@ fun LibraryScreen(
                                 folderCoverStorage.delete(folder.customCoverPath)
                             }
                             folderCoverActions = null
-                        }) { Text("Remove custom cover") }
+                        }) { Text(stringResource(AppR.string.library_remove_custom_cover)) }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { folderCoverActions = null }) { Text("Cancel") } }
+            confirmButton = { TextButton(onClick = { folderCoverActions = null }) { Text(stringResource(AppR.string.action_cancel)) } }
         )
     }
 
@@ -942,10 +948,10 @@ fun LibraryScreen(
     if (summary != null) {
         AlertDialog(
             onDismissRequest = { importSummary = null },
-            title = { Text("Playlist imported") },
-            text = { Text("Imported \"${summary.name}\": ${summary.matched} of ${summary.total} songs matched.") },
+            title = { Text(stringResource(AppR.string.library_playlist_imported)) },
+            text = { Text(stringResource(AppR.string.library_playlist_imported_message, summary.name, summary.matched, summary.total)) },
             confirmButton = {
-                TextButton(onClick = { importSummary = null }) { Text("OK") }
+                TextButton(onClick = { importSummary = null }) { Text(stringResource(AppR.string.action_ok)) }
             }
         )
     }

@@ -60,7 +60,10 @@ class PlaybackRepository(private val context: Context) {
     private var historyAccumulatedMs: Long = 0L
     private var historyActiveSinceMs: Long? = null
     private var historySong: Song? = null
+    val skipTracker = SessionSkipTracker()
     var onQueueExhausted: (() -> Unit)? = null
+    var onQueueLowWatermark: (() -> Unit)? = null
+    private var fadeJob: Job? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
@@ -74,9 +77,23 @@ class PlaybackRepository(private val context: Context) {
                 if (isPlaying) resumeHistoryTracking() else pauseHistoryTracking()
             }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
+                    val prevSong = historySong
+                    if (prevSong != null) {
+                        val activeTime = historyActiveSinceMs?.let { SystemClock.elapsedRealtime() - it } ?: 0L
+                        val totalElapsed = historyAccumulatedMs + activeTime
+                        skipTracker.recordSkip(prevSong.id, totalElapsed, prevSong.durationMs)
+                    }
+                }
                 updateState()
                 resetHistoryTracking(_state.value.currentSong)
                 if (controller?.isPlaying == true) resumeHistoryTracking()
+
+                val c = controller
+                val currentIndex = c?.currentMediaItemIndex ?: C.INDEX_UNSET
+                if (currentIndex != C.INDEX_UNSET && currentIndex >= currentQueue.size - 2) {
+                    onQueueLowWatermark?.invoke()
+                }
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
@@ -91,10 +108,11 @@ class PlaybackRepository(private val context: Context) {
                         c != null && c.repeatMode == Player.REPEAT_MODE_ALL && currentQueue.isNotEmpty() -> {
                             if (shuffleEnabled && originalQueue.isNotEmpty()) {
                                 val justPlayed = currentQueue.getOrNull(currentIndex)
-                                var freshShuffle = originalQueue.shuffled()
-                                if (freshShuffle.size > 1 && freshShuffle.first().id == justPlayed?.id) {
-                                    freshShuffle = freshShuffle.toMutableList().apply { add(1, removeAt(0)) }
-                                }
+                                val freshShuffle = SmartShuffle.reShuffleCycle(
+                                    originalQueue = originalQueue,
+                                    justPlayed = justPlayed,
+                                    skippedIds = skipTracker.skippedSongIds()
+                                )
                                 currentQueue = freshShuffle
                                 val mediaItems = freshShuffle.map { it.toMediaItem(context) }
                                 c.setMediaItems(mediaItems, 0, 0L)
@@ -147,13 +165,12 @@ class PlaybackRepository(private val context: Context) {
         originalQueue = songs
 
         val (finalQueue, targetIndex) = if (shuffle) {
-            if (startIndex in songs.indices) {
-                val chosenSong = songs[startIndex]
-                val otherSongs = songs.filterIndexed { idx, _ -> idx != startIndex }.shuffled()
-                (listOf(chosenSong) + otherSongs) to 0
-            } else {
-                songs.shuffled() to 0
-            }
+            SmartShuffle.shuffleAll(
+                songs = songs,
+                startIndex = if (startIndex in songs.indices) startIndex else null,
+                recentHistory = history.toList(),
+                skippedIds = skipTracker.skippedSongIds()
+            )
         } else {
             songs to startIndex.coerceIn(0, songs.size - 1)
         }
@@ -237,13 +254,14 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun pause() {
-        controller?.pause()
+        val c = controller ?: return
+        smoothPause(c)
     }
 
     fun togglePlayPause() {
         controller?.let { c ->
             if (c.isPlaying) {
-                c.pause()
+                smoothPause(c)
             } else {
                 if (c.playbackState == Player.STATE_IDLE) {
                     c.prepare()
@@ -255,7 +273,7 @@ class PlaybackRepository(private val context: Context) {
                         c.seekTo(0, 0L)
                     }
                 }
-                c.play()
+                smoothPlay(c)
             }
         }
     }
@@ -263,6 +281,11 @@ class PlaybackRepository(private val context: Context) {
     fun skipNext() {
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
+        val currentSong = currentQueue.getOrNull(currentIndex)
+        if (currentSong != null) {
+            val elapsedMs = c.currentPosition
+            skipTracker.recordSkip(currentSong.id, elapsedMs, currentSong.durationMs)
+        }
         if (currentIndex != C.INDEX_UNSET && currentIndex < currentQueue.size - 1) {
             c.seekTo(currentIndex + 1, 0L)
             c.play()
@@ -273,6 +296,45 @@ class PlaybackRepository(private val context: Context) {
             onQueueExhausted?.invoke()
         }
     }
+
+    private fun smoothPause(c: MediaController) {
+        fadeJob?.cancel()
+        val baseVol = currentBaseVolume()
+        if (c.volume <= 0.05f) {
+            c.pause()
+            c.volume = baseVol
+            return
+        }
+        fadeJob = repositoryScope.launch {
+            val steps = 4
+            val stepDelay = 15L
+            for (i in 1..steps) {
+                delay(stepDelay)
+                c.volume = (baseVol * (1f - i.toFloat() / steps)).coerceAtLeast(0f)
+            }
+            c.pause()
+            c.volume = baseVol
+        }
+    }
+
+    private fun smoothPlay(c: MediaController) {
+        fadeJob?.cancel()
+        val targetVol = currentBaseVolume()
+        fadeJob = repositoryScope.launch {
+            c.volume = 0f
+            c.play()
+            val steps = 4
+            val stepDelay = 15L
+            for (i in 1..steps) {
+                delay(stepDelay)
+                c.volume = (targetVol * (i.toFloat() / steps)).coerceIn(0f, 1f)
+            }
+            c.volume = targetVol
+        }
+    }
+
+    private fun currentBaseVolume(): Float =
+        if (!volumeOverrideActive) replayGainVolume * volumeLimitMultiplier else (controller?.volume ?: 1f)
 
     fun skipPrevious() {
         val c = controller ?: return
@@ -361,7 +423,12 @@ class PlaybackRepository(private val context: Context) {
             currentQueue.drop(currentIndex + 1)
         }
 
-        val shuffledUpcoming = upcoming.shuffled()
+        val shuffledUpcoming = SmartShuffle.shuffleUpcoming(
+            upcoming = upcoming,
+            recentHistory = history.toList(),
+            skippedIds = skipTracker.skippedSongIds(),
+            previousSong = currentSong
+        )
         currentQueue = currentQueue.subList(0, currentIndex + 1) + shuffledUpcoming
         c.replaceMediaItems(currentIndex + 1, queueSizeBefore, shuffledUpcoming.map { it.toMediaItem(context) })
     }

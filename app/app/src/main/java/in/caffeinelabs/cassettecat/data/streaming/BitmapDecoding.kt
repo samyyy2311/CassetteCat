@@ -6,7 +6,11 @@ import android.graphics.BitmapFactory
 // Full-width artwork and artist images can occupy most of a 1440p display. Keeping
 // the decoded edge at 1440 avoids the soft upscaling visible with 1024px artwork,
 // while still bounding memory usage for scrolling lists.
-internal fun decodeSampledBitmap(bytes: ByteArray, maxDimension: Int = 1440): Bitmap? {
+internal fun decodeSampledBitmap(
+    bytes: ByteArray,
+    maxDimension: Int = 1440,
+    config: Bitmap.Config = Bitmap.Config.ARGB_8888
+): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
@@ -22,12 +26,16 @@ internal fun decodeSampledBitmap(bytes: ByteArray, maxDimension: Int = 1440): Bi
         bytes.size,
         BitmapFactory.Options().apply {
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.ARGB_8888
+            inPreferredConfig = config
         }
     )
 }
 
-internal fun decodeSampledBitmap(file: java.io.File, maxDimension: Int = 1440): Bitmap? {
+internal fun decodeSampledBitmap(
+    file: java.io.File,
+    maxDimension: Int = 1440,
+    config: Bitmap.Config = Bitmap.Config.ARGB_8888
+): Bitmap? {
     if (!file.exists()) return null
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.absolutePath, bounds)
@@ -42,8 +50,7 @@ internal fun decodeSampledBitmap(file: java.io.File, maxDimension: Int = 1440): 
         file.absolutePath,
         BitmapFactory.Options().apply {
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.ARGB_8888
+            inPreferredConfig = config
         }
     )
 }
-

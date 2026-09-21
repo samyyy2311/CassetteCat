@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -95,6 +94,7 @@ class PlaybackService : MediaLibraryService() {
     private var isFlipToPauseEnabled: Boolean = false
     private var isProximityWaveSkipEnabled: Boolean = false
     private var isPauseOnDisconnectEnabled: Boolean = true
+    private var isGaplessPlaybackEnabled: Boolean = true
     private var wasPausedByFlip: Boolean = false
     private var flipTimeoutJob: Job? = null
     private var isHapticFeedbackEnabled: Boolean = true
@@ -240,6 +240,15 @@ class PlaybackService : MediaLibraryService() {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 syncWidgetState(player)
                 updateNotificationLayout(player)
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
+                    serviceScope.launch(Dispatchers.Main) {
+                        player.pause()
+                        delay(600L)
+                        if (player.playbackState != Player.STATE_ENDED) {
+                            player.play()
+                        }
+                    }
+                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -280,6 +289,7 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
                 isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
+                isGaplessPlaybackEnabled = prefs.gaplessPlayback
                 sequentialNavigationPlayer?.autoplayEnabled = prefs.autoplayEnabled
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
@@ -618,9 +628,7 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch(Dispatchers.Default) {
             val artBitmap = artworkData?.let { data ->
                 runCatching {
-                    val options = BitmapFactory.Options().apply { inSampleSize = 2 }
-                    val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, options)
-                    decoded?.scale(120, 120)
+                    decodeSampledBitmap(data, maxDimension = 120)?.scale(120, 120)
                 }.getOrNull()
             } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
             runCatching {
@@ -654,7 +662,6 @@ class PlaybackService : MediaLibraryService() {
                 vibrator?.vibrate(65L)
             }
         } catch (_: Exception) {
-            // Ignore if vibration service is unavailable
         }
     }
 
@@ -837,7 +844,7 @@ private class MediaBitmapLoader(
 
     override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> {
         val future = SettableFuture.create<Bitmap>()
-        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+        val bitmap = decodeSampledBitmap(data, maxDimension = 720)
         if (bitmap != null) future.set(bitmap) else future.setException(IllegalArgumentException("Failed to decode artwork"))
         return future
     }
@@ -928,7 +935,7 @@ private suspend fun resolveArtworkBitmap(
         val settingsRepo = `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository(context.applicationContext)
         val settings = settingsRepo.settings.first()
         if (settings.isEnabled(`in`.caffeinelabs.cassettecat.data.settings.ExternalService.COVER_ART_ARCHIVE)) {
-            val archiveBitmap = `in`.caffeinelabs.cassettecat.data.library.CoverArtArchiveClient().fetchCoverArt(album, artist)
+            val archiveBitmap = `in`.caffeinelabs.cassettecat.data.library.CoverArtArchiveClient.getInstance().fetchCoverArt(album, artist, 360)
             if (archiveBitmap != null) return archiveBitmap
         }
     }

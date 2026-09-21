@@ -1,9 +1,12 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.os.SystemClock
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +85,21 @@ internal fun FullOpenBottomSheet(
     )
 }
 
+@Composable
+private fun SheetSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 6.dp)
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NowPlayingActionsSheet(
@@ -144,7 +162,9 @@ internal fun NowPlayingActionsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 28.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -154,8 +174,13 @@ internal fun NowPlayingActionsSheet(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                            RoundedCornerShape(10.dp)
+                        )
                         .tapScale {
                             onOpenArtworkViewer()
                             onDismiss()
@@ -167,7 +192,7 @@ internal fun NowPlayingActionsSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         song.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -185,12 +210,12 @@ internal fun NowPlayingActionsSheet(
                         )
                         Spacer(Modifier.width(8.dp))
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh
                         ) {
                             Text(
                                 text = sourceBadge,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                                 color = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -272,8 +297,12 @@ internal fun NowPlayingActionsSheet(
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
+            )
+
+            SheetSectionHeader(
+                title = stringResource(AppR.string.now_playing_section_track)
             )
 
             if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
@@ -292,6 +321,7 @@ internal fun NowPlayingActionsSheet(
                     iconRes = R.drawable.lucide_ic_pencil,
                     label = stringResource(AppR.string.now_playing_edit_details),
                     subtitle = stringResource(AppR.string.now_playing_edit_details_description),
+                    hasChevron = true,
                     onClick = {
                         onOpenTagEditor()
                         onDismiss()
@@ -323,6 +353,7 @@ internal fun NowPlayingActionsSheet(
                 iconRes = R.drawable.lucide_ic_maximize_2,
                 label = stringResource(AppR.string.now_playing_view_artwork),
                 subtitle = stringResource(AppR.string.now_playing_view_artwork_description),
+                hasChevron = true,
                 onClick = {
                     onOpenArtworkViewer()
                     onDismiss()
@@ -332,6 +363,7 @@ internal fun NowPlayingActionsSheet(
                 iconRes = R.drawable.lucide_ic_image,
                 label = stringResource(AppR.string.now_playing_search_cover),
                 subtitle = stringResource(AppR.string.now_playing_search_cover_description),
+                hasChevron = true,
                 onClick = {
                     onSearchCoverOnline()
                     onDismiss()
@@ -339,8 +371,12 @@ internal fun NowPlayingActionsSheet(
             )
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(top = 6.dp, bottom = 6.dp)
+            )
+
+            SheetSectionHeader(
+                title = stringResource(AppR.string.now_playing_section_playback)
             )
 
             SongActionRow(
@@ -379,6 +415,16 @@ internal fun NowPlayingActionsSheet(
                     onDismiss()
                 }
             )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(top = 6.dp, bottom = 6.dp)
+            )
+
+            SheetSectionHeader(
+                title = stringResource(AppR.string.now_playing_section_features)
+            )
+
             SongActionRow(
                 iconRes = R.drawable.lucide_ic_users,
                 label = stringResource(AppR.string.now_playing_listening_room),
@@ -1052,10 +1098,16 @@ private fun QuickActionButton(
     } else {
         MaterialTheme.colorScheme.surfaceContainerHigh
     }
+    val borderColor = if (accented) {
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+    }
     val contentColor = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = bg,
+        border = BorderStroke(1.dp, borderColor),
         modifier = modifier
             .tapScale(onClick)
             .height(58.dp)
@@ -1104,7 +1156,7 @@ internal fun SongActionRow(
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(16.dp))
@@ -1129,15 +1181,19 @@ internal fun SongActionRow(
         if (badgeText != null) {
             Spacer(Modifier.width(8.dp))
             Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(6.dp),
+                color = if (accented) {
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
                 modifier = Modifier.padding(start = 4.dp)
             ) {
                 Text(
                     text = badgeText,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                 )
             }
         }
@@ -1146,7 +1202,7 @@ internal fun SongActionRow(
             Icon(
                 painter = painterResource(R.drawable.lucide_ic_chevron_right),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = if (accented) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(15.dp)
             )
         }

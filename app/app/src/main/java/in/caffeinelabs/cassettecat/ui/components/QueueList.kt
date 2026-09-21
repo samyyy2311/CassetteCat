@@ -83,8 +83,6 @@ private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 // row is deterministic (same art size, single-line-truncated text).
 private val QUEUE_ROW_HEIGHT = 68.dp
 
-// Inline, not a modal sheet (cf. Apple Music's queue view); embedded directly in
-// NowPlayingContent's weight(1f) container, sized to whatever space is left there.
 @Composable
 fun QueueList(
     upNext: List<Song>,
@@ -99,8 +97,6 @@ fun QueueList(
     bottomPaddingDp: Dp = 240.dp,
     controlsVisible: Boolean = true,
     onInteraction: () -> Unit = {},
-    // Hoisted so the caller can observe isScrollInProgress too (auto-hides the
-    // player's scrubber/transport chrome while this list is scrolling).
     state: LazyListState = rememberLazyListState()
 ) {
     var order by remember(upNext) { mutableStateOf(upNext.mapIndexed { index, song -> index to song }) }
@@ -169,8 +165,6 @@ fun QueueList(
         ),
         userScrollEnabled = !isReordering
     ) {
-        // History above Up Next; reversed so the most recently played
-        // song sits next to Up Next, reading as one continuous timeline top to bottom.
         if (history.isNotEmpty()) {
             item(key = "history-header") {
                 SectionHeader("History") {
@@ -213,14 +207,11 @@ fun QueueList(
             itemsIndexed(order, key = { _, entry -> "next:${entry.first}" }) { index, entry ->
                 val song = entry.second
                 val isDragging = index == draggingIndex
-                // Per-item dismissed flag: set to true on swipe confirm to trigger the
-                // AnimatedVisibility collapse animation before the data model removes the item.
                 var dismissed by remember { mutableStateOf(false) }
                 val currentSong by rememberUpdatedState(song)
                 LaunchedEffect(dismissed) {
                     if (dismissed) {
-                        // Wait for the shrinkVertically animation to finish before notifying
-                        // the caller: prevents the row from snapping out mid-collapse.
+                        // Wait for shrinkVertically animation to finish before notifying caller.
                         delay(280)
                         onRemoveUpNext(currentSong)
                     }
@@ -238,8 +229,6 @@ fun QueueList(
                 )
                 AnimatedVisibility(
                     visible = !dismissed,
-                    // Collapses the item's height while fading it out, so the rows below
-                    // slide up into position rather than snapping.
                     exit = shrinkVertically(
                         shrinkTowards = Alignment.Top,
                         animationSpec = tween(280, easing = EmphasizedAccelerate)
@@ -299,8 +288,6 @@ fun QueueList(
                             onClick = hapticClick { onSongClick(song) },
                             modifier = Modifier.weight(1f)
                         )
-                        // Drag handle: dimmed at rest so it doesn’t clutter the list;
-                        // animates to full opacity when a reorder is in progress.
                         val handleAlpha by animateFloatAsState(
                             targetValue = if (isReordering) 1f else 0.35f,
                             animationSpec = tween(220, easing = SmoothEasing),
@@ -350,7 +337,6 @@ fun QueueList(
                                                         add(newIndex, removeAt(draggingIndex))
                                                     }
                                                     draggingIndex = newIndex
-                                                    // Give each swap its own haptic tick.
                                                     haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                                 }
                                                 dragOffsetPx -= steps * rowHeightPx

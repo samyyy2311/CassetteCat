@@ -18,4 +18,11 @@
     <string name="lrclib_result_artist_album">%1$s • %2$s</string>
     <string name="lrclib_badge_synced">SYNCED</string>
     <string name="lrclib_badge_plain">PLAIN</string>
+    <string name="lrclib_choose_lyrics">Choose lyrics</string>
+    <string name="lrclib_artist_optional_hint">Artist (optional)</string>
+    <string name="lrclib_choose_closest_match">Choose the closest match</string>
+    <plurals name="lrclib_versions_count">
+        <item quantity="one">%d version found</item>
+        <item quantity="other">%d versions found</item>
+    </plurals>
 </resources>

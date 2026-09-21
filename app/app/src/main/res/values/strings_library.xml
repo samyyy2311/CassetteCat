@@ -1,0 +1,78 @@
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_cancel_selection">Cancel selection</string>
+    <string name="library_import_playlist">Import playlist</string>
+    <string name="library_new_playlist">New playlist</string>
+    <string name="library_play_all">Play all</string>
+    <string name="library_shuffle_all">Shuffle all</string>
+    <string name="library_refine">Refine library</string>
+    <string name="library_empty_message">Try switching sources or clearing filters.</string>
+    <string name="library_no_songs">No songs found</string>
+    <string name="library_no_favorite_songs">No favorite songs found</string>
+    <string name="library_no_downloaded_songs">No downloaded songs found</string>
+    <string name="library_no_recent_songs">No recently added songs found</string>
+    <string name="library_no_artists">No artists found</string>
+    <string name="library_no_albums">No albums found</string>
+    <string name="library_no_genres">No genres found</string>
+    <string name="library_no_folders">No folders found</string>
+    <string name="library_song_options">Song options</string>
+    <string name="library_play">Play</string>
+    <string name="library_add_to_queue">Add to Queue</string>
+    <string name="library_add_to_queue_description">Append to the end of your current queue</string>
+    <string name="library_add_to_playlist">Add to Playlist</string>
+    <string name="library_add_to_playlist_description">Save track to a custom playlist</string>
+    <string name="library_edit_details">Edit Details</string>
+    <string name="library_edit_details_description">Title, artist, album, genre &amp; year</string>
+    <string name="library_search_cover">Search Album Cover Online</string>
+    <string name="library_search_cover_description">Find and apply high-resolution artwork</string>
+    <string name="library_reset_cover">Reset to Original Cover</string>
+    <string name="library_reset_cover_description">Restore default embedded artwork</string>
+    <string name="library_delete_from_device">Delete from Device</string>
+    <string name="library_delete_from_device_description">Permanently remove this file</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="library_songs">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="library_artists">
+        <item quantity="one">%1$d artist</item>
+        <item quantity="other">%1$d artists</item>
+    </plurals>
+    <plurals name="library_albums">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+    <plurals name="library_genres">
+        <item quantity="one">%1$d genre</item>
+        <item quantity="other">%1$d genres</item>
+    </plurals>
+    <plurals name="library_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <plurals name="library_collections">
+        <item quantity="one">%1$d collection</item>
+        <item quantity="other">%1$d collections</item>
+    </plurals>
+    <string name="library_offline">Offline</string>
+    <string name="library_use_list_layout">Use list layout</string>
+    <string name="library_use_artwork_layout">Use artwork layout</string>
+    <string name="library_change_cover">Change cover</string>
+    <string name="library_remove_custom_cover">Remove custom cover</string>
+    <string name="library_playlist_imported">Playlist imported</string>
+    <string name="library_playlist_imported_message">Imported \u201c%1$s\u201d: %2$d of %3$d songs matched.</string>
+    <string name="library_refine_and_sort">Refine &amp; Sort</string>
+    <string name="library_reset">Reset</string>
+    <string name="library_section_source">SOURCE</string>
+    <string name="library_section_filter_by">FILTER BY</string>
+    <string name="library_section_sort_by">SORT BY</string>
+    <string name="library_sort_by">Sort By</string>
+    <string name="library_no_playlists">No playlists yet.</string>
+    <string name="library_liked">Liked</string>
+    <string name="library_favorite">Favorite</string>
+    <string name="library_play_next">Play Next</string>
+    <string name="library_share">Share</string>
+</resources>

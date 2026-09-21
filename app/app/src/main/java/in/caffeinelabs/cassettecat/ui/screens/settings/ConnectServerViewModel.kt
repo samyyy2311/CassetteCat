@@ -39,9 +39,6 @@ sealed interface QuickConnectState {
 
 private const val QUICK_CONNECT_POLL_INTERVAL_MS = 3000L
 private const val QUICK_CONNECT_TIMEOUT_MS = 300_000L
-
-// protocol is passed per-call rather than injected into the constructor, so this
-// stays a zero-arg-Application AndroidViewModel, no custom ViewModelProvider.Factory.
 class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     private val serverRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
@@ -68,8 +65,6 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
         pendingAttempt = attempt
         runAttempt(attempt)
     }
-
-    // Called after the user reviews the certificate fingerprint and chooses to trust it.
     fun trustCertificateAndRetry() {
         val fingerprint = (_connectionState.value as? ConnectionState.UntrustedCertificate)?.fingerprint ?: return
         val attempt = pendingAttempt ?: return
@@ -131,9 +126,7 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    // SubsonicApiException/JellyfinApiException messages are already user-readable and
-    // surfaced as-is; only raw java.net exceptions get mapped, their defaults are technical.
+    // API exceptions already contain user-readable messages; only map raw network failures.
     private fun Throwable.toConnectionState(): ConnectionState {
         val untrusted = findUntrustedCertificateCause()
         if (untrusted != null) return ConnectionState.UntrustedCertificate(untrusted.fingerprint)

@@ -45,6 +45,7 @@ local.properties
 *.apk
 *.aab
 *.hprof
+release-assets/
 
 # ESP32
 firmware/.pio/
@@ -62,3 +63,4 @@ hardware/**/_autosave-*
 hardware/**/*.bak
 hardware/**/fp-info-cache
 hardware/**/*.kicad_prl
+**/.history/

@@ -45,6 +45,9 @@
     <string name="now_playing_listening_room_fallback_room">a room</string>
     <string name="now_playing_sleep_timer">Sleep Timer</string>
     <string name="now_playing_drive_mode_description">Large touch HUD for safe driving</string>
+    <string name="now_playing_section_track">Track &amp; Metadata</string>
+    <string name="now_playing_section_playback">Playback &amp; Output</string>
+    <string name="now_playing_section_features">Features &amp; Modes</string>
 
     <string name="playback_tuning_title">Tempo &amp; Pitch Tuning</string>
     <string name="playback_speed_section">PLAYBACK SPEED</string>

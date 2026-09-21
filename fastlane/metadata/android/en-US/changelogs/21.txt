@@ -1,0 +1,7 @@
+What's new in 1.7.3:
+
+- Smarter shuffle: skips-aware queue ordering that remembers what you skipped and avoids replaying it right away
+- Better lyrics search: side-by-side artist and title search with cleaner match results
+- Refined track actions sheet: categorized menu options, smoother scrolling, and clearer active indicators
+- Library localization and smoother playback queue transitions
+- Release bundles: added AAB package support for release builds

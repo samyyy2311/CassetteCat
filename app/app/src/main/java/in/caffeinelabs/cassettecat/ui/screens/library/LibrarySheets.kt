@@ -27,10 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
@@ -67,7 +70,7 @@ internal fun <T> LibraryRefineSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Refine & Sort",
+                    stringResource(AppR.string.library_refine_and_sort),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 val isCustomized = filter != SongFilter.ALL ||
@@ -90,12 +93,12 @@ internal fun <T> LibraryRefineSheet(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.lucide_ic_rotate_ccw),
-                            contentDescription = "Reset",
+                            contentDescription = stringResource(AppR.string.library_reset),
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            "Reset",
+                            stringResource(AppR.string.library_reset),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.tertiary
                         )
@@ -107,7 +110,7 @@ internal fun <T> LibraryRefineSheet(
 
             if (availableSources.size > 1) {
                 Text(
-                    "SOURCE",
+                    stringResource(AppR.string.library_section_source),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -126,7 +129,7 @@ internal fun <T> LibraryRefineSheet(
             }
 
             Text(
-                "FILTER BY",
+                stringResource(AppR.string.library_section_filter_by),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -181,7 +184,7 @@ internal fun <T> LibraryRefineSheet(
             )
 
             Text(
-                "SORT BY",
+                stringResource(AppR.string.library_section_sort_by),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
@@ -226,7 +229,7 @@ fun <T> SortOptionsSheet(
                 .padding(bottom = 20.dp)
         ) {
             Text(
-                "Sort By",
+                stringResource(AppR.string.library_sort_by),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
@@ -357,13 +360,13 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                 .padding(bottom = 20.dp)
         ) {
             Text(
-                "Add to Playlist",
+                stringResource(AppR.string.library_add_to_playlist),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             if (playlists.isEmpty()) {
                 Text(
-                    "No playlists yet.",
+                    stringResource(AppR.string.library_no_playlists),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -390,7 +393,7 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                         Column(modifier = Modifier.weight(1f)) {
                             Text(playlist.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                if (playlist.songIds.size == 1) "1 song" else "${playlist.songIds.size} songs",
+                                pluralStringResource(AppR.plurals.library_songs, playlist.songIds.size, playlist.songIds.size),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -490,7 +493,7 @@ internal fun SongOptionsSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (isFavorite) "Liked" else "Favorite",
+                        if (isFavorite) stringResource(AppR.string.library_liked) else stringResource(AppR.string.library_favorite),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = if (isFavorite) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                     )
@@ -515,7 +518,7 @@ internal fun SongOptionsSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Play Next",
+                        stringResource(AppR.string.library_play_next),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -540,7 +543,7 @@ internal fun SongOptionsSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Share",
+                        stringResource(AppR.string.library_share),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -557,45 +560,45 @@ internal fun SongOptionsSheet(
             ) {
                 SongOptionCardRow(
                     iconRes = R.drawable.lucide_ic_list_plus,
-                    title = "Add to Queue",
-                    subtitle = "Append to the end of your current queue",
+                    title = stringResource(AppR.string.library_add_to_queue),
+                    subtitle = stringResource(AppR.string.library_add_to_queue_description),
                     onClick = { onAddToQueue(); onDismiss() }
                 )
                 SongOptionCardRow(
                     iconRes = R.drawable.lucide_ic_list_music,
-                    title = "Add to Playlist",
-                    subtitle = "Save track to a custom playlist",
+                    title = stringResource(AppR.string.library_add_to_playlist),
+                    subtitle = stringResource(AppR.string.library_add_to_playlist_description),
                     onClick = { onAddToPlaylist(); onDismiss() }
                 )
                 if (onEditTags != null) {
                     SongOptionCardRow(
                         iconRes = R.drawable.lucide_ic_pencil,
-                        title = "Edit Details",
-                        subtitle = "Title, artist, album, genre & year",
+                        title = stringResource(AppR.string.library_edit_details),
+                        subtitle = stringResource(AppR.string.library_edit_details_description),
                         onClick = { onDismiss(); onEditTags() }
                     )
                 }
                 if (onSearchCoverOnline != null) {
                     SongOptionCardRow(
                         iconRes = R.drawable.lucide_ic_image,
-                        title = "Search Album Cover Online",
-                        subtitle = "Find and apply high-resolution artwork",
+                        title = stringResource(AppR.string.library_search_cover),
+                        subtitle = stringResource(AppR.string.library_search_cover_description),
                         onClick = { onDismiss(); onSearchCoverOnline() }
                     )
                 }
                 if (onRemoveCustomCover != null) {
                     SongOptionCardRow(
                         iconRes = R.drawable.lucide_ic_rotate_ccw,
-                        title = "Reset to Original Cover",
-                        subtitle = "Restore default embedded artwork",
+                        title = stringResource(AppR.string.library_reset_cover),
+                        subtitle = stringResource(AppR.string.library_reset_cover_description),
                         onClick = { onDismiss(); onRemoveCustomCover() }
                     )
                 }
                 if (onDelete != null) {
                     SongOptionCardRow(
                         iconRes = R.drawable.lucide_ic_trash_2,
-                        title = "Delete from Device",
-                        subtitle = "Permanently remove this file",
+                        title = stringResource(AppR.string.library_delete_from_device),
+                        subtitle = stringResource(AppR.string.library_delete_from_device_description),
                         destructive = true,
                         onClick = { onDelete(); onDismiss() }
                     )

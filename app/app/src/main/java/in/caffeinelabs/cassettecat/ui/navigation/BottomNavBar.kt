@@ -41,8 +41,6 @@ fun parentTabRoute(currentRoute: String?): String? = when {
     currentRoute == MainRoute.SETTINGS || currentRoute == MainRoute.STATS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
     else -> currentRoute
 }
-
-// Keep all destinations centered, evenly aligned, and legible above the system gesture area.
 @Composable
 fun BottomNavBar(
     currentRoute: String?,

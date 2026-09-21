@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,7 +65,9 @@ import `in`.caffeinelabs.cassettecat.data.playback.LrcLibSearchResultItem
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
+import androidx.compose.ui.res.pluralStringResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,6 +80,39 @@ private val SONG_TITLE_CLEANUP_REGEX = Regex(
 private fun cleanSearchTitle(title: String): String {
     val cleaned = title.replace(SONG_TITLE_CLEANUP_REGEX, "").trim()
     return cleaned.ifBlank { title.trim() }
+}
+
+@Composable
+private fun SearchInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholderText: String,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        placeholder = {
+            Text(
+                text = placeholderText,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,6 +131,7 @@ internal fun LrcLibSearchSheet(
     val appliedLocallyMessage = stringResource(AppR.string.lrclib_applied_locally)
 
     var query by remember(song.id) { mutableStateOf(song.title.trim()) }
+    var artistQuery by remember(song.id) { mutableStateOf(song.artist.trim()) }
     var results by remember { mutableStateOf<List<LrcLibSearchResultItem>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     var hasSearched by remember { mutableStateOf(false) }
@@ -109,15 +146,20 @@ internal fun LrcLibSearchSheet(
         isSearching = true
         hasSearched = true
         coroutineScope.launch {
-            val list = lrcLibClient.search(query)
+            val list = lrcLibClient.search(query, artistQuery)
             if (list.isEmpty()) {
                 val cleanedTitle = cleanSearchTitle(query)
                 val fallbackList = if (cleanedTitle.isNotBlank() && cleanedTitle != query) {
-                    lrcLibClient.search(cleanedTitle)
+                    lrcLibClient.search(cleanedTitle, artistQuery)
                 } else {
                     emptyList()
                 }
-                results = fallbackList.ifEmpty { list }
+                val finalFallback = if (fallbackList.isEmpty() && artistQuery.isNotBlank()) {
+                    lrcLibClient.search(cleanedTitle.ifBlank { query }, "")
+                } else {
+                    fallbackList
+                }
+                results = finalFallback.ifEmpty { list }
             } else {
                 results = list
             }
@@ -147,6 +189,7 @@ internal fun LrcLibSearchSheet(
                         Text(
                             text = stringResource(AppR.string.lrclib_add_custom_lyrics),
                             style = MaterialTheme.typography.titleLarge,
+                            fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -158,11 +201,32 @@ internal fun LrcLibSearchSheet(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    TextButton(onClick = { showCustomLyricsEditor = false }) {
-                        Text(
-                            stringResource(AppR.string.lrclib_search),
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(onClick = { showCustomLyricsEditor = false }) {
+                            Text(
+                                stringResource(AppR.string.lrclib_search),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_x),
+                                contentDescription = stringResource(AppR.string.action_cancel),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
@@ -355,31 +419,56 @@ internal fun LrcLibSearchSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(AppR.string.lrclib_search_online),
+                            text = if (isSearching) stringResource(AppR.string.lrclib_publishing) else stringResource(AppR.string.lrclib_choose_lyrics),
                             style = MaterialTheme.typography.titleLarge,
+                            fontFamily = SpaceGroteskFontFamily,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = stringResource(AppR.string.lrclib_powered_by),
+                            text = if (song.artist.isNotBlank()) stringResource(AppR.string.lrclib_track_artist, song.title, song.artist) else song.title,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    TextButton(onClick = { showCustomLyricsEditor = true }) {
-                        Icon(
-                            painter = painterResource(R.drawable.lucide_ic_pencil),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(AppR.string.lrclib_add_custom),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontSize = 13.sp
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(onClick = { showCustomLyricsEditor = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_pencil),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                stringResource(AppR.string.lrclib_add_custom),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.lucide_ic_x),
+                                contentDescription = stringResource(AppR.string.action_cancel),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
@@ -388,41 +477,40 @@ internal fun LrcLibSearchSheet(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
+                    SearchInputField(
                         value = query,
                         onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text(stringResource(AppR.string.lrclib_track_title_hint)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { executeSearch() }),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.tertiary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-                        )
+                        placeholderText = stringResource(AppR.string.lrclib_track_title_hint),
+                        onSearch = { executeSearch() },
+                        modifier = Modifier.weight(1.25f)
+                    )
+
+                    SearchInputField(
+                        value = artistQuery,
+                        onValueChange = { artistQuery = it },
+                        placeholderText = stringResource(AppR.string.lrclib_artist_optional_hint),
+                        onSearch = { executeSearch() },
+                        modifier = Modifier.weight(1.0f)
                     )
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .size(46.dp)
+                            .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .border(
-                                0.5.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                RoundedCornerShape(16.dp)
+                                1.5.dp,
+                                MaterialTheme.colorScheme.tertiary,
+                                CircleShape
                             )
-                            .clickable { executeSearch() }
-                            .padding(horizontal = 18.dp, vertical = 15.dp),
+                            .clickable { executeSearch() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isSearching) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(18.dp),
                                 color = MaterialTheme.colorScheme.tertiary,
                                 strokeWidth = 2.dp
                             )
@@ -431,13 +519,40 @@ internal fun LrcLibSearchSheet(
                                 painter = painterResource(R.drawable.lucide_ic_search),
                                 contentDescription = stringResource(AppR.string.lrclib_search),
                                 tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
+
+                if (!isSearching && results.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = pluralStringResource(
+                                AppR.plurals.lrclib_versions_count,
+                                results.size,
+                                results.size
+                            ),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontFamily = IbmPlexMonoFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = stringResource(AppR.string.lrclib_choose_closest_match),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
 
                 if (isSearching) {
                     Box(
@@ -503,7 +618,7 @@ internal fun LrcLibSearchSheet(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                                     .clickable {
                                         haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
@@ -524,89 +639,70 @@ internal fun LrcLibSearchSheet(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = item.trackName.orEmpty().ifEmpty { song.title },
-                                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = stringResource(
-                                                    AppR.string.lrclib_result_artist_album,
-                                                    item.artistName.orEmpty(),
-                                                    item.albumName.orEmpty()
-                                                ),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
+                                        Text(
+                                            text = item.trackName.orEmpty().ifEmpty { song.title },
+                                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontFamily = SpaceGroteskFontFamily,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
 
                                         Spacer(Modifier.width(8.dp))
 
                                         if (hasSynced) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                                    .padding(horizontal = 7.dp, vertical = 3.dp)
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.lucide_ic_sparkles),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.tertiary,
-                                                        modifier = Modifier.size(11.dp)
-                                                    )
-                                                    Text(
-                                                        text = stringResource(AppR.string.lrclib_badge_synced),
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 10.sp
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.tertiary
-                                                    )
-                                                }
-                                            }
+                                            Text(
+                                                text = stringResource(AppR.string.lrclib_badge_synced),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontFamily = IbmPlexMonoFontFamily,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
                                         } else if (hasPlain) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = stringResource(AppR.string.lrclib_badge_plain),
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        fontSize = 10.sp
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                            Text(
+                                                text = stringResource(AppR.string.lrclib_badge_plain),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontFamily = IbmPlexMonoFontFamily,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                            )
                                         }
                                     }
 
+                                    Spacer(Modifier.height(2.dp))
+
+                                    Text(
+                                        text = stringResource(
+                                            AppR.string.lrclib_result_artist_album,
+                                            item.artistName.orEmpty(),
+                                            item.albumName.orEmpty()
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
                                     val snippet = (item.syncedLyrics ?: item.plainLyrics).orEmpty()
                                         .lineSequence()
+                                        .map { it.trim() }
                                         .filter { it.isNotBlank() && !it.startsWith("[") }
-                                        .take(2)
-                                        .joinToString("\n")
+                                        .firstOrNull()
+                                        .orEmpty()
 
                                     if (snippet.isNotBlank()) {
-                                        Spacer(Modifier.height(8.dp))
+                                        Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = snippet,
-                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                            maxLines = 2,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                                            maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }

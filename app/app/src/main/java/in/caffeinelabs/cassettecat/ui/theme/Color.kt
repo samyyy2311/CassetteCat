@@ -2,8 +2,6 @@ package `in`.caffeinelabs.cassettecat.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Base dark palette; CassetteCatTheme applies the selected accent and AMOLED surfaces.
-
 val RecordRed = Color(0xFFC23B30)
 
 val Background = Color(0xFF000000)
@@ -15,6 +13,4 @@ val SilverDim = Color(0xFF6E6C68)
 
 val TextPrimary = Color(0xFFF5F0EC)
 val TextSecondary = Color(0xFFA8A29A)
-
-// Foreground for accent-colored surfaces.
 val OnRecordRed = Color(0xFF000000)

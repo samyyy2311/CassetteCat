@@ -51,16 +51,27 @@ class LrcLibClient(private val cacheDir: File? = null) {
         cacheDir?.let { File(it, "lyrics").apply { mkdirs() } }
     }
 
-    suspend fun search(query: String): List<LrcLibSearchResultItem> = withContext(Dispatchers.IO) {
+    suspend fun search(query: String, artist: String = ""): List<LrcLibSearchResultItem> = withContext(Dispatchers.IO) {
         runCatching {
-            val url = "https://lrclib.net/api/search?q=${query.urlEncode()}"
+            val url = if (artist.isNotBlank()) {
+                "https://lrclib.net/api/search?track_name=${query.urlEncode()}&artist_name=${artist.urlEncode()}"
+            } else {
+                "https://lrclib.net/api/search?q=${query.urlEncode()}"
+            }
             val response = sharedHttpClient.newCall(Request.Builder().url(url).build()).execute()
-            response.use {
+            val initialResults = response.use {
                 if (!it.isSuccessful) emptyList()
-                else {
-                    val body = it.body.string()
-                    sharedJson.decodeFromString<List<LrcLibSearchResultItem>>(body)
+                else sharedJson.decodeFromString<List<LrcLibSearchResultItem>>(it.body.string())
+            }
+            if (initialResults.isEmpty() && artist.isNotBlank()) {
+                val fallbackUrl = "https://lrclib.net/api/search?q=${"$query $artist".urlEncode()}"
+                val fallbackResponse = sharedHttpClient.newCall(Request.Builder().url(fallbackUrl).build()).execute()
+                fallbackResponse.use {
+                    if (!it.isSuccessful) emptyList()
+                    else sharedJson.decodeFromString(it.body.string())
                 }
+            } else {
+                initialResults
             }
         }.getOrDefault(emptyList())
     }

@@ -38,6 +38,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
+import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import java.time.YearMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,7 +66,10 @@ private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
 private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
 private const val AUTOPLAY_BATCH_SIZE = 20
 private const val AUTOPLAY_SAME_ARTIST_WEIGHT = 4.0
+private const val AUTOPLAY_COLLABORATION_WEIGHT = 2.5
 private const val AUTOPLAY_SHARED_GENRE_WEIGHT = 2.0
+private const val AUTOPLAY_RELATED_GENRE_WEIGHT = 1.0
+private const val AUTOPLAY_ERA_PROXIMITY_WEIGHT = 1.0
 private const val AUTOPLAY_FAVORITE_WEIGHT = 1.5
 
 private data class ListeningBucket(val monthKey: String, val songId: String)
@@ -75,11 +79,23 @@ internal fun instantMixAffinity(
     seedArtist: String,
     seedGenres: List<String>,
     candidateArtist: String,
-    candidateGenres: List<String>
+    candidateGenres: List<String>,
+    seedYear: Int? = null,
+    candidateYear: Int? = null
 ): Int {
     val normalizedSeedGenres = seedGenres.map { it.lowercase() }.toSet()
     val sharedGenres = candidateGenres.map { it.lowercase() }.toSet().count { it in normalizedSeedGenres }
-    return sharedGenres * 3 + if (candidateArtist.equals(seedArtist, ignoreCase = true)) 2 else 0
+    val seedCollaborators = seedArtist.splitArtists().map { it.lowercase() }.toSet()
+    val candCollaborators = candidateArtist.splitArtists().map { it.lowercase() }.toSet()
+    val artistBonus = if (candidateArtist.equals(seedArtist, ignoreCase = true)) {
+        2
+    } else if (seedCollaborators.intersect(candCollaborators).isNotEmpty()) {
+        1
+    } else {
+        0
+    }
+    val yearBonus = if (seedYear != null && candidateYear != null && kotlin.math.abs(seedYear - candidateYear) <= 5) 1 else 0
+    return sharedGenres * 3 + artistBonus + yearBonus
 }
 
 internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): List<Song> {
@@ -89,7 +105,7 @@ internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): 
     }
     val ranked = candidates.sortedWith(
         compareByDescending<Song> { candidate ->
-            instantMixAffinity(seed.artist, seed.genres, candidate.artist, candidate.genres)
+            instantMixAffinity(seed.artist, seed.genres, candidate.artist, candidate.genres, seed.releaseYear, candidate.releaseYear)
         }.thenBy { (seed.id + it.id).hashCode() }
     )
     return (listOf(seed) + ranked).take(limit)
@@ -155,6 +171,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         repository.onQueueExhausted = { viewModelScope.launch { maybeAutoplay() } }
+        repository.onQueueLowWatermark = { viewModelScope.launch { maybeAutoplay() } }
         viewModelScope.launch {
             repository.connect()
         }
@@ -572,6 +589,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (autoplayInFlight) return
         if (!appPreferences.value.autoplayEnabled) return
         if (listeningRoom.value.role != ListeningRoomRole.NONE) return
+        if (playbackState.value.upNext.size > 1) return
         autoplayInFlight = true
         try {
             performAutoplay()
@@ -582,7 +600,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun performAutoplay() {
         val seed = playbackState.value.currentSong
-        val exclude = (playbackState.value.history.map { it.id } + listOfNotNull(seed?.id)).toSet()
+        val queueIds = playbackState.value.upNext.map { it.id }.toSet()
+        val skippedIds = repository.skipTracker.skippedSongIds()
+        val exclude = (playbackState.value.history.map { it.id } + queueIds + skippedIds + listOfNotNull(seed?.id)).toSet()
         val available = librariesBySource.values.flatMap { library ->
             runCatching { library.getSongs() }.getOrDefault(emptyList())
         }.filterNot { it.id in exclude }
@@ -592,19 +612,39 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         statsRepository.monthlyStats.first().values.forEach { month ->
             month.songPlayCounts.forEach { (songId, count) -> playCounts[songId] = (playCounts[songId] ?: 0) + count }
         }
+        val seedArtists = seed?.artist?.splitArtists()?.map { it.lowercase() }?.toSet().orEmpty()
         val seedGenres = seed?.genres?.map { it.lowercase() }?.toSet().orEmpty()
+        val seedYear = seed?.releaseYear
 
         val weighted = available.map { song ->
             var weight = 1.0
-            if (seed != null && song.artist.isNotBlank() && song.artist == seed.artist) weight += AUTOPLAY_SAME_ARTIST_WEIGHT
-            if (song.genres.any { it.lowercase() in seedGenres }) weight += AUTOPLAY_SHARED_GENRE_WEIGHT
+            val candidateArtists = song.artist.splitArtists().map { it.lowercase() }.toSet()
+            if (seed != null && song.artist.isNotBlank() && song.artist.equals(seed.artist, ignoreCase = true)) {
+                weight += AUTOPLAY_SAME_ARTIST_WEIGHT
+            } else if (candidateArtists.any { it in seedArtists }) {
+                weight += AUTOPLAY_COLLABORATION_WEIGHT
+            }
+            if (song.genres.any { it.lowercase() in seedGenres }) {
+                weight += AUTOPLAY_SHARED_GENRE_WEIGHT
+            } else if (song.genres.any { cg -> seedGenres.any { sg -> cg.contains(sg, ignoreCase = true) || sg.contains(cg, ignoreCase = true) } }) {
+                weight += AUTOPLAY_RELATED_GENRE_WEIGHT
+            }
+            if (seedYear != null && song.releaseYear != null && kotlin.math.abs(seedYear - song.releaseYear) <= 5) {
+                weight += AUTOPLAY_ERA_PROXIMITY_WEIGHT
+            }
             if (song.isFavorite) weight += AUTOPLAY_FAVORITE_WEIGHT
             weight += ln((playCounts[song.id] ?: 0) + 1.0)
             song to weight
         }
 
         val picks = weightedSampleWithoutReplacement(weighted, AUTOPLAY_BATCH_SIZE)
-        if (picks.isNotEmpty()) repository.continueWithAutoplay(picks)
+        if (picks.isNotEmpty()) {
+            if (playbackState.value.currentSong != null && playbackState.value.isPlaying) {
+                repository.addToEndOfQueue(picks)
+            } else {
+                repository.continueWithAutoplay(picks)
+            }
+        }
     }
 
     private fun <T> weightedSampleWithoutReplacement(items: List<Pair<T, Double>>, count: Int): List<T> =

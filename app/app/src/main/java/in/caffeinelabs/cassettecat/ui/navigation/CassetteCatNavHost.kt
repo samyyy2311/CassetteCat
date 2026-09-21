@@ -55,9 +55,7 @@ fun CassetteCatNavHost(
     val context = LocalContext.current
     val repository = remember { OnboardingRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
-
-    // Read once at cold start; null means still loading. Completion is a one-way transition
-    // via navigate()+popUpTo below, no need to keep observing the flow afterward.
+    // Read once at cold start; null represents the loading state.
     val onboardingCompleted by produceState<Boolean?>(initialValue = null, repository) {
         value = repository.onboardingCompleted.first()
     }

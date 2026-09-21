@@ -405,7 +405,6 @@ private fun VinylDisc(modifier: Modifier = Modifier) {
             step++
         }
 
-        // Run-out area
         drawCircle(
             color = Color(0xFF16161A),
             radius = radius * 0.44f,
@@ -709,7 +708,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                     )
                 }
 
-                // Top scrim for status-bar icons
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -721,7 +719,6 @@ internal fun NowPlayingBackdrop(song: Song) {
                         )
                 )
 
-                // Bottom scrim for controls and track details
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

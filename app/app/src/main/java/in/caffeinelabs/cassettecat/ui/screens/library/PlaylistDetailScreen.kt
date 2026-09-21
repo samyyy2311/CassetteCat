@@ -522,8 +522,6 @@ private fun PlaylistActionRow(
         )
     }
 }
-
-// shared by "New Playlist" (LibraryScreen) and "Rename Playlist" (here): same field, same shape
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistNameSheet(

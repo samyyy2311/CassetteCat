@@ -23,7 +23,7 @@ class AlbumArtLoader(private val context: Context) {
     private val fullCache = object : LruCache<String, Bitmap>(FULL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
-    private val coverArtArchiveClient = CoverArtArchiveClient()
+    private val coverArtArchiveClient = CoverArtArchiveClient.getInstance()
     private val albumCoverRepository = AlbumCoverRepository.getInstance(context)
 
     fun peek(song: Song, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(song.id)
@@ -55,7 +55,7 @@ class AlbumArtLoader(private val context: Context) {
             decodeCustomCover(song, maxDimension)
                 ?: decode(song, maxDimension)
                 ?: if (coverArtArchiveEnabled && song.album.isNotBlank() && song.artist.isNotBlank()) {
-                    coverArtArchiveClient.fetchCoverArt(song.album, song.artist)
+                    coverArtArchiveClient.fetchCoverArt(song.album, song.artist, maxDimension)
                 } else null
         } ?: return null
         cache.put(song.id, bitmap)

@@ -85,7 +85,7 @@ data class FolderGroup(
 )
 
 // misfires on stylized names like "Simon & Garfunkel": no way to tell those apart from credits
-private val ARTIST_SPLIT_REGEX = Regex("""\s*(?:,|&|;|/|\bfeat\.?\b|\bfeaturing\b|\bft\.?\b)\s*""", RegexOption.IGNORE_CASE)
+private val ARTIST_SPLIT_REGEX = Regex("""\s*(?:,|&|;|/|(?:\b(?:feat|ft)\b\.?)|\bfeaturing\b)\s*""", RegexOption.IGNORE_CASE)
 
 fun String.splitArtists(): List<String> =
     ARTIST_SPLIT_REGEX.split(this).map { it.trim() }.filter { it.isNotEmpty() }

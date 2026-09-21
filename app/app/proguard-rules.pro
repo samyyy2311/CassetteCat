@@ -7,7 +7,7 @@
 -keepclasseswithmembers class * {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,allowobfuscation,allowshrinking class * {
+-keep,allowobfuscation,allowshrinking @kotlinx.serialization.Serializable class * {
     <fields>;
 }
 

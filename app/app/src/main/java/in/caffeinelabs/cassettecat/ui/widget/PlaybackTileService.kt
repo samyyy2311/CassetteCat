@@ -46,7 +46,6 @@ class PlaybackTileService : TileService() {
     }
 
     override fun onStopListening() {
-        // Release the player connection when the tile stops listening.
         connectJob?.cancel()
         connectJob = null
         controller?.removeListener(playerListener)

@@ -12,15 +12,21 @@ import `in`.caffeinelabs.cassettecat.data.update.isNewer
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.orderedEnumValues
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.playback.SessionSkipTracker
+import `in`.caffeinelabs.cassettecat.data.playback.SmartShuffle
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
 import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
+import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.StringReader
+import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -106,4 +112,111 @@ class CoreLogicTest {
             assertTrue("trim level $level", shouldClearArtworkThumbnails(level))
         }
     }
+
+    @Test
+    fun tracksSessionSkipsWithCooldownAndCompletion() {
+        var simulatedTime = 10_000L
+        val tracker = SessionSkipTracker(clock = { simulatedTime }, cooldownMs = 30_000L)
+
+        tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
+        assertTrue(tracker.isSkipped("song-skip"))
+        assertEquals(setOf("song-skip"), tracker.skippedSongIds())
+
+        tracker.recordSkip("song-normal", elapsedMs = 60_000L, durationMs = 180_000L)
+        assertFalse(tracker.isSkipped("song-normal"))
+
+        tracker.recordCompletion("song-skip")
+        assertFalse(tracker.isSkipped("song-skip"))
+
+        tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
+        assertTrue(tracker.isSkipped("song-skip"))
+        simulatedTime += 35_000L
+        assertFalse(tracker.isSkipped("song-skip"))
+    }
+
+    @Test
+    fun smartShuffleDefersSkippedAndAvoidsArtistClusters() {
+        val s1 = testSong("1", artist = "Artist A")
+        val s2 = testSong("2", artist = "Artist A")
+        val s3 = testSong("3", artist = "Artist B")
+        val s4 = testSong("4", artist = "Artist C")
+
+        val shuffledUpcoming = SmartShuffle.shuffleUpcoming(
+            upcoming = listOf(s1, s2, s3, s4),
+            skippedIds = setOf("1")
+        )
+        assertEquals("1", shuffledUpcoming.last().id)
+
+        val (shuffledAll, _) = SmartShuffle.shuffleAll(
+            songs = listOf(s1, s2, s3, s4),
+            recentHistory = listOf(s1)
+        )
+        assertFalse(shuffledAll.first().id == "1")
+
+        val multiSongs = listOf(
+            testSong("1", artist = "Beatles"),
+            testSong("2", artist = "Beatles"),
+            testSong("3", artist = "Beatles"),
+            testSong("4", artist = "Pink Floyd"),
+            testSong("5", artist = "Queen"),
+            testSong("6", artist = "Radiohead")
+        )
+        val (antiClustered, _) = SmartShuffle.shuffleAll(multiSongs)
+        for (i in 0 until antiClustered.size - 1) {
+            if (antiClustered[i].artist == "Beatles") {
+                assertFalse(antiClustered[i + 1].artist == "Beatles")
+            }
+        }
+    }
+
+    @Test
+    fun ranksMixCandidatesWithCollaborationsAndEras() {
+        val collabsScore = instantMixAffinity(
+            seedArtist = "Daft Punk feat. Pharrell Williams",
+            seedGenres = emptyList(),
+            candidateArtist = "Pharrell Williams",
+            candidateGenres = emptyList()
+        )
+        assertEquals(1, collabsScore)
+
+        val closeEra = instantMixAffinity(
+            seedArtist = "Artist A",
+            seedGenres = emptyList(),
+            candidateArtist = "Artist B",
+            candidateGenres = emptyList(),
+            seedYear = 2020,
+            candidateYear = 2023
+        )
+        assertEquals(1, closeEra)
+
+        val farEra = instantMixAffinity(
+            seedArtist = "Artist A",
+            seedGenres = emptyList(),
+            candidateArtist = "Artist B",
+            candidateGenres = emptyList(),
+            seedYear = 2020,
+            candidateYear = 1985
+        )
+        assertEquals(0, farEra)
+    }
+
+    private fun testSong(
+        id: String,
+        artist: String = "Artist",
+        title: String = "Title",
+        genres: List<String> = emptyList(),
+        releaseYear: Int? = null,
+        durationMs: Long = 180_000L
+    ): Song = Song(
+        id = id,
+        title = title,
+        artist = artist,
+        album = "Album",
+        albumId = "album-$id",
+        durationMs = durationMs,
+        contentUri = org.mockito.Mockito.mock(Uri::class.java),
+        source = MusicSource.Local,
+        genres = genres,
+        releaseYear = releaseYear
+    )
 }

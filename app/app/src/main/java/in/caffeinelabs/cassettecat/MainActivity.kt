@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
     private val shortcutAction = mutableStateOf<String?>(null)
     private val shortcutQuery = mutableStateOf<String?>(null)
     private val shortcutMediaType = mutableStateOf<String?>(null)
-    // Initializer must be SDK-gated too, not just the register/unregister calls, or this crashes pre-14.
+    // Creating the callback itself crashes below Android 14.
     private val screenshotCallback: Activity.ScreenCaptureCallback? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             Activity.ScreenCaptureCallback { ScreenshotCaptureEvents.notifyCaptured() }
@@ -47,15 +47,14 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        handleShortcutIntent(intent)
-        requestHighestRefreshRate()
-        // Artist and album detail screens draw behind the status bar. A transparent dark style
-        // lets that artwork continue to the very top while retaining readable light icons.
+        // Detail screens draw under the status bar, so keep it transparent with light icons.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
+        super.onCreate(savedInstanceState)
+        handleShortcutIntent(intent)
+        requestHighestRefreshRate()
         setContent {
             val context = LocalContext.current
             val appPreferencesRepository = remember { AppPreferencesRepository(context) }
@@ -68,8 +67,7 @@ class MainActivity : ComponentActivity() {
                     isAmoled = preferences.amoledDarkTheme,
                     appFontFamily = preferences.appFontFamily
                 ) {
-                    // Navigation owns safe insets per surface so immersive views can
-                    // draw behind the system bars without changing ordinary screens.
+                    // Screens handle their own insets so immersive views can draw behind system bars.
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         CassetteCatNavHost(
                             shortcutAction = shortcutAction.value,

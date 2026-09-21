@@ -212,12 +212,9 @@ private fun resolvePlayMediaQueue(
 
 private val MINI_PLAYER_HEIGHT = 64.dp
 private val SHEET_CORNER_RADIUS = 28.dp
-// The bottom chrome is one continuous 64dp surface. Keeping this in sync with BottomNavBar
-// prevents a one-pixel strip of the page showing between the mini player and navigation.
+// Keep in sync with BottomNavBar to prevent a seam between mini player and navigation.
 private val NAV_BAR_TOTAL_HEIGHT = 68.dp
-
-// Now Playing is the sheet's expanded state, not a nav destination.
-// nav bar is a fixed overlay, not a layout sibling (avoids a stutter-causing measurement loop)
+// Nav bar is an overlay to avoid a measurement loop with the bottom sheet scaffold.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainShell(
@@ -277,8 +274,6 @@ fun MainShell(
             }
         }
     }
-
-    // shared across Library/Home/Search to avoid redundant refetches
     val libraryViewModel: LibraryViewModel = viewModel()
     val playlistViewModel: PlaylistViewModel = viewModel()
     val pairingViewModel: PairingViewModel = viewModel()
@@ -292,9 +287,7 @@ fun MainShell(
             (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
         }
     }
-    // Artist, album, and drive-mode routes extend behind the transparent status bar.
     val isHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL || currentRoute == MainRoute.ALBUM_DETAIL || currentRoute == MainRoute.DRIVE_MODE
-    // artist/album/playlist detail are playback-adjacent, unlike CONNECT_SERVER or DRIVE_MODE, so chrome stays visible
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER && currentRoute != MainRoute.DRIVE_MODE
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null
@@ -313,8 +306,7 @@ fun MainShell(
         }
     }
     val density = LocalDensity.current
-    // The custom bottom bar is an app overlay, so it must explicitly yield to the IME.
-    // Otherwise its labels are left hovering below/over the keyboard on text-entry screens.
+    // Yield to the IME so the overlay bar does not hover above the keyboard.
     val imeVisible = WindowInsets.ime.getBottom(density) > 0
     val navigationBarInset = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
 
@@ -326,7 +318,6 @@ fun MainShell(
     var fraction by remember { mutableFloatStateOf(0f) }
     // State, not by: per-frame drag updates shouldn't recompose MainShell
     val collapsedArtRect = remember { mutableStateOf<Rect?>(null) }
-    // hoisted so sheetSwipeEnabled can turn off during Queue/Lyrics
     var nowPlayingView by remember { mutableStateOf(NowPlayingView.PLAYER) }
     var searchFocusRequestId by remember { mutableIntStateOf(0) }
 
@@ -365,8 +356,6 @@ fun MainShell(
             scaffoldState.bottomSheetState.expand()
         }
     }
-
-    // fades the sheet fill in Queue/Lyrics mode, where the real sheet doesn't move
     var headerDragRevealFraction by remember { mutableFloatStateOf(0f) }
 
     val isSheetExpanded = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded ||
@@ -395,8 +384,6 @@ fun MainShell(
         appFontFamily = preferences.appFontFamily
     ) {
     Box(modifier.fillMaxSize()) {
-        // The library and sheet remain within the system safe area. Lyrics is added below as
-        // a root-level layer so it can use the entire display without becoming a "box".
         BoxWithConstraints(
             Modifier.fillMaxSize()
         ) {
@@ -432,7 +419,6 @@ fun MainShell(
                     }
 
                     Box(Modifier.fillMaxWidth().height(scaffoldHeight)) {
-                        // both layers start from the sheet's top; peek shows just the mini-player slice
                         if (hasSong) {
                             val miniPlayerAlpha = ((1f - fraction) / 0.45f).coerceIn(0f, 1f)
                             Box(
@@ -467,7 +453,6 @@ fun MainShell(
                                     collapsedArtRect = collapsedArtRect,
                                     activeView = nowPlayingView,
                                     onActiveViewChange = { nowPlayingView = it },
-                                    // Queue/Lyrics only; PLAYER mode uses the scaffold's native swipe
                                     onCollapseRequest = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } },
                                     onNavigateToArtist = { artist -> navigateFromNowPlaying(MainRoute.artistDetail(artist)) },
                                     onNavigateToAlbum = { albumId -> navigateFromNowPlaying(MainRoute.albumDetail(albumId)) },
@@ -507,7 +492,6 @@ fun MainShell(
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
                             onNavigateToScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
-                            // Navigation is an overlay; content continues beneath the tabs.
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -522,7 +506,6 @@ fun MainShell(
                             onNavigateToPlaylist = { playlistId -> navController.navigate(MainRoute.playlistDetail(playlistId)) },
                             onNavigateToLikedSongs = { navController.navigate(MainRoute.LIKED_SONGS) },
                             onNavigateToSmartPlaylist = { type -> navController.navigate(MainRoute.smartPlaylistDetail(type.id)) },
-                            // nav bar is an overlay, not a space-reserving sibling
                             listBottomPadding = contentPadding.calculateBottomPadding(),
                             viewModel = libraryViewModel,
                             playlistViewModel = playlistViewModel
@@ -866,7 +849,6 @@ fun MainShell(
         }
 
         if (showChrome && !imeVisible) {
-            // purely visual; no bearing on the scaffold's own measurements
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
