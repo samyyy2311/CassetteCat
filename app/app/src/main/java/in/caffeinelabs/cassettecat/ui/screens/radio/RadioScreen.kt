@@ -1,8 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.radio
 
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -61,11 +63,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import java.util.Locale
 import `in`.caffeinelabs.cassettecat.data.radio.RadioSortOrder
 import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
 import `in`.caffeinelabs.cassettecat.data.radio.toSong
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.R as AppR
@@ -76,12 +77,14 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SortDirection
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
 import kotlinx.coroutines.delay
 
 private const val SEARCH_DEBOUNCE_MS = 400L
+private val QUICK_RADIO_TAGS = listOf("ALL", "pop", "rock", "electronic", "jazz", "lofi", "classical", "news", "ambient")
 
 @Composable
 fun RadioScreen(
@@ -92,11 +95,12 @@ fun RadioScreen(
     viewModel: RadioViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
+    val preferences = LocalAppPreferences.current
     val serviceSettingsRepository = remember { ServiceSettingsRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val serviceSettings by serviceSettingsRepository.settings.collectAsStateWithLifecycle(initialValue = ServiceSettings())
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val currentSong = playbackState.currentSong
+    val isPlaying = playbackState.isPlaying
     val favorites by viewModel.favoriteStations.collectAsStateWithLifecycle(initialValue = emptyList())
     val recentStations by viewModel.recentStations.collectAsStateWithLifecycle(initialValue = emptyList())
     val topStations by viewModel.topStations.collectAsStateWithLifecycle()
@@ -121,9 +125,15 @@ fun RadioScreen(
     val anyFilterActive = selectedCountry != null || selectedState != null || selectedLanguage != null || selectedTag != null
     val isCustomized = anyFilterActive || sortOrder != RadioSortOrder.POPULARITY || sortDirection != SortDirection.DESCENDING
 
-    fun play(station: RadioStation) {
-        val wasIdle = playbackState.currentSong == null
-        playbackViewModel.playQueue(listOf(station.toSong()), 0)
+    fun play(station: RadioStation, queue: List<RadioStation>) {
+        val isCurrent = currentSong != null && (currentSong.id == "radio:${station.uuid}" || currentSong.contentUri.toString() == station.streamUrl)
+        if (isCurrent) {
+            playbackViewModel.togglePlayPause()
+            return
+        }
+        val wasIdle = currentSong == null
+        val stationIndex = queue.indexOfFirst { it.uuid == station.uuid }.coerceAtLeast(0)
+        playbackViewModel.playQueue(queue.map { it.toSong() }, stationIndex)
         viewModel.recordPlay(station)
         if (wasIdle) onNavigateToNowPlaying()
     }
@@ -164,6 +174,11 @@ fun RadioScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_refresh_cw,
+                    contentDescription = stringResource(AppR.string.radio_refresh_stations),
+                    onClick = { viewModel.refresh() }
+                )
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_sliders_horizontal,
                     contentDescription = stringResource(AppR.string.radio_refine_sort),
@@ -224,7 +239,45 @@ fun RadioScreen(
             viewModel.search(query)
         }
 
-        if (anyFilterActive) {
+        if (!isOffline) {
+            Spacer(Modifier.height(10.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(QUICK_RADIO_TAGS) { tag ->
+                    val isSelected = if (tag == "ALL") selectedTag == null else selectedTag.equals(tag, ignoreCase = true)
+                    val label = if (tag == "ALL") stringResource(AppR.string.radio_all).uppercase(Locale.ROOT) else tag.uppercase(Locale.ROOT)
+                    Surface(
+                        shape = RoundedCornerShape(100.dp),
+                        color = Color.Transparent,
+                        border = BorderStroke(
+                            width = if (isSelected) 1.5.dp else 1.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        ),
+                        modifier = Modifier.tapScale {
+                            viewModel.setTag(if (tag == "ALL" || isSelected) null else tag)
+                        }
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = IbmPlexMonoFontFamily,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            ),
+                            color = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        val showCustomTagChip = selectedTag != null && !QUICK_RADIO_TAGS.any { it.equals(selectedTag, ignoreCase = true) }
+        val hasActiveFilterChips = selectedCountry != null || selectedState != null || selectedLanguage != null || showCustomTagChip
+        if (hasActiveFilterChips) {
             Spacer(Modifier.height(8.dp))
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -268,7 +321,7 @@ fun RadioScreen(
                         )
                     }
                 }
-                if (selectedTag != null) {
+                if (showCustomTagChip) {
                     item(key = "tag") {
                         ActiveFilterChip(
                             label = stringResource(AppR.string.radio_filter_tag, selectedTag.orEmpty()),
@@ -316,9 +369,9 @@ fun RadioScreen(
                     showingSearch -> stringResource(AppR.string.radio_search_empty_message)
                     else -> stringResource(AppR.string.radio_loading_message)
                 },
-                modifier = Modifier
-                    .weight(1f)
-                    .then(if (fetchFailed) Modifier.clickable { viewModel.retry() } else Modifier)
+                actionLabel = if (fetchFailed) stringResource(AppR.string.action_retry) else null,
+                onAction = if (fetchFailed) { { viewModel.retry() } } else null,
+                modifier = Modifier.weight(1f)
             )
         } else {
             LazyVerticalGrid(
@@ -330,25 +383,46 @@ fun RadioScreen(
             ) {
                 if (!showingSearch && favorites.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionLabel(stringResource(AppR.string.radio_favorites))
+                        SectionLabel(stringResource(AppR.string.radio_favorites), favorites.size)
                     }
                     items(favorites, key = { "fav-${it.uuid}" }) { station ->
-                        RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
+                        val isCurrent = currentSong != null && (currentSong.id == "radio:${station.uuid}" || currentSong.contentUri.toString() == station.streamUrl)
+                        RadioStationCard(
+                            station = station,
+                            isCurrent = isCurrent,
+                            isPlaying = isCurrent && isPlaying,
+                            onClick = { play(station, favorites) },
+                            onLongClick = { share(station) }
+                        )
                     }
                 }
                 if (!showingSearch && recentStations.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionLabel(stringResource(AppR.string.radio_recently_played))
+                        SectionLabel(stringResource(AppR.string.radio_recently_played), recentStations.size)
                     }
                     items(recentStations, key = { "recent-${it.uuid}" }) { station ->
-                        RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
+                        val isCurrent = currentSong != null && (currentSong.id == "radio:${station.uuid}" || currentSong.contentUri.toString() == station.streamUrl)
+                        RadioStationCard(
+                            station = station,
+                            isCurrent = isCurrent,
+                            isPlaying = isCurrent && isPlaying,
+                            onClick = { play(station, recentStations) },
+                            onLongClick = { share(station) }
+                        )
                     }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    SectionLabel(stringResource(if (showingSearch) AppR.string.radio_search_results else AppR.string.radio_top_stations))
+                    SectionLabel(stringResource(if (showingSearch) AppR.string.radio_search_results else AppR.string.radio_top_stations), stations.size)
                 }
                 items(stations, key = { if (showingSearch) "search-${it.uuid}" else "top-${it.uuid}" }) { station ->
-                    RadioStationCard(station = station, onClick = { play(station) }, onLongClick = { share(station) })
+                    val isCurrent = currentSong != null && (currentSong.id == "radio:${station.uuid}" || currentSong.contentUri.toString() == station.streamUrl)
+                    RadioStationCard(
+                        station = station,
+                        isCurrent = isCurrent,
+                        isPlaying = isCurrent && isPlaying,
+                        onClick = { play(station, stations) },
+                        onLongClick = { share(station) }
+                    )
                 }
             }
         }
@@ -411,7 +485,13 @@ fun RadioScreen(
 }
 
 @Composable
-private fun RadioStationCard(station: RadioStation, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun RadioStationCard(
+    station: RadioStation,
+    isCurrent: Boolean = false,
+    isPlaying: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     val song = remember(station.uuid) { station.toSong() }
     Column(
         modifier = Modifier
@@ -424,13 +504,37 @@ private fun RadioStationCard(station: RadioStation, onClick: () -> Unit, onLongC
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .then(
+                    if (isCurrent) Modifier.border(2.dp, MaterialTheme.colorScheme.tertiary, RoundedCornerShape(16.dp))
+                    else Modifier
+                )
         ) {
             AlbumArt(song = song, modifier = Modifier.fillMaxSize())
+            if (isCurrent) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.tertiary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(if (isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(
             station.name,
             style = MaterialTheme.typography.bodyLarge,
+            color = if (isCurrent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -871,13 +975,25 @@ private fun NameFilterRow(label: String, selected: Boolean, onClick: () -> Unit)
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
-        color = MaterialTheme.colorScheme.tertiary,
+private fun SectionLabel(text: String, count: Int? = null) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.padding(vertical = 8.dp)
-    )
+    ) {
+        Text(
+            text.uppercase(),
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
+            color = MaterialTheme.colorScheme.tertiary
+        )
+        if (count != null && count > 0) {
+            Text(
+                count.toString(),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable

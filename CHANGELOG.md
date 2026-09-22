@@ -2,6 +2,15 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.4]
+
+* Shuffle now mixes up upcoming songs without interrupting what's playing, and turning it off brings back your original queue order.
+* Pull down to refresh anywhere in your library: songs, albums, artists, playlists, liked tracks, and folders.
+* Much better radio: skip between stations like normal tracks, tap quick genre pills to find new broadcasts, and easily play or pause from the station cards.
+* Polished Now Playing controls, smoother lyrics, and fixed jumping bottom sheets.
+* Vinyl record player empty state, fallback artwork, and desktop-style bordered buttons.
+* Fixed a crash on the Home screen while music was still loading.
+
 ## [1.7.3]
 
 * Smart shuffle now remembers what you skipped and pushes those tracks to the end of the queue so they don't come back right away.

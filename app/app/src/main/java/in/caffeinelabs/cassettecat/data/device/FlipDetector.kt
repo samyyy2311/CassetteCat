@@ -27,7 +27,6 @@ class FlipDetector(
 
     @Volatile
     private var isProximityNear = false
-    private var hasProximitySensor = proximitySensor != null
 
     private var faceDownPendingRunnable: Runnable? = null
 
@@ -52,11 +51,11 @@ class FlipDetector(
 
     fun stop() {
         if (!isListening || sensorManager == null) return
-        cancelPendingFlipDown()
         sensorManager.unregisterListener(this)
         isListening = false
         isProximityRegistered = false
-        isFaceDown = false
+        isProximityNear = false
+        cancelPendingFlipDown()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -66,18 +65,18 @@ class FlipDetector(
             Sensor.TYPE_PROXIMITY -> {
                 val distance = event.values[0]
                 val maxRange = event.sensor.maximumRange
-                isProximityNear = distance < maxRange && distance < PROXIMITY_NEAR_CM
-                checkOrientation(currentGz, currentGx, currentGy)
+                isProximityNear = distance < PROXIMITY_NEAR_CM && distance < maxRange
             }
             Sensor.TYPE_ACCELEROMETER -> {
                 val gx = event.values[0]
                 val gy = event.values[1]
                 val gz = event.values[2]
+
                 currentGx = gx
                 currentGy = gy
                 currentGz = gz
 
-                if (hasProximitySensor && proximitySensor != null) {
+                if (proximitySensor != null) {
                     if (gz < PROXIMITY_ACTIVATE_GZ && !isProximityRegistered) {
                         sensorManager?.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL)
                         isProximityRegistered = true
@@ -100,7 +99,7 @@ class FlipDetector(
     private fun checkOrientation(gz: Float, gx: Float, gy: Float) {
         val lateralForceSq = gx * gx + gy * gy
         val isPhysicallyFaceDown = gz < FACE_DOWN_GZ_THRESHOLD && lateralForceSq < FACE_DOWN_MAX_LATERAL_FORCE_SQ
-        val isConfirmedFaceDown = if (hasProximitySensor && isProximityRegistered) {
+        val isConfirmedFaceDown = if (isProximityRegistered) {
             isPhysicallyFaceDown && isProximityNear
         } else {
             isPhysicallyFaceDown
@@ -121,7 +120,7 @@ class FlipDetector(
         } else {
             cancelPendingFlipDown()
             if (gz > FACE_UP_GZ_THRESHOLD ||
-                (hasProximitySensor && isProximityRegistered && !isProximityNear && gz > FACE_UP_GZ_THRESHOLD_WITH_PROXIMITY)
+                (isProximityRegistered && !isProximityNear && gz > FACE_UP_GZ_THRESHOLD_WITH_PROXIMITY)
             ) {
                 if (isFaceDown) {
                     isFaceDown = false

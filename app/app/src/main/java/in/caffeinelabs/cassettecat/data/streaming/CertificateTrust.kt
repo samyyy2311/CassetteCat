@@ -30,8 +30,7 @@ tailrec fun Throwable.findUntrustedCertificateCause(): UntrustedCertificateExcep
     else -> null
 }
 
-// Flat set of approved fingerprints, not bound to a hostname: a self-signed cert's
-// identity is the fingerprint itself, the user already verified it out-of-band.
+// TOFU certificate pinning keys on the certificate fingerprint rather than hostname.
 private object CertificatePinStore {
     @Volatile var pinned: Set<String> = emptySet()
 }

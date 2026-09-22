@@ -1,0 +1,8 @@
+What's new in 1.7.4:
+
+- Smoother shuffle: toggling it no longer cuts off what's playing, and switching it off restores your original queue order
+- Pull to refresh everywhere: songs, albums, artists, playlists, liked tracks, and folders
+- Radio got a real upgrade: skip stations like normal tracks, filter by genre with quick pill buttons, and play/pause right from the station card
+- Polished Now Playing controls, smoother lyrics scroll, and fixed jumping bottom sheets
+- New vinyl record empty state, fallback artwork for missing covers, and desktop-style bordered buttons
+- Fixed a crash on the Home screen while the library was still loading

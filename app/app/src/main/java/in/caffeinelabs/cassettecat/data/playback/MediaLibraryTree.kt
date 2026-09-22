@@ -37,8 +37,7 @@ class MediaLibraryTree(private val context: Context) {
     private val radioFavoritesRepository = RadioFavoritesRepository(context)
     private val radioBrowserApiClient = RadioBrowserApiClient()
 
-    // Browsing a car head unit can select an item fetched a moment earlier via children();
-    // cache the last-seen batches so item(mediaId) can resolve stations that aren't favorited.
+    // Caches recent browsing batches to resolve unfavorited stations on Android Auto.
     @Volatile private var cachedRadioResults: Map<String, Song> = emptyMap()
 
     val rootItem: MediaItem = folderItem(ROOT_ID, "CassetteCat")
@@ -141,8 +140,7 @@ class MediaLibraryTree(private val context: Context) {
         }
     }
 
-    // Backs both onSearch/onGetSearchResult: local library by title/artist, plus a live
-    // Radio Browser lookup, so voice search ("play jazz fm") can resolve to a real station.
+    // Resolves search queries against local library and live Radio Browser.
     suspend fun search(query: String): List<MediaItem> {
         if (query.isBlank()) return emptyList()
         val librarySongs = localLibrary.getSongs()

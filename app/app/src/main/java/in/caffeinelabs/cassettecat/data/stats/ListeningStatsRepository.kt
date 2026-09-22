@@ -36,8 +36,7 @@ private data class StatsData(
     val milestones: List<Milestone> = emptyList()
 )
 
-// Monthly aggregates, not a full play-event log, bounded by months-of-use x library size,
-// not listen count, same reasoning as the earlier all-time aggregate this replaces.
+// Monthly aggregate rollups rather than raw event logs to bound storage growth.
 class ListeningStatsRepository(private val context: Context) {
     val monthlyStats: Flow<Map<String, MonthlyStats>> = context.statsDataStore.data.map { it.decode().monthly }
     val milestones: Flow<List<Milestone>> = context.statsDataStore.data.map { it.decode().milestones }
@@ -74,7 +73,6 @@ class ListeningStatsRepository(private val context: Context) {
         BackupManager(context).dataChanged()
     }
 
-    // backup restore only: full replace, not a merge
     suspend fun replaceAll(monthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
         context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(monthly, milestones)) }
         BackupManager(context).dataChanged()

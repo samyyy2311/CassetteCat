@@ -2,9 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.jellyfin
 
 import kotlinx.serialization.Serializable
 
-// Property names match Jellyfin's PascalCase JSON (its backend
-// is .NET) rather than adding @SerialName annotations to force lowerCamelCase.
-
+// Matches Jellyfin's PascalCase JSON directly to avoid redundant @SerialName annotations.
 @Serializable
 data class JellyfinAuthRequest(val Username: String, val Pw: String)
 

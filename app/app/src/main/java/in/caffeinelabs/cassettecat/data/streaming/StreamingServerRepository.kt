@@ -14,8 +14,7 @@ import kotlinx.serialization.Serializable
 private val Context.streamingDataStore by preferencesDataStore(name = "streaming_servers")
 private val DEVICE_ID = stringPreferencesKey("device_id")
 
-// Non-secret config only, one server per protocol (see MusicSource in Song.kt).
-// Passwords/access tokens live in CredentialStore instead.
+// Non-secret server configuration. Passwords and access tokens are stored in CredentialStore.
 @Serializable
 data class StreamingServerConfig(
     val serverUrl: String = "",
@@ -53,7 +52,7 @@ class StreamingServerRepository(private val context: Context) {
         setConfig(protocol, StreamingServerConfig())
     }
 
-    // Stable device identity for Jellyfin's device list; not a secret, so it lives here.
+    // Persisted client identifier for media server device registries.
     suspend fun deviceId(): String {
         val existing = context.streamingDataStore.data.map { it[DEVICE_ID] }.first()
         if (existing != null) return existing

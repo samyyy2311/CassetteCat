@@ -39,8 +39,7 @@ data class SubsonicSong(
     val artist: String? = null,
     val duration: Long = 0,
     val coverArt: String? = null,
-    // Present (an ISO8601 timestamp) when starred, absent otherwise; only presence
-    // is used, the timestamp value itself isn't needed.
+    // Non-null timestamp indicates track is starred.
     val starred: String? = null,
     val genre: String? = null
 )

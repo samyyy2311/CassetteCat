@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 // Scale-down press feedback without ripple bounds.
 fun Modifier.tapScale(onClick: () -> Unit): Modifier = pressScale(onClick = onClick)
 
-// Separate function preserves trailing-lambda and positional call-site ergonomics.
 fun Modifier.tapScaleSelectable(onClick: () -> Unit, onLongClick: () -> Unit): Modifier =
     pressScale(onClick = onClick, onLongClick = onLongClick)
 

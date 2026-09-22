@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -53,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Velocity
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -78,10 +82,28 @@ internal fun FullOpenBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                return if (available.y < 0f) available else Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                return if (available.y < 0f) available else Velocity.Zero
+            }
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        content = content
+        content = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .nestedScroll(scrollConnection),
+                content = content
+            )
+        }
     )
 }
 
@@ -161,7 +183,6 @@ internal fun NowPlayingActionsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 28.dp)
         ) {
@@ -945,7 +966,7 @@ internal fun NowPlayingGoToSheet(
                     Icon(
                         painter = painterResource(R.drawable.lucide_ic_image),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
+                        tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -1055,7 +1076,10 @@ private fun GoToMusicDetailRow(
             .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp))) { artwork() }
+        Box(
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) { artwork() }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
@@ -1079,20 +1103,21 @@ private fun QuickActionButton(
     onClick: () -> Unit
 ) {
     val bg = if (accented) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)
+        MaterialTheme.colorScheme.surfaceContainerHighest
     } else {
         MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val borderColor = if (accented) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)
+        MaterialTheme.colorScheme.tertiary
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
     }
+    val borderWidth = if (accented) 1.5.dp else 1.dp
     val contentColor = if (accented) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = bg,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(borderWidth, borderColor),
         modifier = modifier
             .tapScale(onClick)
             .height(58.dp)
@@ -1214,7 +1239,6 @@ internal fun SleepTimerPickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(bottom = 28.dp)
         ) {
             Row(

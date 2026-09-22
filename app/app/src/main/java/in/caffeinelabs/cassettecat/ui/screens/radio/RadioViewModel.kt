@@ -1,4 +1,4 @@
-﻿package `in`.caffeinelabs.cassettecat.ui.screens.radio
+package `in`.caffeinelabs.cassettecat.ui.screens.radio
 
 import android.app.Application
 import android.net.ConnectivityManager
@@ -17,6 +17,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SortDirection
 import `in`.caffeinelabs.cassettecat.ui.screens.library.flipped
 import java.util.Locale
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,6 +81,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
     val selectedTag: StateFlow<String?> = _selectedTag.asStateFlow()
 
     private var lastQuery = ""
+    private var fetchJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -129,7 +131,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    private suspend fun refresh() {
+    private suspend fun performRefresh() {
         val radioEnabled = isRadioEnabled()
         _isOffline.value = !radioEnabled || !isOnline()
         if (_isOffline.value) {
@@ -160,9 +162,14 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun retry() {
-        viewModelScope.launch { if (isRadioEnabled()) refresh() }
+    fun refresh() {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
+            if (isRadioEnabled()) performRefresh()
+        }
     }
+
+    fun retry() = refresh()
 
     fun setCountry(country: String?) {
         _selectedCountry.value = country
@@ -173,7 +180,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
             if (isRadioEnabled()) {
                 val states = apiClient.states(country)
                 if (_selectedCountry.value == country) _states.value = states
-                refresh()
+                performRefresh()
             }
         }
     }
@@ -182,7 +189,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         _selectedState.value = state
         viewModelScope.launch {
             appPreferencesRepository.setRadioSelectedState(state ?: "")
-            if (isRadioEnabled()) refresh()
+            refresh()
         }
     }
 
@@ -190,7 +197,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         _selectedLanguage.value = language
         viewModelScope.launch {
             appPreferencesRepository.setRadioSelectedLanguage(language ?: "")
-            if (isRadioEnabled()) refresh()
+            refresh()
         }
     }
 
@@ -198,22 +205,24 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         _selectedTag.value = tag
         viewModelScope.launch {
             appPreferencesRepository.setRadioSelectedTag(tag ?: "")
-            if (isRadioEnabled()) refresh()
+            refresh()
         }
     }
 
     fun search(query: String) {
         lastQuery = query
+        fetchJob?.cancel()
         if (query.isBlank()) {
             _searchResults.value = emptyList()
+            _isSearching.value = false
             return
         }
-        viewModelScope.launch {
+        fetchJob = viewModelScope.launch {
             if (!isRadioEnabled()) {
                 _searchResults.value = emptyList()
                 return@launch
             }
-            refresh()
+            performRefresh()
         }
     }
 

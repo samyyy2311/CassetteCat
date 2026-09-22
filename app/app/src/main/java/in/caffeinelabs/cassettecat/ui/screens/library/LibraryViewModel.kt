@@ -16,7 +16,9 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
+import android.os.SystemClock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Job
@@ -84,7 +86,7 @@ data class FolderGroup(
     val customCoverPath: String? = null
 )
 
-// misfires on stylized names like "Simon & Garfunkel": no way to tell those apart from credits
+// Known limitation: splits band names containing delimiters (e.g. "Simon & Garfunkel").
 private val ARTIST_SPLIT_REGEX = Regex("""\s*(?:,|&|;|/|(?:\b(?:feat|ft)\b\.?)|\bfeaturing\b)\s*""", RegexOption.IGNORE_CASE)
 
 fun String.splitArtists(): List<String> =
@@ -267,41 +269,49 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() {
+        LocalLibraryRepository.invalidateCache()
         _dismissedWarnings.value = emptySet()
         refreshJob?.cancel()
-        refreshJob = viewModelScope.launch { loadSongs() }
+        _isRefreshing.value = true
+        refreshJob = viewModelScope.launch {
+            val startMs = SystemClock.elapsedRealtime()
+            try {
+                loadSongs()
+            } finally {
+                val elapsedMs = SystemClock.elapsedRealtime() - startMs
+                if (elapsedMs < 450L) {
+                    delay(450L - elapsedMs)
+                }
+                _isRefreshing.value = false
+            }
+        }
     }
 
     private suspend fun loadSongs() {
         if (loadedSongs.isEmpty()) {
             _uiState.value = LibraryUiState.Loading
         }
-        _isRefreshing.value = true
-        try {
-            val offline = isOfflineMode.value
-            val activeSources = if (offline) sources.filter { it.label == "Local" } else sources
+        val offline = isOfflineMode.value
+        val activeSources = if (offline) sources.filter { it.label == "Local" } else sources
 
-            // per-source, so one dead server doesn't blank out the others
-            val results = coroutineScope {
-                activeSources.map { source -> async {
-                    source.label to runCatching { source.repository.getSongs() }
-                        .onFailure { if (it is CancellationException) throw it }
-                } }
-                    .map { it.await() }
-            }
-
-            val allRaw = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
-            rawSongs = allRaw
-            loadedSongs = metadataOverridesRepo.applyTo(allRaw)
-            loadedWarnings = results.mapNotNull { (label, result) ->
-                result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
-            }
-            publishLoadedSongs()
-            updateAvailableSources()
-            _lastRefreshAtMs.value = System.currentTimeMillis()
-        } finally {
-            _isRefreshing.value = false
+        // per-source, so one dead server doesn't blank out the others
+        val results = coroutineScope {
+            activeSources.map { source -> async {
+                source.label to runCatching { source.repository.getSongs() }
+                    .onFailure { if (it is CancellationException) throw it }
+            } }
+                .map { it.await() }
         }
+
+        val allRaw = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
+        rawSongs = allRaw
+        loadedSongs = metadataOverridesRepo.applyTo(allRaw)
+        loadedWarnings = results.mapNotNull { (label, result) ->
+            result.exceptionOrNull()?.let { "$label: ${it.message ?: it::class.simpleName ?: "couldn't connect"}" }
+        }
+        publishLoadedSongs()
+        updateAvailableSources()
+        _lastRefreshAtMs.value = System.currentTimeMillis()
     }
 
     fun updateSongMetadata(updatedSong: Song) {
@@ -310,7 +320,6 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         publishLoadedSongs()
     }
 
-    // re-tapping the active field flips direction instead of no-op
     fun setSortOrder(order: SongSortOrder) {
         if (order == _sortOrder.value) {
             _sortDirection.value = _sortDirection.value.flipped()

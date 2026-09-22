@@ -21,9 +21,7 @@ data class PlaybackUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
-    // Drives the play/pause button: user intent, true the instant play() is called and
-    // held through buffering, unlike isPlaying which can gap briefly between skip and
-    // STATE_BUFFERING actually being reported.
+    // Reflects user intent; held true through buffering where isPlaying may briefly drop.
     val playWhenReady: Boolean = false,
     val durationMs: Long = 0L,
     val isShuffleEnabled: Boolean = false,
@@ -31,9 +29,9 @@ data class PlaybackUiState(
     val audioSessionId: Int = C.AUDIO_SESSION_ID_UNSET,
     val upNext: List<Song> = emptyList(),
     val previousInQueue: Song? = null,
-    // Most-recently-played first, capped in PlaybackRepository.
+    // Most recently played first.
     val history: List<Song> = emptyList(),
-    // Read off the current track's embedded tags (ID3 USLT / Vorbis LYRICS), see extractLyrics().
+    // Embedded ID3/Vorbis lyrics, if present.
     val currentLyrics: String? = null,
     val audioFormat: AudioTrackFormat? = null
 )

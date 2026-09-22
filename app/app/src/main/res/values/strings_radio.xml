@@ -53,4 +53,5 @@
     <string name="radio_sort_name">Name</string>
     <string name="radio_sort_country">Country</string>
     <string name="radio_sort_bitrate">Bitrate</string>
+    <string name="radio_refresh_stations">Refresh stations</string>
 </resources>

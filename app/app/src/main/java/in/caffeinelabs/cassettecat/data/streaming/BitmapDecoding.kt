@@ -3,9 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 
-// Full-width artwork and artist images can occupy most of a 1440p display. Keeping
-// the decoded edge at 1440 avoids the soft upscaling visible with 1024px artwork,
-// while still bounding memory usage for scrolling lists.
+// Cap decoded dimensions at 1440px to balance display resolution with memory usage.
 internal fun decodeSampledBitmap(
     bytes: ByteArray,
     maxDimension: Int = 1440,

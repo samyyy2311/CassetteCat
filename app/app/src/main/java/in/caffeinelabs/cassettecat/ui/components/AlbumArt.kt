@@ -28,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.AlbumArtLoader
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -203,10 +204,11 @@ fun AlbumArt(
                         )
                     }
                 } else {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_disc_3),
+                    Image(
+                        painter = painterResource(AppR.drawable.empty_state_vinyl),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }

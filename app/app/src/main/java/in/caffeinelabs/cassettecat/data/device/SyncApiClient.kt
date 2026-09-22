@@ -76,16 +76,4 @@ class SyncApiClient {
                 }
             }.getOrDefault(false)
         }
-
-    suspend fun deleteSong(host: String, port: Int = 80, path: String, network: Network? = null): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val url = "http://$host:$port/api/sync/songs".toHttpUrl().newBuilder()
-                    .addQueryParameter("path", path)
-                    .build()
-                val request = Request.Builder().url(url).delete().build()
-                val response = deviceHttpClient(network).newCall(request).execute()
-                response.use { it.isSuccessful }
-            }.getOrDefault(false)
-        }
 }

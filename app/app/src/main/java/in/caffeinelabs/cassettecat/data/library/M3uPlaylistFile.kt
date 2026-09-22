@@ -4,8 +4,7 @@ import java.io.File
 
 data class M3uEntry(val title: String?, val artist: String?, val path: String)
 
-// Local songs only: a streamed song's contentUri is a pre-authenticated URL with
-// credentials in the query string, same constraint ui/util/ShareSongs.kt already solved.
+// Local songs only: streaming URLs contain transient credentials.
 fun buildM3u(songs: List<Song>): Pair<String, Int> {
     val local = songs.filter { it.source == MusicSource.Local && it.filePath != null }
     val skipped = songs.size - local.size
@@ -42,8 +41,7 @@ fun parseM3u(text: String): List<M3uEntry> {
     return entries
 }
 
-// Match by filename first to handle different absolute path prefixes,
-// falling back to title+artist from #EXTINF when present
+// Match by filename first to handle differing path prefixes, then by title and artist.
 fun List<Song>.matchM3uEntries(entries: List<M3uEntry>): List<String> {
     val byFileName = filter { it.source == MusicSource.Local && it.filePath != null }
         .associateBy { File(it.filePath!!).name }

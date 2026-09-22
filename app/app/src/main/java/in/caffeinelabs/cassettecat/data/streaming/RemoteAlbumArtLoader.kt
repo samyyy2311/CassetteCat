@@ -12,8 +12,7 @@ private const val FULL_CACHE_BYTES = 24 * 1024 * 1024
 private const val THUMBNAIL_DIMENSION = 300
 private const val FULL_DIMENSION = 1440
 
-// Mirrors AlbumArtLoader but over HTTP for streamed sources (pre-authenticated Song.artUri).
-// Blocking OkHttp call is fine since this already runs inside Dispatchers.IO.
+// In-memory two-tier cache (thumbnail and full-res) for remote artwork.
 class RemoteAlbumArtLoader {
     private val thumbnailCache = object : LruCache<String, Bitmap>(THUMBNAIL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -39,7 +38,6 @@ class RemoteAlbumArtLoader {
     fun peek(artUri: Uri, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(artUri.toString())
 
     suspend fun load(artUri: Uri, thumbnail: Boolean = true): Bitmap? {
-        // Keep thumbnail and full-size artwork within separate memory budgets.
         val cache = cacheFor(thumbnail)
         val key = artUri.toString()
         cache.get(key)?.let { return it }

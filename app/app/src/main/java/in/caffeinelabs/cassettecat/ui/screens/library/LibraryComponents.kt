@@ -585,97 +585,111 @@ internal fun FolderCard(
 ) {
     val sampleSong = group.songs.firstOrNull()
     val customCover = rememberLocalFileCoverBitmap(group.customCoverPath)
-    val hasArt = customCover != null || sampleSong != null
-    Box(
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.55f)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .border(
-                0.5.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(14.dp)
-            )
             .tapScaleSelectable(onClick, onLongClick)
     ) {
-        if (customCover != null) {
-            Image(
-                bitmap = customCover.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else if (sampleSong != null) {
-            AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
-        }
-        if (hasArt) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.15f),
-                        0.55f to Color.Black.copy(alpha = 0.55f),
-                        1f to Color.Black.copy(alpha = 0.88f)
-                    )
-                )
-            )
-        }
-
-        Column(
+        Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth(0.72f)
-                .padding(14.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    RoundedCornerShape(14.dp)
+                )
         ) {
-            Text(
-                text = group.folderName,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = if (hasArt) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            group.parentName?.let { parent ->
-                Text(
-                    text = "in $parent",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (hasArt) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            if (customCover != null) {
+                Image(
+                    bitmap = customCover.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (sampleSong != null) {
+                AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_folder),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
+            }
+
+            if (onChangeCover != null && !selectionMode) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .tapScale(onChangeCover),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_image_plus),
+                        contentDescription = stringResource(AppR.string.desc_change_folder_cover),
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.65f))
+                    .tapScale(onPlay),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_play),
+                    contentDescription = stringResource(AppR.string.library_play),
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
                 )
             }
+
+            SelectionOverlay(selected, RoundedCornerShape(14.dp))
         }
 
-        Icon(
-            painter = painterResource(R.drawable.lucide_ic_folder),
-            contentDescription = stringResource(AppR.string.library_play),
-            tint = if (hasArt) Color.White else MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(14.dp)
-                .size(34.dp)
-                .tapScale(onPlay)
-        )
+        Spacer(Modifier.height(8.dp))
 
-        if (onChangeCover != null && !selectionMode) {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_image_plus),
-                contentDescription = stringResource(AppR.string.desc_change_folder_cover),
-                tint = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(14.dp)
-                    .size(20.dp)
-                    .tapScale(onChangeCover)
+        Text(
+            text = group.folderName,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        )
+        group.parentName?.let { parent ->
+            Text(
+                text = "in $parent",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-
-        SelectionOverlay(selected, RoundedCornerShape(14.dp))
     }
 }
 

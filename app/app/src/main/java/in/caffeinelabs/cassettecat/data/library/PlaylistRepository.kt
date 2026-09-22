@@ -42,8 +42,7 @@ data class Playlist(
     val name: String,
     val songIds: List<String> = emptyList(),
     val coverType: PlaylistCoverType = PlaylistCoverType.NONE,
-    // interpreted per coverType: app-private file path (IMAGE), a key into
-    // PLAYLIST_ICON_OPTIONS (ICON), or the raw emoji character (EMOJI)
+    // File path for IMAGE, key for ICON, or literal character for EMOJI.
     val coverValue: String? = null,
     val isSmart: Boolean = false,
     val smartCriteria: SmartPlaylistCriteria? = null
@@ -98,7 +97,6 @@ class PlaylistRepository(private val context: Context) {
 
     suspend fun clearCover(id: String) = setCover(id, PlaylistCoverType.NONE, null)
 
-    // backup restore only: full replace, not a merge
     suspend fun replaceAll(playlists: List<Playlist>) = update { playlists }
 
     suspend fun addSong(playlistId: String, songId: String) = update { list ->

@@ -157,44 +157,26 @@ fun HomeScreen(
         onRefresh = { libraryViewModel.refresh() },
         modifier = modifier.fillMaxSize()
     ) {
-    Column(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(greetingRes),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    stringResource(AppR.string.home_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_car,
-                contentDescription = stringResource(AppR.string.home_drive_mode),
-                onClick = onNavigateToDriveMode
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-
         Crossfade(
             targetState = libraryState is LibraryUiState.Loading && allSongs.isEmpty(),
             animationSpec = tween(220),
             label = "homeStateCrossfade",
-            modifier = Modifier.fillMaxSize().weight(1f)
+            modifier = Modifier.fillMaxSize()
         ) { showSkeleton ->
             if (showSkeleton) {
-                HomeSkeletonContent(listBottomPadding = listBottomPadding)
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 8.dp)
+                ) {
+                    HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
+                    Spacer(Modifier.height(12.dp))
+                    HomeSkeletonContent(listBottomPadding = listBottomPadding)
+                }
             } else if (allSongs.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 8.dp)
+                ) {
+                    HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
+                    Spacer(Modifier.height(12.dp))
                     EmptyState(
                         catRes = AppR.drawable.cat_black_cassette,
                         title = stringResource(AppR.string.home_empty_title),
@@ -204,14 +186,18 @@ fun HomeScreen(
                         onAction = { libraryViewModel.refresh() },
                         secondaryActionLabel = if (onNavigateToScanFolders != null) stringResource(AppR.string.home_empty_secondary_action) else null,
                         onSecondaryAction = onNavigateToScanFolders,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = listBottomPadding + 24.dp)
+                    contentPadding = PaddingValues(top = 8.dp, bottom = listBottomPadding + 24.dp)
                 ) {
+                    item(key = "home_greeting") {
+                        HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
+                        Spacer(Modifier.height(12.dp))
+                    }
                     item {
                         LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)
                         Spacer(Modifier.height(20.dp))
@@ -275,7 +261,7 @@ fun HomeScreen(
                         }
                     }
                     if (favorites.isNotEmpty()) {
-                        item {
+                        item(key = "home_favorites") {
                             HomeSongSection(
                                 title = stringResource(AppR.string.home_favorites),
                                 subtitle = stringResource(AppR.string.home_favorites_desc),
@@ -291,12 +277,40 @@ fun HomeScreen(
         }
     }
 }
+
+@Composable
+private fun HomeGreetingHeader(greetingRes: Int, onNavigateToDriveMode: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                stringResource(greetingRes),
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                stringResource(AppR.string.home_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+        PressDepthIconButton(
+            iconRes = R.drawable.lucide_ic_car,
+            contentDescription = stringResource(AppR.string.home_drive_mode),
+            onClick = onNavigateToDriveMode
+        )
+    }
 }
 
 @Composable
 private fun HomeSkeletonContent(listBottomPadding: Dp, color: Color = rememberSkeletonColor()) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Box(

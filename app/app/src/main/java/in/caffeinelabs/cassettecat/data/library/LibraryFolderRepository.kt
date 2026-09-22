@@ -43,8 +43,7 @@ class LibraryFolderRepository(private val context: Context) {
     }
 }
 
-// Only need the path string to filter MediaStore's DATA column; tree Uri is resolved
-// once and discarded, no takePersistableUriPermission needed.
+// Resolves document tree URI to filesystem path for MediaStore DATA queries.
 fun resolveFolderPath(context: Context, treeUri: Uri): String? {
     val docId = DocumentsContract.getTreeDocumentId(treeUri)
     val parts = docId.split(":", limit = 2)
@@ -56,8 +55,7 @@ fun resolveFolderPath(context: Context, treeUri: Uri): String? {
         return "${Environment.getExternalStorageDirectory().absolutePath}/$relativePath"
     }
 
-    // Secondary volumes (SD cards): StorageVolume.getDirectory() is API 30+, a
-    // documented gap on 26-29 rather than a reflection-based fallback.
+    // Secondary volume resolution requires StorageVolume.directory (API 30+).
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         val storageManager = context.getSystemService(StorageManager::class.java)
         val volumeDir = storageManager?.storageVolumes

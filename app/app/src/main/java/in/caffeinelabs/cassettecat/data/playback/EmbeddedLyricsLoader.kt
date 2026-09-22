@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 
-/** Reads ID3 USLT tags from local MP3 files when the playback metadata omits them. */
 class EmbeddedLyricsLoader(private val context: Context) {
     suspend fun loadFor(song: Song): String? = withContext(Dispatchers.IO) {
         runCatching {
@@ -53,7 +52,7 @@ class EmbeddedLyricsLoader(private val context: Context) {
     private companion object { const val MAX_TAG_BYTES = 4 * 1024 * 1024 }
 }
 
-// InputStream.readNBytes(Int) requires API 33; app's minSdk is 26.
+// readNBytes requires API 33; minSdk is 26.
 private fun InputStream.readNBytesCompat(n: Int): ByteArray {
     val buffer = ByteArray(n)
     var totalRead = 0

@@ -169,6 +169,13 @@ class LocalLibraryRepository(private val context: Context) : LibraryRepository {
         @Volatile private var cacheGeneration: Int = 0
         @Volatile private var observerRegistered = false
 
+        fun invalidateCache() {
+            synchronized(this) {
+                cachedRawSongs = null
+                cacheGeneration++
+            }
+        }
+
         // Ignore results from scans started before the latest invalidation.
         private fun publishScan(generation: Int, songs: List<Song>): List<Song> {
             synchronized(this) {

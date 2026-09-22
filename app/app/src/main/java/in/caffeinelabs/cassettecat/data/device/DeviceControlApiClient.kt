@@ -51,7 +51,7 @@ private data class OtaFromUrlRequest(val url: String)
 private data class SetTimeRequest(val epochMs: Long)
 
 @Serializable
-private data class OkResponse(val ok: Boolean, val error: String? = null)
+private data class OkResponse(val ok: Boolean)
 
 class DeviceControlApiClient {
     private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?): Boolean {

@@ -38,7 +38,7 @@ private data class AudioDbArtist(
     val strArtistThumb: String? = null
 )
 
-// Deezer first, TheAudioDB fallback; both no-auth (TheAudioDB's "123" is their published free key)
+// Remote artist image fetching with Deezer and TheAudioDB backends.
 class ArtistImageLoader {
     private val thumbnailCache = object : LruCache<String, Bitmap>(THUMBNAIL_CACHE_BYTES) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -115,8 +115,7 @@ class ArtistImageLoader {
 
     private fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")
 
-    // Search APIs can return partial-name matches, so require a canonical full-name match
-    // rather than showing the wrong artist image.
+    // Alphanumeric canonical comparison prevents partial search false-positives.
     private fun String.isSameArtistAs(other: String): Boolean =
         canonicalArtistName() == other.canonicalArtistName()
 

@@ -870,7 +870,6 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
                     )
                 },
                 iconRes = R.drawable.lucide_ic_image,
-                iconTint = MaterialTheme.colorScheme.tertiary,
                 onClick = {
                     if (coverCount > 0) showResetDialog = true
                 }

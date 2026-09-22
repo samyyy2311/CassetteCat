@@ -16,8 +16,7 @@ import kotlin.coroutines.resumeWithException
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
     .connectionPool(ConnectionPool(5, 1, TimeUnit.MINUTES))
-    // Bound the whole call; per-read timeouts reset when a server trickles bytes.
-    // It still has to finish eventually.
+    // Hard ceiling on total duration; per-read timeouts reset when servers trickle bytes.
     .callTimeout(45, TimeUnit.SECONDS)
     .addInterceptor { chain ->
         val request = chain.request().newBuilder()
@@ -29,7 +28,6 @@ val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
 
 val sharedJson: Json = Json { ignoreUnknownKeys = true }
 
-// Cancelling the coroutine cancels the HTTP call.
 suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
     enqueue(object : Callback {
         override fun onResponse(call: Call, response: Response) = cont.resume(response)

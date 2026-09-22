@@ -24,7 +24,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import kotlinx.coroutines.flow.first
 
-// process-wide: shares one LRU cache across grid cells instead of refetching per cell
+// Shared LRU cache across composable callers.
 @Suppress("StaticFieldLeak")
 private object ArtistImageLoaderHolder {
     val loader = ArtistImageLoader()

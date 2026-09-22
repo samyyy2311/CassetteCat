@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,8 +80,7 @@ import kotlinx.coroutines.delay
 private val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
-// QueueRow's actual rendered height (48dp art + 10dp padding); fixed since every
-// row is deterministic (same art size, single-line-truncated text).
+// Deterministic QueueRow height for scroll offset calculations.
 private val QUEUE_ROW_HEIGHT = 68.dp
 
 @Composable
@@ -107,16 +105,14 @@ fun QueueList(
     var dragOffsetPx by remember { mutableFloatStateOf(0f) }
     var isReordering by remember { mutableStateOf(false) }
     val rowHeightPx = with(LocalDensity.current) { QUEUE_ROW_HEIGHT.toPx() }
-    // Pre-compute outside `remember`: LocalDensity can't be read inside a non-composable lambda.
     val scrollThresholdPx = with(LocalDensity.current) { 1.5.dp.toPx() }
     val haptics = LocalHapticFeedback.current
     val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
     val scrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                // Velocity gate: ignore micro-jitter below 1.5 dp/frame so the auto-hide
-                // logic in the caller doesn't oscillate at near-zero scroll speeds.
-                if (source == NestedScrollSource.UserInput && kotlin.math.abs(available.y) > scrollThresholdPx) {
+                // Ignore micro-jitter below threshold to prevent auto-hide oscillation.
+                if (source == NestedScrollSource.UserInput && abs(available.y) > scrollThresholdPx) {
                     currentOnScrollDelta(available.y)
                 }
                 return Offset.Zero
@@ -361,7 +357,7 @@ fun QueueList(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Queue is empty",
+                        text = stringResource(AppR.string.queue_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

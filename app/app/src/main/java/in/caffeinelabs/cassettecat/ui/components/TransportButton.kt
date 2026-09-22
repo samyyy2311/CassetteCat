@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 @Composable

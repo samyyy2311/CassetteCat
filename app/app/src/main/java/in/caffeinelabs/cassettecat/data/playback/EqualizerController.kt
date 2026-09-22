@@ -36,7 +36,7 @@ object EqualizerController {
             if (min < max) min..max else -1500..1500
         } ?: -1500..1500
 
-    // Device/DSP-dependent - commonly 5 or 6 on real hardware, not a fixed count.
+    // Device DSP-dependent band count.
     val numberOfBands: Int
         get() = equalizer?.numberOfBands?.toInt() ?: 0
 
@@ -169,7 +169,6 @@ object EqualizerController {
         }
     }
 
-    // A preset changes every band at once; the caller needs the resulting levels to persist them.
     fun applyPreset(index: Int): List<Int>? = equalizer?.let { eq ->
         runCatching {
             eq.usePreset(index.toShort())

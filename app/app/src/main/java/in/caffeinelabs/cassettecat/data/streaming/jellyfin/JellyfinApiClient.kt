@@ -13,8 +13,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class JellyfinApiException(message: String) : Exception(message)
 
-// One instance per server connection. deviceId is the app's persisted device
-// identity (StreamingServerRepository.deviceId()), stable across logins.
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')
 
@@ -142,8 +140,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             .build()
             .toString()
 
-    // Deprecated X-Emby-Authorization/X-MediaBrowser-Token headers are not
-    // used; this is the current Authorization scheme. Token is omitted pre-login.
+    // MediaBrowser authorization header format.
     private fun authorizationHeader(accessToken: String?): String {
         val tokenPart = accessToken?.let { ", Token=\"$it\"" }.orEmpty()
         return "MediaBrowser Client=\"CassetteCat\", Device=\"Android\", DeviceId=\"$deviceId\", Version=\"${BuildConfig.VERSION_NAME}\"$tokenPart"

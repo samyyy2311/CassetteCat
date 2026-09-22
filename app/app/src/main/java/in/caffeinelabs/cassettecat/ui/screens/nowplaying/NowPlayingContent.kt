@@ -4,6 +4,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -188,6 +190,18 @@ fun NowPlayingContent(
             .background(MaterialTheme.colorScheme.surface)
     ) {
         if (song != null) NowPlayingBackdrop(song)
+        val lyricsScrimAlpha by animateFloatAsState(
+            targetValue = if (activeView == NowPlayingView.LYRICS) 0.52f else 0f,
+            animationSpec = tween(VIEW_TRANSITION_MS, easing = SmoothEasing),
+            label = "lyricsScrimAlpha"
+        )
+        if (lyricsScrimAlpha > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = lyricsScrimAlpha))
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -196,7 +210,7 @@ fun NowPlayingContent(
         ) {
             if (song == null) {
                 EmptyState(
-                    catRes = AppR.drawable.cat_orange_headphones,
+                    useVinyl = true,
                     title = stringResource(AppR.string.now_playing_empty_title),
                     message = stringResource(AppR.string.now_playing_empty_message),
                     actionLabel = stringResource(AppR.string.now_playing_browse_library),
@@ -216,7 +230,9 @@ fun NowPlayingContent(
                     collapsedArtRect = collapsedArtRect,
                     onToggleFavorite = { playbackViewModel.toggleFavoriteForCurrentSong() },
                     onShowMenu = { sheetState.showMenu = true },
-                    onTogglePlayPause = { playbackViewModel.togglePlayPause() }
+                    onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                    onSkipPrevious = { playbackViewModel.skipPrevious() },
+                    onSkipNext = { playbackViewModel.skipNext() }
                 )
                 return@Column
             }
@@ -329,15 +345,19 @@ fun NowPlayingContent(
         }
     }
 
+    val queueSongs = remember(state.currentSong?.id, state.upNext) {
+        (listOfNotNull(state.currentSong) + state.upNext)
+            .filter { it.source != MusicSource.ListeningRoomHost && it.source != MusicSource.Radio }
+            .distinctBy { it.id }
+    }
+
     NowPlayingScreenSheetsHost(
         song = song,
         isFavorite = isFavorite,
         sleepTimerEndMs = sleepTimerEndMs,
         playlists = playlists,
         allSongs = allSongs,
-        queueSongs = (listOfNotNull(state.currentSong) + state.upNext)
-            .filter { it.source != MusicSource.ListeningRoomHost && it.source != MusicSource.Radio }
-            .distinctBy { it.id },
+        queueSongs = queueSongs,
         listeningRoom = listeningRoom,
         playbackViewModel = playbackViewModel,
         downloadRepository = downloadRepository,
@@ -350,7 +370,6 @@ fun NowPlayingContent(
         onSaveQueue = onSaveQueue,
         syncedLyrics = syncedLyrics,
         fallbackLyrics = fallbackLyrics,
-        currentPositionMs = positionMs,
         onActiveViewChange = onActiveViewChange,
         onNavigateToDriveMode = onNavigateToDriveMode
     )

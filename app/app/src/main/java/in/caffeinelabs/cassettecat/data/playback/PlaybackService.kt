@@ -39,6 +39,8 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.text.TextOutput
@@ -756,14 +758,23 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
         ) = Unit
 
         override fun buildImageRenderers(context: Context, out: ArrayList<Renderer>) = Unit
+
+        override fun buildAudioSink(
+            context: Context,
+            enableFloatOutput: Boolean,
+            enableAudioTrackPlaybackParams: Boolean
+        ): AudioSink? {
+            return DefaultAudioSink.Builder(context)
+                .setAudioProcessors(arrayOf(AudioWaveformProcessor.instance))
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .build()
+        }
     }
 
-// ExoPlayer's own shuffleModeEnabled drives an internal random order PlaybackRepository can't
-// reach or control; this keeps next/previous (including hardware/Bluetooth/notification/Auto)
-// strictly sequential through the real timeline instead of that separate random order.
+// Keeps hardware and notification navigation sequential through the playlist timeline.
 private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(player) {
-    // Lets the system next button, gestures, and widget stay usable past the last queued
-    // song when Autoplay is on, instead of going dead the same way they would with it off.
+    // Exposes seek-to-next when Autoplay is active at queue end.
     var autoplayEnabled: Boolean = false
     private val listeners = CopyOnWriteArraySet<Player.Listener>()
     private var internalShuffleModeEnabled: Boolean = false
@@ -799,8 +810,7 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
 
     override fun getAvailableCommands(): Player.Commands {
         val builder = Player.Commands.Builder().addAll(super.getAvailableCommands())
-        // autoplayEnabled affects command exposure only, not hasNextMediaItem() itself,
-        // which PlaybackRepository's queue-exhaustion/Autoplay path depends on staying accurate.
+        // Expose seek-next for Autoplay without altering queue bounds in hasNextMediaItem().
         if (hasNextMediaItem() || autoplayEnabled) {
             builder.add(Player.COMMAND_SEEK_TO_NEXT)
             builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
@@ -832,9 +842,7 @@ private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(play
         } else if (repeatMode == Player.REPEAT_MODE_ALL && mediaItemCount > 0) {
             seekTo(0, 0L)
         } else if (autoplayEnabled) {
-            // No next item yet: jump to the end of the current one to trigger ExoPlayer's
-            // own STATE_ENDED, which PlaybackRepository's listener already turns into an
-            // Autoplay continuation - reusing that path instead of duplicating it here.
+            // Seek to end to trigger STATE_ENDED and invoke Autoplay continuation.
             val dur = duration
             if (dur > 0 && dur != C.TIME_UNSET) seekTo(index, dur)
         }

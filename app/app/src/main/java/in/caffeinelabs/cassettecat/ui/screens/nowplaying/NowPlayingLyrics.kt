@@ -10,6 +10,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.caffeinelabs.cassettecat.data.playback.AudioWaveformHolder
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -400,10 +402,10 @@ internal fun LyricsView(
                                 targetValue = when {
                                     selectionMode -> if (isSelected) 1.00f else 0.35f
                                     isActive -> 1.00f
-                                    distanceFromActive == 1 -> 0.44f
-                                    distanceFromActive == 2 -> 0.26f
-                                    distanceFromActive == 3 -> 0.14f
-                                    else -> 0.08f
+                                    distanceFromActive == 1 -> 0.65f
+                                    distanceFromActive == 2 -> 0.48f
+                                    distanceFromActive == 3 -> 0.35f
+                                    else -> 0.24f
                                 },
                                 animationSpec = tween(220, easing = SmoothEasing),
                                 label = "lyricLineOpacity"
@@ -837,10 +839,10 @@ private fun WaveformBar(
     isPlaying: Boolean,
     index: Int
 ) {
-    val targetHeight = if (isPlaying) (10f + 52f * weight * amplitude).dp else 10.dp
+    val targetHeight = if (isPlaying) (8f + 56f * (weight * 0.4f + 0.6f) * amplitude).dp else 8.dp
     val barHeight by animateDpAsState(
         targetValue = targetHeight,
-        animationSpec = tween(90, easing = FastOutSlowInEasing),
+        animationSpec = tween(60, easing = FastOutSlowInEasing),
         label = "barHeight$index"
     )
     Box(
@@ -861,6 +863,11 @@ internal fun InstrumentalWaveformView(
     modifier: Modifier = Modifier
 ) {
     val barWeights = remember { floatArrayOf(0.42f, 0.72f, 0.56f, 1.0f, 0.62f, 0.82f, 0.46f) }
+    val musicAmplitudes by AudioWaveformHolder.amplitudes.collectAsStateWithLifecycle()
+    val hasAudioSignal = remember(musicAmplitudes) {
+        musicAmplitudes.any { it > 0.02f }
+    }
+
     val transition = rememberInfiniteTransition(label = "waveformPulse")
 
     val b1 by transition.animateFloat(
@@ -906,7 +913,7 @@ internal fun InstrumentalWaveformView(
         label = "b7"
     )
 
-    val amplitudes = listOf(b1, b2, b3, b4, b5, b6, b7)
+    val fallbackAmplitudes = listOf(b1, b2, b3, b4, b5, b6, b7)
 
     Column(
         modifier = modifier
@@ -921,9 +928,15 @@ internal fun InstrumentalWaveformView(
             modifier = Modifier.height(64.dp)
         ) {
             barWeights.forEachIndexed { index, weight ->
+                val amp = if (isPlaying) {
+                    if (hasAudioSignal) musicAmplitudes.getOrElse(index) { 0.15f }
+                    else fallbackAmplitudes[index]
+                } else {
+                    0f
+                }
                 WaveformBar(
                     weight = weight,
-                    amplitude = amplitudes[index],
+                    amplitude = amp,
                     isPlaying = isPlaying,
                     index = index
                 )

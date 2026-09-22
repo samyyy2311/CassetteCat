@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -26,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +40,7 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
+import `in`.caffeinelabs.cassettecat.ui.components.rememberLocalFileCoverBitmap
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
@@ -657,3 +661,114 @@ private fun SongOptionCardRow(
         }
     }
 }
+
+@Composable
+internal fun FolderOptionsSheet(
+    folder: FolderGroup,
+    onPlayAll: () -> Unit,
+    onShuffleAll: () -> Unit,
+    onChangeCover: () -> Unit,
+    onRemoveCustomCover: (() -> Unit)? = null,
+    onDismiss: () -> Unit
+) {
+    FullOpenBottomSheet(onDismiss = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val customCover = rememberLocalFileCoverBitmap(folder.customCoverPath)
+                    val sampleSong = folder.songs.firstOrNull()
+                    if (customCover != null) {
+                        Image(
+                            bitmap = customCover.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (sampleSong != null) {
+                        AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.lucide_ic_folder),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        folder.folderName,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        pluralStringResource(AppR.plurals.library_songs, folder.songs.size, folder.songs.size) +
+                            (folder.parentName?.let { " · in $it" } ?: ""),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                SongOptionCardRow(
+                    iconRes = R.drawable.lucide_ic_play,
+                    title = stringResource(AppR.string.library_play_all),
+                    subtitle = pluralStringResource(AppR.plurals.library_songs, folder.songs.size, folder.songs.size),
+                    onClick = { onDismiss(); onPlayAll() }
+                )
+                SongOptionCardRow(
+                    iconRes = R.drawable.lucide_ic_shuffle,
+                    title = stringResource(AppR.string.library_shuffle_all),
+                    subtitle = stringResource(AppR.string.home_shuffle_library),
+                    onClick = { onDismiss(); onShuffleAll() }
+                )
+                SongOptionCardRow(
+                    iconRes = R.drawable.lucide_ic_image_plus,
+                    title = stringResource(AppR.string.library_change_cover),
+                    subtitle = stringResource(AppR.string.cover_choose_from_photos),
+                    onClick = { onDismiss(); onChangeCover() }
+                )
+                if (onRemoveCustomCover != null) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_rotate_ccw,
+                        title = stringResource(AppR.string.library_remove_custom_cover),
+                        subtitle = stringResource(AppR.string.library_reset_cover_description),
+                        destructive = true,
+                        onClick = { onDismiss(); onRemoveCustomCover() }
+                    )
+                }
+            }
+        }
+    }
+}
+

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 
+@Stable
 internal class NowPlayingSheetState {
     var showMenu by mutableStateOf(false)
     var showGoToMenu by mutableStateOf(false)
@@ -69,7 +71,6 @@ internal fun NowPlayingScreenSheetsHost(
     onSaveQueue: (String, List<String>) -> Unit,
     syncedLyrics: List<LyricLine>? = null,
     fallbackLyrics: String? = null,
-    currentPositionMs: Long = 0L,
     onActiveViewChange: (NowPlayingView) -> Unit = {},
     onNavigateToDriveMode: () -> Unit = {}
 ) {
@@ -218,11 +219,12 @@ internal fun NowPlayingScreenSheetsHost(
     }
     if (sheetState.showScreenshotSuggestion) {
         song?.let { currentSong ->
+            val positionMs by playbackViewModel.positionMs.collectAsStateWithLifecycle()
             ScreenshotShareSheet(
                 song = currentSong,
                 syncedLyrics = syncedLyrics,
                 fallbackLyrics = fallbackLyrics,
-                currentPositionMs = currentPositionMs,
+                currentPositionMs = positionMs,
                 onDismiss = { sheetState.showScreenshotSuggestion = false },
                 onOpenFullLyricEditor = {
                     sheetState.showScreenshotSuggestion = false

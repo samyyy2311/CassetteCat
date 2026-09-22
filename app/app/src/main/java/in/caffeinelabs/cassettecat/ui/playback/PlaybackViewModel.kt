@@ -123,7 +123,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _positionMs = MutableStateFlow(0L)
     val positionMs: StateFlow<Long> = _positionMs.asStateFlow()
 
-    // These repositories route favorite changes to the song's source.
     private val streamingServerRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
     private val librariesBySource: Map<MusicSource, LibraryRepository> = mapOf(
@@ -131,8 +130,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
-    // Radio favorites live in their own store (station objects, not song ids) since
-    // MusicSource.Radio has no LibraryRepository above to route setFavorite() through.
+    // Radio favorites store station objects rather than song IDs.
     private val radioFavoritesRepository = `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository(app)
 
     private val _isCurrentSongFavorite = MutableStateFlow(false)
@@ -187,8 +185,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 if (listeningRoom.value.role == ListeningRoomRole.GUEST) applyRoomSnapshot(snapshot)
             }
         }
-        // Ticker only runs while playing, so reset position on song change or a paused
-        // track-change would leave the readout stuck on the previous track's position.
+        // Refresh position immediately on song transition when ticker is idle.
         viewModelScope.launch {
             playbackState.map { it.currentSong?.id }.distinctUntilChanged().collect {
                 _positionMs.value = repository.currentPositionMs()
@@ -335,8 +332,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             if (playbackState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
-            // Deleted files leave holes in the saved queue; close those holes before restoring.
-            // Keep the saved queue order after removing missing songs.
+            // Skip songs deleted from storage while keeping relative queue ordering.
             val adjustedIndex = saved.queueSongIds.take(saved.currentIndex).count { it in songsById }
             repository.restoreQueue(resolvedSongs, adjustedIndex.coerceIn(0, resolvedSongs.size - 1), saved.positionMs)
         }
@@ -546,7 +542,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // counts a play past 50% or 4 minutes (whichever is sooner), but never under 60s (avoids counting skips)
+    // Minimum listening duration required to count as an intentional play.
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
         val state = playbackState.value
@@ -650,7 +646,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
         val picks = weightedSampleWithoutReplacement(weighted, AUTOPLAY_BATCH_SIZE)
         if (picks.isNotEmpty()) {
-            if (playbackState.value.currentSong != null && playbackState.value.isPlaying) {
+            val state = playbackState.value
+            val isActivelyPlayingOrPreparing = state.currentSong != null && (state.isPlaying || state.playWhenReady || state.isBuffering)
+            if (isActivelyPlayingOrPreparing) {
                 repository.addToEndOfQueue(picks)
             } else {
                 repository.continueWithAutoplay(picks)

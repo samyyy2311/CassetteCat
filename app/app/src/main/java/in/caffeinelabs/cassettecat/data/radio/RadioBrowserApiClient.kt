@@ -27,8 +27,7 @@ private data class RadioBrowserStationResponse(
 @Serializable
 private data class RadioBrowserNamedCountResponse(val name: String, val stationcount: Int = 0)
 
-// The docs explicitly say never hit a single server directly: DNS-resolve the discovery
-// host to the current mirror pool, shuffle, and fall back to the next mirror on failure.
+// Resolve discovery host to randomized mirror pool and fallback on failure.
 private object RadioBrowserServers {
     @Volatile private var cached: List<String> = emptyList()
     private val mutex = Mutex()
@@ -94,8 +93,7 @@ class RadioBrowserApiClient {
     suspend fun states(country: String? = null): List<String> =
         getNames(if (country.isNullOrBlank()) "/states" else "/states/${country.urlEncode()}")
 
-    // Radio Browser asks clients to ping this on play so their popularity/vote ranking
-    // stays meaningful; best-effort, failure is silently ignored.
+    // Best-effort click telemetry requested by Radio Browser to maintain station popularity ranking.
     suspend fun trackClick(uuid: String) {
         withContext(Dispatchers.IO) {
             tryServers(path = "/json/url/${uuid.urlEncode()}", parse = { it })

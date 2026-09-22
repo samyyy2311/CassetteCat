@@ -2,7 +2,6 @@ package `in`.caffeinelabs.cassettecat.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -48,26 +47,22 @@ import com.composables.icons.lucide.R
 import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import kotlinx.coroutines.launch
 
 private const val MINI_PLAYER_SNAP_MS = 220
 private val SmoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
-// Collapsed content for MainShell's drag sheet; no bg/border of its own, flush with the
-// sheet's surface. Tapping outside the transport buttons expands the sheet (onExpand).
 @Composable
 fun MiniPlayerRow(
     playbackViewModel: PlaybackViewModel,
     onExpand: () -> Unit,
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
-    // Reports thumbnail bounds so NowPlayingContent can morph art into this spot on
-    // collapse instead of cross-fading. No-op by default.
+    // Reports thumbnail bounds in window coordinates during collapse transitions.
     onThumbnailBoundsChange: (Rect) -> Unit = {}
 ) {
     val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -76,10 +71,8 @@ fun MiniPlayerRow(
     val nextSong = state.upNext.firstOrNull()
     val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
 
-    val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
-    val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val isRadio = song.source == MusicSource.Radio
     val actionIcon = if (isRadio) {
         R.drawable.lucide_ic_heart
@@ -196,8 +189,7 @@ private fun MiniPlayerProgressBar(
     )
 }
 
-// Same pattern as NowPlayingScreen's AlbumArtCarousel: [previousSong, currentSong, nextSong]
-// form a sliding window in a real HorizontalPager, not hand-rolled drag/position math.
+// Sliding window [previousSong, currentSong, nextSong] matching AlbumArtCarousel.
 @Composable
 private fun MiniPlayerArtRow(
     currentSong: Song,

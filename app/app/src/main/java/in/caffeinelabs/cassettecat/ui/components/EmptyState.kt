@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,13 +25,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,6 +71,7 @@ fun EmptyState(
     message: String,
     modifier: Modifier = Modifier,
     catRes: Int? = null,
+    useVinyl: Boolean = false,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     actionIconRes: Int? = null,
@@ -77,7 +80,7 @@ fun EmptyState(
     onSecondaryAction: (() -> Unit)? = null,
     enableEasterEgg: Boolean = true
 ) {
-    val effectiveCatRes = catRes ?: (if (iconRes == null) AppR.drawable.cat_black_cassette else null)
+    val effectiveCatRes = if (useVinyl) null else (catRes ?: (if (iconRes == null) AppR.drawable.cat_black_cassette else null))
 
     var currentCatRes by remember(effectiveCatRes) {
         mutableStateOf(effectiveCatRes)
@@ -97,7 +100,41 @@ fun EmptyState(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (currentCatRes != null) {
+        if (useVinyl) {
+            Image(
+                painter = painterResource(AppR.drawable.empty_state_vinyl),
+                contentDescription = stringResource(AppR.string.app_name),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(150.dp)
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                        rotationZ = rotation.value
+                    }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        if (enableEasterEgg) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            tapCount++
+                            scope.launch {
+                                launch {
+                                    scale.animateTo(0.92f, spring(stiffness = Spring.StiffnessHigh))
+                                    scale.animateTo(1.05f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                                    scale.animateTo(1f, spring(stiffness = Spring.StiffnessLow))
+                                }
+                                launch {
+                                    val tilt = if (tapCount % 2 == 0) 10f else -10f
+                                    rotation.animateTo(tilt, spring(stiffness = Spring.StiffnessHigh))
+                                    rotation.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                                }
+                            }
+                        }
+                    }
+            )
+        } else if (currentCatRes != null) {
             AnimatedVisibility(
                 visible = easterEggQuote != null,
                 enter = fadeIn() + scaleIn(),
@@ -191,21 +228,22 @@ fun EmptyState(
         )
 
         if (actionLabel != null && onAction != null) {
-            Button(
+            OutlinedButton(
                 onClick = onAction,
                 enabled = !actionLoading,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                shape = RoundedCornerShape(100.dp),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.tertiary),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.tertiary
                 ),
                 modifier = Modifier
-                    .padding(top = 20.dp)
-                    .height(44.dp)
+                    .padding(top = 18.dp)
+                    .height(36.dp)
             ) {
                 if (actionLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         color = MaterialTheme.colorScheme.tertiary,
                         strokeWidth = 2.dp
                     )
@@ -214,14 +252,15 @@ fun EmptyState(
                     Icon(
                         painter = painterResource(actionIconRes),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
                     text = actionLabel,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
         }

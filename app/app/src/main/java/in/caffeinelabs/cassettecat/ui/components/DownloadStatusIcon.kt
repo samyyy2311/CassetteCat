@@ -22,8 +22,7 @@ import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 
-// Local songs are already on-device, nothing to show. Only reflects state here (start/
-// retry lives in the dedicated download actions, not a tap target on every row).
+// Read-only indicator for remote track download status.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {

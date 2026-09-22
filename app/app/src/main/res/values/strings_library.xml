@@ -162,6 +162,7 @@
     <string name="queue_section_playing_next">Playing Next</string>
     <string name="queue_remove_from_queue">Remove from queue</string>
     <string name="queue_drag_to_reorder">Drag to reorder</string>
+    <string name="queue_empty">Queue is empty</string>
     <string name="desc_download_smart_playlist">Download smart playlist</string>
     <string name="desc_sort_by">Sort by</string>
     <string name="desc_playlist_options">Playlist options</string>

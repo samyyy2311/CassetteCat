@@ -5,8 +5,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-// A local device should answer in milliseconds if it's actually there; sharedHttpClient's
-// internet-scale timeouts would otherwise leave every screen spinning for ~10s+ when it's not.
+// Fast LAN timeout to avoid blocking screens when local devices are unreachable.
 fun deviceHttpClient(network: Network?): OkHttpClient {
     val builder = sharedHttpClient.newBuilder()
         .connectTimeout(3, TimeUnit.SECONDS)

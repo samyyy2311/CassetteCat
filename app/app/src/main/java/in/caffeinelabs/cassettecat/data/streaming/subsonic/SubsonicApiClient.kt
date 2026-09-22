@@ -13,8 +13,7 @@ import java.util.UUID
 
 class SubsonicApiException(message: String) : Exception(message)
 
-// One instance per login/fetch: salt+token computed lazily and cached for the instance's
-// lifetime, matching the Subsonic spec (fresh pair needed per credential use, not per request).
+// Subsonic auth tokens and salts are cached per instance according to the API spec.
 class SubsonicApiClient(
     serverUrl: String,
     private val username: String,

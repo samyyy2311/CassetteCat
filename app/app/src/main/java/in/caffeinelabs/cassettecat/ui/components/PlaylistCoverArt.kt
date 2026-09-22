@@ -28,8 +28,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// Covers are already capped at 512px by PlaylistCoverStorage, sized in bytes so this
-// bounds actual memory rather than entry count.
+// Byte-bounded cache for 512px playlist covers.
 private const val COVER_CACHE_BYTES = 8 * 1024 * 1024
 private val coverCache = object : LruCache<String, Bitmap>(COVER_CACHE_BYTES) {
     override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -47,9 +46,6 @@ fun rememberLocalFileCoverBitmap(path: String?): Bitmap? {
     return bitmap
 }
 
-// key -> drawable, shown in the cover picker and looked up when rendering a saved
-// ICON cover; falls back to the generic music icon if a stored key is ever missing
-// (e.g. after a future curation change)
 val PLAYLIST_ICON_OPTIONS: List<Pair<String, Int>> = listOf(
     "guitar" to R.drawable.lucide_ic_guitar,
     "mic" to R.drawable.lucide_ic_mic_vocal,

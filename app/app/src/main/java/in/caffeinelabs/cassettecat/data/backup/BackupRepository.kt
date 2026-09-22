@@ -21,10 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-// Credentials (data/streaming/CredentialStore.kt) are excluded: their AES key
-// lives in Android Keystore, is hardware-backed, and can't be exported or survive an
-// uninstall, so including the ciphertext here would just be undecryptable dead weight.
-// Playback queue/position and the onboarding flag are excluded too: session state, not data.
+// Excludes hardware-backed Keystore credentials (undecryptable across installs) and transient session state.
 class BackupRepository(private val context: Context) {
     private val appPreferencesRepository = AppPreferencesRepository(context)
     private val serviceSettingsRepository = ServiceSettingsRepository(context)

@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -153,117 +156,127 @@ fun PlaylistDetailScreen(
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
-            Spacer(Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-            ) {
-                PlaylistCoverArt(playlist = playlist, fallbackSong = songs.firstOrNull(), modifier = Modifier.fillMaxSize())
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    playlist.name,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    subtitleDetails,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (songs.isNotEmpty()) {
-                TransportButton(
-                    iconRes = R.drawable.lucide_ic_play,
-                    size = 40.dp,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    accented = true,
-                    onClick = {
-                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                        playbackViewModel.playQueue(sortedSongs, 0, shuffle = false)
-                        if (wasIdle) onNavigateToNowPlaying()
-                    }
-                )
-                Spacer(Modifier.width(6.dp))
-                TransportButton(
-                    iconRes = R.drawable.lucide_ic_shuffle,
-                    size = 40.dp,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                        playbackViewModel.shuffleAll(sortedSongs)
-                        if (wasIdle) onNavigateToNowPlaying()
-                    }
-                )
-                Spacer(Modifier.width(2.dp))
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_arrow_up_down,
-                    contentDescription = stringResource(AppR.string.desc_sort_by),
-                    onClick = { showSortSheet = true }
-                )
-            }
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_ellipsis_vertical,
-                contentDescription = stringResource(AppR.string.desc_playlist_options),
-                onClick = { showActionsSheet = true }
-            )
-        }
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
 
-        if (!playlist.isSmart) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { libraryViewModel.refresh() },
+        modifier = modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .tapScale { showAddSongsSheet = true }
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_plus),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(20.dp)
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_chevron_left,
+                    contentDescription = stringResource(AppR.string.action_back),
+                    onClick = onBack
                 )
-                Spacer(Modifier.width(16.dp))
-                Text(stringResource(AppR.string.playlist_add_songs), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
-            }
-        }
-
-        if (songs.isEmpty()) {
-            EmptyState(
-                catRes = AppR.drawable.cat_calico_player,
-                title = "No songs yet",
-                message = "Add some tracks to start this playlist.",
-                actionLabel = "Add Songs",
-                onAction = { showAddSongsSheet = true },
-                modifier = Modifier.weight(1f)
-            )
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding)) {
-                items(sortedSongs, key = { it.id }) { song ->
-                    SongRow(
-                        song = song,
-                        onMoreClick = { songForOptions = song },
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                ) {
+                    PlaylistCoverArt(playlist = playlist, fallbackSong = songs.firstOrNull(), modifier = Modifier.fillMaxSize())
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        playlist.name,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        subtitleDetails,
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (songs.isNotEmpty()) {
+                    TransportButton(
+                        iconRes = R.drawable.lucide_ic_play,
+                        size = 40.dp,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        accented = true,
                         onClick = {
                             val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                            val index = sortedSongs.indexOfFirst { it.id == song.id }
-                            playbackViewModel.playQueue(sortedSongs, index)
+                            playbackViewModel.playQueue(sortedSongs, 0, shuffle = false)
                             if (wasIdle) onNavigateToNowPlaying()
                         }
                     )
+                    Spacer(Modifier.width(6.dp))
+                    TransportButton(
+                        iconRes = R.drawable.lucide_ic_shuffle,
+                        size = 40.dp,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                            playbackViewModel.shuffleAll(sortedSongs)
+                            if (wasIdle) onNavigateToNowPlaying()
+                        }
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    PressDepthIconButton(
+                        iconRes = R.drawable.lucide_ic_arrow_up_down,
+                        contentDescription = stringResource(AppR.string.desc_sort_by),
+                        onClick = { showSortSheet = true }
+                    )
+                }
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_ellipsis_vertical,
+                    contentDescription = stringResource(AppR.string.desc_playlist_options),
+                    onClick = { showActionsSheet = true }
+                )
+            }
+
+            if (!playlist.isSmart) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .tapScale { showAddSongsSheet = true }
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_plus),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(stringResource(AppR.string.playlist_add_songs), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.tertiary)
+                }
+            }
+
+            if (songs.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    EmptyState(
+                        catRes = AppR.drawable.cat_calico_player,
+                        title = "No songs yet",
+                        message = "Add some tracks to start this playlist.",
+                        actionLabel = "Add Songs",
+                        onAction = { showAddSongsSheet = true },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = listBottomPadding)) {
+                    items(sortedSongs, key = { it.id }) { song ->
+                        SongRow(
+                            song = song,
+                            onMoreClick = { songForOptions = song },
+                            onClick = {
+                                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                val index = sortedSongs.indexOfFirst { it.id == song.id }
+                                playbackViewModel.playQueue(sortedSongs, index)
+                                if (wasIdle) onNavigateToNowPlaying()
+                            }
+                        )
+                    }
                 }
             }
         }

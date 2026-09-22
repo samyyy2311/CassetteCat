@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
     private val shortcutAction = mutableStateOf<String?>(null)
     private val shortcutQuery = mutableStateOf<String?>(null)
     private val shortcutMediaType = mutableStateOf<String?>(null)
-    // Creating the callback itself crashes below Android 14.
+    // ScreenCaptureCallback crashes on class verification below API 34.
     private val screenshotCallback: Activity.ScreenCaptureCallback? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             Activity.ScreenCaptureCallback { ScreenshotCaptureEvents.notifyCaptured() }

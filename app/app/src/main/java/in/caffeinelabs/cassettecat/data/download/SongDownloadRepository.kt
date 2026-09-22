@@ -27,7 +27,6 @@ import kotlinx.coroutines.launch
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class SongDownloadRepository private constructor(private val context: Context) {
-    // exposed for SongDownloadService, which must operate on this exact instance
     val downloadManager = DownloadManager(
         context,
         StandaloneDatabaseProvider(context),

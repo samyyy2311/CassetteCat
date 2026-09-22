@@ -10,8 +10,7 @@ import kotlinx.coroutines.flow.map
 private val Context.favoritesDataStore by preferencesDataStore(name = "favorites")
 private val FAVORITE_IDS = stringSetPreferencesKey("favorite_song_ids")
 
-// Local-only; Subsonic/Jellyfin favorite via their own star APIs instead
-// (SubsonicApiClient.star/unstar, JellyfinApiClient.setFavorite).
+// Stores favorites for local library tracks. Remote services sync favorites via their APIs.
 class FavoritesRepository(private val context: Context) {
     val favoriteIds: Flow<Set<String>> = context.favoritesDataStore.data.map { it[FAVORITE_IDS] ?: emptySet() }
 
@@ -22,7 +21,6 @@ class FavoritesRepository(private val context: Context) {
         }
     }
 
-    // backup restore only: full replace, not a merge
     suspend fun replaceAll(songIds: Set<String>) {
         context.favoritesDataStore.edit { prefs -> prefs[FAVORITE_IDS] = songIds }
     }

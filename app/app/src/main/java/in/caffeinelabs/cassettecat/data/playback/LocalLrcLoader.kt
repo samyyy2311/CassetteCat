@@ -10,9 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
-// The app only holds READ_MEDIA_AUDIO, not broad storage access, so a sidecar .lrc file
-// isn't reliably readable via a raw file path. Scanning its derived path indexes it (if
-// present) and hands back a content:// Uri the app can actually open.
+// MediaStore indexes sidecar .lrc files into readable content URIs under READ_MEDIA_AUDIO permissions.
 class LocalLrcLoader(private val context: Context) {
     suspend fun loadFor(song: Song): List<LyricLine>? = withContext(Dispatchers.IO) {
         val audioFile = song.filePath?.let(::File) ?: return@withContext null

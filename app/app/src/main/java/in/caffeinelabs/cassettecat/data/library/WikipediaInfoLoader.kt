@@ -25,16 +25,12 @@ private data class AudioDbBiography(val strBiographyEN: String? = null)
 
 data class ArtistBiography(val text: String, val source: String)
 
-// Missing biographies and failed requests return null.
 class WikipediaInfoLoader {
     companion object {
         private val summaryCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     }
 
-    /**
-     * Album titles such as "Music" and "Utopia" are also ordinary Wikipedia topics. Always
-     * qualify the lookup with the primary artist and never fall back to the bare word.
-     */
+    // Disambiguate generic album titles with primary artist.
     suspend fun fetchAlbumSummary(album: String, artist: String): String? {
         val primaryArtist = artist.substringBefore(',').substringBefore('&').trim()
         if (album.isBlank() || primaryArtist.isBlank()) return null

@@ -12,16 +12,14 @@ import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
-// Process-wide: SimpleCache must only be opened once per process for a given directory,
-// same holder shape as ArtistImageLoaderHolder/GenreArtLoaderHolder.
+// SimpleCache must only be opened once per process for a directory.
 @UnstableApi
 object DownloadCache {
     @Volatile private var cache: SimpleCache? = null
 
     fun get(context: Context): SimpleCache = cache ?: synchronized(this) {
         cache ?: run {
-            // One-time synchronous read: SimpleCache's evictor limit is fixed at
-            // construction, and this only runs once per process lifetime.
+            // Synchronous read to configure evictor limit on initialization.
             val maxBytes = runBlocking { DownloadSettingsRepository(context).maxCacheBytes.first() }
             SimpleCache(
                 File(context.filesDir, "song_downloads"),
@@ -32,11 +30,7 @@ object DownloadCache {
     }
 }
 
-// Subsonic/Jellyfin stream URLs embed rotating auth (fresh salt per SubsonicApiClient
-// instance, see SubsonicApiClient.kt), so the raw URI can't be the cache key: the "same"
-// song gets a different URL after every library refresh. Derives a stable key from the
-// URL's identifying part instead, shared by download and playback so both agree on
-// cache identity regardless of which fresh URL was used to fetch.
+// Server stream URLs rotate auth salts; key on the item ID so cached audio persists across sessions.
 @UnstableApi
 val StreamCacheKeyFactory = CacheKeyFactory { dataSpec ->
     val uri = dataSpec.uri

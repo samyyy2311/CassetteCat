@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -121,7 +120,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStartupLibraryScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStorageScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationThemeScreen
-import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import androidx.compose.ui.platform.LocalContext
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.theme.dominantArtworkAccent
@@ -231,7 +230,7 @@ fun MainShell(
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
-    val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
+    val preferences = LocalAppPreferences.current
     val scope = rememberCoroutineScope()
 
     fun navigateToTab(route: String) {
@@ -243,11 +242,7 @@ fun MainShell(
             }
         } else {
             navController.navigate(route) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = false
-                }
                 launchSingleTop = true
-                restoreState = false
             }
         }
     }
@@ -259,12 +254,8 @@ fun MainShell(
             val targetRoute = when (preferences.defaultStartScreen) {
                 DefaultStartScreen.HOME -> MainRoute.HOME
                 DefaultStartScreen.LIBRARY -> MainRoute.LIBRARY
-                DefaultStartScreen.LAST_OPENED -> when (preferences.lastOpenedRoute) {
-                    MainRoute.HOME -> MainRoute.HOME
-                    MainRoute.SEARCH -> MainRoute.SEARCH
-                    MainRoute.SETTINGS -> MainRoute.SETTINGS
-                    else -> MainRoute.LIBRARY
-                }
+                DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
+                    .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
@@ -289,7 +280,7 @@ fun MainShell(
             (libraryState as? LibraryUiState.Loaded)?.let { playbackViewModel.restoreIfNeeded(it.songs) }
         }
     }
-    val isHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL || currentRoute == MainRoute.ALBUM_DETAIL || currentRoute == MainRoute.DRIVE_MODE
+    val isHeroRoute = currentRoute == MainRoute.ARTIST_DETAIL || currentRoute == MainRoute.ALBUM_DETAIL
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER && currentRoute != MainRoute.DRIVE_MODE
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null

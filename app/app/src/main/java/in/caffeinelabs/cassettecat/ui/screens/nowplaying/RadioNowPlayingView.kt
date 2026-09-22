@@ -41,7 +41,9 @@ internal fun RadioNowPlayingView(
     collapsedArtRect: State<Rect?>?,
     onToggleFavorite: () -> Unit,
     onShowMenu: () -> Unit,
-    onTogglePlayPause: () -> Unit
+    onTogglePlayPause: () -> Unit,
+    onSkipPrevious: (() -> Unit)? = null,
+    onSkipNext: (() -> Unit)? = null
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -87,7 +89,9 @@ internal fun RadioNowPlayingView(
             isPlaying = state.isPlaying,
             isBuffering = state.isBuffering,
             playWhenReady = state.playWhenReady,
-            onTogglePlayPause = onTogglePlayPause
+            onTogglePlayPause = onTogglePlayPause,
+            onSkipPrevious = onSkipPrevious,
+            onSkipNext = onSkipNext
         )
     }
 
@@ -125,12 +129,26 @@ internal fun RadioControlsRow(
     isBuffering: Boolean = false,
     playWhenReady: Boolean,
     onTogglePlayPause: () -> Unit,
+    onSkipPrevious: (() -> Unit)? = null,
+    onSkipNext: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
         LiveIndicator(isPlaying = isPlaying, isBuffering = isBuffering)
         Spacer(Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onSkipPrevious != null) {
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_skip_back,
+                    size = 56.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = onSkipPrevious
+                )
+            }
             Crossfade(
                 targetState = playWhenReady,
                 animationSpec = tween(durationMillis = 150, easing = SmoothEasing),
@@ -138,10 +156,18 @@ internal fun RadioControlsRow(
             ) { playing ->
                 TransportButton(
                     iconRes = if (playing) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
-                    size = 90.dp,
+                    size = 80.dp,
                     tint = MaterialTheme.colorScheme.tertiary,
                     onClick = onTogglePlayPause,
                     accented = playing
+                )
+            }
+            if (onSkipNext != null) {
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_skip_forward,
+                    size = 56.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = onSkipNext
                 )
             }
         }

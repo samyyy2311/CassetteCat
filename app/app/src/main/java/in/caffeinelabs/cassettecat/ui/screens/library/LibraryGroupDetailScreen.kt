@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -114,6 +115,7 @@ fun ArtistDetailScreen(
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
     val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { artist in it.artist.splitArtists() }.orEmpty()
     val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
 
@@ -124,6 +126,8 @@ fun ArtistDetailScreen(
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
         onNavigateToAlbum = onNavigateToAlbum,
+        onRefresh = { libraryViewModel.refresh() },
+        isRefreshing = isRefreshing,
         modifier = modifier,
         listBottomPadding = listBottomPadding
     )
@@ -139,6 +143,8 @@ private fun ArtistCatalogScreen(
     onBack: () -> Unit,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToAlbum: (String) -> Unit,
+    onRefresh: () -> Unit,
+    isRefreshing: Boolean,
     modifier: Modifier,
     listBottomPadding: Dp
 ) {
@@ -214,7 +220,12 @@ private fun ArtistCatalogScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(state = listState, contentPadding = PaddingValues(bottom = listBottomPadding)) {
             item(key = "hero", contentType = "hero") {
                 ArtistCatalogHero(
@@ -307,6 +318,7 @@ private fun ArtistCatalogScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -553,6 +565,7 @@ fun AlbumDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
     val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
     val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { it.albumId == albumId }.orEmpty()
     val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
@@ -571,6 +584,8 @@ fun AlbumDetailScreen(
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
         onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
+        onRefresh = { libraryViewModel.refresh() },
+        isRefreshing = isRefreshing,
         modifier = modifier,
         listBottomPadding = listBottomPadding
     )
@@ -587,6 +602,7 @@ fun GenreDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
     val sourceFilter by libraryViewModel.sourceFilter.collectAsStateWithLifecycle()
     val allSongs = (uiState as? LibraryUiState.Loaded)?.songs?.filter { genre in it.effectiveGenres() }.orEmpty()
     val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
@@ -603,6 +619,8 @@ fun GenreDetailScreen(
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
         onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
+        onRefresh = { libraryViewModel.refresh() },
+        isRefreshing = isRefreshing,
         modifier = modifier,
         listBottomPadding = listBottomPadding
     )
@@ -620,6 +638,7 @@ fun FolderDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
     val songs = (uiState as? LibraryUiState.Loaded)?.songs?.filter {
         it.filePath != null && (
             java.io.File(it.filePath).parentFile?.absolutePath == folderPath ||
@@ -632,7 +651,7 @@ fun FolderDetailScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val folderCoverRepository = remember { FolderCoverRepository(context) }
+    val folderCoverRepository = remember { FolderCoverRepository.getInstance(context) }
     val folderCoverStorage = remember { FolderCoverStorage(context) }
     val folderCovers by folderCoverRepository.folderCovers.collectAsStateWithLifecycle(initialValue = emptyMap())
     val customCoverPath = folderCovers[folderPath]
@@ -685,6 +704,8 @@ fun FolderDetailScreen(
         onBack = onBack,
         onNavigateToNowPlaying = onNavigateToNowPlaying,
         onUpdateSong = { libraryViewModel.updateSongMetadata(it) },
+        onRefresh = { libraryViewModel.refresh() },
+        isRefreshing = isRefreshing,
         modifier = modifier,
         listBottomPadding = listBottomPadding,
         onDeleteSong = { song ->
@@ -694,6 +715,7 @@ fun FolderDetailScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun LibraryGroupDetailScreen(
@@ -716,7 +738,9 @@ private fun LibraryGroupDetailScreen(
     playlistViewModel: PlaylistViewModel? = null,
     listBottomPadding: Dp = 0.dp,
     onDeleteSong: ((Song) -> Unit)? = null,
-    onUpdateSong: ((Song) -> Unit)? = null
+    onUpdateSong: ((Song) -> Unit)? = null,
+    onRefresh: () -> Unit = {},
+    isRefreshing: Boolean = false
 ) {
     val context = LocalContext.current
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
@@ -786,7 +810,12 @@ private fun LibraryGroupDetailScreen(
     }
     val atmosphereColor = if (albumHeroSong != null) (atmospherePalette?.darkBase ?: MaterialTheme.colorScheme.surface) else MaterialTheme.colorScheme.surface
 
-    Column(modifier = modifier.fillMaxSize().background(atmosphereColor)) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize().background(atmosphereColor)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
         val playAll = {
             if (songs.isNotEmpty()) {
                 val wasIdle = playbackViewModel.playbackState.value.currentSong == null
@@ -1054,6 +1083,7 @@ private fun LibraryGroupDetailScreen(
             )
         }
     }
+}
 }
 
 @Composable

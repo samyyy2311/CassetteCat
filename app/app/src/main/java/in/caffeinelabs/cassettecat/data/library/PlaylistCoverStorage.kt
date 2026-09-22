@@ -12,8 +12,7 @@ import kotlinx.coroutines.withContext
 private const val MAX_COVER_DIMENSION = 512
 private const val JPEG_QUALITY = 85
 
-// Photo Picker read grants aren't guaranteed to survive process death, so a picked
-// image is copied into app-private storage immediately rather than referenced by URI.
+// Copies selected covers into app-private storage since picker URIs do not survive process death.
 class PlaylistCoverStorage(private val context: Context) {
     suspend fun save(playlistId: String, sourceUri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {
@@ -25,7 +24,6 @@ class PlaylistCoverStorage(private val context: Context) {
         }.getOrNull()
     }
 
-    // used by backup restore: the bytes are already a downscaled/compressed JPEG
     suspend fun restore(playlistId: String, bytes: ByteArray): String = withContext(Dispatchers.IO) {
         val file = coverFile(playlistId)
         FileOutputStream(file).use { it.write(bytes) }

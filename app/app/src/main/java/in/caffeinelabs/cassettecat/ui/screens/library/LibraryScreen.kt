@@ -190,24 +190,24 @@ fun LibraryScreen(
     val favoriteIds by favoritesRepository.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val downloads by downloadRepository.downloads.collectAsStateWithLifecycle()
-    val folderCoverRepository = remember { FolderCoverRepository(context) }
+    val folderCoverRepository = remember { FolderCoverRepository.getInstance(context) }
     val folderCoverStorage = remember { FolderCoverStorage(context) }
     val folderCovers by folderCoverRepository.folderCovers.collectAsStateWithLifecycle(initialValue = emptyMap())
-    var folderForCover by remember { mutableStateOf<FolderGroup?>(null) }
+    var folderForCoverPath by rememberSaveable { mutableStateOf<String?>(null) }
     var folderCoverActions by remember { mutableStateOf<FolderGroup?>(null) }
     val folderCoverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        val folder = folderForCover
-        folderForCover = null
-        if (uri != null && folder != null) {
+        val path = folderForCoverPath
+        folderForCoverPath = null
+        if (uri != null && path != null) {
             pagerScope.launch {
-                val newPath = folderCoverStorage.save(folder.folderPath, uri) ?: return@launch
+                val previousPath = folderCovers[path]
+                val newPath = folderCoverStorage.save(path, uri) ?: return@launch
                 try {
-                    folderCoverRepository.setCover(folder.folderPath, newPath)
+                    folderCoverRepository.setCover(path, newPath)
                 } catch (e: Throwable) {
                     folderCoverStorage.delete(newPath)
                     throw e
                 }
-                val previousPath = folder.customCoverPath
                 if (previousPath != null && previousPath != newPath) {
                     folderCoverStorage.delete(previousPath)
                 }
@@ -236,7 +236,9 @@ fun LibraryScreen(
     val groupedArtists = remember(filteredSongs) { filteredSongs.groupedByArtist() }
     val groupedAlbums = remember(filteredSongs) { filteredSongs.groupedByAlbum() }
     val groupedGenres = remember(filteredSongs) { filteredSongs.groupedByGenre() }
-    val groupedFolders = remember(filteredSongs) { filteredSongs.groupedByFolder() }
+    val groupedFolders = remember(filteredSongs, folderCovers) {
+        filteredSongs.groupedByFolder().map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -332,12 +334,7 @@ fun LibraryScreen(
         }
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refresh() },
-        modifier = modifier.fillMaxSize()
-    ) {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
+    Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -535,7 +532,12 @@ fun LibraryScreen(
                 userScrollEnabled = !selectionMode,
                 beyondViewportPageCount = 1
             ) { page ->
-                val pageMode = visibleModes.getOrElse(page) { visibleModes.first() }
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    val pageMode = visibleModes.getOrElse(page) { visibleModes.first() }
                 when (pageMode) {
                     LibraryViewMode.PLAYLISTS -> if (collectionLayout == CollectionLayout.GRID) {
                         PlaylistGrid(
@@ -828,28 +830,27 @@ fun LibraryScreen(
     }
 
     folderCoverActions?.let { folder ->
-        AlertDialog(
-            onDismissRequest = { folderCoverActions = null },
-            title = { Text(folder.folderName) },
-            text = {
-                Column {
-                    TextButton(onClick = {
-                        folderForCover = folder
-                        folderCoverActions = null
-                        folderCoverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text(stringResource(AppR.string.library_change_cover)) }
-                    if (folder.customCoverPath != null) {
-                        TextButton(onClick = {
-                            pagerScope.launch {
-                                folderCoverRepository.clearCover(folder.folderPath)
-                                folderCoverStorage.delete(folder.customCoverPath)
-                            }
-                            folderCoverActions = null
-                        }) { Text(stringResource(AppR.string.library_remove_custom_cover)) }
+        FolderOptionsSheet(
+            folder = folder,
+            onPlayAll = { playGroup(folder.songs) },
+            onShuffleAll = {
+                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                playbackViewModel.shuffleAll(folder.songs)
+                if (wasIdle) onNavigateToNowPlaying()
+            },
+            onChangeCover = {
+                folderForCoverPath = folder.folderPath
+                folderCoverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            onRemoveCustomCover = if (folder.customCoverPath != null) {
+                {
+                    pagerScope.launch {
+                        folderCoverRepository.clearCover(folder.folderPath)
+                        folderCoverStorage.delete(folder.customCoverPath)
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { folderCoverActions = null }) { Text(stringResource(AppR.string.action_cancel)) } }
+            } else null,
+            onDismiss = { folderCoverActions = null }
         )
     }
 

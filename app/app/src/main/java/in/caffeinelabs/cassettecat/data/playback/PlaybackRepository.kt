@@ -188,7 +188,6 @@ class PlaybackRepository(private val context: Context) {
         updateState()
     }
 
-    /** Plays the provided collection fully randomized from a freshly shuffled queue. */
     suspend fun shuffleAll(songs: List<Song>) = playQueue(songs, startIndex = songs.size, shuffle = true)
 
     // no play(): loads and seeks without auto-starting audio; no-ops if something's already loaded
@@ -392,7 +391,9 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun toggleShuffle() {
-        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+        val next = !shuffleEnabled
+        controller?.shuffleModeEnabled = next
+        applyShuffleMode(next)
     }
 
     // Every controller changes this session state; applying it here keeps the actual queue shared.
@@ -400,6 +401,9 @@ class PlaybackRepository(private val context: Context) {
         if (enabled == shuffleEnabled) return
         shuffleEnabled = enabled
         val c = controller ?: return
+        if (c.shuffleModeEnabled != enabled) {
+            c.shuffleModeEnabled = enabled
+        }
         if (enabled) shuffleUpNext(c) else restoreOriginalOrder(c)
         updateState()
     }
@@ -412,13 +416,18 @@ class PlaybackRepository(private val context: Context) {
 
     private fun shuffleUpNext(c: MediaController) {
         val currentIndex = c.currentMediaItemIndex
-        val queueSizeBefore = currentQueue.size
         if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty()) return
         val currentSong = currentQueue.getOrNull(currentIndex) ?: return
 
         val upcoming = if (originalQueue.isNotEmpty()) {
-            val originalIndex = originalIndexOf(currentIndex, currentSong)
-            if (originalIndex >= 0) originalQueue.drop(originalIndex + 1) else originalQueue.filter { it.id != currentSong.id }
+            val playedIds = currentQueue.take(currentIndex + 1).map { it.id }.toMutableList()
+            val remaining = mutableListOf<Song>()
+            for (song in originalQueue) {
+                if (!playedIds.remove(song.id)) {
+                    remaining.add(song)
+                }
+            }
+            if (remaining.isNotEmpty()) remaining else originalQueue.filter { it.id != currentSong.id }
         } else {
             currentQueue.drop(currentIndex + 1)
         }
@@ -429,25 +438,35 @@ class PlaybackRepository(private val context: Context) {
             skippedIds = skipTracker.skippedSongIds(),
             previousSong = currentSong
         )
-        currentQueue = currentQueue.subList(0, currentIndex + 1) + shuffledUpcoming
-        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, shuffledUpcoming.map { it.toMediaItem(context) })
+        currentQueue = currentQueue.take(currentIndex + 1) + shuffledUpcoming
+        val fromIndex = (currentIndex + 1).coerceAtMost(c.mediaItemCount)
+        val toIndex = c.mediaItemCount
+        c.replaceMediaItems(fromIndex, toIndex, shuffledUpcoming.map { it.toMediaItem(context) })
     }
 
     private fun restoreOriginalOrder(c: MediaController) {
         val currentIndex = c.currentMediaItemIndex
-        val queueSizeBefore = currentQueue.size
         if (currentIndex == C.INDEX_UNSET || currentQueue.isEmpty() || originalQueue.isEmpty()) return
         val currentSong = currentQueue.getOrNull(currentIndex) ?: return
 
         val originalIndex = originalIndexOf(currentIndex, currentSong)
+        val playedIds = currentQueue.take(currentIndex + 1).map { it.id }.toMutableList()
         val restoredUpcoming = if (originalIndex >= 0) {
-            originalQueue.drop(originalIndex + 1)
+            val after = originalQueue.subList(originalIndex + 1, originalQueue.size).filter { !playedIds.remove(it.id) }
+            val before = originalQueue.subList(0, originalIndex).filter { !playedIds.remove(it.id) }
+            val unplayed = after + before
+            if (unplayed.isNotEmpty()) unplayed else {
+                originalQueue.subList(originalIndex + 1, originalQueue.size) + originalQueue.subList(0, originalIndex)
+            }
         } else {
-            originalQueue.filter { it.id != currentSong.id }
+            val unplayed = originalQueue.filter { !playedIds.remove(it.id) }
+            if (unplayed.isNotEmpty()) unplayed else originalQueue.filter { it.id != currentSong.id }
         }
 
-        currentQueue = currentQueue.subList(0, currentIndex + 1) + restoredUpcoming
-        c.replaceMediaItems(currentIndex + 1, queueSizeBefore, restoredUpcoming.map { it.toMediaItem(context) })
+        currentQueue = currentQueue.take(currentIndex + 1) + restoredUpcoming
+        val fromIndex = (currentIndex + 1).coerceAtMost(c.mediaItemCount)
+        val toIndex = c.mediaItemCount
+        c.replaceMediaItems(fromIndex, toIndex, restoredUpcoming.map { it.toMediaItem(context) })
     }
 
     // Translates upNext-list positions (what QueueList displays/drags) to absolute queue
@@ -464,7 +483,6 @@ class PlaybackRepository(private val context: Context) {
         updateState()
     }
 
-    /** Inserts tracks immediately after the current item without interrupting playback. */
     fun addToUpNext(songs: List<Song>) {
         if (songs.isEmpty()) return
         val c = controller ?: return
@@ -474,9 +492,13 @@ class PlaybackRepository(private val context: Context) {
         val insertAt = (currentIndex + 1).coerceAtMost(currentQueue.size)
         c.addMediaItems(insertAt, songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
-        // The explicit queue is now the source of truth. This also means turning shuffle
-        // off preserves newly queued songs instead of silently dropping them.
-        originalQueue = currentQueue
+        val currentSong = currentQueue.getOrNull(currentIndex)
+        val origIdx = if (currentSong != null) originalQueue.indexOfFirst { it.id == currentSong.id } else -1
+        originalQueue = if (origIdx >= 0) {
+            originalQueue.toMutableList().apply { addAll(origIdx + 1, songs) }
+        } else {
+            originalQueue + songs
+        }
         updateState()
     }
 
@@ -487,7 +509,7 @@ class PlaybackRepository(private val context: Context) {
 
         c.addMediaItems(songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue + songs
-        originalQueue = currentQueue
+        originalQueue = originalQueue + songs
         updateState()
     }
 
@@ -498,14 +520,16 @@ class PlaybackRepository(private val context: Context) {
         val insertAt = if (currentIndex == C.INDEX_UNSET) currentQueue.size else (currentIndex + 1).coerceAtMost(currentQueue.size)
         c.addMediaItems(insertAt, songs.map { it.toMediaItem(context) })
         currentQueue = currentQueue.toMutableList().apply { addAll(insertAt, songs) }
-        originalQueue = currentQueue
-        c.seekTo(insertAt, 0L)
-        c.prepare()
-        c.play()
+        originalQueue = originalQueue + songs
+        val isActivelyPlayingOrBuffering = c.playWhenReady && (c.playbackState == Player.STATE_BUFFERING || c.playbackState == Player.STATE_READY)
+        if (!isActivelyPlayingOrBuffering) {
+            c.seekTo(insertAt, 0L)
+            c.prepare()
+            c.play()
+        }
         updateState()
     }
 
-    /** Removes one upcoming item. The currently playing song can never be removed here. */
     fun removeFromUpNext(songId: String) {
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
@@ -518,7 +542,7 @@ class PlaybackRepository(private val context: Context) {
             ?: return
         c.removeMediaItem(absoluteIndex)
         currentQueue = currentQueue.toMutableList().apply { removeAt(absoluteIndex) }
-        originalQueue = currentQueue
+        originalQueue = originalQueue.filter { it.id != songId }
         updateState()
     }
 
@@ -541,9 +565,7 @@ class PlaybackRepository(private val context: Context) {
         if (index != -1) controller?.seekTo(index, 0L)
     }
 
-    // Accumulates only actively-playing time toward HISTORY_MIN_PLAYED_MS, pausing/resuming
-    // with playback instead of a flat wall-clock delay, so a song paused for most of its
-    // runtime doesn't get counted as "played" just because time passed.
+    // Accumulate actively-playing time toward HISTORY_MIN_PLAYED_MS, excluding paused duration.
     private fun resetHistoryTracking(song: Song?) {
         historyJob?.cancel()
         historyJob = null

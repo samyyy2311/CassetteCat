@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -82,67 +86,77 @@ fun LikedSongsScreen(
         if (wasIdle) onNavigateToNowPlaying()
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-            Spacer(Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(AppR.string.library_liked_songs_title), style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    subtitleDetails,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (downloadableSongs.isNotEmpty()) {
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_download,
-                    contentDescription = stringResource(AppR.string.desc_download_liked_songs),
-                    onClick = { downloadableSongs.forEach(downloadRepository::download) }
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-            TransportButton(
-                iconRes = R.drawable.lucide_ic_play,
-                size = 42.dp,
-                tint = MaterialTheme.colorScheme.tertiary,
-                accented = true,
-                onClick = { playAll(shuffle = false) }
-            )
-            Spacer(Modifier.width(8.dp))
-            TransportButton(
-                iconRes = R.drawable.lucide_ic_shuffle,
-                size = 42.dp,
-                tint = MaterialTheme.colorScheme.onSurface,
-                onClick = { playAll(shuffle = true) }
-            )
-        }
+    val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
 
-        if (songs.isEmpty()) {
-            EmptyState(
-                catRes = AppR.drawable.cat_gray_dancing,
-                title = "No liked songs yet",
-                message = "Tap the heart on any track to keep it here.",
-                modifier = Modifier.weight(1f)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(top = 12.dp, bottom = listBottomPadding)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { libraryViewModel.refresh() },
+        modifier = modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(songs, key = { it.id }) { song ->
-                    LibrarySongRow(
-                        song = song,
-                        onClick = {
-                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                            val index = songs.indexOfFirst { it.id == song.id }
-                            playbackViewModel.playQueue(songs, index)
-                            if (wasIdle) onNavigateToNowPlaying()
-                        }
+                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(AppR.string.library_liked_songs_title), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        subtitleDetails,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                if (downloadableSongs.isNotEmpty()) {
+                    PressDepthIconButton(
+                        iconRes = R.drawable.lucide_ic_download,
+                        contentDescription = stringResource(AppR.string.desc_download_liked_songs),
+                        onClick = { downloadableSongs.forEach(downloadRepository::download) }
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_play,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    accented = true,
+                    onClick = { playAll(shuffle = false) }
+                )
+                Spacer(Modifier.width(8.dp))
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_shuffle,
+                    size = 42.dp,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    onClick = { playAll(shuffle = true) }
+                )
+            }
+
+            if (songs.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    EmptyState(
+                        catRes = AppR.drawable.cat_gray_dancing,
+                        title = "No liked songs yet",
+                        message = "Tap the heart on any track to keep it here.",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = listBottomPadding)
+                ) {
+                    items(songs, key = { it.id }) { song ->
+                        LibrarySongRow(
+                            song = song,
+                            onClick = {
+                                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                val index = songs.indexOfFirst { it.id == song.id }
+                                playbackViewModel.playQueue(songs, index)
+                                if (wasIdle) onNavigateToNowPlaying()
+                            }
+                        )
+                    }
                 }
             }
         }
