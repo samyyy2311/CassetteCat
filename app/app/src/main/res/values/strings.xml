@@ -50,6 +50,8 @@
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="action_later">Later</string>
+    <string name="action_download">Download</string>
 
     <string name="onboarding_welcome_headline">Make your library feel like yours.</string>
     <string name="onboarding_welcome_body">Play, organize, and own your music, no subscription.</string>
@@ -221,7 +223,6 @@
     <string name="desktop_remote_pair_hint">On your computer, open CassetteCat Settings, go to Network, and turn on Phone Remote. Enter the address shown there.</string>
     <string name="desktop_remote_address">Address</string>
     <string name="desktop_remote_address_invalid">Enter the address exactly as shown, including the part after #.</string>
-    <string name="desktop_remote_connect">Connect</string>
     <string name="desktop_remote_forget">Forget this computer</string>
     <string name="desktop_remote_forget_description">Pair again with a new address or code</string>
     <string name="desktop_remote_offline">Desktop Remote is off while Offline Blackout Mode is on.</string>

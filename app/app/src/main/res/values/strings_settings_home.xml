@@ -101,5 +101,7 @@
     <string name="settings_updates_tap">Tap to check</string>
     <string name="settings_updates_current">You’re up to date</string>
     <string name="settings_updates_available">Version %1$s available, tap to view</string>
+    <string name="update_prompt_title">Update available</string>
+    <string name="update_prompt_message">CassetteCat %1$s is ready to download. Your library, playlists and settings stay as they are.</string>
     <string name="settings_updates_failed">Couldn’t check, tap to retry</string>
 </resources>

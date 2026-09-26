@@ -2,6 +2,17 @@
 
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
+import android.content.Intent
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.core.net.toUri
+import `in`.caffeinelabs.cassettecat.BuildConfig
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
+import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
+import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
+import androidx.compose.material3.Text
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -300,6 +311,13 @@ fun MainShell(
     LifecycleResumeEffect(desktopState.controlling) {
         if (desktopState.controlling) desktopRemote.startPolling()
         onPauseOrDispose { if (desktopState.controlling) desktopRemote.stopPolling() }
+    }
+    // Offered once per version; Settings keeps showing the update after "Later".
+    var updatePrompt by remember { mutableStateOf<UpdateCheckResult.UpdateAvailable?>(null) }
+    LaunchedEffect(Unit) {
+        if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
+            updatePrompt = updateToPrompt(context, BuildConfig.VERSION_NAME)
+        }
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {
@@ -893,6 +911,25 @@ fun MainShell(
                     }
                 )
             }
+        }
+
+        updatePrompt?.let { update ->
+            fun close() {
+                updatePrompt = null
+                scope.launch { markUpdatePrompted(context, update.version) }
+            }
+            AlertDialog(
+                onDismissRequest = ::close,
+                title = { Text(stringResource(AppR.string.update_prompt_title)) },
+                text = { Text(stringResource(AppR.string.update_prompt_message, update.version)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, update.url.toUri()))
+                        close()
+                    }) { Text(stringResource(AppR.string.action_download)) }
+                },
+                dismissButton = { TextButton(onClick = ::close) { Text(stringResource(AppR.string.action_later)) } }
+            )
         }
 
         if (showDevices) {

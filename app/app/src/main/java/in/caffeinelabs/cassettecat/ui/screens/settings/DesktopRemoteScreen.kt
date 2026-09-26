@@ -202,7 +202,7 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
                     enabled = input.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(stringResource(AppR.string.desktop_remote_connect))
+                    Text(stringResource(AppR.string.action_connect))
                 }
             }
         }
