@@ -429,13 +429,13 @@ private fun QueueRow(song: Song, onClick: () -> Unit, modifier: Modifier = Modif
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                if (song.source != MusicSource.Local) {
+                if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
                     val (tagLabel, tagColor) = when (song.source) {
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
                         MusicSource.ListeningRoomHost -> "Room" to MaterialTheme.colorScheme.tertiary
                         MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local -> "" to Color.Unspecified
+                        MusicSource.Local, MusicSource.Desktop -> "" to Color.Unspecified
                     }
                     Spacer(Modifier.width(6.dp))
                     Text(

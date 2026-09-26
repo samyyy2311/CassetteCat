@@ -142,7 +142,12 @@ internal fun PlaybackControlsRow(
 }
 
 @Composable
-internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange: (NowPlayingView) -> Unit) {
+internal fun LyricsQueueToggleRow(
+    activeView: NowPlayingView,
+    onActiveViewChange: (NowPlayingView) -> Unit,
+    onOpenDevices: (() -> Unit)? = null,
+    deviceName: String? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -160,6 +165,14 @@ internal fun LyricsQueueToggleRow(activeView: NowPlayingView, onActiveViewChange
                 onActiveViewChange(if (activeView == NowPlayingView.LYRICS) NowPlayingView.PLAYER else NowPlayingView.LYRICS)
             }
         )
+        if (onOpenDevices != null) {
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_monitor,
+                contentDescription = deviceName ?: stringResource(AppR.string.desktop_remote_devices),
+                tint = if (deviceName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onOpenDevices
+            )
+        }
         PressDepthIconButton(
             iconRes = R.drawable.lucide_ic_list,
             contentDescription = stringResource(

@@ -717,11 +717,13 @@ fun SearchScreen(
 
     songForTagEdit?.let { song ->
         SongTagEditorSheet(
-            song = song,
+            songs = listOf(song),
             onDismiss = { songForTagEdit = null },
             onSaved = { updated ->
-                libraryViewModel.updateSongMetadata(updated)
-                playbackViewModel.updateSongMetadata(updated)
+                updated.forEach {
+                    libraryViewModel.updateSongMetadata(it)
+                    playbackViewModel.updateSongMetadata(it)
+                }
                 songForTagEdit = null
             }
         )

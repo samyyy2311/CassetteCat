@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.7.4-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.7.4" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.7.5-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.7.5" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
@@ -125,6 +125,9 @@
   from the car.
 - **Quick Settings Tile**: Play, pause, and see what's playing without opening
   the app.
+- **Desktop Remote**: Pick your computer from the devices button to control
+  [CassetteCat Desktop](https://github.com/samyyy2311/CassetteCat-Desktop) on
+  the same Wi-Fi, and move your song, queue and position between the two.
 
 ### Design & Customization
 

@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -10,6 +11,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import `in`.caffeinelabs.cassettecat.data.playback.AudioWaveformHolder
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -242,7 +245,8 @@ internal fun LyricsView(
 
             val activeLineIndex by remember(effectiveSyncedLyrics, effectivePositionMs) {
                 derivedStateOf {
-                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }.coerceAtLeast(0)
+                    // -1 during the intro, so the first line reads as the next one rather than a past one.
+                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }
                 }
             }
 
@@ -368,19 +372,26 @@ internal fun LyricsView(
                     when (item) {
                         is LyricDisplayItem.Gap -> {
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
-                            GapItemView(
-                                isInGap = isInGap,
-                                isPlaying = isPlaying,
-                                isCenterAligned = lyricsTextAlign == TextAlign.Center,
-                                onClick = {
-                                    userIsDragging = false
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onSeekToLine(item.fromMs)
-                                    coroutineScope.launch {
-                                        listState.animateScrollToItem(displayIdx, 0)
+                            // Once the break is over its dots would sit above lines already sung.
+                            AnimatedVisibility(
+                                visible = effectivePositionMs <= item.toMs,
+                                enter = expandVertically(tween(220, easing = SmoothEasing)),
+                                exit = shrinkVertically(tween(220, easing = SmoothEasing))
+                            ) {
+                                GapItemView(
+                                    isInGap = isInGap,
+                                    isPlaying = isPlaying,
+                                    isCenterAligned = lyricsTextAlign == TextAlign.Center,
+                                    onClick = {
+                                        userIsDragging = false
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onSeekToLine(item.fromMs)
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(displayIdx, 0)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
 
                         is LyricDisplayItem.Line -> {
@@ -402,10 +413,11 @@ internal fun LyricsView(
                                 targetValue = when {
                                     selectionMode -> if (isSelected) 1.00f else 0.35f
                                     isActive -> 1.00f
-                                    distanceFromActive == 1 -> 0.65f
-                                    distanceFromActive == 2 -> 0.48f
-                                    distanceFromActive == 3 -> 0.35f
-                                    else -> 0.24f
+                                    // Distance 0 without being active is the line just sung, during a break.
+                                    distanceFromActive <= 1 -> 0.72f
+                                    distanceFromActive == 2 -> 0.56f
+                                    distanceFromActive == 3 -> 0.44f
+                                    else -> 0.34f
                                 },
                                 animationSpec = tween(220, easing = SmoothEasing),
                                 label = "lyricLineOpacity"
@@ -443,7 +455,7 @@ internal fun LyricsView(
                                     alpha = lyricOpacity
                                     scaleX = lineScale
                                     scaleY = lineScale
-                                    transformOrigin = TransformOrigin(0f, 0.5f)
+                                    transformOrigin = TransformOrigin(if (lyricsTextAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
                                 }
                                 .padding(horizontal = 24.dp, vertical = 13.dp)
 
@@ -691,11 +703,19 @@ private fun ActiveLyricLine(
     }
 
     val progressAnim = remember { Animatable(0f) }
+    val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
+    val currentPositionMs by rememberUpdatedState(positionMs)
+    // Position ticks arrive several times a second; restarting the fill on each one makes it stutter,
+    // so it is only resynced when playback jumps (a seek) away from where the fill expects to be.
+    var resyncToken by remember { mutableIntStateOf(0) }
+    LaunchedEffect(positionMs) {
+        val expectedMs = line.timestampMs + (progressAnim.value * safeDuration).toLong()
+        val fillFinished = progressAnim.value >= 1f && positionMs >= line.timestampMs + safeDuration
+        if (!fillFinished && abs(positionMs - expectedMs) > 400L) resyncToken++
+    }
 
-    LaunchedEffect(line.timestampMs, item.vocalDurationMs, isPlaying, positionMs) {
-        val effectivePositionMs = positionMs
-        val safeDuration = item.vocalDurationMs.coerceAtLeast(1L)
-        val currentElapsed = (effectivePositionMs - line.timestampMs).coerceIn(0L, safeDuration)
+    LaunchedEffect(line.timestampMs, safeDuration, isPlaying, resyncToken) {
+        val currentElapsed = (currentPositionMs - line.timestampMs).coerceIn(0L, safeDuration)
         val initialProgress = (currentElapsed.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
         progressAnim.snapTo(initialProgress)
         if (isPlaying && initialProgress < 1f) {

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.lerp
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.library.isFromAnotherDevice
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
@@ -76,7 +77,8 @@ fun NowPlayingContent(
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToDriveMode: () -> Unit = {},
     drawBehindSystemBars: Boolean = false,
-    onHeaderDragProgressChange: (Float) -> Unit = {}
+    onHeaderDragProgressChange: (Float) -> Unit = {},
+    onOpenDevices: (() -> Unit)? = null
 ) {
     val preferences = LocalAppPreferences.current
     val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -88,6 +90,8 @@ fun NowPlayingContent(
     val isLoadingLyrics by playbackViewModel.isLoadingLyrics.collectAsStateWithLifecycle()
     val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
+    val controlledDesktop by playbackViewModel.controlledDesktop.collectAsStateWithLifecycle()
+    val deviceName = controlledDesktop?.let { it.name ?: stringResource(AppR.string.desktop_remote_your_computer) }
     val song = state.currentSong
 
     val sheetState = rememberNowPlayingSheetState()
@@ -263,7 +267,7 @@ fun NowPlayingContent(
                         onSkipNext = skipNext,
                         onSkipPrevious = skipPrevious,
                         onPlaySong = { playbackViewModel.playFromQueue(it) },
-                        onSaveQueue = if (song.source != MusicSource.ListeningRoomHost) {
+                        onSaveQueue = if (!song.isFromAnotherDevice) {
                             { sheetState.showSaveQueue = true }
                         } else {
                             null
@@ -338,7 +342,9 @@ fun NowPlayingContent(
                         onShowMenu = { sheetState.showMenu = true },
                         onShowGoToMenu = { sheetState.showGoToMenu = true },
                         onSkipNext = skipNext,
-                        onSkipPrevious = skipPrevious
+                        onSkipPrevious = skipPrevious,
+                        deviceName = deviceName,
+                        onOpenDevices = onOpenDevices
                     )
                 }
             }
@@ -347,7 +353,7 @@ fun NowPlayingContent(
 
     val queueSongs = remember(state.currentSong?.id, state.upNext) {
         (listOfNotNull(state.currentSong) + state.upNext)
-            .filter { it.source != MusicSource.ListeningRoomHost && it.source != MusicSource.Radio }
+            .filter { !it.isFromAnotherDevice && it.source != MusicSource.Radio }
             .distinctBy { it.id }
     }
 

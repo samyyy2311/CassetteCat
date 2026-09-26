@@ -2,6 +2,15 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.5]
+
+* Control CassetteCat on your computer from your phone. Pick it from the devices button and the same Now Playing screen, queue and lyrics work for the computer. Your song, queue and position move with you when you switch, and the computer can pause, skip or take over what your phone is playing. Computers on your Wi-Fi are found without typing an address.
+* Edit tags for several songs at once from the library selection bar. Only the fields you change are saved.
+* The song that's playing is highlighted in every list.
+* Radio: HLS stations play, switching stations works again, stations load on mobile data, and a station no longer counts as a play, scrobbles, or replaces the queue restored on launch.
+* Smoother lyrics: the word highlight no longer stutters, centered lines stay in place, the first line leads during the intro, and interlude dots fold away once the break ends.
+* New releases are offered once when the app starts, at most once a day.
+
 ## [1.7.4]
 
 * Shuffle now mixes up upcoming songs without interrupting what's playing, and turning it off brings back your original queue order.

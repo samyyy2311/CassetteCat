@@ -5,7 +5,10 @@ import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
+import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
+import `in`.caffeinelabs.cassettecat.data.device.parseDiscoveryReply
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.radio.radioBrowserMirrors
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
@@ -19,8 +22,13 @@ import `in`.caffeinelabs.cassettecat.data.playback.SmartShuffle
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
 import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
+import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
+import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
+import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
+import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -41,6 +49,70 @@ class CoreLogicTest {
 
         assertEquals(listOf(1_200L, 62_345L), lines.map { it.timestampMs })
         assertEquals(0L, adjustLyricsSync(lines, -2_000L).first().timestampMs)
+    }
+
+    @Test
+    fun keepsOnlyNamedRadioBrowserMirrors() {
+        val mirrors = radioBrowserMirrors(
+            listOf("de1.api.radio-browser.info", "91.132.145.114", "all.api.radio-browser.info", "de1.api.radio-browser.info")
+        )
+        assertEquals(listOf("de1.api.radio-browser.info"), mirrors)
+    }
+
+    @Test
+    fun batchTagEditChangesOnlyEditedFields() {
+        val song = testSong("1", artist = "Old", title = "Keep", genres = listOf("Rock"), releaseYear = 1999)
+        val (override, updated) = applyTagEdits(song, existing = null, edits = TagEdits(artist = " New "))
+
+        assertEquals("Keep", updated.title)
+        assertEquals("New", updated.artist)
+        assertEquals(listOf("Rock"), updated.genres)
+        assertEquals(1999, updated.releaseYear)
+        assertEquals("Old", override.originalArtist)
+        assertNull(override.title)
+        assertNull(override.genres)
+        assertFalse(override.releaseYearSet)
+
+        val (second, _) = applyTagEdits(updated, existing = override, edits = TagEdits(artist = "Newer"))
+        assertEquals("Old", second.originalArtist)
+
+        val noYear = testSong("2", releaseYear = null)
+        val (dated, datedSong) = applyTagEdits(noYear, existing = null, edits = TagEdits(yearEdited = true, year = 2020))
+        val (redated, _) = applyTagEdits(datedSong, existing = dated, edits = TagEdits(yearEdited = true, year = 2021))
+        assertNull(redated.originalReleaseYear)
+    }
+
+    @Test
+    fun parsesDesktopDiscoveryReplies() {
+        assertEquals(
+            DiscoveredDesktop("STUDIO-PC", "192.168.1.20", 47800),
+            parseDiscoveryReply("""{"name":"STUDIO-PC","port":47800}""", "192.168.1.20")
+        )
+        assertNull(parseDiscoveryReply("CASSETTECAT_DISCOVER", "192.168.1.20"))
+        assertNull(parseDiscoveryReply("""{"name":"","port":47800}""", "192.168.1.20"))
+        assertNull(parseDiscoveryReply("""{"name":"PC","port":0}""", "192.168.1.20"))
+    }
+
+    @Test
+    fun handsOffOnlyWhenTheCurrentSongIsInTheLibrary() {
+        val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
+        val fromDesktop = listOf(
+            testSong("desktop:1", artist = " ann ", title = "ONE"),
+            testSong("desktop:2", artist = "Cy", title = "Missing"),
+            testSong("desktop:3", artist = "Bo", title = "Two")
+        )
+
+        assertEquals(listOf("a", "b"), matchInLibrary(fromDesktop, library).map { it.id })
+        assertEquals(emptyList<Song>(), matchInLibrary(fromDesktop.drop(1), library))
+    }
+
+    @Test
+    fun parsesDesktopRemoteAddress() {
+        assertEquals(DesktopAddress("192.168.1.20", 47800, "ABC234"), parseDesktopAddress(" 192.168.1.20:47800#abc234 "))
+        assertNull(parseDesktopAddress("192.168.1.20:47800"))
+        assertNull(parseDesktopAddress("192.168.1.20#ABC234"))
+        assertNull(parseDesktopAddress("192.168.1.20:70000#ABC234"))
+        assertNull(parseDesktopAddress("192.168.1.20:47800#"))
     }
 
     @Test

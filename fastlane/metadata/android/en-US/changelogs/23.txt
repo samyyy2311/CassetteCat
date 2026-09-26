@@ -1,0 +1,6 @@
+• Control CassetteCat on your computer and move songs between phone and PC
+• Edit tags for several songs at once
+• The playing song is highlighted in every list
+• Radio fixes: HLS stations, switching, mobile data
+• Smoother lyrics
+• New versions are offered when the app starts

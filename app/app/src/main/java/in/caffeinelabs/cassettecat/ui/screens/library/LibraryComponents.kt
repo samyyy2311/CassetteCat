@@ -71,6 +71,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.util.LocalPlayingSong
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.components.DownloadStatusIcon
 import `in`.caffeinelabs.cassettecat.ui.components.PlaylistCoverArt
@@ -133,11 +134,12 @@ internal fun GridCardSkeleton(color: Color = rememberSkeletonColor()) {
 @Composable
 internal fun RowScope.SongListRowContent(
     song: Song,
-    isCurrentSong: Boolean = false,
-    isPlaying: Boolean = false,
     onMoreClick: (() -> Unit)? = null
 ) {
     val preferences = LocalAppPreferences.current
+    val playing = LocalPlayingSong.current
+    val isCurrentSong = playing.id == song.id
+    val isPlaying = isCurrentSong && playing.isPlaying
     val isCompact = preferences.trackRowDensity == TrackRowDensity.COMPACT
     val artSize = if (isCompact) 42.dp else 48.dp
 
@@ -167,6 +169,7 @@ internal fun RowScope.SongListRowContent(
         MusicSource.Jellyfin -> "Jellyfin"
         MusicSource.ListeningRoomHost -> "Room"
         MusicSource.Radio -> "Radio"
+        MusicSource.Desktop -> "Computer"
     }
 
     val sourceColor = when (song.source) {
@@ -175,6 +178,7 @@ internal fun RowScope.SongListRowContent(
         MusicSource.Jellyfin -> Color(0xFF00A4DC)
         MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.tertiary
         MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
+        MusicSource.Desktop -> MaterialTheme.colorScheme.tertiary
     }
 
     Box(
@@ -283,8 +287,6 @@ internal fun RowScope.SongListRowContent(
 @Composable
 fun LibrarySongRow(
     song: Song,
-    isCurrentSong: Boolean = false,
-    isPlaying: Boolean = false,
     onMoreClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
@@ -298,12 +300,7 @@ fun LibrarySongRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SongListRowContent(
-                song = song,
-                isCurrentSong = isCurrentSong,
-                isPlaying = isPlaying,
-                onMoreClick = onMoreClick
-            )
+            SongListRowContent(song = song, onMoreClick = onMoreClick)
         }
     }
 }
@@ -311,14 +308,10 @@ fun LibrarySongRow(
 @Composable
 fun SongRow(
     song: Song,
-    isCurrentSong: Boolean = false,
-    isPlaying: Boolean = false,
     onMoreClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) = LibrarySongRow(
     song = song,
-    isCurrentSong = isCurrentSong,
-    isPlaying = isPlaying,
     onMoreClick = onMoreClick,
     onClick = onClick
 )
@@ -353,8 +346,6 @@ internal fun SelectableSongRow(
     song: Song,
     selected: Boolean,
     selectionMode: Boolean,
-    isCurrentSong: Boolean = false,
-    isPlaying: Boolean = false,
     onMoreClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -373,12 +364,7 @@ internal fun SelectableSongRow(
                 SelectionCheckboxIcon(selected)
                 Spacer(Modifier.width(14.dp))
             }
-            SongListRowContent(
-                song = song,
-                isCurrentSong = isCurrentSong,
-                isPlaying = isPlaying,
-                onMoreClick = onMoreClick
-            )
+            SongListRowContent(song = song, onMoreClick = onMoreClick)
         }
     }
 }

@@ -905,8 +905,6 @@ private fun LibraryGroupDetailScreen(
                 }
             }
             items(songs, key = { it.id }, contentType = { "song" }) { song ->
-                val isCurrentSong = playbackState.currentSong?.id == song.id
-                val isPlaying = playbackState.isPlaying
                 val onSongClick = {
                     val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                     val index = songs.indexOfFirst { it.id == song.id }
@@ -915,8 +913,6 @@ private fun LibraryGroupDetailScreen(
                 }
                 SongRow(
                     song = song,
-                    isCurrentSong = isCurrentSong,
-                    isPlaying = isPlaying,
                     onMoreClick = { songForOptions = song },
                     onClick = onSongClick
                 )
@@ -1032,11 +1028,13 @@ private fun LibraryGroupDetailScreen(
         }
         songForTagEdit?.let { song ->
             SongTagEditorSheet(
-                song = song,
+                songs = listOf(song),
                 onDismiss = { songForTagEdit = null },
                 onSaved = { updated ->
-                    onUpdateSong?.invoke(updated)
-                    playbackViewModel.updateSongMetadata(updated)
+                    updated.forEach {
+                        onUpdateSong?.invoke(it)
+                        playbackViewModel.updateSongMetadata(it)
+                    }
                     songForTagEdit = null
                 }
             )
@@ -1225,7 +1223,7 @@ private fun ArtistSongRow(
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
                         MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost -> "" to Color.Unspecified
+                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
                         Text(
@@ -1392,7 +1390,7 @@ private fun AlbumDetailHeader(
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
                         MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost -> "" to Color.Unspecified
+                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
                         Text(

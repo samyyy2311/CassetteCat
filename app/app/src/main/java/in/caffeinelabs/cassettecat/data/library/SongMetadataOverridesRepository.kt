@@ -47,35 +47,32 @@ class SongMetadataOverridesRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun saveOverride(override: SongMetadataOverride) = withContext(Dispatchers.IO) {
+    // One write for the whole batch, so editing many songs does not rewrite the file per song.
+    suspend fun saveOverrides(overrides: List<SongMetadataOverride>) = withContext(Dispatchers.IO) {
         writeMutex.withLock {
-            val updated = _overrides.value.toMutableMap()
-            updated[override.songId] = override
+            val updated = _overrides.value + overrides.associateBy { it.songId }
             _overrides.value = updated
-            runCatching {
-                val tempFile = File(file.parentFile, "${file.name}.tmp")
-                tempFile.writeText(sharedJson.encodeToString(updated.values.toList()))
-                if (!tempFile.renameTo(file)) {
-                    tempFile.copyTo(file, overwrite = true)
-                    tempFile.delete()
-                }
+            persist(updated)
+        }
+    }
+
+    suspend fun removeOverrides(songIds: Collection<String>) = withContext(Dispatchers.IO) {
+        writeMutex.withLock {
+            val updated = _overrides.value - songIds.toSet()
+            if (updated.size != _overrides.value.size) {
+                _overrides.value = updated
+                persist(updated)
             }
         }
     }
 
-    suspend fun removeOverride(songId: String) = withContext(Dispatchers.IO) {
-        writeMutex.withLock {
-            val updated = _overrides.value.toMutableMap()
-            if (updated.remove(songId) != null) {
-                _overrides.value = updated
-                runCatching {
-                    val tempFile = File(file.parentFile, "${file.name}.tmp")
-                    tempFile.writeText(sharedJson.encodeToString(updated.values.toList()))
-                    if (!tempFile.renameTo(file)) {
-                        tempFile.copyTo(file, overwrite = true)
-                        tempFile.delete()
-                    }
-                }
+    private fun persist(overrides: Map<String, SongMetadataOverride>) {
+        runCatching {
+            val tempFile = File(file.parentFile, "${file.name}.tmp")
+            tempFile.writeText(sharedJson.encodeToString(overrides.values.toList()))
+            if (!tempFile.renameTo(file)) {
+                tempFile.copyTo(file, overwrite = true)
+                tempFile.delete()
             }
         }
     }

@@ -11,8 +11,12 @@ import androidx.media3.common.C
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.isFromAnotherDevice
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteState
+import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.listeningroom.LocalListeningRoomRepository
@@ -112,16 +116,35 @@ internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): 
     return (listOf(seed) + ranked).take(limit)
 }
 
+// Enough to carry on listening without sending a whole library.
+private const val HANDOFF_QUEUE_LIMIT = 100
+private const val DESKTOP_CHECK_IN_MS = 1_500L
+private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
+
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = PlaybackRepository(app)
     private val listeningRoomRepository = LocalListeningRoomRepository(app)
+    private val desktop = DesktopRemoteRepository.getInstance(app)
 
-    val playbackState: StateFlow<PlaybackUiState> = repository.state
+    // The phone's own player. Stats, scrobbling, saving and autoplay always read this.
+    private val localState: StateFlow<PlaybackUiState> = repository.state
+
+    // What the app shows and controls: the paired computer while the phone controls it, otherwise this phone.
+    val playbackState: StateFlow<PlaybackUiState> = combine(localState, desktop.controlledState) { local, remote ->
+        remote?.copy(history = local.history) ?: local
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, repository.state.value)
+
+    /** The computer being controlled, or null while the phone plays itself. */
+    val controlledDesktop: StateFlow<DesktopRemoteState?> = combine(desktop.state, desktop.controlledState) { state, remote ->
+        state.takeIf { remote != null }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val listeningRoom: StateFlow<ListeningRoomState> = listeningRoomRepository.state
 
     private val _positionMs = MutableStateFlow(0L)
-    val positionMs: StateFlow<Long> = _positionMs.asStateFlow()
+    val positionMs: StateFlow<Long> = combine(_positionMs, desktop.positionMs, desktop.controlledState) { local, remote, controlled ->
+        if (controlled != null) remote else local
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0L)
 
     private val streamingServerRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
@@ -175,9 +198,29 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             repository.connect()
         }
         viewModelScope.launch {
-            playbackState.collect { state ->
+            localState.collect { state ->
                 if (state.isPlaying) startTicker() else { stopTicker(); savePlaybackState() }
                 if (listeningRoom.value.role == ListeningRoomRole.HOST) publishRoomSnapshot()
+            }
+        }
+        viewModelScope.launch {
+            desktop.state.map { it.controlling }.distinctUntilChanged().collect { controlling ->
+                if (controlling && localState.value.isPlaying) repository.pause()
+            }
+        }
+        // While this phone plays and a computer is paired, the computer sees it and can send it commands.
+        viewModelScope.launch {
+            combine(desktop.state, localState) { state, local ->
+                local.currentSong?.takeIf { state.address != null && !state.controlling && !state.offlineBlackout && !it.isFromAnotherDevice }
+                    ?.let { it to local.isPlaying }
+            }.distinctUntilChanged().collectLatest { playing ->
+                val (song, isPlaying) = playing ?: return@collectLatest
+                // A long pause stops the check-ins to save battery; pressing play starts them again.
+                val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
+                while (SystemClock.elapsedRealtime() < stopAt) {
+                    desktop.checkIn(song, isPlaying).forEach(::runDesktopCommand)
+                    delay(DESKTOP_CHECK_IN_MS)
+                }
             }
         }
         viewModelScope.launch {
@@ -187,7 +230,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         // Refresh position immediately on song transition when ticker is idle.
         viewModelScope.launch {
-            playbackState.map { it.currentSong?.id }.distinctUntilChanged().collect {
+            localState.map { it.currentSong?.id }.distinctUntilChanged().collect {
                 _positionMs.value = repository.currentPositionMs()
             }
         }
@@ -199,15 +242,19 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     song?.isFavorite ?: false
                 }
+            }
+        }
+        viewModelScope.launch {
+            localState.map { it.currentSong }.distinctUntilChanged().collect { song ->
                 if (song != null) {
-                    scrobbleManager.onTrackStarted(song)
+                    if (song.source != MusicSource.Radio) scrobbleManager.onTrackStarted(song)
                     savePlaybackState()
                 }
             }
         }
         viewModelScope.launch {
             serviceSettingsRepository.settings.map { it.offlineBlackoutMode }
-                .combine(playbackState.map { it.currentSong }) { offline, song -> offline to song }
+                .combine(localState.map { it.currentSong }) { offline, song -> offline to song }
                 .collect { (offline, song) ->
                     if (offline && song != null && song.source != MusicSource.Local) {
                         pause()
@@ -283,7 +330,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
         }
         viewModelScope.launch {
-            playbackState.map { it.audioSessionId }.distinctUntilChanged().collect { sessionId ->
+            localState.map { it.audioSessionId }.distinctUntilChanged().collect { sessionId ->
                 if (sessionId == C.AUDIO_SESSION_ID_UNSET) return@collect
                 val levels = equalizerSettingsRepository.levels.first()
                 EqualizerController.attach(
@@ -304,11 +351,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
         if (isFollowingRoomHost()) return
+        desktop.setControlling(false)
         viewModelScope.launch { repository.playQueue(songs, startIndex, shuffle) }
     }
 
     fun shuffleAll(songs: List<Song>) {
         if (isFollowingRoomHost() || songs.isEmpty()) return
+        desktop.setControlling(false)
         viewModelScope.launch { repository.shuffleAll(songs) }
     }
 
@@ -329,7 +378,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     repository.restoreHistory(resolvedHistory)
                 }
             }
-            if (playbackState.value.currentSong != null) return@launch
+            if (localState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
             // Skip songs deleted from storage while keeping relative queue ordering.
@@ -387,7 +436,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     ) {
         sleepTimerJob?.cancel()
         val effectiveDurationMs = if (durationMs == -1L) {
-            (playbackState.value.durationMs - _positionMs.value).coerceAtLeast(1_000L)
+            (localState.value.durationMs - _positionMs.value).coerceAtLeast(1_000L)
         } else {
             durationMs
         }
@@ -413,9 +462,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         val factor = 1f - (i.toFloat() / steps.toFloat())
                         repository.setVolume(initialVol * factor)
                     }
-                    if (playbackState.value.isPlaying) togglePlayPause()
+                    if (localState.value.isPlaying) togglePlayPause()
                 } else {
-                    if (playbackState.value.isPlaying) togglePlayPause()
+                    if (localState.value.isPlaying) togglePlayPause()
                 }
             } finally {
                 if (fadeStarted) {
@@ -437,26 +486,82 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerEndMs.value = null
     }
 
-    fun pause() { if (!isFollowingRoomHost()) repository.pause() }
-    fun togglePlayPause() { if (!isFollowingRoomHost()) repository.togglePlayPause() }
-    fun skipNext() { if (!isFollowingRoomHost()) repository.skipNext() }
-    fun skipPrevious() { if (!isFollowingRoomHost()) repository.skipPrevious() }
-    fun toggleShuffle() { if (!isFollowingRoomHost()) repository.toggleShuffle() }
-    fun cycleRepeatMode() { if (!isFollowingRoomHost()) repository.cycleRepeatMode() }
-    fun playFromQueue(song: Song) { if (!isFollowingRoomHost()) repository.playFromQueue(song) }
-    fun moveInUpNext(fromIndex: Int, toIndex: Int) { if (!isFollowingRoomHost()) repository.moveInUpNext(fromIndex, toIndex) }
+    /** Continues this phone's song and queue on the computer, then controls the computer from here. */
+    fun transferToDesktop() {
+        val local = localState.value
+        val current = local.currentSong
+        viewModelScope.launch {
+            // With a song to carry over, control moves only once the computer has taken it.
+            val handedOver = current == null || current.source == MusicSource.Radio || current.isFromAnotherDevice ||
+                desktop.handOff(listOf(current) + local.upNext.take(HANDOFF_QUEUE_LIMIT), repository.currentPositionMs(), local.isPlaying)
+            if (handedOver) desktop.setControlling(true)
+        }
+    }
+
+    /** Continues the computer's song and queue on this phone with the matching songs in [library]. */
+    fun transferToPhone(library: List<Song>) {
+        val remote = desktop.controlledState.value
+        val matched = remote?.currentSong?.let { matchInLibrary(listOf(it) + remote.upNext, library) }.orEmpty()
+        desktop.setControlling(false)
+        if (matched.isEmpty() || isFollowingRoomHost()) return
+        desktop.sendAction("pause")
+        val positionMs = desktop.positionMs.value
+        val playing = remote?.isPlaying == true
+        viewModelScope.launch {
+            repository.playQueue(matched, startIndex = 0, startPositionMs = positionMs, playWhenReady = playing)
+        }
+    }
+
+    private fun runDesktopCommand(command: String) {
+        when (command) {
+            "play" -> if (!localState.value.isPlaying) repository.togglePlayPause()
+            "pause" -> repository.pause()
+            "next" -> repository.skipNext()
+            "previous" -> repository.skipPrevious()
+            "handoff" -> transferToDesktop()
+        }
+    }
+
+    // Sends [action] to the computer when it is the device being controlled; returns whether it did.
+    private fun sentToDesktop(action: String): Boolean {
+        if (controlledDesktop.value == null) return false
+        desktop.sendAction(action)
+        return true
+    }
+
+    fun pause() { if (!sentToDesktop("pause") && !isFollowingRoomHost()) repository.pause() }
+    fun togglePlayPause() {
+        val action = if (playbackState.value.isPlaying) "pause" else "play"
+        if (!sentToDesktop(action) && !isFollowingRoomHost()) repository.togglePlayPause()
+    }
+    fun skipNext() { if (!sentToDesktop("next") && !isFollowingRoomHost()) repository.skipNext() }
+    fun skipPrevious() { if (!sentToDesktop("previous") && !isFollowingRoomHost()) repository.skipPrevious() }
+    fun toggleShuffle() { if (!sentToDesktop("toggle_shuffle") && !isFollowingRoomHost()) repository.toggleShuffle() }
+    fun cycleRepeatMode() { if (!sentToDesktop("cycle_repeat") && !isFollowingRoomHost()) repository.cycleRepeatMode() }
+    fun playFromQueue(song: Song) { if (!desktop.playFromQueue(song) && !isFollowingRoomHost()) repository.playFromQueue(song) }
+    fun moveInUpNext(fromIndex: Int, toIndex: Int) {
+        when {
+            controlledDesktop.value != null -> desktop.moveInQueue(fromIndex, toIndex)
+            !isFollowingRoomHost() -> repository.moveInUpNext(fromIndex, toIndex)
+        }
+    }
     fun addToUpNext(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToUpNext(songs) }
     fun addToEndOfQueue(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToEndOfQueue(songs) }
-    fun removeFromUpNext(songId: String) { if (!isFollowingRoomHost()) repository.removeFromUpNext(songId) }
+    fun removeFromUpNext(songId: String) {
+        val song = playbackState.value.upNext.firstOrNull { it.id == songId }
+        if (song != null && desktop.removeFromQueue(song)) return
+        if (!isFollowingRoomHost()) repository.removeFromUpNext(songId)
+    }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {
+        if (controlledDesktop.value != null) return desktop.seek(positionMs)
         if (isFollowingRoomHost()) return
         repository.seekTo(positionMs)
         _positionMs.value = positionMs
     }
 
     fun startListeningRoom() = listeningRoomRepository.startRoom {
-        playbackState.value.currentSong?.let { listOf(it) + playbackState.value.upNext } ?: emptyList()
+        localState.value.currentSong?.let { listOf(it) + localState.value.upNext } ?: emptyList()
     }
     fun findNearbyListeningRooms() = listeningRoomRepository.findNearbyRooms()
     fun stopFindingNearbyListeningRooms() = listeningRoomRepository.stopFindingNearbyRooms()
@@ -468,7 +573,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun toggleFavoriteForCurrentSong() {
-        val song = playbackState.value.currentSong ?: return
+        val song = playbackState.value.currentSong?.takeIf { it.source != MusicSource.Desktop } ?: return
         val newValue = !_isCurrentSongFavorite.value
         _isCurrentSongFavorite.value = newValue
         viewModelScope.launch {
@@ -505,7 +610,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val deltaMs = (nowRealtime - lastTickRealtime).coerceAtLeast(0L)
                 lastTickRealtime = nowRealtime
 
-                playbackState.value.currentSong?.let { song ->
+                localState.value.currentSong?.let { song ->
                     if (song.source != MusicSource.Radio) {
                         val bucket = ListeningBucket(cachedMonthKey, song.id)
                         accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + deltaMs
@@ -545,8 +650,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     // Minimum listening duration required to count as an intentional play.
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
-        val state = playbackState.value
-        val song = state.currentSong ?: return
+        val state = localState.value
+        // Stations are not songs: no play count and no scrobble, as on the desktop.
+        val song = state.currentSong?.takeIf { it.source != MusicSource.Radio } ?: return
         if (playRecordedForSongId == song.id) return
         val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
         if (threshold > 0 && _positionMs.value >= threshold) {
@@ -559,7 +665,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun applyCrossfade() {
         val fadeMs = appPreferences.value.crossfadeSeconds * 1000L
-        val dur = playbackState.value.durationMs
+        val dur = localState.value.durationMs
         if (fadeMs <= 0 || dur <= 0 || sleepFading) return
         val pos = _positionMs.value
         val fadeIn = (pos.toFloat() / fadeMs).coerceIn(0f, 1f)
@@ -574,18 +680,20 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun savePlaybackState() {
+        // Radio keeps its own queue, so the saved music queue survives listening to a station.
+        if (localState.value.currentSong?.source == MusicSource.Radio) return
         val snapshot = repository.snapshotForSave() ?: return
         viewModelScope.launch { stateRepository.save(snapshot) }
     }
 
     private fun publishRoomSnapshot() {
-        val current = playbackState.value.currentSong ?: return
-        val queue = listOf(current) + playbackState.value.upNext
+        val current = localState.value.currentSong ?: return
+        val queue = listOf(current) + localState.value.upNext
         listeningRoomRepository.publish(
             RoomSnapshot(
                 tracks = queue.map { it.toRoomTrack() },
                 positionMs = repository.currentPositionMs(),
-                isPlaying = playbackState.value.isPlaying
+                isPlaying = localState.value.isPlaying
             )
         )
     }
@@ -596,7 +704,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (autoplayInFlight) return
         if (!appPreferences.value.autoplayEnabled) return
         if (listeningRoom.value.role != ListeningRoomRole.NONE) return
-        if (playbackState.value.upNext.size > 1) return
+        if (localState.value.upNext.size > 1) return
         autoplayInFlight = true
         try {
             performAutoplay()
@@ -606,10 +714,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun performAutoplay() {
-        val seed = playbackState.value.currentSong
-        val queueIds = playbackState.value.upNext.map { it.id }.toSet()
+        val seed = localState.value.currentSong
+        val queueIds = localState.value.upNext.map { it.id }.toSet()
         val skippedIds = repository.skipTracker.skippedSongIds()
-        val exclude = (playbackState.value.history.map { it.id } + queueIds + skippedIds + listOfNotNull(seed?.id)).toSet()
+        val exclude = (localState.value.history.map { it.id } + queueIds + skippedIds + listOfNotNull(seed?.id)).toSet()
         val available = librariesBySource.values.flatMap { library ->
             runCatching { library.getSongs() }.getOrDefault(emptyList())
         }.filterNot { it.id in exclude }
@@ -646,7 +754,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
         val picks = weightedSampleWithoutReplacement(weighted, AUTOPLAY_BATCH_SIZE)
         if (picks.isNotEmpty()) {
-            val state = playbackState.value
+            val state = localState.value
             val isActivelyPlayingOrPreparing = state.currentSong != null && (state.isPlaying || state.playWhenReady || state.isBuffering)
             if (isActivelyPlayingOrPreparing) {
                 repository.addToEndOfQueue(picks)

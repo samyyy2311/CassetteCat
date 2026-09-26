@@ -78,7 +78,7 @@ suspend fun prefetchAlbumArt(context: Context, song: Song?, thumbnail: Boolean =
     val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
     when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
-        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) }
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio, MusicSource.Desktop -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) }
         MusicSource.ListeningRoomHost -> Unit
     }
 }
@@ -98,7 +98,7 @@ suspend fun loadSongArtwork(context: Context, song: Song, thumbnail: Boolean = f
     val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
     return when (song.source) {
         MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
-        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
+        MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio, MusicSource.Desktop -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
         MusicSource.ListeningRoomHost -> null
     }
 }
@@ -124,7 +124,7 @@ fun AlbumArt(
             } else {
                 when (song.source) {
                     MusicSource.Local -> AlbumArtLoaders.local(context).peek(song, thumbnail)
-                    MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> song.artUri?.let { AlbumArtLoaders.remote.peek(it, thumbnail) }
+                    MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio, MusicSource.Desktop -> song.artUri?.let { AlbumArtLoaders.remote.peek(it, thumbnail) }
                     MusicSource.ListeningRoomHost -> null
                 }
             }
@@ -149,7 +149,7 @@ fun AlbumArt(
             val coverArtArchiveEnabled = settings.isEnabled(ExternalService.COVER_ART_ARCHIVE)
             bitmap = when (song.source) {
                 MusicSource.Local -> AlbumArtLoaders.local(context).load(song, coverArtArchiveEnabled, thumbnail)
-                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
+                MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio, MusicSource.Desktop -> if (!isOffline) song.artUri?.let { AlbumArtLoaders.remote.load(it, thumbnail) } else null
                 MusicSource.ListeningRoomHost -> null
             }
         }

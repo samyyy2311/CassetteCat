@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import android.net.Network
+import android.os.Build
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,8 +24,42 @@ data class DevicePlaybackStatus(
     val durationMs: Long,
     val volumePercent: Int,
     val shuffleEnabled: Boolean,
-    val repeatMode: Int
+    val repeatMode: Int,
+    // Only the desktop app reports artwork and hand-off requests.
+    val artworkKey: String? = null,
+    val handoffRequested: Boolean = false,
+    val deviceName: String? = null
 )
+
+@Serializable
+data class DesktopQueueTrack(
+    val index: Int,
+    val title: String,
+    val artist: String,
+    val durationMs: Long,
+    val artworkKey: String? = null
+)
+
+@Serializable
+private data class DesktopQueue(val tracks: List<DesktopQueueTrack>)
+
+@Serializable
+private data class QueueTrackRequest(val index: Int)
+
+@Serializable
+private data class QueueMoveRequest(val from: Int, val to: Int)
+
+@Serializable
+data class HandoffTrack(val title: String, val artist: String)
+
+@Serializable
+data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
+
+@Serializable
+private data class PhoneCheckInReply(val commands: List<String> = emptyList())
+
+@Serializable
+private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
 
 @Serializable
 data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val sizeBytes: Long)
@@ -54,19 +89,20 @@ private data class SetTimeRequest(val epochMs: Long)
 private data class OkResponse(val ok: Boolean)
 
 class DeviceControlApiClient {
-    private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?): Boolean {
+    private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?, token: String? = null): Boolean {
         val request = Request.Builder()
             .url("http://$host:$port$path")
             .post(sharedJson.encodeToString(serializer, body).toRequestBody("application/json".toMediaType()))
+            .withPairingCode(token)
             .build()
         val response = deviceHttpClient(network).newCall(request).execute()
         return response.use { it.isSuccessful }
     }
 
-    suspend fun getPlaybackStatus(host: String, port: Int = 80, network: Network? = null): DevicePlaybackStatus? =
+    suspend fun getPlaybackStatus(host: String, port: Int = 80, network: Network? = null, token: String? = null): DevicePlaybackStatus? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/playback").build()
+                val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
                 val response = deviceHttpClient(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching null
@@ -75,21 +111,71 @@ class DeviceControlApiClient {
             }.getOrNull()
         }
 
-    suspend fun sendPlaybackAction(host: String, port: Int = 80, action: String, network: Network? = null): Boolean =
+    suspend fun sendPlaybackAction(host: String, port: Int = 80, action: String, network: Network? = null, token: String? = null): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/playback", PlaybackActionRequest(action), PlaybackActionRequest.serializer(), network) }
+            runCatching { postJson(host, port, "/api/playback", PlaybackActionRequest(action), PlaybackActionRequest.serializer(), network, token) }
                 .getOrDefault(false)
         }
 
-    suspend fun setVolume(host: String, port: Int = 80, percent: Int, network: Network? = null): Boolean =
+    suspend fun getQueue(host: String, port: Int, token: String): List<DesktopQueueTrack>? =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/volume", VolumeRequest(percent), VolumeRequest.serializer(), network) }
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/queue").withPairingCode(token).build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopQueue>(it.body.string()).tracks else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun playQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue", QueueTrackRequest(index), QueueTrackRequest.serializer(), null, token) }
                 .getOrDefault(false)
         }
 
-    suspend fun seek(host: String, port: Int = 80, positionMs: Long, network: Network? = null): Boolean =
+    /** Tells the desktop what this phone is playing; returns the commands it queued for the phone. */
+    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): List<String> =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/seek", SeekRequest(positionMs), SeekRequest.serializer(), network) }
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/phone-state")
+                    .post(sharedJson.encodeToString(PhoneCheckIn.serializer(), state).toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()).commands else emptyList()
+                }
+            }.getOrDefault(emptyList())
+        }
+
+    suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
+            runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun moveQueueTrack(host: String, port: Int, from: Int, to: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/move", QueueMoveRequest(from, to), QueueMoveRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun removeQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/remove", QueueTrackRequest(index), QueueTrackRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun setVolume(host: String, port: Int = 80, percent: Int, network: Network? = null, token: String? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/volume", VolumeRequest(percent), VolumeRequest.serializer(), network, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun seek(host: String, port: Int = 80, positionMs: Long, network: Network? = null, token: String? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/seek", SeekRequest(positionMs), SeekRequest.serializer(), network, token) }
                 .getOrDefault(false)
         }
 
@@ -181,6 +267,13 @@ class DeviceControlApiClient {
             }.getOrDefault(false)
         }
 }
+
+// The hardware player has no pairing code; the desktop app requires one.
+// Headers must be ASCII, so the model name shown on the desktop is reduced to it.
+private val deviceName = Build.MODEL.filter { it in ' '..'~' }.ifBlank { "Android phone" }
+
+private fun Request.Builder.withPairingCode(token: String?): Request.Builder =
+    if (token == null) this else header("Authorization", "Bearer $token").header("X-Device-Name", deviceName)
 
 private fun sha256Hex(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")
