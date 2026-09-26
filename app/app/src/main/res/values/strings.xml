@@ -211,8 +211,9 @@
     <string name="desktop_remote_address">Address</string>
     <string name="desktop_remote_address_invalid">Enter the address exactly as shown, including the part after #.</string>
     <string name="desktop_remote_connect">Connect</string>
-    <string name="desktop_remote_forget">Forget</string>
-    <string name="desktop_remote_unreachable">Can’t reach your computer. Check that Phone Remote is on and both devices are on the same Wi-Fi. If you made a new code, tap Forget and pair again.</string>
+    <string name="desktop_remote_forget">Forget this computer</string>
+    <string name="desktop_remote_forget_description">Pair again with a new address or code</string>
+    <string name="desktop_remote_unreachable">Can’t reach your computer. Check that Phone Remote is on and both devices are on the same Wi-Fi. If you made a new code, go back and pair again.</string>
     <string name="desktop_remote_offline">Desktop Remote is off while Offline Blackout Mode is on.</string>
     <string name="device_storage_title">Player Storage</string>
     <string name="device_storage_empty_title">Nothing here</string>

@@ -65,7 +65,6 @@ fun DeviceNowPlayingScreen(
     listBottomPadding: Dp = 0.dp,
     title: String = stringResource(AppR.string.device_now_playing_title),
     waitingMessage: String = stringResource(AppR.string.device_now_playing_waiting),
-    headerAction: @Composable () -> Unit = {},
     artwork: ImageBitmap? = null,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
@@ -90,7 +89,7 @@ fun DeviceNowPlayingScreen(
     var volumeOverride by remember { mutableStateOf<Float?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RemoteScreenHeader(title, onBack, headerAction)
+        RemoteScreenHeader(title, onBack)
 
         if (status == null) {
             EmptyState(
@@ -101,12 +100,8 @@ fun DeviceNowPlayingScreen(
             )
         } else {
             val current = status!!
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-            ) {
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 if (artwork != null) {
                     Image(
                         bitmap = artwork,
@@ -161,6 +156,8 @@ fun DeviceNowPlayingScreen(
                     )
                 }
 
+                }
+
                 content()
 
                 Spacer(Modifier.height(listBottomPadding))
@@ -170,7 +167,7 @@ fun DeviceNowPlayingScreen(
 }
 
 @Composable
-internal fun RemoteScreenHeader(title: String, onBack: () -> Unit, action: @Composable () -> Unit = {}) {
+internal fun RemoteScreenHeader(title: String, onBack: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -180,7 +177,6 @@ internal fun RemoteScreenHeader(title: String, onBack: () -> Unit, action: @Comp
             contentDescription = stringResource(AppR.string.action_back),
             onClick = onBack
         )
-        Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-        action()
+        Text(title, style = MaterialTheme.typography.headlineSmall)
     }
 }
