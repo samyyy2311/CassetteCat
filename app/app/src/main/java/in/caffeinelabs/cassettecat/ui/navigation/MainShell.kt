@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -123,6 +124,8 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationStorageScr
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationThemeScreen
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import androidx.compose.ui.platform.LocalContext
+import `in`.caffeinelabs.cassettecat.ui.util.LocalPlayingSong
+import `in`.caffeinelabs.cassettecat.ui.util.PlayingSong
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.theme.dominantArtworkAccent
 import kotlinx.coroutines.Dispatchers
@@ -379,6 +382,7 @@ fun MainShell(
         isAmoled = preferences.amoledDarkTheme,
         appFontFamily = preferences.appFontFamily
     ) {
+    CompositionLocalProvider(LocalPlayingSong provides PlayingSong(playbackState.currentSong?.id, playbackState.isPlaying)) {
     Box(modifier.fillMaxSize()) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
@@ -872,6 +876,7 @@ fun MainShell(
                 )
             }
         }
+    }
     }
     }
 }

@@ -905,8 +905,6 @@ private fun LibraryGroupDetailScreen(
                 }
             }
             items(songs, key = { it.id }, contentType = { "song" }) { song ->
-                val isCurrentSong = playbackState.currentSong?.id == song.id
-                val isPlaying = playbackState.isPlaying
                 val onSongClick = {
                     val wasIdle = playbackViewModel.playbackState.value.currentSong == null
                     val index = songs.indexOfFirst { it.id == song.id }
@@ -915,8 +913,6 @@ private fun LibraryGroupDetailScreen(
                 }
                 SongRow(
                     song = song,
-                    isCurrentSong = isCurrentSong,
-                    isPlaying = isPlaying,
                     onMoreClick = { songForOptions = song },
                     onClick = onSongClick
                 )
