@@ -245,7 +245,8 @@ internal fun LyricsView(
 
             val activeLineIndex by remember(effectiveSyncedLyrics, effectivePositionMs) {
                 derivedStateOf {
-                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }.coerceAtLeast(0)
+                    // -1 during the intro, so the first line reads as the next one rather than a past one.
+                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }
                 }
             }
 
@@ -412,7 +413,8 @@ internal fun LyricsView(
                                 targetValue = when {
                                     selectionMode -> if (isSelected) 1.00f else 0.35f
                                     isActive -> 1.00f
-                                    distanceFromActive == 1 -> 0.72f
+                                    // Distance 0 without being active is the line just sung, during a break.
+                                    distanceFromActive <= 1 -> 0.72f
                                     distanceFromActive == 2 -> 0.56f
                                     distanceFromActive == 3 -> 0.44f
                                     else -> 0.34f
