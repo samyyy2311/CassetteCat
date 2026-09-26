@@ -236,9 +236,9 @@ internal fun NowPlayingScreenSheetsHost(
     if (sheetState.showTagEditor) {
         song?.let { currentSong ->
             SongTagEditorSheet(
-                song = currentSong,
+                songs = listOf(currentSong),
                 onDismiss = { sheetState.showTagEditor = false },
-                onSaved = { updated -> playbackViewModel.updateSongMetadata(updated) }
+                onSaved = { updated -> updated.forEach(playbackViewModel::updateSongMetadata) }
             )
         }
     }

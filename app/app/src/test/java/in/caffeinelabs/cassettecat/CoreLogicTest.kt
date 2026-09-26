@@ -20,6 +20,8 @@ import `in`.caffeinelabs.cassettecat.data.playback.SmartShuffle
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
 import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
+import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
+import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopAddress
@@ -52,6 +54,21 @@ class CoreLogicTest {
             listOf("de1.api.radio-browser.info", "91.132.145.114", "all.api.radio-browser.info", "de1.api.radio-browser.info")
         )
         assertEquals(listOf("de1.api.radio-browser.info"), mirrors)
+    }
+
+    @Test
+    fun batchTagEditChangesOnlyEditedFields() {
+        val song = testSong("1", artist = "Old", title = "Keep", genres = listOf("Rock"), releaseYear = 1999)
+        val (override, updated) = applyTagEdits(song, existing = null, edits = TagEdits(artist = " New "))
+
+        assertEquals("Keep", updated.title)
+        assertEquals("New", updated.artist)
+        assertEquals(listOf("Rock"), updated.genres)
+        assertEquals(1999, updated.releaseYear)
+        assertEquals("Old", override.originalArtist)
+
+        val (second, _) = applyTagEdits(updated, existing = override, edits = TagEdits(artist = "Newer"))
+        assertEquals("Old", second.originalArtist)
     }
 
     @Test

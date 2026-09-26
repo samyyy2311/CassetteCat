@@ -1032,11 +1032,13 @@ private fun LibraryGroupDetailScreen(
         }
         songForTagEdit?.let { song ->
             SongTagEditorSheet(
-                song = song,
+                songs = listOf(song),
                 onDismiss = { songForTagEdit = null },
                 onSaved = { updated ->
-                    onUpdateSong?.invoke(updated)
-                    playbackViewModel.updateSongMetadata(updated)
+                    updated.forEach {
+                        onUpdateSong?.invoke(it)
+                        playbackViewModel.updateSongMetadata(it)
+                    }
                     songForTagEdit = null
                 }
             )

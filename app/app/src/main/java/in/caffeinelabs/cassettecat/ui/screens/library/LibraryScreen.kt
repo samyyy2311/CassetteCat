@@ -181,6 +181,7 @@ fun LibraryScreen(
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var songForMenu by remember { mutableStateOf<Song?>(null) }
     var songForTagEdit by remember { mutableStateOf<Song?>(null) }
+    var songsForBatchTagEdit by remember { mutableStateOf<List<Song>>(emptyList()) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     BackHandler(enabled = selectionMode) {
@@ -478,6 +479,11 @@ fun LibraryScreen(
                         iconRes = R.drawable.lucide_ic_list_music,
                         label = stringResource(AppR.string.library_playlist),
                         onClick = { showPlaylistPicker = true }
+                    )
+                    SelectionActionChip(
+                        iconRes = R.drawable.lucide_ic_pencil,
+                        label = stringResource(AppR.string.library_edit_tags),
+                        onClick = { songsForBatchTagEdit = selectedSongs() }
                     )
                     SelectionActionChip(
                         iconRes = R.drawable.lucide_ic_download,
@@ -924,13 +930,29 @@ fun LibraryScreen(
         )
     }
 
+    if (songsForBatchTagEdit.isNotEmpty()) {
+        SongTagEditorSheet(
+            songs = songsForBatchTagEdit,
+            onDismiss = { songsForBatchTagEdit = emptyList() },
+            onSaved = { updated ->
+                updated.forEach {
+                    viewModel.updateSongMetadata(it)
+                    playbackViewModel.updateSongMetadata(it)
+                }
+                selectedIds = emptySet()
+            }
+        )
+    }
+
     songForTagEdit?.let { song ->
         SongTagEditorSheet(
-            song = song,
+            songs = listOf(song),
             onDismiss = { songForTagEdit = null },
             onSaved = { updated ->
-                viewModel.updateSongMetadata(updated)
-                playbackViewModel.updateSongMetadata(updated)
+                updated.forEach {
+                    viewModel.updateSongMetadata(it)
+                    playbackViewModel.updateSongMetadata(it)
+                }
                 songForTagEdit = null
             }
         )

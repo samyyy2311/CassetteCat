@@ -109,6 +109,11 @@
     <string name="tag_editor_year">Release Year</string>
     <string name="tag_editor_year_placeholder">e.g. 2024</string>
     <string name="tag_editor_revert">Revert to Original Tags</string>
+    <string name="tag_editor_heading">Edit Song Details</string>
+    <string name="tag_editor_description">Custom overrides are saved locally for this track</string>
+    <string name="tag_editor_description_batch">Only the fields you change are saved to each song</string>
+    <string name="tag_editor_mixed">Mixed</string>
+    <string name="library_edit_tags">Edit Tags</string>
     <string name="tag_editor_save_changes">Save Changes</string>
     <string name="playlist_add_songs">Add Songs</string>
     <string name="playlist_export_skipped_title">Some songs weren’t included</string>
