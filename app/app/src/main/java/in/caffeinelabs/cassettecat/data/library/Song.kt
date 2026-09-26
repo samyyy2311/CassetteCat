@@ -8,7 +8,13 @@ sealed interface MusicSource {
     data object Jellyfin : MusicSource
     data object ListeningRoomHost : MusicSource
     data object Radio : MusicSource
+    // Playing on the paired computer: shown and controlled from the phone, never played on it.
+    data object Desktop : MusicSource
 }
+
+/** Shown for music playing on another device, so this phone's library actions do not apply to it. */
+val Song.isFromAnotherDevice: Boolean
+    get() = source == MusicSource.ListeningRoomHost || source == MusicSource.Desktop
 
 data class Song(
     // Source-prefixed to stay globally unique across local and remote libraries.

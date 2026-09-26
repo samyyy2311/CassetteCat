@@ -84,7 +84,10 @@ internal fun NowPlayingPlayerView(
     onShowMenu: () -> Unit,
     onShowGoToMenu: () -> Unit,
     onSkipNext: () -> Unit,
-    onSkipPrevious: () -> Unit
+    onSkipPrevious: () -> Unit,
+    // The computer this phone is controlling, shown in the bottom row like a Spotify Connect device.
+    deviceName: String? = null,
+    onOpenDevices: (() -> Unit)? = null
 ) {
     val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -120,7 +123,7 @@ internal fun NowPlayingPlayerView(
         )
         if (listeningRoomState.role != ListeningRoomRole.NONE) {
             Spacer(Modifier.height(8.dp))
-            ListeningRoomStatusPill(listeningRoomState)
+            StatusPill(R.drawable.lucide_ic_users, listeningRoomState.statusSubtitle())
         }
         Spacer(Modifier.height(20.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
@@ -162,7 +165,7 @@ internal fun NowPlayingPlayerView(
             ) {
                 info()
                 Spacer(Modifier.height(24.dp))
-                LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+                LyricsQueueToggleRow(activeView, onActiveViewChange, onOpenDevices, deviceName)
             }
         }
     } else {
@@ -180,13 +183,13 @@ internal fun NowPlayingPlayerView(
             Spacer(Modifier.weight(3f))
             info()
             Spacer(Modifier.height(64.dp))
-            LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
+            LyricsQueueToggleRow(activeView, onActiveViewChange, onOpenDevices, deviceName)
         }
     }
 }
 
 @Composable
-internal fun ListeningRoomStatusPill(listeningRoomState: ListeningRoomState) {
+internal fun StatusPill(iconRes: Int, text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -195,14 +198,14 @@ internal fun ListeningRoomStatusPill(listeningRoomState: ListeningRoomState) {
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Icon(
-            painter = painterResource(R.drawable.lucide_ic_users),
+            painter = painterResource(iconRes),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.height(14.dp).width(14.dp)
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            listeningRoomState.statusSubtitle(),
+            text,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.tertiary
         )

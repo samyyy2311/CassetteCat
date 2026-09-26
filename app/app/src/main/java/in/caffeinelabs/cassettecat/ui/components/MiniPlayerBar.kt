@@ -21,6 +21,9 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import androidx.media3.common.Player
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
@@ -62,6 +66,7 @@ fun MiniPlayerRow(
     onExpand: () -> Unit,
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenDevices: (() -> Unit)? = null,
     // Reports thumbnail bounds in window coordinates during collapse transitions.
     onThumbnailBoundsChange: (Rect) -> Unit = {}
 ) {
@@ -70,6 +75,8 @@ fun MiniPlayerRow(
     val previousSong = state.previousInQueue
     val nextSong = state.upNext.firstOrNull()
     val isFavorite by playbackViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
+    val controlledDesktop by playbackViewModel.controlledDesktop.collectAsStateWithLifecycle()
+    val deviceName = controlledDesktop?.let { it.name ?: stringResource(AppR.string.desktop_remote_your_computer) }
 
     val haptics = LocalHapticFeedback.current
     val preferences = LocalAppPreferences.current
@@ -136,7 +143,19 @@ fun MiniPlayerRow(
                     swipeEnabled = preferences.miniPlayerSwipeToSkip,
                     onSwipeNext = { playbackViewModel.skipNext() },
                     onSwipePrevious = { playbackViewModel.skipPrevious() },
-                    onThumbnailBoundsChange = onThumbnailBoundsChange
+                    onThumbnailBoundsChange = onThumbnailBoundsChange,
+                    deviceName = deviceName
+                )
+            }
+            if (onOpenDevices != null) {
+                Spacer(Modifier.width(8.dp))
+                TransportButton(
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    size = 40.dp,
+                    tint = if (deviceName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = onOpenDevices,
+                    contentDescription = stringResource(AppR.string.desktop_remote_devices),
+                    accented = deviceName != null
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -199,7 +218,8 @@ private fun MiniPlayerArtRow(
     swipeEnabled: Boolean,
     onSwipeNext: () -> Unit,
     onSwipePrevious: () -> Unit,
-    onThumbnailBoundsChange: (Rect) -> Unit
+    onThumbnailBoundsChange: (Rect) -> Unit,
+    deviceName: String?
 ) {
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -243,7 +263,8 @@ private fun MiniPlayerArtRow(
         ) { page ->
             MiniPlayerSongRow(
                 song = windowSongs[page],
-                onThumbnailBoundsChange = if (page == currentIndex) onThumbnailBoundsChange else { _ -> }
+                onThumbnailBoundsChange = if (page == currentIndex) onThumbnailBoundsChange else { _ -> },
+                deviceName = deviceName.takeIf { page == currentIndex }
             )
         }
     }
@@ -253,7 +274,9 @@ private fun MiniPlayerArtRow(
 private fun MiniPlayerSongRow(
     song: Song,
     modifier: Modifier = Modifier,
-    onThumbnailBoundsChange: (Rect) -> Unit = {}
+    onThumbnailBoundsChange: (Rect) -> Unit = {},
+    // Set while the song plays on another device; shown in place of the artist.
+    deviceName: String? = null
 ) {
     val isRadio = song.source == MusicSource.Radio
     Row(modifier = modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -274,7 +297,15 @@ private fun MiniPlayerSongRow(
                 overflow = TextOverflow.Ellipsis
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isRadio) {
+                if (deviceName != null) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_monitor),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(Modifier.width(5.dp))
+                } else if (isRadio) {
                     Box(
                         modifier = Modifier
                             .size(6.dp)
@@ -284,9 +315,9 @@ private fun MiniPlayerSongRow(
                     Spacer(Modifier.width(5.dp))
                 }
                 Text(
-                    text = if (isRadio) "LIVE · ${song.artist.ifEmpty { "Radio" }}" else song.artist,
+                    text = deviceName ?: if (isRadio) "LIVE · ${song.artist.ifEmpty { "Radio" }}" else song.artist,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isRadio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (deviceName != null || isRadio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

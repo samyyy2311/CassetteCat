@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import android.net.Network
+import android.os.Build
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,18 +25,38 @@ data class DevicePlaybackStatus(
     val volumePercent: Int,
     val shuffleEnabled: Boolean,
     val repeatMode: Int,
-    // Only the desktop app reports artwork.
-    val artworkKey: String? = null
+    // Only the desktop app reports artwork and hand-off requests.
+    val artworkKey: String? = null,
+    val handoffRequested: Boolean = false,
+    val deviceName: String? = null
 )
 
 @Serializable
-data class DesktopQueueTrack(val index: Int, val title: String, val artist: String, val durationMs: Long)
+data class DesktopQueueTrack(
+    val index: Int,
+    val title: String,
+    val artist: String,
+    val durationMs: Long,
+    val artworkKey: String? = null
+)
 
 @Serializable
 private data class DesktopQueue(val tracks: List<DesktopQueueTrack>)
 
 @Serializable
 private data class QueueTrackRequest(val index: Int)
+
+@Serializable
+data class HandoffTrack(val title: String, val artist: String)
+
+@Serializable
+data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
+
+@Serializable
+private data class PhoneCheckInReply(val commands: List<String> = emptyList())
+
+@Serializable
+private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
 
 @Serializable
 data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val sizeBytes: Long)
@@ -93,14 +114,6 @@ class DeviceControlApiClient {
                 .getOrDefault(false)
         }
 
-    suspend fun getArtwork(host: String, port: Int, token: String): ByteArray? =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/artwork").withPairingCode(token).build()
-                deviceHttpClient(null).newCall(request).execute().use { if (it.isSuccessful) it.body.bytes() else null }
-            }.getOrNull()
-        }
-
     suspend fun getQueue(host: String, port: Int, token: String): List<DesktopQueueTrack>? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -114,6 +127,28 @@ class DeviceControlApiClient {
     suspend fun playQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/queue", QueueTrackRequest(index), QueueTrackRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    /** Tells the desktop what this phone is playing; returns the commands it queued for the phone. */
+    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): List<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/phone-state")
+                    .post(sharedJson.encodeToString(PhoneCheckIn.serializer(), state).toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()).commands else emptyList()
+                }
+            }.getOrDefault(emptyList())
+        }
+
+    suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
+            runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
                 .getOrDefault(false)
         }
 
@@ -219,8 +254,11 @@ class DeviceControlApiClient {
 }
 
 // The hardware player has no pairing code; the desktop app requires one.
+// Headers must be ASCII, so the model name shown on the desktop is reduced to it.
+private val deviceName = Build.MODEL.filter { it in ' '..'~' }.ifBlank { "Android phone" }
+
 private fun Request.Builder.withPairingCode(token: String?): Request.Builder =
-    if (token == null) this else header("Authorization", "Bearer $token")
+    if (token == null) this else header("Authorization", "Bearer $token").header("X-Device-Name", deviceName)
 
 private fun sha256Hex(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")

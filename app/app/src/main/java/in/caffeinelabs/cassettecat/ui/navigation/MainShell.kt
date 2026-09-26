@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -91,6 +92,9 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.AboutLegalScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.BackupRestoreScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopRemoteScreen
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceConnectSheet
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceFirmwareScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceNowPlayingScreen
@@ -289,6 +293,18 @@ fun MainShell(
     val showChrome = currentRoute != null && currentRoute != MainRoute.CONNECT_SERVER && currentRoute != MainRoute.DRIVE_MODE
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val hasSong = playbackState.currentSong != null
+    val desktopRemote = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktopRemote.state.collectAsStateWithLifecycle()
+    var showDevices by remember { mutableStateOf(false) }
+    // The computer is polled only while this phone controls it and the app is in front.
+    LifecycleResumeEffect(desktopState.controlling) {
+        if (desktopState.controlling) desktopRemote.startPolling()
+        onPauseOrDispose { if (desktopState.controlling) desktopRemote.stopPolling() }
+    }
+    val currentLibrarySongs by rememberUpdatedState(librarySongs)
+    LaunchedEffect(desktopRemote) {
+        desktopRemote.handoffRequests.collect { playbackViewModel.transferToPhone(currentLibrarySongs) }
+    }
     var artworkAccent by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(preferences.artworkAccentEnabled, playbackState.currentSong?.id) {
         artworkAccent = if (preferences.artworkAccentEnabled) {
@@ -433,7 +449,8 @@ fun MainShell(
                                         nowPlayingView = NowPlayingView.QUEUE
                                         scope.launch { scaffoldState.bottomSheetState.expand() }
                                     },
-                                    onThumbnailBoundsChange = { collapsedArtRect.value = it }
+                                    onThumbnailBoundsChange = { collapsedArtRect.value = it },
+                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
                                 )
                             }
                             Box(
@@ -465,7 +482,8 @@ fun MainShell(
                                     onNavigateToPlaylist = { playlistId -> navigateFromNowPlaying(MainRoute.playlistDetail(playlistId)) },
                                     onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },
                                     onNavigateToDriveMode = { navigateFromNowPlaying(MainRoute.DRIVE_MODE) },
-                                    onHeaderDragProgressChange = { headerDragRevealFraction = it }
+                                    onHeaderDragProgressChange = { headerDragRevealFraction = it },
+                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
                                 )
                             }
                         }
@@ -492,7 +510,6 @@ fun MainShell(
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
                             onNavigateToScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
-                            onNavigateToDesktopRemote = { navController.navigate(MainRoute.DESKTOP_REMOTE) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -763,13 +780,14 @@ fun MainShell(
                     }
                     composable(MainRoute.DESKTOP_REMOTE) {
                         DesktopRemoteScreen(
+                            desktop = desktopRemote,
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(MainRoute.DEVICE_NOW_PLAYING) {
                         DeviceNowPlayingScreen(
-                            remote = pairingViewModel,
+                            pairingViewModel = pairingViewModel,
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
@@ -875,6 +893,26 @@ fun MainShell(
                     }
                 )
             }
+        }
+
+        if (showDevices) {
+            DeviceConnectSheet(
+                desktop = desktopRemote,
+                phoneSong = playbackState.currentSong.takeIf { !desktopState.controlling },
+                onSelectPhone = {
+                    if (desktopState.controlling) playbackViewModel.transferToPhone(librarySongs)
+                    showDevices = false
+                },
+                onSelectDesktop = {
+                    if (!desktopState.controlling) playbackViewModel.transferToDesktop()
+                    showDevices = false
+                },
+                onSetUpDesktop = {
+                    showDevices = false
+                    navController.navigate(MainRoute.DESKTOP_REMOTE) { launchSingleTop = true }
+                },
+                onDismiss = { showDevices = false }
+            )
         }
     }
     }

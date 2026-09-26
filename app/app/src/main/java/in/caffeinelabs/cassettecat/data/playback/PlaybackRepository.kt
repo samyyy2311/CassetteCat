@@ -160,7 +160,7 @@ class PlaybackRepository(private val context: Context) {
 
     // Offloads MediaItem mapping off the caller's thread (was a visible stall for large
     // libraries); controller calls stay on Main, which MediaController requires.
-    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
+    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false, startPositionMs: Long = 0L) {
         if (songs.isEmpty()) return
         originalQueue = songs
 
@@ -181,7 +181,7 @@ class PlaybackRepository(private val context: Context) {
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem(context) } }
         controller?.apply {
             shuffleModeEnabled = shuffle
-            setMediaItems(mediaItems, targetIndex, 0L)
+            setMediaItems(mediaItems, targetIndex, startPositionMs)
             prepare()
             play()
         }

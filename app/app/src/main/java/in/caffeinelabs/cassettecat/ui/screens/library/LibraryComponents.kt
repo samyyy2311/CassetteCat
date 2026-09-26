@@ -169,6 +169,7 @@ internal fun RowScope.SongListRowContent(
         MusicSource.Jellyfin -> "Jellyfin"
         MusicSource.ListeningRoomHost -> "Room"
         MusicSource.Radio -> "Radio"
+        MusicSource.Desktop -> "Computer"
     }
 
     val sourceColor = when (song.source) {
@@ -177,6 +178,7 @@ internal fun RowScope.SongListRowContent(
         MusicSource.Jellyfin -> Color(0xFF00A4DC)
         MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.tertiary
         MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
+        MusicSource.Desktop -> MaterialTheme.colorScheme.tertiary
     }
 
     Box(

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.Velocity
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.library.isFromAnotherDevice
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
@@ -177,6 +178,7 @@ internal fun NowPlayingActionsSheet(
             stringResource(AppR.string.source_radio)
         }
         MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room)
+        MusicSource.Desktop -> stringResource(AppR.string.source_desktop)
     }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -297,7 +299,7 @@ internal fun NowPlayingActionsSheet(
                             onDismiss()
                         }
                     )
-                    if (song.source != MusicSource.ListeningRoomHost) {
+                    if (!song.isFromAnotherDevice) {
                         QuickActionButton(
                             iconRes = R.drawable.lucide_ic_audio_lines,
                             label = stringResource(AppR.string.now_playing_mix),
@@ -321,7 +323,7 @@ internal fun NowPlayingActionsSheet(
                 title = stringResource(AppR.string.now_playing_section_track)
             )
 
-            if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
+            if (!song.isFromAnotherDevice && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_file_music,
                     label = stringResource(AppR.string.now_playing_share_song_file),
@@ -332,7 +334,7 @@ internal fun NowPlayingActionsSheet(
                     }
                 )
             }
-            if (song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
+            if (!song.isFromAnotherDevice && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_pencil,
                     label = stringResource(AppR.string.now_playing_edit_details),
@@ -344,7 +346,7 @@ internal fun NowPlayingActionsSheet(
                     }
                 )
             }
-            if (song.source != MusicSource.Local && song.source != MusicSource.ListeningRoomHost && song.source != MusicSource.Radio) {
+            if (song.source != MusicSource.Local && !song.isFromAnotherDevice && song.source != MusicSource.Radio) {
                 SongActionRow(
                     iconRes = R.drawable.lucide_ic_download,
                     label = stringResource(AppR.string.now_playing_download),
@@ -772,6 +774,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.Subsonic -> stringResource(AppR.string.credits_source_subsonic)
         MusicSource.Jellyfin -> stringResource(AppR.string.credits_source_jellyfin)
         MusicSource.ListeningRoomHost -> stringResource(AppR.string.credits_source_room)
+        MusicSource.Desktop -> stringResource(AppR.string.credits_source_desktop)
         MusicSource.Radio -> stringResource(AppR.string.credits_source_radio)
     }
     val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { notSupplied }

@@ -275,13 +275,14 @@ internal fun TitleRow(
                 audioFormat?.let {
                     AudioQualityBadge(audioFormat = it)
                 }
-                if (song.source != MusicSource.Local) {
+                if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
                     val sourceLabel = stringResource(
                         when (song.source) {
                             MusicSource.Subsonic -> AppR.string.source_subsonic
                             MusicSource.Jellyfin -> AppR.string.source_jellyfin
                             MusicSource.Radio -> AppR.string.source_radio
                             MusicSource.ListeningRoomHost -> AppR.string.source_room
+                            MusicSource.Desktop -> AppR.string.source_desktop
                             MusicSource.Local -> AppR.string.app_name
                         }
                     )
@@ -290,6 +291,7 @@ internal fun TitleRow(
                         MusicSource.Jellyfin -> Color(0xFF00A4DC)
                         MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
                         MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.secondary
+                        MusicSource.Desktop -> MaterialTheme.colorScheme.tertiary
                         MusicSource.Local -> Color.Unspecified
                     }
                     Box(

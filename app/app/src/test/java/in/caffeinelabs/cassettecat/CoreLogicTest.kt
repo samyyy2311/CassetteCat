@@ -5,6 +5,8 @@ import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
+import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
+import `in`.caffeinelabs.cassettecat.data.device.parseDiscoveryReply
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.data.radio.radioBrowserMirrors
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
@@ -24,8 +26,9 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
-import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopAddress
-import `in`.caffeinelabs.cassettecat.ui.screens.settings.parseDesktopAddress
+import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
+import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -69,6 +72,30 @@ class CoreLogicTest {
 
         val (second, _) = applyTagEdits(updated, existing = override, edits = TagEdits(artist = "Newer"))
         assertEquals("Old", second.originalArtist)
+    }
+
+    @Test
+    fun parsesDesktopDiscoveryReplies() {
+        assertEquals(
+            DiscoveredDesktop("STUDIO-PC", "192.168.1.20", 47800),
+            parseDiscoveryReply("""{"name":"STUDIO-PC","port":47800}""", "192.168.1.20")
+        )
+        assertNull(parseDiscoveryReply("CASSETTECAT_DISCOVER", "192.168.1.20"))
+        assertNull(parseDiscoveryReply("""{"name":"","port":47800}""", "192.168.1.20"))
+        assertNull(parseDiscoveryReply("""{"name":"PC","port":0}""", "192.168.1.20"))
+    }
+
+    @Test
+    fun handsOffOnlyWhenTheCurrentSongIsInTheLibrary() {
+        val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
+        val fromDesktop = listOf(
+            testSong("desktop:1", artist = " ann ", title = "ONE"),
+            testSong("desktop:2", artist = "Cy", title = "Missing"),
+            testSong("desktop:3", artist = "Bo", title = "Two")
+        )
+
+        assertEquals(listOf("a", "b"), matchInLibrary(fromDesktop, library).map { it.id })
+        assertEquals(emptyList<Song>(), matchInLibrary(fromDesktop.drop(1), library))
     }
 
     @Test

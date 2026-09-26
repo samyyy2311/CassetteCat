@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,9 +20,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,54 +32,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.data.device.DesktopQueueTrack
-import `in`.caffeinelabs.cassettecat.data.device.DevicePlaybackStatus
-import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
-import `in`.caffeinelabs.cassettecat.ui.screens.library.LibrarySongRow
-import `in`.caffeinelabs.cassettecat.ui.screens.library.SongListRowContent
-import `in`.caffeinelabs.cassettecat.ui.util.LocalPlayingSong
-import `in`.caffeinelabs.cassettecat.ui.util.PlayingSong
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
+import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
-import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-
-// Desktop tracks are shown with the app's own song rows; they have no file on this phone.
-private fun desktopSong(id: String, title: String, artist: String, durationMs: Long) = Song(
-    id = "desktop:$id",
-    title = title,
-    artist = artist,
-    album = "",
-    albumId = "",
-    durationMs = durationMs,
-    contentUri = Uri.EMPTY,
-    source = MusicSource.Local
-)
-
-private fun DesktopQueueTrack.toSong() = desktopSong(index.toString(), title, artist, durationMs)
-
-private fun DevicePlaybackStatus.toSong() = desktopSong("current", trackTitle, trackArtist, durationMs)
 
 @Composable
 fun DesktopRemoteScreen(
+    desktop: DesktopRemoteRepository,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    listBottomPadding: Dp = 0.dp,
-    viewModel: DesktopRemoteViewModel = viewModel()
+    listBottomPadding: Dp = 0.dp
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val artwork by viewModel.artwork.collectAsStateWithLifecycle()
-    val upNext by viewModel.upNext.collectAsStateWithLifecycle()
+    val state by desktop.state.collectAsStateWithLifecycle()
     val title = stringResource(AppR.string.desktop_remote_title)
 
     when {
@@ -92,62 +71,104 @@ fun DesktopRemoteScreen(
                 modifier = Modifier.weight(1f)
             )
         }
-        state.address != null -> DeviceNowPlayingScreen(
-            remote = viewModel,
-            onBack = onBack,
-            modifier = modifier,
-            listBottomPadding = listBottomPadding,
-            title = title,
-            waitingMessage = stringResource(AppR.string.desktop_remote_unreachable),
-            artwork = artwork
-        ) {
-            if (upNext.isNotEmpty()) {
-                Spacer(Modifier.height(24.dp))
-                SettingsSection(title = stringResource(AppR.string.now_playing_up_next)) {
-                    upNext.forEach { track ->
-                        LibrarySongRow(song = track.toSong(), onClick = { viewModel.playFromQueue(track.index) })
-                    }
-                }
+        state.address != null -> Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            RemoteScreenHeader(title, onBack)
+            SettingsSection {
+                ActionRow(
+                    title = state.name ?: stringResource(AppR.string.desktop_remote_your_computer),
+                    subtitle = stringResource(
+                        if (state.controlling) AppR.string.desktop_remote_controlling else AppR.string.desktop_remote_paired
+                    ),
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    iconTint = if (state.controlling) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+                    onClick = { desktop.setControlling(!state.controlling) }
+                )
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
             SettingsSection {
                 ActionRow(
                     title = stringResource(AppR.string.desktop_remote_forget),
                     subtitle = stringResource(AppR.string.desktop_remote_forget_description),
                     iconRes = R.drawable.lucide_ic_x,
-                    onClick = viewModel::forget
+                    onClick = desktop::forget
                 )
             }
+            Spacer(Modifier.height(listBottomPadding))
         }
-        else -> DesktopPairingForm(title, onBack, viewModel::pair, modifier)
+        else -> DesktopPairingForm(title, onBack, desktop, modifier)
     }
 }
 
 @Composable
-private fun DesktopPairingForm(title: String, onBack: () -> Unit, onPair: (String) -> Boolean, modifier: Modifier) {
-    var address by rememberSaveable { mutableStateOf("") }
+private fun RemoteScreenHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PressDepthIconButton(
+            iconRes = R.drawable.lucide_ic_chevron_left,
+            contentDescription = stringResource(AppR.string.action_back),
+            onClick = onBack
+        )
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+    }
+}
+
+@Composable
+private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: DesktopRemoteRepository, modifier: Modifier) {
+    val found by desktop.found.collectAsStateWithLifecycle()
+    var selected by remember { mutableStateOf<DiscoveredDesktop?>(null) }
+    var input by rememberSaveable { mutableStateOf("") }
     var invalid by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { desktop.discover() }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         RemoteScreenHeader(title, onBack)
+        SettingsSection(title = stringResource(AppR.string.desktop_remote_found)) {
+            found.forEach { computer ->
+                ActionRow(
+                    title = computer.name,
+                    subtitle = computer.host,
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    iconTint = if (computer == selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
+                    onClick = {
+                        selected = computer
+                        input = ""
+                        invalid = false
+                    }
+                )
+                SettingsDivider()
+            }
+            ActionRow(
+                title = stringResource(AppR.string.desktop_remote_search_again),
+                subtitle = stringResource(AppR.string.desktop_remote_search_hint),
+                iconRes = R.drawable.lucide_ic_refresh_cw,
+                onClick = desktop::discover
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         SettingsSection {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                val target = selected
                 Text(
-                    stringResource(AppR.string.desktop_remote_pair_hint),
+                    if (target != null) stringResource(AppR.string.desktop_remote_code_hint, target.name)
+                    else stringResource(AppR.string.desktop_remote_pair_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
-                    value = address,
+                    value = input,
                     onValueChange = {
-                        address = it
+                        input = it
                         invalid = false
                     },
-                    label = { Text(stringResource(AppR.string.desktop_remote_address)) },
-                    placeholder = { Text("192.168.1.20:47800#ABC234", maxLines = 1) },
+                    label = {
+                        Text(stringResource(if (target != null) AppR.string.desktop_remote_code else AppR.string.desktop_remote_address))
+                    },
+                    placeholder = { Text(if (target != null) "ABC234" else "192.168.1.20:47800#ABC234", maxLines = 1) },
                     leadingIcon = {
                         Icon(
-                            painter = painterResource(R.drawable.lucide_ic_monitor),
+                            painter = painterResource(if (target != null) R.drawable.lucide_ic_key_round else R.drawable.lucide_ic_monitor),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
@@ -160,7 +181,11 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, onPair: (Strin
                         null
                     },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = if (target != null) KeyboardCapitalization.Characters else KeyboardCapitalization.None,
+                        keyboardType = if (target != null) KeyboardType.Ascii else KeyboardType.Uri,
+                        imeAction = ImeAction.Done
+                    ),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -171,8 +196,10 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, onPair: (Strin
                     modifier = Modifier.fillMaxWidth()
                 )
                 Button(
-                    onClick = hapticClick { invalid = !onPair(address) },
-                    enabled = address.isNotBlank(),
+                    onClick = hapticClick {
+                        invalid = !(if (target != null) desktop.pair(target, input) else desktop.pair(input))
+                    },
+                    enabled = input.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(AppR.string.desktop_remote_connect))
@@ -182,39 +209,60 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, onPair: (Strin
     }
 }
 
-/** Shows what the paired desktop is playing, with play/pause; renders nothing when there is nothing to show. */
+/** Picks which device this phone plays on and controls, like Spotify Connect. */
 @Composable
-fun DesktopNowPlayingCard(onOpen: () -> Unit, modifier: Modifier = Modifier, viewModel: DesktopRemoteViewModel = viewModel()) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val status by viewModel.playbackStatus.collectAsStateWithLifecycle()
-    val paired = state.address != null && !state.offlineBlackout
-
-    if (paired) {
-        LifecycleResumeEffect(Unit) {
-            viewModel.startPlaybackPolling()
-            onPauseOrDispose { viewModel.stopPlaybackPolling() }
-        }
+fun DeviceConnectSheet(
+    desktop: DesktopRemoteRepository,
+    phoneSong: Song?,
+    onSelectPhone: () -> Unit,
+    onSelectDesktop: () -> Unit,
+    onSetUpDesktop: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val state by desktop.state.collectAsStateWithLifecycle()
+    val status by desktop.status.collectAsStateWithLifecycle()
+    DisposableEffect(desktop) {
+        desktop.startPolling()
+        onDispose { desktop.stopPolling() }
     }
-    val current = status?.takeIf { paired && it.trackTitle.isNotEmpty() } ?: return
-    val song = current.toSong()
+    val notPlaying = stringResource(AppR.string.widget_not_playing)
+    val selectedTint = MaterialTheme.colorScheme.tertiary
+    val idleTint = MaterialTheme.colorScheme.secondary
 
-    Column(modifier) {
-        SettingsSection(title = stringResource(AppR.string.desktop_remote_on_computer)) {
-            // Marks the desktop's song as playing with the same overlay the song lists use.
-            CompositionLocalProvider(LocalPlayingSong provides PlayingSong(song.id, current.isPlaying)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().tapScale(onOpen).padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SongListRowContent(song = song)
-                    PressDepthIconButton(
-                        iconRes = if (current.isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
-                        contentDescription = stringResource(AppR.string.widget_play_pause),
-                        onClick = { viewModel.sendPlaybackAction(if (current.isPlaying) "pause" else "play") },
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+    FullOpenBottomSheet(onDismiss = onDismiss) {
+        Text(
+            stringResource(AppR.string.desktop_remote_connect_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontFamily = SpaceGroteskFontFamily,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+        SettingsSection {
+            ActionRow(
+                title = stringResource(AppR.string.desktop_remote_this_phone),
+                subtitle = phoneSong?.let { "${it.title} · ${it.artist}" } ?: notPlaying,
+                iconRes = R.drawable.lucide_ic_smartphone,
+                iconTint = if (state.controlling) idleTint else selectedTint,
+                onClick = onSelectPhone
+            )
+            SettingsDivider()
+            if (state.address != null) {
+                ActionRow(
+                    title = state.name ?: stringResource(AppR.string.desktop_remote_your_computer),
+                    subtitle = status?.takeIf { it.trackTitle.isNotEmpty() }?.let { "${it.trackTitle} · ${it.trackArtist}" } ?: notPlaying,
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    iconTint = if (state.controlling) selectedTint else idleTint,
+                    onClick = onSelectDesktop
+                )
+            } else {
+                ActionRow(
+                    title = stringResource(AppR.string.desktop_remote_set_up),
+                    subtitle = stringResource(AppR.string.desktop_remote_description),
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    onClick = onSetUpDesktop
+                )
             }
         }
+        Spacer(Modifier.height(28.dp))
     }
 }
