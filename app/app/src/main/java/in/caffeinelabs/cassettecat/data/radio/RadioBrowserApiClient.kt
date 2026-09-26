@@ -119,7 +119,8 @@ class RadioBrowserApiClient {
             path = "/json/stations$path",
             parse = { body ->
                 sharedJson.decodeFromString<List<RadioBrowserStationResponse>>(body)
-                    .filter { it.url_resolved.isNotBlank() }
+                    // One unplayable scheme (rtsp, mms) in the queue makes the player reject the whole list.
+                    .filter { it.url_resolved.startsWith("http://") || it.url_resolved.startsWith("https://") }
                     .map {
                         RadioStation(
                             uuid = it.stationuuid,
