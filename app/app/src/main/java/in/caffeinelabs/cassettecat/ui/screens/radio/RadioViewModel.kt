@@ -93,7 +93,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
             _selectedTag.value = prefs.radioSelectedTag.ifBlank { null }
 
             _selectedCountry.value = if (!prefs.radioDefaultCountryApplied && prefs.radioSelectedCountry.isBlank()) {
-                val deviceCountry = Locale.getDefault().displayCountry.takeIf { it.isNotBlank() }
+                // Radio Browser names countries in English.
+                val deviceCountry = Locale.getDefault().getDisplayCountry(Locale.ENGLISH).takeIf { it.isNotBlank() }
                 appPreferencesRepository.setRadioDefaultCountryApplied(true)
                 appPreferencesRepository.setRadioSelectedCountry(deviceCountry ?: "")
                 deviceCountry

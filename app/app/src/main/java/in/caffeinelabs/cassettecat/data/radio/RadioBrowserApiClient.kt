@@ -37,18 +37,20 @@ private object RadioBrowserServers {
         return mutex.withLock {
             cached.takeIf { it.isNotEmpty() }?.let { return@withLock it }
             val discovered = runCatching {
-                InetAddress.getAllByName(DISCOVERY_HOST)
-                    .map { it.canonicalHostName }
-                    .filter { it.isNotBlank() && it != DISCOVERY_HOST }
-                    .distinct()
-                    .shuffled()
+                radioBrowserMirrors(InetAddress.getAllByName(DISCOVERY_HOST).map { it.canonicalHostName })
             }.getOrDefault(emptyList())
-            val servers = discovered.ifEmpty { listOf(DISCOVERY_HOST) }
-            cached = servers
+            val servers = discovered + DISCOVERY_HOST
+            // A failed lookup is retried next time instead of pinning every request to the fallback.
+            if (discovered.isNotEmpty()) cached = servers
             servers
         }
     }
 }
+
+// Reverse DNS often fails on mobile networks and returns the bare IP, which then fails the TLS
+// hostname check, so only real mirror names are kept.
+internal fun radioBrowserMirrors(hostNames: List<String>): List<String> =
+    hostNames.filter { it.endsWith(".api.radio-browser.info") && it != DISCOVERY_HOST }.distinct().shuffled()
 
 class RadioBrowserApiClient {
     suspend fun search(

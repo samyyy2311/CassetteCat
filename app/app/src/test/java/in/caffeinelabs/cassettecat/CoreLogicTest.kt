@@ -6,6 +6,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.radio.radioBrowserMirrors
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
@@ -43,6 +44,14 @@ class CoreLogicTest {
 
         assertEquals(listOf(1_200L, 62_345L), lines.map { it.timestampMs })
         assertEquals(0L, adjustLyricsSync(lines, -2_000L).first().timestampMs)
+    }
+
+    @Test
+    fun keepsOnlyNamedRadioBrowserMirrors() {
+        val mirrors = radioBrowserMirrors(
+            listOf("de1.api.radio-browser.info", "91.132.145.114", "all.api.radio-browser.info", "de1.api.radio-browser.info")
+        )
+        assertEquals(listOf("de1.api.radio-browser.info"), mirrors)
     }
 
     @Test

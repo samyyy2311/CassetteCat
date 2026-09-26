@@ -200,7 +200,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     song?.isFavorite ?: false
                 }
                 if (song != null) {
-                    scrobbleManager.onTrackStarted(song)
+                    if (song.source != MusicSource.Radio) scrobbleManager.onTrackStarted(song)
                     savePlaybackState()
                 }
             }
@@ -546,7 +546,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
         val state = playbackState.value
-        val song = state.currentSong ?: return
+        // Stations are not songs: no play count and no scrobble, as on the desktop.
+        val song = state.currentSong?.takeIf { it.source != MusicSource.Radio } ?: return
         if (playRecordedForSongId == song.id) return
         val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
         if (threshold > 0 && _positionMs.value >= threshold) {
@@ -574,6 +575,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun savePlaybackState() {
+        // Radio keeps its own queue, so the saved music queue survives listening to a station.
+        if (playbackState.value.currentSong?.source == MusicSource.Radio) return
         val snapshot = repository.snapshotForSave() ?: return
         viewModelScope.launch { stateRepository.save(snapshot) }
     }
