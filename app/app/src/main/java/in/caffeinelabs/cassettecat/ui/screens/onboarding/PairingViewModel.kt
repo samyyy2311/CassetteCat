@@ -17,11 +17,12 @@ import `in`.caffeinelabs.cassettecat.data.device.RemoteSongEntry
 import `in`.caffeinelabs.cassettecat.data.device.SyncItemState
 import `in`.caffeinelabs.cassettecat.data.device.WifiDevicePairingRepository
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.PlaybackRemote
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class PairingViewModel(app: Application) : AndroidViewModel(app) {
+class PairingViewModel(app: Application) : AndroidViewModel(app), PlaybackRemote {
     private val repository = WifiDevicePairingRepository(app)
     private val syncRepository = DeviceSyncRepository()
     private val playbackRepository = DevicePlaybackRepository()
@@ -31,7 +32,7 @@ class PairingViewModel(app: Application) : AndroidViewModel(app) {
     val pairingState: StateFlow<DevicePairingState> = repository.pairingState
     val syncStates: StateFlow<Map<String, SyncItemState>> = syncRepository.syncStates
     val remoteManifest: StateFlow<List<RemoteSongEntry>?> = syncRepository.remoteManifest
-    val playbackStatus: StateFlow<DevicePlaybackStatus?> = playbackRepository.status
+    override val playbackStatus: StateFlow<DevicePlaybackStatus?> = playbackRepository.status
 
     fun selectMode(mode: DeviceConnectionType) = repository.startDiscovery(mode)
 
@@ -66,24 +67,24 @@ class PairingViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun connectedDevice(): DiscoveredDevice? = (pairingState.value as? DevicePairingState.Connected)?.device
 
-    fun startPlaybackPolling() {
+    override fun startPlaybackPolling() {
         val device = connectedDevice() ?: return
         playbackRepository.startPolling(device.host, device.port, repository.currentNetwork)
     }
 
-    fun stopPlaybackPolling() = playbackRepository.stopPolling()
+    override fun stopPlaybackPolling() = playbackRepository.stopPolling()
 
-    fun sendPlaybackAction(action: String) {
+    override fun sendPlaybackAction(action: String) {
         val device = connectedDevice() ?: return
         playbackRepository.sendAction(device.host, device.port, action, repository.currentNetwork)
     }
 
-    fun setDeviceVolume(percent: Int) {
+    override fun setDeviceVolume(percent: Int) {
         val device = connectedDevice() ?: return
         playbackRepository.setVolume(device.host, device.port, percent, repository.currentNetwork)
     }
 
-    fun seekDevicePlayback(positionMs: Long) {
+    override fun seekDevicePlayback(positionMs: Long) {
         val device = connectedDevice() ?: return
         playbackRepository.seek(device.host, device.port, positionMs, repository.currentNetwork)
     }

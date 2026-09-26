@@ -89,6 +89,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.search.SearchScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.AboutLegalScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.BackupRestoreScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopRemoteScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceFirmwareScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceNowPlayingScreen
@@ -163,6 +164,7 @@ object MainRoute {
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
+    const val DESKTOP_REMOTE = "main/settings/desktop_remote"
     const val DEVICE_SYNC = "main/settings/companion/sync"
     const val DEVICE_NOW_PLAYING = "main/settings/companion/now_playing"
     const val DEVICE_STORAGE = "main/settings/companion/storage"
@@ -644,6 +646,7 @@ fun MainShell(
                             onNavigateToPrivacy = { navController.navigate(MainRoute.PRIVACY) },
                             onNavigateToCustomization = { navController.navigate(MainRoute.CUSTOMIZATION) },
                             onNavigateToPairing = { navController.navigate(MainRoute.COMPANION_DEVICE) },
+                            onNavigateToDesktopRemote = { navController.navigate(MainRoute.DESKTOP_REMOTE) },
                             onNavigateToAboutLegal = { navController.navigate(MainRoute.ABOUT_LEGAL) },
                             onNavigateToCredits = { navController.navigate(MainRoute.CREDITS) },
                             onNavigateToScrobbling = { navController.navigate(MainRoute.SCROBBLING) },
@@ -753,9 +756,15 @@ fun MainShell(
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
+                    composable(MainRoute.DESKTOP_REMOTE) {
+                        DesktopRemoteScreen(
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
                     composable(MainRoute.DEVICE_NOW_PLAYING) {
                         DeviceNowPlayingScreen(
-                            pairingViewModel = pairingViewModel,
+                            remote = pairingViewModel,
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )

@@ -70,6 +70,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToCustomization: () -> Unit = {},
     onNavigateToPairing: () -> Unit = {},
+    onNavigateToDesktopRemote: () -> Unit = {},
     onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
     onNavigateToScrobbling: () -> Unit = {},
@@ -170,6 +171,14 @@ fun SettingsScreen(
                 iconRes = R.drawable.lucide_ic_cassette_tape,
                 iconTint = Color(0xFFF4F4F5),
                 onClick = onNavigateToPairing
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.desktop_remote_title),
+                subtitle = stringResource(AppR.string.desktop_remote_description),
+                iconRes = R.drawable.lucide_ic_monitor,
+                iconTint = Color(0xFFF4F4F5),
+                onClick = onNavigateToDesktopRemote
             )
         }
 

@@ -54,19 +54,20 @@ private data class SetTimeRequest(val epochMs: Long)
 private data class OkResponse(val ok: Boolean)
 
 class DeviceControlApiClient {
-    private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?): Boolean {
+    private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?, token: String? = null): Boolean {
         val request = Request.Builder()
             .url("http://$host:$port$path")
             .post(sharedJson.encodeToString(serializer, body).toRequestBody("application/json".toMediaType()))
+            .withPairingCode(token)
             .build()
         val response = deviceHttpClient(network).newCall(request).execute()
         return response.use { it.isSuccessful }
     }
 
-    suspend fun getPlaybackStatus(host: String, port: Int = 80, network: Network? = null): DevicePlaybackStatus? =
+    suspend fun getPlaybackStatus(host: String, port: Int = 80, network: Network? = null, token: String? = null): DevicePlaybackStatus? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/playback").build()
+                val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
                 val response = deviceHttpClient(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching null
@@ -75,21 +76,21 @@ class DeviceControlApiClient {
             }.getOrNull()
         }
 
-    suspend fun sendPlaybackAction(host: String, port: Int = 80, action: String, network: Network? = null): Boolean =
+    suspend fun sendPlaybackAction(host: String, port: Int = 80, action: String, network: Network? = null, token: String? = null): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/playback", PlaybackActionRequest(action), PlaybackActionRequest.serializer(), network) }
+            runCatching { postJson(host, port, "/api/playback", PlaybackActionRequest(action), PlaybackActionRequest.serializer(), network, token) }
                 .getOrDefault(false)
         }
 
-    suspend fun setVolume(host: String, port: Int = 80, percent: Int, network: Network? = null): Boolean =
+    suspend fun setVolume(host: String, port: Int = 80, percent: Int, network: Network? = null, token: String? = null): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/volume", VolumeRequest(percent), VolumeRequest.serializer(), network) }
+            runCatching { postJson(host, port, "/api/volume", VolumeRequest(percent), VolumeRequest.serializer(), network, token) }
                 .getOrDefault(false)
         }
 
-    suspend fun seek(host: String, port: Int = 80, positionMs: Long, network: Network? = null): Boolean =
+    suspend fun seek(host: String, port: Int = 80, positionMs: Long, network: Network? = null, token: String? = null): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/seek", SeekRequest(positionMs), SeekRequest.serializer(), network) }
+            runCatching { postJson(host, port, "/api/seek", SeekRequest(positionMs), SeekRequest.serializer(), network, token) }
                 .getOrDefault(false)
         }
 
@@ -181,6 +182,10 @@ class DeviceControlApiClient {
             }.getOrDefault(false)
         }
 }
+
+// The hardware player has no pairing code; the desktop app requires one.
+private fun Request.Builder.withPairingCode(token: String?): Request.Builder =
+    if (token == null) this else header("Authorization", "Bearer $token")
 
 private fun sha256Hex(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")

@@ -21,6 +21,8 @@ import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopAddress
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.parseDesktopAddress
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -41,6 +43,15 @@ class CoreLogicTest {
 
         assertEquals(listOf(1_200L, 62_345L), lines.map { it.timestampMs })
         assertEquals(0L, adjustLyricsSync(lines, -2_000L).first().timestampMs)
+    }
+
+    @Test
+    fun parsesDesktopRemoteAddress() {
+        assertEquals(DesktopAddress("192.168.1.20", 47800, "ABC234"), parseDesktopAddress(" 192.168.1.20:47800#abc234 "))
+        assertNull(parseDesktopAddress("192.168.1.20:47800"))
+        assertNull(parseDesktopAddress("192.168.1.20#ABC234"))
+        assertNull(parseDesktopAddress("192.168.1.20:70000#ABC234"))
+        assertNull(parseDesktopAddress("192.168.1.20:47800#"))
     }
 
     @Test

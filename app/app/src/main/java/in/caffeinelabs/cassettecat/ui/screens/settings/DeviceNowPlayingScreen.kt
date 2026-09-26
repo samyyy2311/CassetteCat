@@ -31,42 +31,46 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.PlaybackControlsRow
-import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingViewModel
+import `in`.caffeinelabs.cassettecat.data.device.DevicePlaybackStatus
+import kotlinx.coroutines.flow.StateFlow
+
+/** A player that speaks the device playback API: the CassetteCat hardware or the desktop app. */
+interface PlaybackRemote {
+    val playbackStatus: StateFlow<DevicePlaybackStatus?>
+    fun startPlaybackPolling()
+    fun stopPlaybackPolling()
+    fun sendPlaybackAction(action: String)
+    fun setDeviceVolume(percent: Int)
+    fun seekDevicePlayback(positionMs: Long)
+}
 
 @Composable
 fun DeviceNowPlayingScreen(
-    pairingViewModel: PairingViewModel,
+    remote: PlaybackRemote,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    listBottomPadding: Dp = 0.dp
+    listBottomPadding: Dp = 0.dp,
+    title: String = stringResource(AppR.string.device_now_playing_title),
+    waitingMessage: String = stringResource(AppR.string.device_now_playing_waiting),
+    headerAction: @Composable () -> Unit = {}
 ) {
-    val status by pairingViewModel.playbackStatus.collectAsStateWithLifecycle()
+    val status by remote.playbackStatus.collectAsStateWithLifecycle()
 
-    LifecycleResumeEffect(Unit) {
-        pairingViewModel.startPlaybackPolling()
-        onPauseOrDispose { pairingViewModel.stopPlaybackPolling() }
+    LifecycleResumeEffect(remote) {
+        remote.startPlaybackPolling()
+        onPauseOrDispose { remote.stopPlaybackPolling() }
     }
 
     var volumeOverride by remember { mutableStateOf<Float?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
-            Text(stringResource(AppR.string.device_now_playing_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        RemoteScreenHeader(title, onBack, headerAction)
 
         if (status == null) {
             EmptyState(
                 iconRes = R.drawable.lucide_ic_music,
                 title = stringResource(AppR.string.widget_not_playing),
-                message = stringResource(AppR.string.device_now_playing_waiting),
+                message = waitingMessage,
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -86,15 +90,15 @@ fun DeviceNowPlayingScreen(
                 PlaybackControlsRow(
                     positionMs = current.positionMs,
                     durationMs = current.durationMs,
-                    onSeek = { pairingViewModel.seekDevicePlayback(it) },
+                    onSeek = { remote.seekDevicePlayback(it) },
                     isShuffleEnabled = current.shuffleEnabled,
-                    onToggleShuffle = { pairingViewModel.sendPlaybackAction("toggle_shuffle") },
-                    onSkipPrevious = { pairingViewModel.sendPlaybackAction("previous") },
+                    onToggleShuffle = { remote.sendPlaybackAction("toggle_shuffle") },
+                    onSkipPrevious = { remote.sendPlaybackAction("previous") },
                     isPlaying = current.isPlaying,
-                    onTogglePlayPause = { pairingViewModel.sendPlaybackAction(if (current.isPlaying) "pause" else "play") },
-                    onSkipNext = { pairingViewModel.sendPlaybackAction("next") },
+                    onTogglePlayPause = { remote.sendPlaybackAction(if (current.isPlaying) "pause" else "play") },
+                    onSkipNext = { remote.sendPlaybackAction("next") },
                     repeatMode = current.repeatMode,
-                    onCycleRepeatMode = { pairingViewModel.sendPlaybackAction("cycle_repeat") }
+                    onCycleRepeatMode = { remote.sendPlaybackAction("cycle_repeat") }
                 )
 
                 Spacer(Modifier.height(32.dp))
@@ -110,7 +114,7 @@ fun DeviceNowPlayingScreen(
                         value = volumeOverride ?: (current.volumePercent / 100f),
                         onValueChange = { volumeOverride = it },
                         onValueChangeFinished = {
-                            volumeOverride?.let { pairingViewModel.setDeviceVolume((it * 100).toInt()) }
+                            volumeOverride?.let { remote.setDeviceVolume((it * 100).toInt()) }
                             volumeOverride = null
                         },
                         modifier = Modifier.weight(1f)
@@ -120,5 +124,21 @@ fun DeviceNowPlayingScreen(
                 Spacer(Modifier.height(listBottomPadding))
             }
         }
+    }
+}
+
+@Composable
+internal fun RemoteScreenHeader(title: String, onBack: () -> Unit, action: @Composable () -> Unit = {}) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PressDepthIconButton(
+            iconRes = R.drawable.lucide_ic_chevron_left,
+            contentDescription = stringResource(AppR.string.action_back),
+            onClick = onBack
+        )
+        Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+        action()
     }
 }
