@@ -69,9 +69,17 @@ class CoreLogicTest {
         assertEquals(listOf("Rock"), updated.genres)
         assertEquals(1999, updated.releaseYear)
         assertEquals("Old", override.originalArtist)
+        assertNull(override.title)
+        assertNull(override.genres)
+        assertFalse(override.releaseYearSet)
 
         val (second, _) = applyTagEdits(updated, existing = override, edits = TagEdits(artist = "Newer"))
         assertEquals("Old", second.originalArtist)
+
+        val noYear = testSong("2", releaseYear = null)
+        val (dated, datedSong) = applyTagEdits(noYear, existing = null, edits = TagEdits(yearEdited = true, year = 2020))
+        val (redated, _) = applyTagEdits(datedSong, existing = dated, edits = TagEdits(yearEdited = true, year = 2021))
+        assertNull(redated.originalReleaseYear)
     }
 
     @Test

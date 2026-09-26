@@ -72,18 +72,20 @@ internal fun applyTagEdits(song: Song, existing: SongMetadataOverride?, edits: T
         genres = edits.genres ?: song.genres,
         releaseYear = if (edits.yearEdited) edits.year else song.releaseYear
     )
+    // Only edited fields are overridden, so a later rescan still shows changes to the rest of the file's tags.
     val override = SongMetadataOverride(
         songId = song.id,
-        title = updated.title,
-        artist = updated.artist,
-        album = updated.album,
-        releaseYear = updated.releaseYear,
-        releaseYearSet = true,
-        genres = updated.genres,
+        title = edits.title?.let { updated.title } ?: existing?.title,
+        artist = edits.artist?.let { updated.artist } ?: existing?.artist,
+        album = edits.album?.let { updated.album } ?: existing?.album,
+        releaseYear = if (edits.yearEdited) updated.releaseYear else existing?.releaseYear,
+        releaseYearSet = edits.yearEdited || existing?.releaseYearSet == true,
+        genres = edits.genres ?: existing?.genres,
         originalTitle = existing?.originalTitle ?: song.title,
         originalArtist = existing?.originalArtist ?: song.artist,
         originalAlbum = existing?.originalAlbum ?: song.album,
-        originalReleaseYear = existing?.originalReleaseYear ?: song.releaseYear,
+        // A song with no year keeps "no year" as its original.
+        originalReleaseYear = if (existing != null) existing.originalReleaseYear else song.releaseYear,
         originalGenres = existing?.originalGenres ?: song.genres
     )
     return override to updated
@@ -240,7 +242,7 @@ fun SongTagEditorSheet(
                                         title = existing?.originalTitle ?: song.title,
                                         artist = existing?.originalArtist ?: song.artist,
                                         album = existing?.originalAlbum ?: song.album,
-                                        releaseYear = existing?.originalReleaseYear ?: song.releaseYear,
+                                        releaseYear = if (existing != null) existing.originalReleaseYear else song.releaseYear,
                                         genres = existing?.originalGenres ?: song.genres
                                     )
                                 }

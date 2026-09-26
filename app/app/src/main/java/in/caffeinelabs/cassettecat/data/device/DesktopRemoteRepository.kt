@@ -274,11 +274,11 @@ class DesktopRemoteRepository private constructor(context: Context) {
         return apiClient.checkIn(desktop.host, desktop.port, desktop.code, PhoneCheckIn(song.title, song.artist, isPlaying))
     }
 
-    /** Continues [songs] on the computer from [positionMs]; it plays the ones its own library has. */
-    fun handOff(songs: List<Song>, positionMs: Long, playing: Boolean) {
-        val desktop = connectedDesktop() ?: return
+    /** Continues [songs] on the computer from [positionMs]; it plays the ones its own library has. Returns whether it accepted them. */
+    suspend fun handOff(songs: List<Song>, positionMs: Long, playing: Boolean): Boolean {
+        val desktop = connectedDesktop() ?: return false
         val tracks = songs.map { HandoffTrack(it.title, it.artist) }
-        scope.launch { apiClient.handOff(desktop.host, desktop.port, desktop.code, tracks, positionMs, playing) }
+        return apiClient.handOff(desktop.host, desktop.port, desktop.code, tracks, positionMs, playing)
     }
 
     private fun queueIndex(song: Song): Int? = song.id.removePrefix(QUEUE_SONG_PREFIX).takeIf { it != song.id }?.toIntOrNull()

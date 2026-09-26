@@ -490,10 +490,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun transferToDesktop() {
         val local = localState.value
         val current = local.currentSong
-        if (current != null && current.source != MusicSource.Radio && !current.isFromAnotherDevice) {
-            desktop.handOff(listOf(current) + local.upNext.take(HANDOFF_QUEUE_LIMIT), repository.currentPositionMs(), local.isPlaying)
+        viewModelScope.launch {
+            // With a song to carry over, control moves only once the computer has taken it.
+            val handedOver = current == null || current.source == MusicSource.Radio || current.isFromAnotherDevice ||
+                desktop.handOff(listOf(current) + local.upNext.take(HANDOFF_QUEUE_LIMIT), repository.currentPositionMs(), local.isPlaying)
+            if (handedOver) desktop.setControlling(true)
         }
-        desktop.setControlling(true)
     }
 
     /** Continues the computer's song and queue on this phone with the matching songs in [library]. */
@@ -504,7 +506,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (matched.isEmpty() || isFollowingRoomHost()) return
         desktop.sendAction("pause")
         val positionMs = desktop.positionMs.value
-        viewModelScope.launch { repository.playQueue(matched, startIndex = 0, startPositionMs = positionMs) }
+        val playing = remote?.isPlaying == true
+        viewModelScope.launch {
+            repository.playQueue(matched, startIndex = 0, startPositionMs = positionMs, playWhenReady = playing)
+        }
     }
 
     private fun runDesktopCommand(command: String) {
