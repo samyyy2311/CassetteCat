@@ -47,6 +47,9 @@ private data class DesktopQueue(val tracks: List<DesktopQueueTrack>)
 private data class QueueTrackRequest(val index: Int)
 
 @Serializable
+private data class QueueMoveRequest(val from: Int, val to: Int)
+
+@Serializable
 data class HandoffTrack(val title: String, val artist: String)
 
 @Serializable
@@ -149,6 +152,18 @@ class DeviceControlApiClient {
         withContext(Dispatchers.IO) {
             val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
             runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun moveQueueTrack(host: String, port: Int, from: Int, to: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/move", QueueMoveRequest(from, to), QueueMoveRequest.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun removeQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/remove", QueueTrackRequest(index), QueueTrackRequest.serializer(), null, token) }
                 .getOrDefault(false)
         }
 

@@ -281,11 +281,38 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch { apiClient.handOff(desktop.host, desktop.port, desktop.code, tracks, positionMs, playing) }
     }
 
+    private fun queueIndex(song: Song): Int? = song.id.removePrefix(QUEUE_SONG_PREFIX).takeIf { it != song.id }?.toIntOrNull()
+
     /** Plays [song] from the desktop's queue; returns false for songs that are not from it. */
     fun playFromQueue(song: Song): Boolean {
-        val index = song.id.removePrefix(QUEUE_SONG_PREFIX).takeIf { it != song.id }?.toIntOrNull() ?: return false
+        val index = queueIndex(song) ?: return false
         val desktop = connectedDesktop() ?: return true
         scope.launch { apiClient.playQueueTrack(desktop.host, desktop.port, index, desktop.code) }
+        return true
+    }
+
+    /** Moves the up-next song at [fromIndex] to [toIndex] on the desktop, showing the change at once. */
+    fun moveInQueue(fromIndex: Int, toIndex: Int) {
+        val queue = upNext.value
+        val from = queue.getOrNull(fromIndex) ?: return
+        val to = queue.getOrNull(toIndex) ?: return
+        val desktop = connectedDesktop() ?: return
+        upNext.value = queue.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+        scope.launch {
+            apiClient.moveQueueTrack(desktop.host, desktop.port, from.index, to.index, desktop.code)
+            refreshQueue()
+        }
+    }
+
+    /** Removes [song] from the desktop's queue; returns false for songs that are not from it. */
+    fun removeFromQueue(song: Song): Boolean {
+        val index = queueIndex(song) ?: return false
+        val desktop = connectedDesktop() ?: return true
+        upNext.value = upNext.value.filterNot { it.index == index }
+        scope.launch {
+            apiClient.removeQueueTrack(desktop.host, desktop.port, index, desktop.code)
+            refreshQueue()
+        }
         return true
     }
 

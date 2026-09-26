@@ -119,6 +119,7 @@ internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): 
 // Enough to carry on listening without sending a whole library.
 private const val HANDOFF_QUEUE_LIMIT = 100
 private const val DESKTOP_CHECK_IN_MS = 1_500L
+private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
@@ -209,12 +210,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         // While this phone plays and a computer is paired, the computer sees it and can send it commands.
         viewModelScope.launch {
-            combine(desktop.state, localState.map { it.currentSong }) { state, song ->
-                song?.takeIf { state.address != null && !state.controlling && !state.offlineBlackout && !it.isFromAnotherDevice }
-            }.distinctUntilChanged().collectLatest { song ->
-                if (song == null) return@collectLatest
-                while (true) {
-                    desktop.checkIn(song, localState.value.isPlaying).forEach(::runDesktopCommand)
+            combine(desktop.state, localState) { state, local ->
+                local.currentSong?.takeIf { state.address != null && !state.controlling && !state.offlineBlackout && !it.isFromAnotherDevice }
+                    ?.let { it to local.isPlaying }
+            }.distinctUntilChanged().collectLatest { playing ->
+                val (song, isPlaying) = playing ?: return@collectLatest
+                // A long pause stops the check-ins to save battery; pressing play starts them again.
+                val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
+                while (SystemClock.elapsedRealtime() < stopAt) {
+                    desktop.checkIn(song, isPlaying).forEach(::runDesktopCommand)
                     delay(DESKTOP_CHECK_IN_MS)
                 }
             }
@@ -530,10 +534,19 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleShuffle() { if (!sentToDesktop("toggle_shuffle") && !isFollowingRoomHost()) repository.toggleShuffle() }
     fun cycleRepeatMode() { if (!sentToDesktop("cycle_repeat") && !isFollowingRoomHost()) repository.cycleRepeatMode() }
     fun playFromQueue(song: Song) { if (!desktop.playFromQueue(song) && !isFollowingRoomHost()) repository.playFromQueue(song) }
-    fun moveInUpNext(fromIndex: Int, toIndex: Int) { if (!isFollowingRoomHost()) repository.moveInUpNext(fromIndex, toIndex) }
+    fun moveInUpNext(fromIndex: Int, toIndex: Int) {
+        when {
+            controlledDesktop.value != null -> desktop.moveInQueue(fromIndex, toIndex)
+            !isFollowingRoomHost() -> repository.moveInUpNext(fromIndex, toIndex)
+        }
+    }
     fun addToUpNext(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToUpNext(songs) }
     fun addToEndOfQueue(songs: List<Song>) { if (!isFollowingRoomHost()) repository.addToEndOfQueue(songs) }
-    fun removeFromUpNext(songId: String) { if (!isFollowingRoomHost()) repository.removeFromUpNext(songId) }
+    fun removeFromUpNext(songId: String) {
+        val song = playbackState.value.upNext.firstOrNull { it.id == songId }
+        if (song != null && desktop.removeFromQueue(song)) return
+        if (!isFollowingRoomHost()) repository.removeFromUpNext(songId)
+    }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {
         if (controlledDesktop.value != null) return desktop.seek(positionMs)
