@@ -2,19 +2,31 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.app.Application
 import android.content.Context
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.data.device.DesktopQueueTrack
+import `in`.caffeinelabs.cassettecat.data.device.DeviceControlApiClient
 import `in`.caffeinelabs.cassettecat.data.device.DevicePlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.device.DevicePlaybackStatus
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val Context.desktopRemoteDataStore by preferencesDataStore(name = "desktop_remote")
 private val DESKTOP_ADDRESS = stringPreferencesKey("address")
@@ -41,6 +53,7 @@ data class DesktopRemoteState(
 class DesktopRemoteViewModel(app: Application) : AndroidViewModel(app), PlaybackRemote {
     private val dataStore = app.desktopRemoteDataStore
     private val playbackRepository = DevicePlaybackRepository()
+    private val apiClient = DeviceControlApiClient()
 
     val state: StateFlow<DesktopRemoteState> = combine(
         dataStore.data,
@@ -54,6 +67,39 @@ class DesktopRemoteViewModel(app: Application) : AndroidViewModel(app), Playback
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DesktopRemoteState())
 
     override val playbackStatus: StateFlow<DevicePlaybackStatus?> = playbackRepository.status
+
+    private val _artwork = MutableStateFlow<ImageBitmap?>(null)
+    val artwork: StateFlow<ImageBitmap?> = _artwork.asStateFlow()
+    private val _upNext = MutableStateFlow<List<DesktopQueueTrack>>(emptyList())
+    val upNext: StateFlow<List<DesktopQueueTrack>> = _upNext.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            playbackStatus.filterNotNull()
+                .map { it.trackTitle to it.artworkKey }
+                .distinctUntilChanged()
+                .collect { (_, artworkKey) ->
+                    refreshQueue()
+                    _artwork.value = artworkKey?.takeIf { it.isNotEmpty() }?.let { loadArtwork() }
+                }
+        }
+    }
+
+    private suspend fun refreshQueue() {
+        val desktop = connectedDesktop() ?: return
+        apiClient.getQueue(desktop.host, desktop.port, desktop.code)?.let { _upNext.value = it }
+    }
+
+    private suspend fun loadArtwork(): ImageBitmap? {
+        val desktop = connectedDesktop() ?: return null
+        val bytes = apiClient.getArtwork(desktop.host, desktop.port, desktop.code) ?: return null
+        return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+    }
+
+    fun playFromQueue(index: Int) {
+        val desktop = connectedDesktop() ?: return
+        viewModelScope.launch { apiClient.playQueueTrack(desktop.host, desktop.port, index, desktop.code) }
+    }
 
     /** Saves [text] when it parses as a desktop address; returns whether it did. */
     fun pair(text: String): Boolean {

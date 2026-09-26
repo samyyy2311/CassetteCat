@@ -23,8 +23,19 @@ data class DevicePlaybackStatus(
     val durationMs: Long,
     val volumePercent: Int,
     val shuffleEnabled: Boolean,
-    val repeatMode: Int
+    val repeatMode: Int,
+    // Only the desktop app reports artwork.
+    val artworkKey: String? = null
 )
+
+@Serializable
+data class DesktopQueueTrack(val index: Int, val title: String, val artist: String, val durationMs: Long)
+
+@Serializable
+private data class DesktopQueue(val tracks: List<DesktopQueueTrack>)
+
+@Serializable
+private data class QueueTrackRequest(val index: Int)
 
 @Serializable
 data class DeviceFileEntry(val name: String, val path: String, val isDirectory: Boolean, val sizeBytes: Long)
@@ -79,6 +90,30 @@ class DeviceControlApiClient {
     suspend fun sendPlaybackAction(host: String, port: Int = 80, action: String, network: Network? = null, token: String? = null): Boolean =
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/playback", PlaybackActionRequest(action), PlaybackActionRequest.serializer(), network, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun getArtwork(host: String, port: Int, token: String): ByteArray? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/artwork").withPairingCode(token).build()
+                deviceHttpClient(null).newCall(request).execute().use { if (it.isSuccessful) it.body.bytes() else null }
+            }.getOrNull()
+        }
+
+    suspend fun getQueue(host: String, port: Int, token: String): List<DesktopQueueTrack>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/queue").withPairingCode(token).build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopQueue>(it.body.string()).tracks else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun playQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue", QueueTrackRequest(index), QueueTrackRequest.serializer(), null, token) }
                 .getOrDefault(false)
         }
 

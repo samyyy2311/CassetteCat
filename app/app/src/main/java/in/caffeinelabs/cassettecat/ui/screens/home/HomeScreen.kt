@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopNowPlayingCard
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -83,6 +84,7 @@ fun HomeScreen(
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToDriveMode: () -> Unit = {},
     onNavigateToScanFolders: (() -> Unit)? = null,
+    onNavigateToDesktopRemote: () -> Unit = {},
     listBottomPadding: Dp = 0.dp
 ) {
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -177,6 +179,7 @@ fun HomeScreen(
                 ) {
                     HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
                     Spacer(Modifier.height(12.dp))
+                    DesktopNowPlayingCard(onOpen = onNavigateToDesktopRemote, modifier = Modifier.padding(bottom = 12.dp))
                     EmptyState(
                         catRes = AppR.drawable.cat_black_cassette,
                         title = stringResource(AppR.string.home_empty_title),
@@ -197,6 +200,9 @@ fun HomeScreen(
                     item(key = "home_greeting") {
                         HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
                         Spacer(Modifier.height(12.dp))
+                    }
+                    item(key = "home_desktop") {
+                        DesktopNowPlayingCard(onOpen = onNavigateToDesktopRemote, modifier = Modifier.padding(bottom = 16.dp))
                     }
                     item {
                         LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)

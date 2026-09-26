@@ -488,6 +488,7 @@ fun MainShell(
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToDriveMode = { navController.navigate(MainRoute.DRIVE_MODE) },
                             onNavigateToScanFolders = { navController.navigate(MainRoute.MANAGE_SCAN_FOLDERS) },
+                            onNavigateToDesktopRemote = { navController.navigate(MainRoute.DESKTOP_REMOTE) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }

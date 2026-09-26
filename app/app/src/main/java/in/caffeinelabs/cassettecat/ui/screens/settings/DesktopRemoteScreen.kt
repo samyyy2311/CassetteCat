@@ -1,6 +1,20 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.foundation.background
+import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
+import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.formatTime
+import `in`.caffeinelabs.cassettecat.data.device.DesktopQueueTrack
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,6 +62,8 @@ fun DesktopRemoteScreen(
     viewModel: DesktopRemoteViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val artwork by viewModel.artwork.collectAsStateWithLifecycle()
+    val upNext by viewModel.upNext.collectAsStateWithLifecycle()
     val title = stringResource(AppR.string.desktop_remote_title)
 
     when {
@@ -72,8 +88,11 @@ fun DesktopRemoteScreen(
                 TextButton(onClick = hapticClick(viewModel::forget)) {
                     Text(stringResource(AppR.string.desktop_remote_forget))
                 }
-            }
-        )
+            },
+            artwork = artwork
+        ) {
+            if (upNext.isNotEmpty()) DesktopUpNext(upNext, viewModel::playFromQueue)
+        }
         else -> DesktopPairingForm(title, onBack, viewModel::pair, modifier)
     }
 }
@@ -143,3 +162,110 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, onPair: (Strin
         }
     }
 }
+
+@Composable
+private fun DesktopUpNext(tracks: List<DesktopQueueTrack>, onPlay: (Int) -> Unit) {
+    Spacer(Modifier.height(32.dp))
+    Text(
+        stringResource(AppR.string.now_playing_up_next),
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+    tracks.forEach { track ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = hapticClick { onPlay(track.index) })
+                .padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(track.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    track.artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (track.durationMs > 0) {
+                Text(
+                    formatTime(track.durationMs),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+        }
+    }
+}
+
+/** Shows what the paired desktop is playing, with play/pause; renders nothing when there is nothing to show. */
+@Composable
+fun DesktopNowPlayingCard(onOpen: () -> Unit, modifier: Modifier = Modifier, viewModel: DesktopRemoteViewModel = viewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val status by viewModel.playbackStatus.collectAsStateWithLifecycle()
+    val artwork by viewModel.artwork.collectAsStateWithLifecycle()
+    val paired = state.address != null && !state.offlineBlackout
+
+    if (paired) {
+        LifecycleResumeEffect(Unit) {
+            viewModel.startPlaybackPolling()
+            onPauseOrDispose { viewModel.stopPlaybackPolling() }
+        }
+    }
+    val current = status?.takeIf { paired && it.trackTitle.isNotEmpty() } ?: return
+
+    Row(
+        modifier = modifier
+            .padding(horizontal = 24.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .clickable(onClick = hapticClick(onOpen))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            val art = artwork
+            if (art != null) {
+                Image(bitmap = art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_monitor),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(
+                stringResource(AppR.string.desktop_remote_on_computer),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(current.trackTitle, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                current.trackArtist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        PressDepthIconButton(
+            iconRes = if (current.isPlaying) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play,
+            contentDescription = stringResource(AppR.string.widget_play_pause),
+            onClick = { viewModel.sendPlaybackAction(if (current.isPlaying) "pause" else "play") },
+            tint = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+

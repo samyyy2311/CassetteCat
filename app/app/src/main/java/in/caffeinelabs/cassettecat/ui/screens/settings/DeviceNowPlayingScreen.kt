@@ -1,5 +1,18 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import android.os.SystemClock
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,9 +65,22 @@ fun DeviceNowPlayingScreen(
     listBottomPadding: Dp = 0.dp,
     title: String = stringResource(AppR.string.device_now_playing_title),
     waitingMessage: String = stringResource(AppR.string.device_now_playing_waiting),
-    headerAction: @Composable () -> Unit = {}
+    headerAction: @Composable () -> Unit = {},
+    artwork: ImageBitmap? = null,
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
     val status by remote.playbackStatus.collectAsStateWithLifecycle()
+    // Status arrives every couple of seconds; advance the position locally in between.
+    var positionMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(status) {
+        val current = status ?: return@LaunchedEffect
+        val receivedAt = SystemClock.elapsedRealtime()
+        do {
+            val elapsed = if (current.isPlaying) SystemClock.elapsedRealtime() - receivedAt else 0L
+            positionMs = (current.positionMs + elapsed).coerceAtMost(current.durationMs)
+            delay(250)
+        } while (current.isPlaying)
+    }
 
     LifecycleResumeEffect(remote) {
         remote.startPlaybackPolling()
@@ -75,7 +101,21 @@ fun DeviceNowPlayingScreen(
             )
         } else {
             val current = status!!
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+            ) {
+                if (artwork != null) {
+                    Image(
+                        bitmap = artwork,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp))
+                    )
+                    Spacer(Modifier.height(24.dp))
+                }
                 Text(current.trackTitle, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     current.trackArtist,
@@ -88,7 +128,7 @@ fun DeviceNowPlayingScreen(
                 Spacer(Modifier.height(24.dp))
 
                 PlaybackControlsRow(
-                    positionMs = current.positionMs,
+                    positionMs = positionMs,
                     durationMs = current.durationMs,
                     onSeek = { remote.seekDevicePlayback(it) },
                     isShuffleEnabled = current.shuffleEnabled,
@@ -120,6 +160,8 @@ fun DeviceNowPlayingScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
+                content()
 
                 Spacer(Modifier.height(listBottomPadding))
             }
