@@ -15,8 +15,7 @@ import kotlinx.coroutines.launch
 private const val POLL_INTERVAL_MS = 2000L
 
 // token is the desktop app's pairing code; the hardware player has none.
-class DevicePlaybackRepository {
-    private val apiClient = DeviceControlApiClient()
+class DevicePlaybackRepository(private val apiClient: DeviceControlApiClient = DeviceControlApiClient()) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollJob: Job? = null
 
