@@ -128,9 +128,17 @@ class DesktopRemoteRepository private constructor(context: Context) {
     // The player and the device sheet can both be polling; the last one out stops it.
     private var pollers = 0
 
+    // With the app on screen the computer's changes show at once; the notification alone can wait a little.
+    private val _inFront = MutableStateFlow(false)
+    val isInFront: Boolean get() = _inFront.value
+
+    fun setInFront(inFront: Boolean) {
+        _inFront.value = inFront
+    }
+
     init {
         scope.launch {
-            state.map { it.address }.distinctUntilChanged().collect {
+            combine(state.map { it.address }, _inFront) { address, inFront -> address to inFront }.distinctUntilChanged().collect {
                 if (pollers > 0) {
                     playbackRepository.stopPolling()
                     pollCurrentDesktop()
@@ -274,7 +282,8 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun pollCurrentDesktop() {
         val desktop = connectedDesktop() ?: return
         // A LAN round trip is cheap, and the desktop's own controls should show up here quickly.
-        playbackRepository.startPolling(desktop.host, desktop.port, null, desktop.code, intervalMs = 1_000L)
+        val intervalMs = if (isInFront) 1_000L else 3_000L
+        playbackRepository.startPolling(desktop.host, desktop.port, null, desktop.code, intervalMs)
     }
 
     fun sendAction(action: String) {

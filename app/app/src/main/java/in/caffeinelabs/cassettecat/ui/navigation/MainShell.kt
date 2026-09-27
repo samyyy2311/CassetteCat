@@ -307,6 +307,10 @@ fun MainShell(
     val desktopRemote = remember { DesktopRemoteRepository.getInstance(context) }
     val desktopState by desktopRemote.state.collectAsStateWithLifecycle()
     var showDevices by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        desktopRemote.setInFront(true)
+        onPauseOrDispose { desktopRemote.setInFront(false) }
+    }
     // The computer is polled only while this phone controls it and the app is in front.
     LifecycleResumeEffect(desktopState.controlling) {
         if (desktopState.controlling) desktopRemote.startPolling()
