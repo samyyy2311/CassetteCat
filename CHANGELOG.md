@@ -4,6 +4,7 @@ All notable changes to CassetteCat are documented in this file.
 
 ## [1.7.6]
 
+* Your computer shows up in Android's own output switcher, next to This phone and Bluetooth. Pick it there to move your music to the computer, and set its volume from the same place.
 * Control your computer from the notification, lock screen, headphone buttons and volume keys while your phone is playing on it.
 * Pairing checks the code before connecting, accepts the whole address pasted from the computer, and asks for the new code when the computer's code changes.
 * The computer no longer drops out of the notification when Wi-Fi naps for a moment.

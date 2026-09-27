@@ -1,3 +1,4 @@
+• Pick your computer in Android's output switcher
 • Control your computer from the notification, lock screen and volume keys
 • Pairing checks the code and accepts a pasted address
 • The computer stays connected through Wi-Fi blips

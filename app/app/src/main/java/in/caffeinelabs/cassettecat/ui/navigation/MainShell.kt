@@ -148,6 +148,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 object MainRoute {
     const val HOME = "main/home"
@@ -235,6 +236,9 @@ private val MINI_PLAYER_HEIGHT = 64.dp
 private val SHEET_CORNER_RADIUS = 28.dp
 // Keep in sync with BottomNavBar to prevent a seam between mini player and navigation.
 private val NAV_BAR_TOTAL_HEIGHT = 68.dp
+// How long a finished move waits for the saved device choice to catch up before the next one runs.
+private const val TRANSFER_SETTLE_MS = 5_000L
+
 // Nav bar is an overlay to avoid a measurement loop with the bottom sheet scaffold.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -325,7 +329,17 @@ fun MainShell(
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {
-        desktopRemote.handoffRequests.collect { playbackViewModel.transferToPhone(currentLibrarySongs) }
+        // One move at a time; a request made meanwhile is carried out next, so the last device picked wins.
+        desktopRemote.transferRequest.filterNotNull().collect { toDesktop ->
+            val controlling = desktopRemote.state.value.controlling
+            val moved = when {
+                toDesktop && !controlling -> playbackViewModel.transferToDesktop()
+                !toDesktop && controlling -> true.also { playbackViewModel.transferToPhone(currentLibrarySongs) }
+                else -> false
+            }
+            if (moved) withTimeoutOrNull(TRANSFER_SETTLE_MS) { desktopRemote.state.first { it.controlling == toDesktop } }
+            desktopRemote.transferDone(toDesktop)
+        }
     }
     var artworkAccent by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(preferences.artworkAccentEnabled, playbackState.currentSong?.id) {
@@ -941,11 +955,11 @@ fun MainShell(
                 desktop = desktopRemote,
                 phoneSong = playbackState.currentSong.takeIf { !desktopState.controlling },
                 onSelectPhone = {
-                    if (desktopState.controlling) playbackViewModel.transferToPhone(librarySongs)
+                    desktopRemote.requestTransfer(toDesktop = false)
                     showDevices = false
                 },
                 onSelectDesktop = {
-                    if (!desktopState.controlling) playbackViewModel.transferToDesktop()
+                    desktopRemote.requestTransfer(toDesktop = true)
                     showDevices = false
                 },
                 onSetUpDesktop = {

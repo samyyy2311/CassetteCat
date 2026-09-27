@@ -488,16 +488,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerEndMs.value = null
     }
 
-    /** Continues this phone's song and queue on the computer, then controls the computer from here. */
-    fun transferToDesktop() {
+    /** Continues this phone's song and queue on the computer, then controls the computer from here; returns whether it took them. */
+    suspend fun transferToDesktop(): Boolean {
         val local = localState.value
         val current = local.currentSong
-        viewModelScope.launch {
-            // With a song to carry over, control moves only once the computer has taken it.
-            val handedOver = current == null || current.source == MusicSource.Radio || current.isFromAnotherDevice ||
-                desktop.handOff(listOf(current) + local.upNext.take(HANDOFF_QUEUE_LIMIT), repository.currentPositionMs(), local.isPlaying)
-            if (handedOver) desktop.setControlling(true)
-        }
+        // With a song to carry over, control moves only once the computer has taken it.
+        val handedOver = current == null || current.source == MusicSource.Radio || current.isFromAnotherDevice ||
+            desktop.handOff(listOf(current) + local.upNext.take(HANDOFF_QUEUE_LIMIT), repository.currentPositionMs(), local.isPlaying)
+        if (handedOver) desktop.setControlling(true)
+        return handedOver
     }
 
     /** Continues the computer's song and queue on this phone with the matching songs in [library]. */
@@ -520,7 +519,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "pause" -> repository.pause()
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
-            "handoff" -> transferToDesktop()
+            "handoff" -> desktop.requestTransfer(toDesktop = true)
         }
     }
 
