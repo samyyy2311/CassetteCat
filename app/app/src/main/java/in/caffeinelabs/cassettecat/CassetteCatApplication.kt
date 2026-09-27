@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat
 
 import android.app.Application
+import `in`.caffeinelabs.cassettecat.data.device.listDesktopInOutputSwitcher
 import `in`.caffeinelabs.cassettecat.data.diagnostics.CrashLogRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.CertificatePinRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.tofuSslSocketFactory
@@ -13,6 +14,7 @@ class CassetteCatApplication : Application() {
         CrashLogRepository(this).install()
         HttpsURLConnection.setDefaultSSLSocketFactory(tofuSslSocketFactory)
         runBlocking { CertificatePinRepository(this@CassetteCatApplication).loadIntoMemory() }
+        listDesktopInOutputSwitcher(this)
     }
 
     @Suppress("DEPRECATION")

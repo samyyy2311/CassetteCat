@@ -325,7 +325,11 @@ fun MainShell(
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {
-        desktopRemote.handoffRequests.collect { playbackViewModel.transferToPhone(currentLibrarySongs) }
+        desktopRemote.transferRequests.collect { toDesktop ->
+            val controlling = desktopRemote.state.value.controlling
+            if (toDesktop && !controlling) playbackViewModel.transferToDesktop()
+            if (!toDesktop && controlling) playbackViewModel.transferToPhone(currentLibrarySongs)
+        }
     }
     var artworkAccent by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(preferences.artworkAccentEnabled, playbackState.currentSong?.id) {
@@ -941,11 +945,11 @@ fun MainShell(
                 desktop = desktopRemote,
                 phoneSong = playbackState.currentSong.takeIf { !desktopState.controlling },
                 onSelectPhone = {
-                    if (desktopState.controlling) playbackViewModel.transferToPhone(librarySongs)
+                    desktopRemote.requestTransfer(toDesktop = false)
                     showDevices = false
                 },
                 onSelectDesktop = {
-                    if (!desktopState.controlling) playbackViewModel.transferToDesktop()
+                    desktopRemote.requestTransfer(toDesktop = true)
                     showDevices = false
                 },
                 onSetUpDesktop = {

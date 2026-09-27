@@ -97,9 +97,12 @@ class DesktopRemoteRepository private constructor(context: Context) {
     val status: StateFlow<DevicePlaybackStatus?> = playbackRepository.status
 
     private val upNext = MutableStateFlow<List<DesktopQueueTrack>>(emptyList())
-    private val _handoffRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    /** Emits when the desktop asks this phone to take over playback. */
-    val handoffRequests: SharedFlow<Unit> = _handoffRequests.asSharedFlow()
+    private val _transferRequests = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    /**
+     * Where playback should move: true for the computer, false for this phone. The device sheet, Android's output
+     * switcher and the computer itself ask here, and one place in the app carries it out.
+     */
+    val transferRequests: SharedFlow<Boolean> = _transferRequests.asSharedFlow()
     private val _found = MutableStateFlow<List<DiscoveredDesktop>>(emptyList())
     val found: StateFlow<List<DiscoveredDesktop>> = _found.asStateFlow()
 
@@ -149,7 +152,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
             status.filterNotNull().map { it.trackTitle }.distinctUntilChanged().collect { refreshQueue() }
         }
         scope.launch {
-            status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) _handoffRequests.tryEmit(Unit) }
+            status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) requestTransfer(toDesktop = false) }
         }
         // A computer paired by typing its address is named once it answers.
         scope.launch {
@@ -258,6 +261,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
                 if (controlling != null) it[DESKTOP_ACTIVE] = controlling
             }
         }
+    }
+
+    fun requestTransfer(toDesktop: Boolean) {
+        _transferRequests.tryEmit(toDesktop)
     }
 
     fun setControlling(controlling: Boolean) {
