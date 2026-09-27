@@ -20,12 +20,16 @@ private const val MISSED_POLLS_BEFORE_GONE = 3
 class DevicePlaybackRepository(private val apiClient: DeviceControlApiClient = DeviceControlApiClient()) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollJob: Job? = null
+    private var polledAddress: String? = null
 
     private val _status = MutableStateFlow<DevicePlaybackStatus?>(null)
     val status: StateFlow<DevicePlaybackStatus?> = _status.asStateFlow()
 
     fun startPolling(host: String, port: Int, network: Network?, token: String? = null, intervalMs: Long = POLL_INTERVAL_MS) {
         if (pollJob?.isActive == true) return
+        // Another device's last status must not show as this one's while its first poll is on the way.
+        if (polledAddress != "$host:$port") _status.value = null
+        polledAddress = "$host:$port"
         pollJob = scope.launch {
             var missed = 0
             while (true) {
