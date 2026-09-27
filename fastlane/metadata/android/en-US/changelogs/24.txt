@@ -1,0 +1,5 @@
+• Control your computer from the notification, lock screen and volume keys
+• Pairing checks the code and accepts a pasted address
+• The computer stays connected through Wi-Fi blips
+• Less battery use in the background
+• Fixed a crash on launch
