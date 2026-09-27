@@ -16,7 +16,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -25,35 +24,24 @@ const val DESKTOP_ROUTE_CATEGORY = "in.caffeinelabs.cassettecat.CATEGORY_DESKTOP
 private const val DESKTOP_ROUTE_ID = "desktop"
 
 /**
- * Asks Android's output switcher to list the computer for this app, and keeps the switcher's selection in step with
- * whether the phone is controlling it, whichever side made the change.
+ * Asks Android's output switcher to list the computer for this app, and clears it there once control is back on the
+ * phone. The app never selects the route itself: a session this app opens on its own route gets no reply from the
+ * framework and stays pending.
  */
 fun listDesktopInOutputSwitcher(context: Context) {
     val router = MediaRouter.getInstance(context)
     router.setRouterParams(MediaRouterParams.Builder().setOutputSwitcherEnabled(true).setTransferToLocalEnabled(true).build())
     val selector = MediaRouteSelector.Builder().addControlCategory(DESKTOP_ROUTE_CATEGORY).build()
     val desktop = DesktopRemoteRepository.getInstance(context)
-    fun sync(controlling: Boolean) {
-        val desktopSelected = router.selectedRoute.matchesSelector(selector)
-        if (controlling && !desktopSelected) router.routes.firstOrNull { it.matchesSelector(selector) }?.select()
-        // Unselecting only the computer leaves a Bluetooth route picked in the switcher as it is.
-        if (!controlling && desktopSelected) router.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
-    }
-    router.addCallback(
-        selector,
-        object : MediaRouter.Callback() {
-            // The computer's route appears a moment after launch, when it may already be the one playing.
-            override fun onRouteAdded(router: MediaRouter, route: MediaRouter.RouteInfo) {
-                if (desktop.transferRequest.value == null) sync(desktop.state.value.controlling)
-            }
-        },
-        MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY
-    )
-    // Synced once a move has settled, so a computer that refused the songs puts the switcher back on the phone.
+    router.addCallback(selector, object : MediaRouter.Callback() {}, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
+    // Checked once a move has settled, so a computer that refused the songs puts the switcher back on the phone.
+    // Unselecting only the computer leaves a Bluetooth route picked in the switcher as it is.
     MainScope().launch {
         combine(desktop.state.map { it.controlling }, desktop.transferRequest) { controlling, pending ->
-            controlling.takeIf { pending == null }
-        }.filterNotNull().collect(::sync)
+            pending == null && !controlling
+        }.collect { backOnPhone ->
+            if (backOnPhone && router.selectedRoute.matchesSelector(selector)) router.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
+        }
     }
 }
 
