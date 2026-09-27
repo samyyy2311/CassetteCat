@@ -13,21 +13,33 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 private const val POLL_INTERVAL_MS = 2000L
+// A phone's Wi-Fi can nap for a moment, as when the screen locks; a device counts as gone after this many misses.
+private const val MISSED_POLLS_BEFORE_GONE = 3
 
 // token is the desktop app's pairing code; the hardware player has none.
-class DevicePlaybackRepository {
-    private val apiClient = DeviceControlApiClient()
+class DevicePlaybackRepository(private val apiClient: DeviceControlApiClient = DeviceControlApiClient()) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollJob: Job? = null
+    private var polledAddress: String? = null
 
     private val _status = MutableStateFlow<DevicePlaybackStatus?>(null)
     val status: StateFlow<DevicePlaybackStatus?> = _status.asStateFlow()
 
     fun startPolling(host: String, port: Int, network: Network?, token: String? = null, intervalMs: Long = POLL_INTERVAL_MS) {
         if (pollJob?.isActive == true) return
+        // Another device's last status must not show as this one's while its first poll is on the way.
+        if (polledAddress != "$host:$port") _status.value = null
+        polledAddress = "$host:$port"
         pollJob = scope.launch {
+            var missed = 0
             while (true) {
-                _status.value = apiClient.getPlaybackStatus(host, port, network, token)
+                val status = apiClient.getPlaybackStatus(host, port, network, token)
+                if (status != null) {
+                    missed = 0
+                    _status.value = status
+                } else if (++missed >= MISSED_POLLS_BEFORE_GONE) {
+                    _status.value = null
+                }
                 delay(intervalMs)
             }
         }

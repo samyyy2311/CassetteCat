@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -88,14 +89,41 @@ private data class SetTimeRequest(val epochMs: Long)
 @Serializable
 private data class OkResponse(val ok: Boolean)
 
-class DeviceControlApiClient {
+/** [onCodeRejected] hears of pairing codes the desktop app refused, so a phone left with an old one stops using it. */
+class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = null) {
+    private fun client(network: Network?): OkHttpClient {
+        val base = deviceHttpClient(network)
+        val onRejected = onCodeRejected ?: return base
+        return base.newBuilder().addInterceptor { chain ->
+            chain.proceed(chain.request()).also { response ->
+                val code = chain.request().header("Authorization")?.removePrefix("Bearer ")
+                if (response.code == 401 && code != null) onRejected(code)
+            }
+        }.build()
+    }
+
+    /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
+    suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    when {
+                        it.isSuccessful -> true
+                        it.code == 401 -> false
+                        else -> null
+                    }
+                }
+            }.getOrNull()
+        }
+
     private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?, token: String? = null): Boolean {
         val request = Request.Builder()
             .url("http://$host:$port$path")
             .post(sharedJson.encodeToString(serializer, body).toRequestBody("application/json".toMediaType()))
             .withPairingCode(token)
             .build()
-        val response = deviceHttpClient(network).newCall(request).execute()
+        val response = client(network).newCall(request).execute()
         return response.use { it.isSuccessful }
     }
 
@@ -103,7 +131,7 @@ class DeviceControlApiClient {
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
-                val response = deviceHttpClient(network).newCall(request).execute()
+                val response = client(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching null
                     sharedJson.decodeFromString<DevicePlaybackStatus>(it.body.string())
@@ -121,7 +149,7 @@ class DeviceControlApiClient {
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder().url("http://$host:$port/api/queue").withPairingCode(token).build()
-                deviceHttpClient(null).newCall(request).execute().use {
+                client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopQueue>(it.body.string()).tracks else null
                 }
             }.getOrNull()
@@ -142,7 +170,7 @@ class DeviceControlApiClient {
                     .post(sharedJson.encodeToString(PhoneCheckIn.serializer(), state).toRequestBody("application/json".toMediaType()))
                     .withPairingCode(token)
                     .build()
-                deviceHttpClient(null).newCall(request).execute().use {
+                client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()).commands else emptyList()
                 }
             }.getOrDefault(emptyList())
@@ -193,7 +221,7 @@ class DeviceControlApiClient {
 
     private fun postEmpty(host: String, port: Int, path: String, network: Network?): Boolean {
         val request = Request.Builder().url("http://$host:$port$path").post("".toRequestBody()).build()
-        val response = deviceHttpClient(network).newCall(request).execute()
+        val response = client(network).newCall(request).execute()
         return response.use { it.isSuccessful }
     }
 
@@ -223,7 +251,7 @@ class DeviceControlApiClient {
             runCatching {
                 val url = "http://$host:$port/api/files".toHttpUrl().newBuilder().addQueryParameter("path", path).build()
                 val request = Request.Builder().url(url).build()
-                val response = deviceHttpClient(network).newCall(request).execute()
+                val response = client(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching null
                     sharedJson.decodeFromString<List<DeviceFileEntry>>(it.body.string())
@@ -236,7 +264,7 @@ class DeviceControlApiClient {
             runCatching {
                 val url = "http://$host:$port/api/files".toHttpUrl().newBuilder().addQueryParameter("path", path).build()
                 val request = Request.Builder().url(url).delete().build()
-                val response = deviceHttpClient(network).newCall(request).execute()
+                val response = client(network).newCall(request).execute()
                 response.use { it.isSuccessful }
             }.getOrDefault(false)
         }

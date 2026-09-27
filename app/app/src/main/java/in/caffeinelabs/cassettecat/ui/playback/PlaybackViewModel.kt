@@ -119,6 +119,8 @@ internal fun buildInstantMix(seed: Song, library: List<Song>, limit: Int = 25): 
 // Enough to carry on listening without sending a whole library.
 private const val HANDOFF_QUEUE_LIMIT = 100
 private const val DESKTOP_CHECK_IN_MS = 1_500L
+// Kept under the six seconds after which the computer stops showing the phone.
+private const val DESKTOP_BACKGROUND_CHECK_IN_MS = 4_000L
 private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -219,7 +221,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
                 while (SystemClock.elapsedRealtime() < stopAt) {
                     desktop.checkIn(song, isPlaying).forEach(::runDesktopCommand)
-                    delay(DESKTOP_CHECK_IN_MS)
+                    delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
                 }
             }
         }

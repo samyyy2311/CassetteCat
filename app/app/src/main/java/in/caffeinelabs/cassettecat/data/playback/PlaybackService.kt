@@ -21,6 +21,8 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.service.quicksettings.TileService
 import android.util.Size
+import android.view.KeyEvent
+import androidx.core.content.IntentCompat
 import androidx.core.graphics.scale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -61,6 +63,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import `in`.caffeinelabs.cassettecat.data.device.DesktopSessionPlayer
 import `in`.caffeinelabs.cassettecat.data.device.FlipDetector
 import `in`.caffeinelabs.cassettecat.data.device.ProximityWaveDetector
 import `in`.caffeinelabs.cassettecat.data.device.ShakeDetector
@@ -77,8 +81,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -103,6 +113,7 @@ class PlaybackService : MediaLibraryService() {
     private var lastShakeSkipTime: Long = 0L
     private var lastWaveSkipTime: Long = 0L
     private var sequentialNavigationPlayer: SequentialNavigationPlayer? = null
+    private var desktopSession: MediaSession? = null
 
     private val becomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -344,6 +355,45 @@ class PlaybackService : MediaLibraryService() {
             .build()
         notificationProvider.setSmallIcon(R.drawable.ic_notification_small)
         setMediaNotificationProvider(notificationProvider)
+        serviceScope.launch { presentControlledDesktop(sessionActivity, bitmapLoader) }
+    }
+
+    // While this phone controls the computer, the computer takes the phone's place in the notification, lock screen
+    // and volume keys. The phone's session stays as it is, so the app's own controller keeps working.
+    private suspend fun presentControlledDesktop(sessionActivity: PendingIntent, bitmapLoader: BitmapLoader) {
+        val desktop = DesktopRemoteRepository.getInstance(this)
+        desktop.state.map { it.controlling }.distinctUntilChanged().collectLatest { controlling ->
+            if (!controlling) return@collectLatest
+            val commands = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+            val player = DesktopSessionPlayer(desktop) { commands.tryEmit(Unit) }
+            val session = MediaSession.Builder(this, player)
+                .setId(DESKTOP_SESSION_ID)
+                .setSessionActivity(sessionActivity)
+                .setBitmapLoader(bitmapLoader)
+                .build()
+            desktopSession = session
+            addSession(session)
+            try {
+                coroutineScope {
+                    launch { player.follow() }
+                    // Polling stops once the computer has been paused a while; a command from the notification restarts it.
+                    commands.onStart { emit(Unit) }.collectLatest {
+                        desktop.startPolling()
+                        try {
+                            do delay(DESKTOP_IDLE_POLL_MS) while (desktop.status.value?.isPlaying == true)
+                        } finally {
+                            desktop.stopPolling()
+                        }
+                    }
+                }
+            } finally {
+                desktopSession = null
+                removeSession(session)
+                session.release()
+                player.release()
+                mediaSession?.player?.let(::updateNotificationLayout)
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -362,6 +412,12 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
+
+    // Both sessions share one notification, which shows the computer while it is being controlled.
+    override fun onUpdateNotificationAsync(session: MediaSession, startInForegroundRequired: Boolean): ListenableFuture<Void?> {
+        if (desktopSession != null && session !== desktopSession) return Futures.immediateVoidFuture()
+        return super.onUpdateNotificationAsync(session, startInForegroundRequired)
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         mediaSession?.player?.stop()
@@ -456,6 +512,28 @@ class PlaybackService : MediaLibraryService() {
                 .setAvailableSessionCommands(availableSessionCommands)
                 .setCustomLayout(buildCustomLayout(session.player, isFav, session.player.shuffleModeEnabled))
                 .build()
+        }
+
+        // Android sends headset buttons to this app's session that matches whether the phone is playing audio,
+        // which is this paused one while the computer plays. They are passed on to the computer meanwhile.
+        override fun onMediaButtonEvent(
+            session: MediaSession,
+            controllerInfo: MediaSession.ControllerInfo,
+            intent: Intent
+        ): Boolean {
+            val desktop = desktopSession?.player ?: return false
+            val event = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
+            val press: () -> Unit = when (event.keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK ->
+                    { { if (desktop.playWhenReady) desktop.pause() else desktop.play() } }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> desktop::play
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> desktop::pause
+                KeyEvent.KEYCODE_MEDIA_NEXT -> desktop::seekToNext
+                KeyEvent.KEYCODE_MEDIA_PREVIOUS -> desktop::seekToPrevious
+                else -> return false
+            }
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) press()
+            return true
         }
 
         override fun onCustomCommand(
@@ -695,6 +773,8 @@ class PlaybackService : MediaLibraryService() {
 
     companion object {
         private const val FLIP_PAUSE_TIMEOUT_MS = 20 * 60 * 1000L
+        private const val DESKTOP_IDLE_POLL_MS = 10 * 60 * 1000L
+        private const val DESKTOP_SESSION_ID = "desktop"
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
         const val ACTION_CUSTOM_SHUFFLE = "in.caffeinelabs.cassettecat.action.CUSTOM_SHUFFLE"
         const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"

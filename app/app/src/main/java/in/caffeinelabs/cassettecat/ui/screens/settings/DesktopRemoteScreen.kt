@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,12 +44,14 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
+import `in`.caffeinelabs.cassettecat.data.device.PairingResult
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import kotlinx.coroutines.launch
 
 @Composable
 fun DesktopRemoteScreen(
@@ -95,7 +98,7 @@ fun DesktopRemoteScreen(
             }
             Spacer(Modifier.height(listBottomPadding))
         }
-        else -> DesktopPairingForm(title, onBack, desktop, modifier)
+        else -> DesktopPairingForm(title, onBack, desktop, state.name, modifier)
     }
 }
 
@@ -115,12 +118,24 @@ private fun RemoteScreenHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: DesktopRemoteRepository, modifier: Modifier) {
+private fun DesktopPairingForm(
+    title: String,
+    onBack: () -> Unit,
+    desktop: DesktopRemoteRepository,
+    // Kept when the computer changed its code, so it is picked again straight away.
+    previousName: String?,
+    modifier: Modifier
+) {
     val found by desktop.found.collectAsStateWithLifecycle()
     var selected by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     var input by rememberSaveable { mutableStateOf("") }
-    var invalid by rememberSaveable { mutableStateOf(false) }
+    var result by rememberSaveable { mutableStateOf<PairingResult?>(null) }
+    var connecting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { desktop.discover() }
+    LaunchedEffect(found) {
+        if (selected == null) selected = found.firstOrNull { it.name == previousName }
+    }
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         RemoteScreenHeader(title, onBack)
@@ -134,7 +149,7 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
                     onClick = {
                         selected = computer
                         input = ""
-                        invalid = false
+                        result = null
                     }
                 )
                 SettingsDivider()
@@ -151,8 +166,12 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 val target = selected
                 Text(
-                    if (target != null) stringResource(AppR.string.desktop_remote_code_hint, target.name)
-                    else stringResource(AppR.string.desktop_remote_pair_hint),
+                    when {
+                        target != null && target.name == previousName ->
+                            stringResource(AppR.string.desktop_remote_code_changed, target.name)
+                        target != null -> stringResource(AppR.string.desktop_remote_code_hint, target.name)
+                        else -> stringResource(AppR.string.desktop_remote_pair_hint)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -160,7 +179,7 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
                     value = input,
                     onValueChange = {
                         input = it
-                        invalid = false
+                        result = null
                     },
                     label = {
                         Text(stringResource(if (target != null) AppR.string.desktop_remote_code else AppR.string.desktop_remote_address))
@@ -174,12 +193,8 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
                             modifier = Modifier.size(20.dp)
                         )
                     },
-                    isError = invalid,
-                    supportingText = if (invalid) {
-                        { Text(stringResource(AppR.string.desktop_remote_address_invalid)) }
-                    } else {
-                        null
-                    },
+                    isError = result != null,
+                    supportingText = pairingError(result)?.let { message -> { Text(stringResource(message)) } },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         capitalization = if (target != null) KeyboardCapitalization.Characters else KeyboardCapitalization.None,
@@ -197,9 +212,14 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
                 )
                 Button(
                     onClick = hapticClick {
-                        invalid = !(if (target != null) desktop.pair(target, input) else desktop.pair(input))
+                        connecting = true
+                        scope.launch {
+                            val outcome = if (target != null) desktop.pair(target, input) else desktop.pair(input)
+                            result = outcome.takeUnless { it == PairingResult.PAIRED }
+                            connecting = false
+                        }
                     },
-                    enabled = input.isNotBlank(),
+                    enabled = input.isNotBlank() && !connecting,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(AppR.string.action_connect))
@@ -207,6 +227,13 @@ private fun DesktopPairingForm(title: String, onBack: () -> Unit, desktop: Deskt
             }
         }
     }
+}
+
+private fun pairingError(result: PairingResult?): Int? = when (result) {
+    PairingResult.INVALID_ADDRESS -> AppR.string.desktop_remote_address_invalid
+    PairingResult.WRONG_CODE -> AppR.string.desktop_remote_wrong_code
+    PairingResult.UNREACHABLE -> AppR.string.desktop_remote_unreachable
+    PairingResult.PAIRED, null -> null
 }
 
 /** Picks which device this phone plays on and controls, like Spotify Connect. */

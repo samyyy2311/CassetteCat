@@ -59,6 +59,8 @@ internal fun matchInLibrary(wanted: List<Song>, library: List<Song>): List<Song>
     return wanted.mapNotNull { byKey[key(it)] }
 }
 
+enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
+
 data class DesktopRemoteState(
     val loaded: Boolean = false,
     val address: DesktopAddress? = null,
@@ -76,8 +78,8 @@ data class DesktopRemoteState(
 class DesktopRemoteRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val dataStore = context.desktopRemoteDataStore
-    private val playbackRepository = DevicePlaybackRepository()
-    private val apiClient = DeviceControlApiClient()
+    private val apiClient = DeviceControlApiClient(onCodeRejected = ::codeRejected)
+    private val playbackRepository = DevicePlaybackRepository(apiClient)
 
     val state: StateFlow<DesktopRemoteState> = combine(
         dataStore.data,
@@ -126,9 +128,17 @@ class DesktopRemoteRepository private constructor(context: Context) {
     // The player and the device sheet can both be polling; the last one out stops it.
     private var pollers = 0
 
+    // With the app on screen the computer's changes show at once; the notification alone can wait a little.
+    private val _inFront = MutableStateFlow(false)
+    val isInFront: Boolean get() = _inFront.value
+
+    fun setInFront(inFront: Boolean) {
+        _inFront.value = inFront
+    }
+
     init {
         scope.launch {
-            state.map { it.address }.distinctUntilChanged().collect {
+            combine(state.map { it.address }, _inFront) { address, inFront -> address to inFront }.distinctUntilChanged().collect {
                 if (pollers > 0) {
                     playbackRepository.stopPolling()
                     pollCurrentDesktop()
@@ -210,16 +220,34 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
-    /** Pairs with the "ip:port#CODE" address typed by hand; returns whether it parsed. */
-    fun pair(text: String): Boolean = pairAddress(text.trim(), name = null)
+    /** Pairs with the "ip:port#CODE" address typed by hand. */
+    suspend fun pair(text: String): PairingResult = pairAddress(text.trim(), name = null)
 
-    fun pair(desktop: DiscoveredDesktop, code: String): Boolean =
-        pairAddress("${desktop.host}:${desktop.port}#${code.trim()}", desktop.name)
+    // The computer's copy button gives the whole address, so a pasted one contributes just its code.
+    suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult =
+        pairAddress("${desktop.host}:${desktop.port}#${code.substringAfterLast('#').trim()}", desktop.name)
 
-    private fun pairAddress(address: String, name: String?): Boolean {
-        if (parseDesktopAddress(address) == null) return false
-        save(address, name, controlling = true)
-        return true
+    // The code is checked first, so a mistyped one is caught here instead of failing quietly afterwards.
+    private suspend fun pairAddress(text: String, name: String?): PairingResult {
+        val address = parseDesktopAddress(text) ?: return PairingResult.INVALID_ADDRESS
+        return when (apiClient.acceptsPairingCode(address.host, address.port, address.code)) {
+            true -> PairingResult.PAIRED.also { save(text, name, controlling = true) }
+            false -> PairingResult.WRONG_CODE
+            null -> PairingResult.UNREACHABLE
+        }
+    }
+
+    // A computer given a new code refuses the old one. Dropping it stops the retries, which would otherwise lock
+    // everyone out, and the kept name lets the pairing screen ask for the new code.
+    private fun codeRejected(code: String) {
+        scope.launch {
+            dataStore.edit {
+                if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code == code) {
+                    it.remove(DESKTOP_ADDRESS)
+                    it[DESKTOP_ACTIVE] = false
+                }
+            }
+        }
     }
 
     private fun save(address: String, name: String?, controlling: Boolean? = null) {
@@ -254,12 +282,18 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun pollCurrentDesktop() {
         val desktop = connectedDesktop() ?: return
         // A LAN round trip is cheap, and the desktop's own controls should show up here quickly.
-        playbackRepository.startPolling(desktop.host, desktop.port, null, desktop.code, intervalMs = 1_000L)
+        val intervalMs = if (isInFront) 1_000L else 3_000L
+        playbackRepository.startPolling(desktop.host, desktop.port, null, desktop.code, intervalMs)
     }
 
     fun sendAction(action: String) {
         val desktop = connectedDesktop() ?: return
         playbackRepository.sendAction(desktop.host, desktop.port, action, null, desktop.code)
+    }
+
+    fun setVolume(percent: Int) {
+        val desktop = connectedDesktop() ?: return
+        playbackRepository.setVolume(desktop.host, desktop.port, percent, null, desktop.code)
     }
 
     fun seek(positionMs: Long) {

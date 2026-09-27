@@ -17,6 +17,9 @@ object AudioWaveformHolder {
     private val _amplitudes = MutableStateFlow(FloatArray(7) { 0f })
     val amplitudes: StateFlow<FloatArray> = _amplitudes.asStateFlow()
 
+    // Only the lyrics screen draws the bands, so audio is analysed only while it is showing.
+    val isWatched: Boolean get() = _amplitudes.subscriptionCount.value > 0
+
     fun update(values: FloatArray) {
         _amplitudes.value = values
     }
@@ -45,7 +48,7 @@ class AudioWaveformProcessor private constructor() : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
+        if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT && AudioWaveformHolder.isWatched) {
             val duplicate = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
             process16BitPcm(duplicate, inputAudioFormat.channelCount)
         }
