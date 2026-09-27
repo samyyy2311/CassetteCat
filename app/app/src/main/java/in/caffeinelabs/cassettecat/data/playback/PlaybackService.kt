@@ -111,6 +111,7 @@ class PlaybackService : MediaLibraryService() {
     private var lastShakeSkipTime: Long = 0L
     private var lastWaveSkipTime: Long = 0L
     private var sequentialNavigationPlayer: SequentialNavigationPlayer? = null
+    private var desktopSession: MediaSession? = null
 
     private val becomingNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -356,7 +357,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     // While this phone controls the computer, the computer takes the phone's place in the notification, lock screen
-    // and volume keys. The app's own controller stays connected to the phone's session throughout.
+    // and volume keys. The phone's session stays as it is, so the app's own controller keeps working.
     private suspend fun presentControlledDesktop(sessionActivity: PendingIntent, bitmapLoader: BitmapLoader) {
         val desktop = DesktopRemoteRepository.getInstance(this)
         desktop.state.map { it.controlling }.distinctUntilChanged().collectLatest { controlling ->
@@ -368,7 +369,7 @@ class PlaybackService : MediaLibraryService() {
                 .setSessionActivity(sessionActivity)
                 .setBitmapLoader(bitmapLoader)
                 .build()
-            mediaSession?.let(::removeSession)
+            desktopSession = session
             addSession(session)
             try {
                 coroutineScope {
@@ -384,10 +385,11 @@ class PlaybackService : MediaLibraryService() {
                     }
                 }
             } finally {
+                desktopSession = null
                 removeSession(session)
                 session.release()
                 player.release()
-                mediaSession?.let(::addSession)
+                mediaSession?.player?.let(::updateNotificationLayout)
             }
         }
     }
@@ -408,6 +410,12 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
+
+    // Both sessions share one notification, which shows the computer while it is being controlled.
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        if (desktopSession != null && session !== desktopSession) return
+        super.onUpdateNotification(session, startInForegroundRequired)
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         mediaSession?.player?.stop()
