@@ -16,12 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -97,12 +94,13 @@ class DesktopRemoteRepository private constructor(context: Context) {
     val status: StateFlow<DevicePlaybackStatus?> = playbackRepository.status
 
     private val upNext = MutableStateFlow<List<DesktopQueueTrack>>(emptyList())
-    private val _transferRequests = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    private val _transferRequest = MutableStateFlow<Boolean?>(null)
     /**
-     * Where playback should move: true for the computer, false for this phone. The device sheet, Android's output
-     * switcher and the computer itself ask here, and one place in the app carries it out.
+     * Where playback is being moved: true for the computer, false for this phone, null once the move is done. The
+     * device sheet, Android's output switcher and the computer itself ask here, and one place in the app carries it
+     * out; a request made before the app is ready waits, and a newer one replaces it.
      */
-    val transferRequests: SharedFlow<Boolean> = _transferRequests.asSharedFlow()
+    val transferRequest: StateFlow<Boolean?> = _transferRequest.asStateFlow()
     private val _found = MutableStateFlow<List<DiscoveredDesktop>>(emptyList())
     val found: StateFlow<List<DiscoveredDesktop>> = _found.asStateFlow()
 
@@ -264,7 +262,12 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     fun requestTransfer(toDesktop: Boolean) {
-        _transferRequests.tryEmit(toDesktop)
+        _transferRequest.value = toDesktop
+    }
+
+    /** Marks the move to [toDesktop] as done, unless a newer request replaced it meanwhile. */
+    fun transferDone(toDesktop: Boolean) {
+        _transferRequest.compareAndSet(toDesktop, null)
     }
 
     fun setControlling(controlling: Boolean) {
