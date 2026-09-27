@@ -215,8 +215,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
     /** Pairs with the "ip:port#CODE" address typed by hand. */
     suspend fun pair(text: String): PairingResult = pairAddress(text.trim(), name = null)
 
+    // The computer's copy button gives the whole address, so a pasted one contributes just its code.
     suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult =
-        pairAddress("${desktop.host}:${desktop.port}#${code.trim()}", desktop.name)
+        pairAddress("${desktop.host}:${desktop.port}#${code.substringAfterLast('#').trim()}", desktop.name)
 
     // The code is checked first, so a mistyped one is caught here instead of failing quietly afterwards.
     private suspend fun pairAddress(text: String, name: String?): PairingResult {
