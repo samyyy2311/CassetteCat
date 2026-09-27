@@ -21,6 +21,8 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.service.quicksettings.TileService
 import android.util.Size
+import android.view.KeyEvent
+import androidx.core.content.IntentCompat
 import androidx.core.graphics.scale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -412,9 +414,9 @@ class PlaybackService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     // Both sessions share one notification, which shows the computer while it is being controlled.
-    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (desktopSession != null && session !== desktopSession) return
-        super.onUpdateNotification(session, startInForegroundRequired)
+    override fun onUpdateNotificationAsync(session: MediaSession, startInForegroundRequired: Boolean): ListenableFuture<Void?> {
+        if (desktopSession != null && session !== desktopSession) return Futures.immediateVoidFuture()
+        return super.onUpdateNotificationAsync(session, startInForegroundRequired)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -510,6 +512,28 @@ class PlaybackService : MediaLibraryService() {
                 .setAvailableSessionCommands(availableSessionCommands)
                 .setCustomLayout(buildCustomLayout(session.player, isFav, session.player.shuffleModeEnabled))
                 .build()
+        }
+
+        // Android sends headset buttons to this app's session that matches whether the phone is playing audio,
+        // which is this paused one while the computer plays. They are passed on to the computer meanwhile.
+        override fun onMediaButtonEvent(
+            session: MediaSession,
+            controllerInfo: MediaSession.ControllerInfo,
+            intent: Intent
+        ): Boolean {
+            val desktop = desktopSession?.player ?: return false
+            val event = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
+            val press: () -> Unit = when (event.keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK ->
+                    { { if (desktop.playWhenReady) desktop.pause() else desktop.play() } }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> desktop::play
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> desktop::pause
+                KeyEvent.KEYCODE_MEDIA_NEXT -> desktop::seekToNext
+                KeyEvent.KEYCODE_MEDIA_PREVIOUS -> desktop::seekToPrevious
+                else -> return false
+            }
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) press()
+            return true
         }
 
         override fun onCustomCommand(
