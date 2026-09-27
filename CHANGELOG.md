@@ -2,6 +2,14 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.6]
+
+* Control your computer from the notification, lock screen, headphone buttons and volume keys while your phone is playing on it.
+* Pairing checks the code before connecting, accepts the whole address pasted from the computer, and asks for the new code when the computer's code changes.
+* The computer no longer drops out of the notification when Wi-Fi naps for a moment.
+* Uses less battery in the background: fewer check-ins with the computer and no waveform analysis while the lyrics screen is closed.
+* Fixed a crash on launch when the computer was selected.
+
 ## [1.7.5]
 
 * Control CassetteCat on your computer from your phone. Pick it from the devices button and the same Now Playing screen, queue and lyrics work for the computer. Your song, queue and position move with you when you switch, and the computer can pause, skip or take over what your phone is playing. Computers on your Wi-Fi are found without typing an address.
