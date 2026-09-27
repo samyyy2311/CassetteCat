@@ -262,6 +262,11 @@ class DesktopRemoteRepository private constructor(context: Context) {
         playbackRepository.sendAction(desktop.host, desktop.port, action, null, desktop.code)
     }
 
+    fun setVolume(percent: Int) {
+        val desktop = connectedDesktop() ?: return
+        playbackRepository.setVolume(desktop.host, desktop.port, percent, null, desktop.code)
+    }
+
     fun seek(positionMs: Long) {
         val desktop = connectedDesktop() ?: return
         _positionMs.value = positionMs
