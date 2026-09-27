@@ -1,12 +1,12 @@
 [versions]
-agp = "9.3.1"
-kotlin = "2.4.10"
+agp = "9.4.1"
+kotlin = "2.4.20"
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 lifecycle = "2.11.0"
-navigationCompose = "2.9.8"
-media3 = "1.11.0"
+navigationCompose = "2.10.2"
+media3 = "1.11.1"
 datastorePreferences = "1.2.1"
 coroutines = "1.11.0"
 iconsLucide = "2.2.1"
@@ -14,7 +14,7 @@ okhttp = "5.4.0"
 kotlinxSerializationJson = "1.11.0"
 junit = "4.13.2"
 mockitoCore = "5.14.2"
-robolectric = "4.14.1"
+robolectric = "4.17"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
