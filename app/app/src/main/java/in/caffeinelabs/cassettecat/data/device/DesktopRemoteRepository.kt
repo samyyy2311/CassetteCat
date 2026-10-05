@@ -84,10 +84,6 @@ internal data class LikesSyncPlan(
     val agreed: Set<String>
 )
 
-/**
- * Works out how both sides change so they end up liking the same songs, for the songs both libraries have. A like
- * added on either side since [lastAgreed] spreads to the other, and so does one taken away; the first sync only adds.
- */
 internal fun planLikesSync(phoneLiked: Set<String>, desktopLiked: Set<String>, shared: Set<String>, lastAgreed: Set<String>?): LikesSyncPlan {
     val phone = phoneLiked intersect shared
     val desktop = desktopLiked intersect shared
@@ -271,7 +267,6 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch { refind() }
     }
 
-    /** Lists the computers nearby, following the paired one by name when the router gave it a new address. */
     suspend fun refind() {
         lastRefindAtMs = SystemClock.elapsedRealtime()
         val desktops = discoverDesktops()

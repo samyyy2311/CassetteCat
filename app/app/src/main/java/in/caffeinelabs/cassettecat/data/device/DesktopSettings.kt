@@ -36,7 +36,6 @@ private val DESKTOP_CROSSFADE_SECONDS = listOf(0, 3, 6, 10)
 
 private fun List<Int>.nearest(value: Int) = minBy { abs(it - value) }
 
-/** This phone's settings in the computer's own keys and values; [desktop] is what the computer has now. */
 internal fun desktopSettingsFrom(prefs: BackupAppPreferences, services: ServiceSettings, desktop: JsonObject): JsonObject {
     val desktopReplayGain = desktop["player/replayGainMode"]?.jsonPrimitive?.contentOrNull
     return buildJsonObject {
@@ -61,7 +60,6 @@ internal fun desktopSettingsFrom(prefs: BackupAppPreferences, services: ServiceS
     }
 }
 
-/** [prefs] with the computer's settings in [desktop] applied; anything it does not have is kept as it was. */
 internal fun BackupAppPreferences.withDesktopSettings(desktop: JsonObject): BackupAppPreferences {
     fun text(key: String) = desktop[key]?.jsonPrimitive?.contentOrNull
     fun flag(key: String) = desktop[key]?.jsonPrimitive?.booleanOrNull
