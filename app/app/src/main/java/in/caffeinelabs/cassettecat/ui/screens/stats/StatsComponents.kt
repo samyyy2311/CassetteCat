@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -542,14 +543,18 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
     if (computed.topGenres.isNotEmpty()) {
         item { SectionHeader(stringResource(AppR.string.stats_top_genres)) }
         items(computed.topGenres, key = { "genre:${it.genre}" }) { genre ->
-            StatTextRow(title = genre.genre, detail = "${genre.playCount} plays", trailing = formatRecordedMinutes(genre.listeningMs))
+            StatTextRow(
+                title = genre.genre,
+                detail = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount),
+                trailing = formatRecordedMinutes(genre.listeningMs)
+            )
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
 
     if (computed.recentListens.isNotEmpty()) {
         item { SectionHeader(stringResource(AppR.string.stats_recent_listens)) }
-        items(computed.recentListens, key = { "listen:${it.at}:${it.title}" }) { listen ->
+        items(computed.recentListens) { listen ->
             val locale = LocalLocale.current.platformLocale
             StatTextRow(
                 title = listen.title,

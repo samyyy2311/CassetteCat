@@ -74,6 +74,7 @@ private const val PLAY_COUNT_SHARE = 0.9
 private const val UNKNOWN_LENGTH_PLAY_MS = 30_000L
 private const val SCROBBLE_MAX_WAIT_MS = 4 * 60 * 1000L
 private const val SCROBBLE_MIN_LENGTH_MS = 30_000L
+private const val REPLAY_START_MS = 5_000L
 
 internal fun countsAsPlay(listenedMs: Long, durationMs: Long): Boolean =
     listenedMs >= if (durationMs > 0) (durationMs * PLAY_COUNT_SHARE).toLong() else UNKNOWN_LENGTH_PLAY_MS
@@ -92,6 +93,7 @@ private class CurrentListen(val song: Song) {
     var listenedMs = 0L
     var counted = false
     var scrobbled = false
+    var positionMs = 0L
 }
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
 
@@ -638,11 +640,16 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 lastTickRealtime = nowRealtime
 
                 val listenable = localState.value.currentSong?.takeIf { it.source != MusicSource.Radio }
-                if (currentListen?.song?.id != listenable?.id) {
+                val positionMs = _positionMs.value
+                val replayed = currentListen?.let { it.counted && positionMs < REPLAY_START_MS && positionMs < it.positionMs } == true
+                if (currentListen?.song?.id != listenable?.id || replayed) {
                     finishListen()
                     currentListen = listenable?.let(::CurrentListen)
                 }
-                currentListen?.let { it.listenedMs += deltaMs }
+                currentListen?.let {
+                    it.listenedMs += deltaMs
+                    it.positionMs = positionMs
+                }
                 tick++
                 if (tick % 5 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
                     publishRoomSnapshot()

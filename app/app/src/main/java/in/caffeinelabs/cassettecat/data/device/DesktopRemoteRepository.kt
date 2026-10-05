@@ -19,6 +19,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
+import `in`.caffeinelabs.cassettecat.data.stats.statsSongId
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.CancellationException
@@ -478,13 +479,17 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val desktop = connectedDesktop() ?: return
         val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
         if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
-            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).drop(pending.size)) }
+            val sent = pending.toSet()
+            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
         }
         if (!appPreferences.preferences.first().listeningStatsEnabled) return
         val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
         val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since)?.takeIf { it.isNotEmpty() } ?: return
         val songsByKey = localLibrary.getSongs().associateBy { matchKey(it.title, it.artist) }
-        statsRepository.addListens(listens.map { it.copy(songId = songsByKey[matchKey(it.title, it.artist)]?.id) })
+        val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
+        statsRepository.addListens(
+            listens.map { it.copy(songId = songsByKey[matchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
+        )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
     }
 
