@@ -41,9 +41,20 @@ private const val DUPLICATE_DURATION_TOLERANCE_MS = 3_000L
 internal fun findDuplicateGroups(songs: List<Song>): List<List<Song>> =
     songs.filter { it.source == MusicSource.Local }
         .groupBy { it.title.trim().lowercase() to it.artist.trim().lowercase() }
-        .values
-        .filter { group -> group.size > 1 && group.maxOf { it.durationMs } - group.minOf { it.durationMs } <= DUPLICATE_DURATION_TOLERANCE_MS }
-        .sortedBy { it.first().title.lowercase() }
+        .entries
+        .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+        .flatMap { (_, group) -> splitByDuration(group) }
+        .filter { it.size > 1 }
+
+private fun splitByDuration(songs: List<Song>): List<List<Song>> {
+    val clusters = mutableListOf<MutableList<Song>>()
+    songs.sortedBy { it.durationMs }.forEach { song ->
+        val cluster = clusters.lastOrNull()
+        if (cluster != null && song.durationMs - cluster.last().durationMs <= DUPLICATE_DURATION_TOLERANCE_MS) cluster.add(song)
+        else clusters.add(mutableListOf(song))
+    }
+    return clusters
+}
 
 @Composable
 fun DuplicatesScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {

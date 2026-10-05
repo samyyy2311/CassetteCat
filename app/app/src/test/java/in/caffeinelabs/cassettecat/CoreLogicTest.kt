@@ -290,9 +290,12 @@ class CoreLogicTest {
             testSong("b", artist = "ann ", title = "ONE", durationMs = 201_500L),
             testSong("c", artist = "Ann", title = "One (Live)", durationMs = 200_000L),
             testSong("d", artist = "Bo", title = "Two", durationMs = 180_000L),
-            testSong("e", artist = "Bo", title = "Two", durationMs = 240_000L)
+            testSong("e", artist = "Bo", title = "Two", durationMs = 240_000L),
+            testSong("f", artist = "Ann", title = "One", durationMs = 300_000L),
+            testSong("g", artist = "Cy", title = "One", durationMs = 100_500L),
+            testSong("h", artist = "Cy", title = "One", durationMs = 100_000L)
         ))
-        assertEquals(listOf(listOf("a", "b")), groups.map { group -> group.map { it.id } })
+        assertEquals(listOf(listOf("a", "b"), listOf("h", "g")), groups.map { group -> group.map { it.id } })
     }
 
     private fun testSong(

@@ -18,6 +18,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import android.os.SystemClock
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
@@ -312,12 +313,6 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 .map { it.await() }
         }
 
-        results.forEach { (label, result) ->
-            val songs = result.getOrNull()
-            if (label != "Local" && songs != null) {
-                favoritesRepository.mirror(songs.mapTo(HashSet()) { it.id }, songs.filter { it.isFavorite }.mapTo(HashSet()) { it.id })
-            }
-        }
         val allRaw = results.flatMap { (_, result) -> result.getOrDefault(emptyList()) }
         rawSongs = allRaw
         loadedSongs = metadataOverridesRepo.applyTo(allRaw)
@@ -327,6 +322,17 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         publishLoadedSongs()
         updateAvailableSources()
         _lastRefreshAtMs.value = System.currentTimeMillis()
+        results.forEach { (label, result) ->
+            val songs = result.getOrNull()
+            if (label != "Local" && songs != null) {
+                runCatching {
+                    favoritesRepository.mirror(songs.mapTo(HashSet()) { it.id }, songs.filter { it.isFavorite }.mapTo(HashSet()) { it.id })
+                }.onFailure {
+                    if (it is CancellationException) throw it
+                    Log.w("LibraryViewModel", "Couldn't save $label likes", it)
+                }
+            }
+        }
     }
 
     fun updateSongMetadata(updatedSong: Song) {

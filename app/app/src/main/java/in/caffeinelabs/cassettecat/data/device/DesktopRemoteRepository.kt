@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
+import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -13,6 +14,7 @@ import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -342,7 +344,11 @@ class DesktopRemoteRepository private constructor(context: Context) {
     suspend fun backUp(backupJson: String): Boolean {
         val desktop = connectedDesktop() ?: return false
         if (!apiClient.uploadBackup(desktop.host, desktop.port, desktop.code, backupJson)) return false
-        dataStore.edit { it[DESKTOP_LAST_BACKUP] = System.currentTimeMillis() }
+        runCatching { dataStore.edit { it[DESKTOP_LAST_BACKUP] = System.currentTimeMillis() } }
+            .onFailure {
+                if (it is CancellationException) throw it
+                Log.w("DesktopRemote", "Backed up, but couldn't record when", it)
+            }
         return true
     }
 
