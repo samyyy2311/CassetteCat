@@ -59,6 +59,8 @@ private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
 private const val REFIND_INTERVAL_MS = 30_000L
+private const val APPROVAL_WAIT_MS = 65_000L
+private const val APPROVAL_POLL_MS = 1_000L
 
 data class DesktopAddress(val host: String, val port: Int, val code: String)
 
@@ -105,6 +107,8 @@ internal fun findAllInLibrary(tracks: List<HandoffTrack>, library: List<Song>): 
 }
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
+
+enum class ApprovalResult { PAIRED, NOT_ALLOWED, UNSUPPORTED }
 
 data class DesktopRemoteState(
     val loaded: Boolean = false,
@@ -293,6 +297,20 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     /** Pairs with the "ip:port#CODE" address typed by hand. */
     suspend fun pair(text: String): PairingResult = pairAddress(text.trim(), name = null)
+
+    suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult {
+        val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return ApprovalResult.UNSUPPORTED
+        val deadline = SystemClock.elapsedRealtime() + APPROVAL_WAIT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            delay(APPROVAL_POLL_MS)
+            val status = apiClient.pairingStatus(desktop.host, desktop.port, id) ?: continue
+            if (status.status == "allowed") {
+                return if (pair(desktop, status.code.orEmpty()) == PairingResult.PAIRED) ApprovalResult.PAIRED else ApprovalResult.NOT_ALLOWED
+            }
+            if (status.status == "denied") return ApprovalResult.NOT_ALLOWED
+        }
+        return ApprovalResult.NOT_ALLOWED
+    }
 
     // The computer's copy button gives the whole address, so a pasted one contributes just its code.
     suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult =

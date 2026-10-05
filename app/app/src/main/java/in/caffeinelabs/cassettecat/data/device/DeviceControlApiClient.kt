@@ -75,6 +75,15 @@ private data class LikesChange(val like: List<String>, val unlike: List<String>)
 private data class DesktopListens(val listens: List<Listen>)
 
 @Serializable
+private data class PairingRequest(val name: String)
+
+@Serializable
+private data class PairingTicket(val id: String)
+
+@Serializable
+data class PairingStatus(val status: String, val code: String? = null)
+
+@Serializable
 data class DesktopPlaylist(val name: String, val tracks: List<HandoffTrack>)
 
 @Serializable
@@ -139,6 +148,29 @@ class DeviceControlApiClient(
     }
 
     /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
+    suspend fun requestPairing(host: String, port: Int): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/pair-request")
+                    .post(sharedJson.encodeToString(PairingRequest.serializer(), PairingRequest(deviceName)).toRequestBody("application/json".toMediaType()))
+                    .build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PairingTicket>(it.body.string()).id else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun pairingStatus(host: String, port: Int, id: String): PairingStatus? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/pair-request?id=$id").build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PairingStatus>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
+
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
         withContext(Dispatchers.IO) {
             runCatching {
