@@ -47,9 +47,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import androidx.compose.ui.platform.LocalLocale
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import java.time.Instant
 import java.time.ZoneId
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -177,8 +180,11 @@ internal fun ListeningRecordReadout(
     isRewind: Boolean,
     listeningMinutes: Long,
     totalPlays: Int,
-    uniqueSongs: Int
+    uniqueSongs: Int,
+    busiestMonth: YearMonth?,
+    firstListenAt: Long?
 ) {
+    val locale = LocalLocale.current.platformLocale
     val subtitle = if (isRewind) "CASSETTE REWIND // ANNUAL RECAP $year" else "RECORDED // ${month?.month?.getDisplayName(TextStyle.SHORT, Locale.US)?.uppercase(Locale.US) ?: ""} $year"
     val description = if (listeningMinutes == 0L) {
         "No listening time has been recorded yet."
@@ -222,6 +228,18 @@ internal fun ListeningRecordReadout(
                 label = stringResource(AppR.string.poster_tracks),
                 value = uniqueSongs.toString().padStart(2, '0')
             )
+            busiestMonth?.let {
+                RecordMetric(
+                    label = stringResource(AppR.string.stats_busiest),
+                    value = it.month.getDisplayName(TextStyle.SHORT, locale).uppercase(locale)
+                )
+            }
+            firstListenAt?.let {
+                RecordMetric(
+                    label = stringResource(AppR.string.stats_since),
+                    value = DateTimeFormatter.ofPattern("MMM d", locale).format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())).uppercase(locale)
+                )
+            }
         }
     }
 }
@@ -298,6 +316,29 @@ internal fun StatSongRow(song: Song, count: Int, onClick: () -> Unit) {
         if (count > 1) {
             Text(
                 "$count plays",
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatTextRow(title: String, detail: String, trailing: String?, onClick: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.tapScale(onClick) else Modifier)
+            .padding(horizontal = 24.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        trailing?.let {
+            Text(
+                it,
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -393,6 +434,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
     onNavigateToAlbum: (String) -> Unit,
     onPlayTrack: (SongStat) -> Unit,
     onViewAllMostPlayed: () -> Unit,
+    onPlayListen: (Listen) -> Unit,
     onSavePlaylist: () -> Unit
 ) {
     if (computed.topArtists.isNotEmpty()) {
@@ -495,6 +537,28 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (computed.topGenres.isNotEmpty()) {
+        item { SectionHeader(stringResource(AppR.string.stats_top_genres)) }
+        items(computed.topGenres, key = { "genre:${it.genre}" }) { genre ->
+            StatTextRow(title = genre.genre, detail = "${genre.playCount} plays", trailing = formatRecordedMinutes(genre.listeningMs))
+        }
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+
+    if (computed.recentListens.isNotEmpty()) {
+        item { SectionHeader(stringResource(AppR.string.stats_recent_listens)) }
+        items(computed.recentListens, key = { "listen:${it.at}:${it.title}" }) { listen ->
+            val locale = LocalLocale.current.platformLocale
+            StatTextRow(
+                title = listen.title,
+                detail = listen.artist,
+                trailing = DateTimeFormatter.ofPattern("MMM d · HH:mm", locale).format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
+                onClick = { onPlayListen(listen) }
+            )
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 
     if (monthMilestones.isNotEmpty()) {
