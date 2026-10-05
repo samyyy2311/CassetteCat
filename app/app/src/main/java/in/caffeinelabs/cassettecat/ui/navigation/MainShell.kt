@@ -105,6 +105,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopRemoteScreen
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceConnectSheet
+import `in`.caffeinelabs.cassettecat.data.backup.BackupRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceFirmwareScreen
@@ -113,6 +114,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSettingsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceStorageScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSyncScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DownloadsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DuplicatesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.EqualizerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ExternalServicesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ManageScanFoldersScreen
@@ -180,6 +182,7 @@ object MainRoute {
     const val EQUALIZER = "main/settings/equalizer"
     const val BACKUP_RESTORE = "main/settings/backup_restore"
     const val DOWNLOADS = "main/settings/downloads"
+    const val DUPLICATES = "main/settings/duplicates"
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
@@ -326,6 +329,9 @@ fun MainShell(
         if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
             updatePrompt = updateToPrompt(context, BuildConfig.VERSION_NAME)
         }
+    }
+    LaunchedEffect(desktopRemote) {
+        desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {
@@ -535,7 +541,9 @@ fun MainShell(
                     enterTransition = tabAwareEnter,
                     exitTransition = tabAwareExit,
                     popEnterTransition = mechanicalPopEnter,
-                    popExitTransition = mechanicalPopExit
+                    popExitTransition = mechanicalPopExit,
+                    predictivePopEnterTransition = { mechanicalPopEnter() },
+                    predictivePopExitTransition = { mechanicalPopExit() }
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -766,6 +774,7 @@ fun MainShell(
                         CustomizationStorageScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
+                            onOpenDuplicates = { navController.navigate(MainRoute.DUPLICATES) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -863,6 +872,13 @@ fun MainShell(
                     }
                     composable(MainRoute.BACKUP_RESTORE) {
                         BackupRestoreScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(MainRoute.DUPLICATES) {
+                        DuplicatesScreen(
+                            libraryViewModel = libraryViewModel,
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
                     }
                     composable(MainRoute.DOWNLOADS) {
                         DownloadsScreen(libraryViewModel = libraryViewModel, onBack = { navController.popBackStack() })

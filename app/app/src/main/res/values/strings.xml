@@ -46,6 +46,12 @@
     <string name="action_remove_folder">Remove folder</string>
     <string name="action_remove">Remove</string>
     <string name="action_delete">Delete</string>
+    <string name="duplicates_title">Duplicates</string>
+    <string name="duplicates_description">Find songs saved more than once on this device</string>
+    <string name="duplicates_empty">No duplicate songs found.</string>
+    <string name="duplicates_bitrate">%1$d kbps</string>
+    <string name="duplicates_delete_title">Delete this file?</string>
+    <string name="duplicates_delete_message">%1$s will be permanently deleted from this device.</string>
     <string name="action_share">Share</string>
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
@@ -181,6 +187,15 @@
     <string name="backup_create_failed">Backup failed: couldn’t open the destination file.</string>
     <string name="backup_restore_success">Backup restored.</string>
     <string name="backup_restore_failed">Restore failed: the file may not be a valid CassetteCat backup.</string>
+    <string name="backup_computer_section">COMPUTER</string>
+    <string name="backup_computer_create_title">Back Up to Computer</string>
+    <string name="backup_computer_never">Backs up daily when you open the app</string>
+    <string name="backup_computer_last">Last backup: %1$s</string>
+    <string name="backup_computer_restore_title">Restore from Computer</string>
+    <string name="backup_computer_restore_subtitle">Replace current data with the latest backup on your computer</string>
+    <string name="backup_computer_done">Backed up to your computer.</string>
+    <string name="backup_computer_failed">Couldn’t reach your computer. Check that CassetteCat is open on it and you’re on the same Wi-Fi.</string>
+    <string name="backup_computer_restore_unavailable">Couldn’t get a backup from your computer. Check that CassetteCat is open on it and that this phone has backed up to it.</string>
 
     <string name="server_connect_subsonic">Connect to Subsonic</string>
     <string name="server_connect_jellyfin">Connect to Jellyfin</string>

@@ -57,7 +57,7 @@ data class HandoffTrack(val title: String, val artist: String)
 data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
 
 @Serializable
-private data class PhoneCheckInReply(val commands: List<String> = emptyList())
+data class PhoneCheckInReply(val commands: List<String> = emptyList(), val playNext: List<HandoffTrack> = emptyList())
 
 @Serializable
 private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
@@ -161,8 +161,8 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
                 .getOrDefault(false)
         }
 
-    /** Tells the desktop what this phone is playing; returns the commands it queued for the phone. */
-    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): List<String> =
+    /** Tells the desktop what this phone is playing; returns the commands and songs it queued for the phone. */
+    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): PhoneCheckInReply =
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder()
@@ -171,9 +171,9 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
                     .withPairingCode(token)
                     .build()
                 client(null).newCall(request).execute().use {
-                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()).commands else emptyList()
+                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()) else PhoneCheckInReply()
                 }
-            }.getOrDefault(emptyList())
+            }.getOrDefault(PhoneCheckInReply())
         }
 
     suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
@@ -181,6 +181,32 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
             val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
             runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
                 .getOrDefault(false)
+        }
+
+    suspend fun playNextOnDesktop(host: String, port: Int, token: String, track: HandoffTrack): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/next", track, HandoffTrack.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun uploadBackup(host: String, port: Int, token: String, backupJson: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/backup")
+                    .post(backupJson.toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                client(null).newCall(request).execute().use { it.isSuccessful }
+            }.getOrDefault(false)
+        }
+
+    suspend fun downloadBackup(host: String, port: Int, token: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/backup").withPairingCode(token).build()
+                client(null).newCall(request).execute().use { if (it.isSuccessful) it.body.string() else null }
+            }.getOrNull()
         }
 
     suspend fun moveQueueTrack(host: String, port: Int, from: Int, to: Int, token: String): Boolean =

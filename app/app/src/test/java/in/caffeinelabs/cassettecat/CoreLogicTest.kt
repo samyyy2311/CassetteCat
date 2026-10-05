@@ -27,8 +27,11 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
+import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
+import `in`.caffeinelabs.cassettecat.data.device.findInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -104,6 +107,14 @@ class CoreLogicTest {
 
         assertEquals(listOf("a", "b"), matchInLibrary(fromDesktop, library).map { it.id })
         assertEquals(emptyList<Song>(), matchInLibrary(fromDesktop.drop(1), library))
+    }
+
+    @Test
+    fun findsASongSentFromTheDesktopByTitleAndArtist() {
+        val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
+
+        assertEquals("b", findInLibrary(HandoffTrack(title = " two", artist = "BO "), library)?.id)
+        assertNull(findInLibrary(HandoffTrack(title = "Two", artist = "Ann"), library))
     }
 
     @Test
@@ -270,6 +281,18 @@ class CoreLogicTest {
             candidateYear = 1985
         )
         assertEquals(0, farEra)
+    }
+
+    @Test
+    fun duplicatesMatchTitleAndArtistIgnoringCaseWhenDurationsAreClose() {
+        val groups = findDuplicateGroups(listOf(
+            testSong("a", artist = "Ann", title = "One", durationMs = 200_000L),
+            testSong("b", artist = "ann ", title = "ONE", durationMs = 201_500L),
+            testSong("c", artist = "Ann", title = "One (Live)", durationMs = 200_000L),
+            testSong("d", artist = "Bo", title = "Two", durationMs = 180_000L),
+            testSong("e", artist = "Bo", title = "Two", durationMs = 240_000L)
+        ))
+        assertEquals(listOf(listOf("a", "b")), groups.map { group -> group.map { it.id } })
     }
 
     private fun testSong(

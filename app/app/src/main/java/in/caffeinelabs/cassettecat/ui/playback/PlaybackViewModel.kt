@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -16,6 +17,8 @@ import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteState
+import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
+import `in`.caffeinelabs.cassettecat.data.device.findInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -155,6 +158,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
+    private val favoritesRepository = FavoritesRepository(app)
     // Radio favorites store station objects rather than song IDs.
     private val radioFavoritesRepository = `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository(app)
 
@@ -220,7 +224,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 // A long pause stops the check-ins to save battery; pressing play starts them again.
                 val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
                 while (SystemClock.elapsedRealtime() < stopAt) {
-                    desktop.checkIn(song, isPlaying).forEach(::runDesktopCommand)
+                    val reply = desktop.checkIn(song, isPlaying)
+                    reply.commands.forEach(::runDesktopCommand)
+                    if (reply.playNext.isNotEmpty()) launch { playNextFromDesktop(reply.playNext) }
                     delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
                 }
             }
@@ -237,14 +243,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch {
-            playbackState.map { it.currentSong }.distinctUntilChanged().collect { song ->
-                _isCurrentSongFavorite.value = if (song?.source == MusicSource.Radio) {
-                    val uuid = song.id.removePrefix("radio:")
-                    radioFavoritesRepository.favoriteStations.first().any { it.uuid == uuid }
-                } else {
-                    song?.isFavorite ?: false
+            combine(
+                playbackState.map { it.currentSong }.distinctUntilChanged(),
+                favoritesRepository.favoriteIds,
+                radioFavoritesRepository.favoriteStations
+            ) { song, favoriteIds, stations ->
+                when (song?.source) {
+                    null -> false
+                    MusicSource.Radio -> stations.any { it.uuid == song.id.removePrefix("radio:") }
+                    else -> song.id in favoriteIds
                 }
-            }
+            }.collect { _isCurrentSongFavorite.value = it }
         }
         viewModelScope.launch {
             localState.map { it.currentSong }.distinctUntilChanged().collect { song ->
@@ -513,6 +522,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private suspend fun playNextFromDesktop(tracks: List<HandoffTrack>) {
+        val library = librariesBySource.values.flatMap { library -> runCatching { library.getSongs() }.getOrDefault(emptyList()) }
+        val songs = tracks.mapNotNull { findInLibrary(it, library) }
+        if (songs.isNotEmpty()) addToUpNext(songs)
+    }
+
     private fun runDesktopCommand(command: String) {
         when (command) {
             "play" -> if (!localState.value.isPlaying) repository.togglePlayPause()
@@ -587,6 +602,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 } else {
                     librariesBySource[song.source]?.setFavorite(song.id, newValue)
+                    favoritesRepository.setFavorite(song.id, newValue)
                     if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
                         `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
                     }

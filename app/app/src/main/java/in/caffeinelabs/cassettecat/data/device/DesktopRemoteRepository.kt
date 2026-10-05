@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.SystemClock
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.media3.common.Player
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,7 +35,9 @@ private val DESKTOP_ADDRESS = stringPreferencesKey("address")
 private val DESKTOP_NAME = stringPreferencesKey("name")
 // Whether this phone is controlling the desktop, as when a device is picked in Spotify Connect.
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
+private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
+private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 
 data class DesktopAddress(val host: String, val port: Int, val code: String)
 
@@ -48,12 +52,19 @@ internal fun parseDesktopAddress(text: String): DesktopAddress? {
     return DesktopAddress(host, port, code)
 }
 
+private fun matchKey(title: String, artist: String) = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()
+
 /** Finds [wanted] in [library] by title and artist, in order; empty when the first song is not there. */
 internal fun matchInLibrary(wanted: List<Song>, library: List<Song>): List<Song> {
-    fun key(song: Song) = song.title.trim().lowercase() + "\u001f" + song.artist.trim().lowercase()
+    fun key(song: Song) = matchKey(song.title, song.artist)
     val byKey = library.asReversed().associateBy(::key)
     if (wanted.firstOrNull()?.let { byKey[key(it)] } == null) return emptyList()
     return wanted.mapNotNull { byKey[key(it)] }
+}
+
+internal fun findInLibrary(track: HandoffTrack, library: List<Song>): Song? {
+    val wanted = matchKey(track.title, track.artist)
+    return library.firstOrNull { matchKey(it.title, it.artist) == wanted }
 }
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
@@ -63,7 +74,8 @@ data class DesktopRemoteState(
     val address: DesktopAddress? = null,
     val name: String? = null,
     val active: Boolean = false,
-    val offlineBlackout: Boolean = false
+    val offlineBlackout: Boolean = false,
+    val lastBackupAtMs: Long? = null
 ) {
     val controlling: Boolean get() = active && address != null && !offlineBlackout
 }
@@ -87,7 +99,8 @@ class DesktopRemoteRepository private constructor(context: Context) {
             address = prefs[DESKTOP_ADDRESS]?.let(::parseDesktopAddress),
             name = prefs[DESKTOP_NAME],
             active = prefs[DESKTOP_ACTIVE] ?: false,
-            offlineBlackout = services.offlineBlackoutMode
+            offlineBlackout = services.offlineBlackoutMode,
+            lastBackupAtMs = prefs[DESKTOP_LAST_BACKUP]
         )
     }.stateIn(scope, SharingStarted.Eagerly, DesktopRemoteState())
 
@@ -254,6 +267,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun save(address: String, name: String?, controlling: Boolean? = null) {
         scope.launch {
             dataStore.edit {
+                if (it[DESKTOP_ADDRESS] != address) it.remove(DESKTOP_LAST_BACKUP)
                 it[DESKTOP_ADDRESS] = address
                 if (name != null) it[DESKTOP_NAME] = name else it.remove(DESKTOP_NAME)
                 if (controlling != null) it[DESKTOP_ACTIVE] = controlling
@@ -312,9 +326,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
         playbackRepository.seek(desktop.host, desktop.port, positionMs, null, desktop.code)
     }
 
-    /** Reports what this phone plays to the paired computer; returns the commands the computer sent back. */
-    suspend fun checkIn(song: Song, isPlaying: Boolean): List<String> {
-        val desktop = connectedDesktop() ?: return emptyList()
+    /** Reports what this phone plays to the paired computer; returns the commands and songs the computer sent back. */
+    suspend fun checkIn(song: Song, isPlaying: Boolean): PhoneCheckInReply {
+        val desktop = connectedDesktop() ?: return PhoneCheckInReply()
         return apiClient.checkIn(desktop.host, desktop.port, desktop.code, PhoneCheckIn(song.title, song.artist, isPlaying))
     }
 
@@ -323,6 +337,29 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val desktop = connectedDesktop() ?: return false
         val tracks = songs.map { HandoffTrack(it.title, it.artist) }
         return apiClient.handOff(desktop.host, desktop.port, desktop.code, tracks, positionMs, playing)
+    }
+
+    suspend fun backUp(backupJson: String): Boolean {
+        val desktop = connectedDesktop() ?: return false
+        if (!apiClient.uploadBackup(desktop.host, desktop.port, desktop.code, backupJson)) return false
+        dataStore.edit { it[DESKTOP_LAST_BACKUP] = System.currentTimeMillis() }
+        return true
+    }
+
+    suspend fun backUpIfDue(createBackup: suspend () -> String) {
+        val lastBackupAtMs = state.first { it.loaded }.lastBackupAtMs ?: 0L
+        if (connectedDesktop() == null || System.currentTimeMillis() - lastBackupAtMs < BACKUP_INTERVAL_MS) return
+        backUp(createBackup())
+    }
+
+    fun playNext(song: Song, onResult: (Boolean) -> Unit) {
+        val desktop = connectedDesktop() ?: return onResult(false)
+        scope.launch { onResult(apiClient.playNextOnDesktop(desktop.host, desktop.port, desktop.code, HandoffTrack(song.title, song.artist))) }
+    }
+
+    suspend fun downloadBackup(): String? {
+        val desktop = connectedDesktop() ?: return null
+        return apiClient.downloadBackup(desktop.host, desktop.port, desktop.code)
     }
 
     private fun queueIndex(song: Song): Int? = song.id.removePrefix(QUEUE_SONG_PREFIX).takeIf { it != song.id }?.toIntOrNull()

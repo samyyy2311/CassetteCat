@@ -805,7 +805,7 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
 }
 
 @Composable
-fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit, onOpenDuplicates: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     val maxCacheBytes by viewModel.maxCacheBytes.collectAsStateWithLifecycle(initialValue = DEFAULT_MAX_CACHE_BYTES)
@@ -849,6 +849,13 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
                 checked = prefs.ignoreShortAudioClips,
                 onCheckedChange = viewModel::setIgnoreShortAudioClips,
                 iconRes = R.drawable.lucide_ic_clock,
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.duplicates_title),
+                subtitle = stringResource(AppR.string.duplicates_description),
+                iconRes = R.drawable.lucide_ic_copy,
+                onClick = onOpenDuplicates,
             )
             SettingsDivider()
             val coverCount = albumCovers.values.toSet().size
