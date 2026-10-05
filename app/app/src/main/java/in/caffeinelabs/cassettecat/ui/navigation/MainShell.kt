@@ -334,6 +334,7 @@ fun MainShell(
         if (desktopRemote.state.first { it.loaded }.let { it.address != null && !it.offlineBlackout }) desktopRemote.refind()
         desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
         desktopRemote.syncLikes()
+        desktopRemote.syncListens()
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {

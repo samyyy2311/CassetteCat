@@ -16,7 +16,11 @@ import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.stats.CountedListen
+import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -39,6 +43,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
 
 private val Context.desktopRemoteDataStore by preferencesDataStore(name = "desktop_remote")
 private val DESKTOP_ADDRESS = stringPreferencesKey("address")
@@ -47,6 +54,9 @@ private val DESKTOP_NAME = stringPreferencesKey("name")
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
 private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
+private val DESKTOP_PENDING_LISTENS = stringPreferencesKey("pending_listens")
+private val DESKTOP_LISTENS_SINCE = longPreferencesKey("listens_since")
+private const val MAX_PENDING_LISTENS = 2_000
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
@@ -121,6 +131,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private val localLibrary = LocalLibraryRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
     private val likesSync = Mutex()
+    private val listensSync = Mutex()
+    private val appPreferences = AppPreferencesRepository(context)
+    private val statsRepository = ListeningStatsRepository(context)
     private var syncedLikesRevision: Int? = null
     private val playbackRepository = DevicePlaybackRepository(apiClient)
 
@@ -446,6 +459,44 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val desktop = connectedDesktop() ?: return onResult(false)
         scope.launch { onResult(apiClient.playNextOnDesktop(desktop.host, desktop.port, desktop.code, HandoffTrack(song.title, song.artist))) }
     }
+
+    fun queueListen(listen: DesktopListen) {
+        if (state.value.address == null) return
+        scope.launch {
+            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString((pendingListens(it[DESKTOP_PENDING_LISTENS]) + listen).takeLast(MAX_PENDING_LISTENS)) }
+            syncListens()
+        }
+    }
+
+    suspend fun syncListens() = listensSync.withLock {
+        try {
+            syncListensNow()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.w("DesktopRemote", "Couldn't sync listens", e)
+        }
+    }
+
+    private suspend fun syncListensNow() {
+        val desktop = connectedDesktop() ?: return
+        val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
+        if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
+            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).drop(pending.size)) }
+        }
+        if (!appPreferences.preferences.first().listeningStatsEnabled) return
+        val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
+        val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since)?.takeIf { it.isNotEmpty() } ?: return
+        val songsByKey = localLibrary.getSongs().associateBy { matchKey(it.title, it.artist) }
+        statsRepository.addListens(listens.map { listen ->
+            val key = matchKey(listen.title, listen.artist)
+            val monthKey = YearMonth.from(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())).toString()
+            CountedListen(songsByKey[key]?.id ?: "desktop:$key", monthKey, listen.ms)
+        })
+        dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
+    }
+
+    private fun pendingListens(json: String?): List<DesktopListen> =
+        json?.let { runCatching { sharedJson.decodeFromString<List<DesktopListen>>(it) }.getOrNull() }.orEmpty()
 
     fun sendPlaylist(name: String, songs: List<Song>, onResult: (PlaylistCopyResult?) -> Unit) {
         val desktop = connectedDesktop() ?: return onResult(null)

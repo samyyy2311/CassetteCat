@@ -71,6 +71,12 @@ data class DesktopLikes(val library: List<String>, val liked: List<String>, val 
 private data class LikesChange(val like: List<String>, val unlike: List<String>)
 
 @Serializable
+data class DesktopListen(val at: Long, val title: String, val artist: String, val album: String = "", val genre: String = "", val ms: Long)
+
+@Serializable
+private data class DesktopListens(val listens: List<DesktopListen>)
+
+@Serializable
 data class DesktopPlaylist(val name: String, val tracks: List<HandoffTrack>)
 
 @Serializable
@@ -235,6 +241,22 @@ class DeviceControlApiClient(
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/likes", LikesChange(like.toList(), unlike.toList()), LikesChange.serializer(), null, token) }
                 .getOrDefault(false)
+        }
+
+    suspend fun sendListens(host: String, port: Int, token: String, listens: List<DesktopListen>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/listens", DesktopListens(listens), DesktopListens.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun getListens(host: String, port: Int, token: String, since: Long): List<DesktopListen>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/listens?since=$since").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopListens>(it.body.string()).listens else null
+                }
+            }.getOrNull()
         }
 
     suspend fun getPlaylists(host: String, port: Int, token: String): List<DesktopPlaylist>? =

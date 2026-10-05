@@ -26,6 +26,8 @@ data class MonthlyStats(
 
 enum class MilestoneType { MINUTES_PLAYED, SONGS_PLAYED }
 
+data class CountedListen(val songId: String, val monthKey: String, val ms: Long)
+
 @Serializable
 data class Milestone(val type: MilestoneType, val thresholdValue: Long, val reachedAtMs: Long)
 
@@ -66,6 +68,22 @@ class ListeningStatsRepository(private val context: Context) {
             monthly = monthly,
             milestones = withNewMilestones(data.milestones, MilestoneType.MINUTES_PLAYED, totalMinutes, MINUTE_MILESTONES)
         )
+    }
+
+    suspend fun addListens(listens: List<CountedListen>) = update { data ->
+        val monthly = data.monthly.toMutableMap()
+        listens.forEach { listen ->
+            val month = monthly.getOrDefault(listen.monthKey, MonthlyStats())
+            monthly[listen.monthKey] = month.copy(
+                songPlayCounts = month.songPlayCounts + (listen.songId to (month.songPlayCounts[listen.songId] ?: 0) + 1),
+                listeningMs = month.listeningMs + listen.ms,
+                songListeningMs = month.songListeningMs + (listen.songId to (month.songListeningMs[listen.songId] ?: 0L) + listen.ms)
+            )
+        }
+        val totalPlays = monthly.values.sumOf { it.songPlayCounts.values.sum() }.toLong()
+        val totalMinutes = monthly.values.sumOf { it.listeningMs } / 60_000
+        val milestones = withNewMilestones(data.milestones, MilestoneType.SONGS_PLAYED, totalPlays, PLAY_MILESTONES)
+        data.copy(monthly = monthly, milestones = withNewMilestones(milestones, MilestoneType.MINUTES_PLAYED, totalMinutes, MINUTE_MILESTONES))
     }
 
     suspend fun clearAll() {
