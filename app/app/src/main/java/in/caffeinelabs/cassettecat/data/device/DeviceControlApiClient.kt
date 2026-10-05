@@ -147,7 +147,6 @@ class DeviceControlApiClient(
         }.build()
     }
 
-    /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun requestPairing(host: String, port: Int): String? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -164,13 +163,15 @@ class DeviceControlApiClient(
     suspend fun pairingStatus(host: String, port: Int, id: String): PairingStatus? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/pair-request?id=$id").build()
+                val url = "http://$host:$port/api/pair-request".toHttpUrl().newBuilder().addQueryParameter("id", id).build()
+                val request = Request.Builder().url(url).build()
                 deviceHttpClient(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<PairingStatus>(it.body.string()) else null
                 }
             }.getOrNull()
         }
 
+    /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
         withContext(Dispatchers.IO) {
             runCatching {

@@ -61,6 +61,7 @@ private const val LIKES_SYNC_DELAY_MS = 2_000L
 private const val REFIND_INTERVAL_MS = 30_000L
 private const val APPROVAL_WAIT_MS = 65_000L
 private const val APPROVAL_POLL_MS = 1_000L
+private const val APPROVAL_MAX_MISSED_CHECKS = 5
 
 data class DesktopAddress(val host: String, val port: Int, val code: String)
 
@@ -108,7 +109,7 @@ internal fun findAllInLibrary(tracks: List<HandoffTrack>, library: List<Song>): 
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
 
-enum class ApprovalResult { PAIRED, NOT_ALLOWED, UNSUPPORTED }
+enum class ApprovalResult { PAIRED, NOT_ALLOWED, UNREACHABLE, UNSUPPORTED }
 
 data class DesktopRemoteState(
     val loaded: Boolean = false,
@@ -301,11 +302,21 @@ class DesktopRemoteRepository private constructor(context: Context) {
     suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult {
         val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return ApprovalResult.UNSUPPORTED
         val deadline = SystemClock.elapsedRealtime() + APPROVAL_WAIT_MS
+        var missedChecks = 0
         while (SystemClock.elapsedRealtime() < deadline) {
             delay(APPROVAL_POLL_MS)
-            val status = apiClient.pairingStatus(desktop.host, desktop.port, id) ?: continue
+            val status = apiClient.pairingStatus(desktop.host, desktop.port, id)
+            if (status == null) {
+                if (++missedChecks >= APPROVAL_MAX_MISSED_CHECKS) return ApprovalResult.UNREACHABLE
+                continue
+            }
+            missedChecks = 0
             if (status.status == "allowed") {
-                return if (pair(desktop, status.code.orEmpty()) == PairingResult.PAIRED) ApprovalResult.PAIRED else ApprovalResult.NOT_ALLOWED
+                return when (pair(desktop, status.code.orEmpty())) {
+                    PairingResult.PAIRED -> ApprovalResult.PAIRED
+                    PairingResult.UNREACHABLE -> ApprovalResult.UNREACHABLE
+                    PairingResult.INVALID_ADDRESS, PairingResult.WRONG_CODE -> ApprovalResult.NOT_ALLOWED
+                }
             }
             if (status.status == "denied") return ApprovalResult.NOT_ALLOWED
         }

@@ -162,7 +162,7 @@ private fun DesktopPairingForm(
                             approval = try {
                                 desktop.pairWithApproval(computer)
                             } finally {
-                                waitingForAllow = false
+                                if (approvalJob === coroutineContext[Job]) waitingForAllow = false
                             }
                         }
                     }
@@ -185,6 +185,7 @@ private fun DesktopPairingForm(
                         target != null && waitingForAllow -> stringResource(AppR.string.desktop_remote_waiting_for_allow, target.name)
                         target != null && approval == ApprovalResult.NOT_ALLOWED ->
                             stringResource(AppR.string.desktop_remote_not_allowed, target.name)
+                        target != null && approval == ApprovalResult.UNREACHABLE -> stringResource(AppR.string.desktop_remote_unreachable)
                         target != null && target.name == previousName ->
                             stringResource(AppR.string.desktop_remote_code_changed, target.name)
                         target != null -> stringResource(AppR.string.desktop_remote_code_hint, target.name)
@@ -270,6 +271,7 @@ fun DeviceConnectSheet(
     val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     var notAllowed by remember { mutableStateOf<DiscoveredDesktop?>(null) }
+    var unreachable by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     DisposableEffect(desktop) {
         desktop.startPolling()
         onDispose { desktop.stopPolling() }
@@ -310,6 +312,7 @@ fun DeviceConnectSheet(
                         subtitle = when (computer) {
                             asking -> stringResource(AppR.string.desktop_remote_waiting_for_allow, computer.name)
                             notAllowed -> stringResource(AppR.string.desktop_remote_not_allowed_short)
+                            unreachable -> stringResource(AppR.string.desktop_remote_unreachable)
                             else -> stringResource(AppR.string.desktop_remote_tap_to_connect)
                         },
                         iconRes = R.drawable.lucide_ic_monitor,
@@ -318,13 +321,15 @@ fun DeviceConnectSheet(
                             if (asking != null) return@ActionRow
                             asking = computer
                             notAllowed = null
+                            unreachable = null
                             scope.launch {
                                 val result = try {
                                     desktop.pairWithApproval(computer)
                                 } finally {
                                     asking = null
                                 }
-                                if (result != ApprovalResult.PAIRED) notAllowed = computer
+                                if (result == ApprovalResult.NOT_ALLOWED) notAllowed = computer
+                                if (result == ApprovalResult.UNREACHABLE) unreachable = computer
                                 if (result == ApprovalResult.UNSUPPORTED) onSetUpDesktop()
                             }
                         }
