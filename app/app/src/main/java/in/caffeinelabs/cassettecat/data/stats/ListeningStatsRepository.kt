@@ -1,15 +1,30 @@
 package `in`.caffeinelabs.cassettecat.data.stats
 
-import android.content.Context
 import android.app.backup.BackupManager
+import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import java.io.File
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 private val Context.statsDataStore by preferencesDataStore(name = "listening_stats")
 private val STATS_KEY = stringPreferencesKey("stats_json")
@@ -26,90 +41,106 @@ data class MonthlyStats(
 
 enum class MilestoneType { MINUTES_PLAYED, SONGS_PLAYED }
 
-data class CountedListen(val songId: String, val monthKey: String, val ms: Long)
-
 @Serializable
 data class Milestone(val type: MilestoneType, val thresholdValue: Long, val reachedAtMs: Long)
 
 @Serializable
+data class Listen(
+    val at: Long,
+    val title: String,
+    val artist: String,
+    val album: String = "",
+    val genre: String = "",
+    val ms: Long,
+    val songId: String? = null
+)
+
+val Listen.statsSongId: String get() = songId ?: "song:${title.trim().lowercase()}\u001f${artist.trim().lowercase()}"
+
+val Listen.monthKey: String get() = YearMonth.from(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())).toString()
+
+internal fun monthlyStatsOf(listens: List<Listen>, earlier: Map<String, MonthlyStats>): Map<String, MonthlyStats> {
+    val monthly = earlier.toMutableMap()
+    listens.forEach { listen ->
+        val month = monthly.getOrDefault(listen.monthKey, MonthlyStats())
+        val id = listen.statsSongId
+        monthly[listen.monthKey] = month.copy(
+            songPlayCounts = month.songPlayCounts + (id to (month.songPlayCounts[id] ?: 0) + 1),
+            listeningMs = month.listeningMs + listen.ms,
+            songListeningMs = month.songListeningMs + (id to (month.songListeningMs[id] ?: 0L) + listen.ms)
+        )
+    }
+    return monthly
+}
+
+// Monthly totals from before the listening log existed are kept as they were, since their single listens are unknown.
+@Serializable
 private data class StatsData(
-    // keyed by YearMonth.toString(), e.g. "2026-06"
     val monthly: Map<String, MonthlyStats> = emptyMap(),
     val milestones: List<Milestone> = emptyList()
 )
 
-// Monthly aggregate rollups rather than raw event logs to bound storage growth.
+private object ListeningLog {
+    val listens = MutableStateFlow<List<Listen>?>(null)
+    val lock = Mutex()
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+}
+
 class ListeningStatsRepository(private val context: Context) {
-    val monthlyStats: Flow<Map<String, MonthlyStats>> = context.statsDataStore.data.map { it.decode().monthly }
-    val milestones: Flow<List<Milestone>> = context.statsDataStore.data.map { it.decode().milestones }
+    private val logFile = File(context.filesDir, "listening_log.jsonl")
+    private val stored = context.statsDataStore.data.map { it.decode() }
 
-    suspend fun recordPlay(songId: String, monthKey: String) = update { data ->
-        val month = data.monthly.getOrDefault(monthKey, MonthlyStats())
-        val updatedMonth = month.copy(
-            songPlayCounts = month.songPlayCounts + (songId to (month.songPlayCounts[songId] ?: 0) + 1)
-        )
-        val monthly = data.monthly + (monthKey to updatedMonth)
-        val totalPlays = monthly.values.sumOf { it.songPlayCounts.values.sum() }.toLong()
-        data.copy(
-            monthly = monthly,
-            milestones = withNewMilestones(data.milestones, MilestoneType.SONGS_PLAYED, totalPlays, PLAY_MILESTONES)
-        )
+    val listens: Flow<List<Listen>> = ListeningLog.listens.onStart { load() }.filterNotNull()
+    val earlierMonthlyStats: Flow<Map<String, MonthlyStats>> = stored.map { it.monthly }
+    val monthlyStats: Flow<Map<String, MonthlyStats>> = combine(listens, earlierMonthlyStats, ::monthlyStatsOf)
+    val milestones: Flow<List<Milestone>> = stored.map { it.milestones }
+
+    fun record(listen: Listen) {
+        ListeningLog.scope.launch { addListens(listOf(listen)) }
     }
 
-    suspend fun addListeningTime(songId: String, monthKey: String, ms: Long) = update { data ->
-        val month = data.monthly.getOrDefault(monthKey, MonthlyStats())
-        val updatedMonth = month.copy(
-            listeningMs = month.listeningMs + ms,
-            songListeningMs = month.songListeningMs + (songId to (month.songListeningMs[songId] ?: 0L) + ms)
-        )
-        val monthly = data.monthly + (monthKey to updatedMonth)
-        val totalMinutes = monthly.values.sumOf { it.listeningMs } / 60_000
-        data.copy(
-            monthly = monthly,
-            milestones = withNewMilestones(data.milestones, MilestoneType.MINUTES_PLAYED, totalMinutes, MINUTE_MILESTONES)
-        )
-    }
-
-    suspend fun addListens(listens: List<CountedListen>) = update { data ->
-        val monthly = data.monthly.toMutableMap()
-        listens.forEach { listen ->
-            val month = monthly.getOrDefault(listen.monthKey, MonthlyStats())
-            monthly[listen.monthKey] = month.copy(
-                songPlayCounts = month.songPlayCounts + (listen.songId to (month.songPlayCounts[listen.songId] ?: 0) + 1),
-                listeningMs = month.listeningMs + listen.ms,
-                songListeningMs = month.songListeningMs + (listen.songId to (month.songListeningMs[listen.songId] ?: 0L) + listen.ms)
-            )
+    suspend fun addListens(listens: List<Listen>) {
+        if (listens.isEmpty()) return
+        ListeningLog.lock.withLock {
+            val all = loaded() + listens
+            withContext(Dispatchers.IO) { logFile.appendText(listens.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
+            ListeningLog.listens.value = all
+            context.statsDataStore.edit { prefs ->
+                val data = prefs.decode()
+                val monthly = monthlyStatsOf(all, data.monthly).values
+                val plays = monthly.sumOf { it.songPlayCounts.values.sum() }.toLong()
+                val minutes = monthly.sumOf { it.listeningMs } / 60_000
+                val milestones = withNewMilestones(data.milestones, MilestoneType.SONGS_PLAYED, plays, PLAY_MILESTONES)
+                prefs[STATS_KEY] = sharedJson.encodeToString(
+                    data.copy(milestones = withNewMilestones(milestones, MilestoneType.MINUTES_PLAYED, minutes, MINUTE_MILESTONES))
+                )
+            }
         }
-        val totalPlays = monthly.values.sumOf { it.songPlayCounts.values.sum() }.toLong()
-        val totalMinutes = monthly.values.sumOf { it.listeningMs } / 60_000
-        val milestones = withNewMilestones(data.milestones, MilestoneType.SONGS_PLAYED, totalPlays, PLAY_MILESTONES)
-        data.copy(monthly = monthly, milestones = withNewMilestones(milestones, MilestoneType.MINUTES_PLAYED, totalMinutes, MINUTE_MILESTONES))
-    }
-
-    suspend fun clearAll() {
-        context.statsDataStore.edit { it.remove(STATS_KEY) }
         BackupManager(context).dataChanged()
     }
 
-    suspend fun replaceAll(monthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
-        context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(monthly, milestones)) }
+    suspend fun clearAll() = replaceAll(emptyList(), emptyMap(), emptyList())
+
+    suspend fun replaceAll(listens: List<Listen>, earlierMonthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
+        ListeningLog.lock.withLock {
+            withContext(Dispatchers.IO) { logFile.writeText(listens.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
+            ListeningLog.listens.value = listens
+            context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(earlierMonthly, milestones)) }
+        }
         BackupManager(context).dataChanged()
     }
 
-    private fun withNewMilestones(
-        current: List<Milestone>,
-        type: MilestoneType,
-        newTotal: Long,
-        thresholds: List<Long>
-    ): List<Milestone> {
+    private suspend fun load() = ListeningLog.lock.withLock { loaded() }
+
+    private suspend fun loaded(): List<Listen> = ListeningLog.listens.value ?: withContext(Dispatchers.IO) {
+        if (!logFile.exists()) return@withContext emptyList()
+        logFile.readLines().mapNotNull { line -> runCatching { sharedJson.decodeFromString<Listen>(line) }.getOrNull() }
+    }.also { ListeningLog.listens.value = it }
+
+    private fun withNewMilestones(current: List<Milestone>, type: MilestoneType, newTotal: Long, thresholds: List<Long>): List<Milestone> {
         val alreadyReached = current.filter { it.type == type }.map { it.thresholdValue }.toSet()
         val newlyReached = thresholds.filter { it <= newTotal && it !in alreadyReached }
         return current + newlyReached.map { Milestone(type, it, System.currentTimeMillis()) }
-    }
-
-    private suspend fun update(transform: (StatsData) -> StatsData) {
-        context.statsDataStore.edit { prefs -> prefs[STATS_KEY] = sharedJson.encodeToString(transform(prefs.decode())) }
-        BackupManager(context).dataChanged()
     }
 
     private fun Preferences.decode(): StatsData =

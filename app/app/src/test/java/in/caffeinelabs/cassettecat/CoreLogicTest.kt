@@ -31,6 +31,10 @@ import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
 import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.planLikesSync
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
+import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
+import `in`.caffeinelabs.cassettecat.data.stats.monthKey
+import `in`.caffeinelabs.cassettecat.data.stats.monthlyStatsOf
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
 import android.net.Uri
@@ -129,6 +133,20 @@ class CoreLogicTest {
 
         val songMissingForNow = planLikesSync(setOf("b"), setOf("b"), shared = setOf("b"), lastAgreed = setOf("b", "gone"))
         assertEquals(setOf("b", "gone"), songMissingForNow.agreed)
+    }
+
+    @Test
+    fun monthlyStatsAddTheListeningLogToEarlierTotals() {
+        val local = Listen(at = 1_780_000_000_000L, title = "One", artist = "Ann", ms = 60_000, songId = "a")
+        val fromComputer = Listen(at = 1_780_000_000_000L, title = " Two ", artist = "BO", ms = 30_000)
+        val month = local.monthKey
+        val earlier = mapOf(month to MonthlyStats(songPlayCounts = mapOf("a" to 2), listeningMs = 100_000, songListeningMs = mapOf("a" to 100_000)))
+
+        val stats = monthlyStatsOf(listOf(local, fromComputer, fromComputer), earlier).getValue(month)
+
+        assertEquals(3, stats.songPlayCounts["a"])
+        assertEquals(2, stats.songPlayCounts["song:twobo"])
+        assertEquals(220_000L, stats.listeningMs)
     }
 
     @Test

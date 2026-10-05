@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 
 import android.net.Network
 import android.os.Build
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,10 +72,7 @@ data class DesktopLikes(val library: List<String>, val liked: List<String>, val 
 private data class LikesChange(val like: List<String>, val unlike: List<String>)
 
 @Serializable
-data class DesktopListen(val at: Long, val title: String, val artist: String, val album: String = "", val genre: String = "", val ms: Long)
-
-@Serializable
-private data class DesktopListens(val listens: List<DesktopListen>)
+private data class DesktopListens(val listens: List<Listen>)
 
 @Serializable
 data class DesktopPlaylist(val name: String, val tracks: List<HandoffTrack>)
@@ -243,13 +241,13 @@ class DeviceControlApiClient(
                 .getOrDefault(false)
         }
 
-    suspend fun sendListens(host: String, port: Int, token: String, listens: List<DesktopListen>): Boolean =
+    suspend fun sendListens(host: String, port: Int, token: String, listens: List<Listen>): Boolean =
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/listens", DesktopListens(listens), DesktopListens.serializer(), null, token) }
                 .getOrDefault(false)
         }
 
-    suspend fun getListens(host: String, port: Int, token: String, since: Long): List<DesktopListen>? =
+    suspend fun getListens(host: String, port: Int, token: String, since: Long): List<Listen>? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder().url("http://$host:$port/api/listens?since=$since").withPairingCode(token).build()

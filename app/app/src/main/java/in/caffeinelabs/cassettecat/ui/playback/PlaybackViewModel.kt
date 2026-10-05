@@ -17,7 +17,6 @@ import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteState
-import `in`.caffeinelabs.cassettecat.data.device.DesktopListen
 import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
 import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
@@ -40,6 +39,7 @@ import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
@@ -47,7 +47,6 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
-import java.time.YearMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -80,8 +79,6 @@ private const val AUTOPLAY_SHARED_GENRE_WEIGHT = 2.0
 private const val AUTOPLAY_RELATED_GENRE_WEIGHT = 1.0
 private const val AUTOPLAY_ERA_PROXIMITY_WEIGHT = 1.0
 private const val AUTOPLAY_FAVORITE_WEIGHT = 1.5
-
-private data class ListeningBucket(val monthKey: String, val songId: String)
 
 private class CurrentListen(val song: Song) {
     var listenedMs = 0L
@@ -197,8 +194,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val scrobbleManager = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager(app, viewModelScope)
     private var hasAttemptedRestore = false
     private var playRecordedForSongId: String? = null
-    private var cachedMonthKey: String = YearMonth.now().toString()
-    private val accumulatedListeningMs = mutableMapOf<ListeningBucket, Long>()
     private var currentListen: CurrentListen? = null
 
     // Media3 doesn't push continuous position updates, so poll while playing.
@@ -635,10 +630,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 lastTickRealtime = nowRealtime
 
                 val listenable = localState.value.currentSong?.takeIf { it.source != MusicSource.Radio }
-                listenable?.let { song ->
-                    val bucket = ListeningBucket(cachedMonthKey, song.id)
-                    accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + deltaMs
-                }
                 if (currentListen?.song?.id != listenable?.id) {
                     finishListen()
                     currentListen = listenable?.let(::CurrentListen)
@@ -650,27 +641,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 val saveInterval = if (hasSubscribers) SAVE_EVERY_N_TICKS else 10
                 if (tick % saveInterval == 0) {
-                    cachedMonthKey = YearMonth.now().toString()
                     savePlaybackState()
-                    flushListeningTime()
                 }
                 maybeRecordPlay()
                 delay(tickDelay)
-            }
-        }
-    }
-
-    private fun flushListeningTime() {
-        if (!appPreferences.value.listeningStatsEnabled) {
-            accumulatedListeningMs.clear()
-            return
-        }
-        if (accumulatedListeningMs.isEmpty()) return
-        val pending = accumulatedListeningMs.toMap()
-        accumulatedListeningMs.clear()
-        viewModelScope.launch {
-            pending.forEach { (bucket, ms) ->
-                statsRepository.addListeningTime(bucket.songId, bucket.monthKey, ms)
             }
         }
     }
@@ -685,19 +659,19 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
         if (threshold > 0 && _positionMs.value >= threshold) {
             playRecordedForSongId = song.id
-            val month = cachedMonthKey
-            viewModelScope.launch { statsRepository.recordPlay(song.id, month) }
             currentListen?.takeIf { it.song.id == song.id }?.counted = true
             scrobbleManager.onTrackPlayed(song)
         }
     }
 
     private fun finishListen() {
-        val listen = currentListen?.takeIf { it.counted } ?: return
-        val song = listen.song
-        desktop.queueListen(
-            DesktopListen(System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), listen.listenedMs)
+        val current = currentListen?.takeIf { it.counted } ?: return
+        val song = current.song
+        val listen = Listen(
+            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id
         )
+        statsRepository.record(listen)
+        desktop.queueListen(listen)
     }
 
     private fun applyCrossfade() {
@@ -713,7 +687,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private fun stopTicker() {
         tickerJob?.cancel()
         tickerJob = null
-        flushListeningTime()
     }
 
     private fun savePlaybackState() {
