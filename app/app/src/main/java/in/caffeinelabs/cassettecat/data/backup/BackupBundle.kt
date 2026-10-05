@@ -4,6 +4,7 @@ import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerLevels
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.Milestone
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
@@ -21,6 +22,7 @@ data class BackupBundle(
     // keyed by YearMonth.toString(), e.g. "2026-06"
     val listeningStatsMonthly: Map<String, MonthlyStats>,
     val listeningMilestones: List<Milestone>,
+    val listeningLog: List<Listen> = emptyList(),
     // keyed by StreamingProtocol.name
     val streamingServers: Map<String, StreamingServerConfig>,
     val appPreferences: BackupAppPreferences? = null

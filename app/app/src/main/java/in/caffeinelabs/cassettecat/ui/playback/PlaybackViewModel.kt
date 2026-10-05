@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -16,6 +17,8 @@ import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteState
+import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
+import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -36,6 +39,7 @@ import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
@@ -43,7 +47,6 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
-import java.time.YearMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -67,8 +70,17 @@ import kotlin.random.Random
 private const val POSITION_TICK_ACTIVE_MS = 250L
 private const val POSITION_TICK_IDLE_MS = 1000L
 private const val SAVE_EVERY_N_TICKS = 40 // ~10s at POSITION_TICK_ACTIVE_MS
-private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
-private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
+private const val PLAY_COUNT_SHARE = 0.9
+private const val UNKNOWN_LENGTH_PLAY_MS = 30_000L
+private const val SCROBBLE_MAX_WAIT_MS = 4 * 60 * 1000L
+private const val SCROBBLE_MIN_LENGTH_MS = 30_000L
+private const val REPLAY_START_MS = 5_000L
+
+internal fun countsAsPlay(listenedMs: Long, durationMs: Long): Boolean =
+    listenedMs >= if (durationMs > 0) (durationMs * PLAY_COUNT_SHARE).toLong() else UNKNOWN_LENGTH_PLAY_MS
+
+internal fun countsAsScrobble(listenedMs: Long, durationMs: Long): Boolean =
+    durationMs > SCROBBLE_MIN_LENGTH_MS && listenedMs >= minOf(durationMs / 2, SCROBBLE_MAX_WAIT_MS)
 private const val AUTOPLAY_BATCH_SIZE = 20
 private const val AUTOPLAY_SAME_ARTIST_WEIGHT = 4.0
 private const val AUTOPLAY_COLLABORATION_WEIGHT = 2.5
@@ -77,7 +89,12 @@ private const val AUTOPLAY_RELATED_GENRE_WEIGHT = 1.0
 private const val AUTOPLAY_ERA_PROXIMITY_WEIGHT = 1.0
 private const val AUTOPLAY_FAVORITE_WEIGHT = 1.5
 
-private data class ListeningBucket(val monthKey: String, val songId: String)
+private class CurrentListen(val song: Song) {
+    var listenedMs = 0L
+    var counted = false
+    var scrobbled = false
+    var positionMs = 0L
+}
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
 
 internal fun instantMixAffinity(
@@ -155,6 +172,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
+    private val favoritesRepository = FavoritesRepository(app)
     // Radio favorites store station objects rather than song IDs.
     private val radioFavoritesRepository = `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository(app)
 
@@ -186,9 +204,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val equalizerSettingsRepository = EqualizerSettingsRepository(app)
     private val scrobbleManager = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager(app, viewModelScope)
     private var hasAttemptedRestore = false
-    private var playRecordedForSongId: String? = null
-    private var cachedMonthKey: String = YearMonth.now().toString()
-    private val accumulatedListeningMs = mutableMapOf<ListeningBucket, Long>()
+    private var currentListen: CurrentListen? = null
 
     // Media3 doesn't push continuous position updates, so poll while playing.
     private var tickerJob: Job? = null
@@ -220,7 +236,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 // A long pause stops the check-ins to save battery; pressing play starts them again.
                 val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
                 while (SystemClock.elapsedRealtime() < stopAt) {
-                    desktop.checkIn(song, isPlaying).forEach(::runDesktopCommand)
+                    val reply = desktop.checkIn(song, isPlaying)
+                    reply.commands.forEach(::runDesktopCommand)
+                    if (reply.playNext.isNotEmpty()) launch { playNextFromDesktop(reply.playNext) }
                     delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
                 }
             }
@@ -237,14 +255,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch {
-            playbackState.map { it.currentSong }.distinctUntilChanged().collect { song ->
-                _isCurrentSongFavorite.value = if (song?.source == MusicSource.Radio) {
-                    val uuid = song.id.removePrefix("radio:")
-                    radioFavoritesRepository.favoriteStations.first().any { it.uuid == uuid }
-                } else {
-                    song?.isFavorite ?: false
+            combine(
+                playbackState.map { it.currentSong }.distinctUntilChanged(),
+                favoritesRepository.favoriteIds,
+                radioFavoritesRepository.favoriteStations
+            ) { song, favoriteIds, stations ->
+                when (song?.source) {
+                    null -> false
+                    MusicSource.Radio -> stations.any { it.uuid == song.id.removePrefix("radio:") }
+                    else -> song.id in favoriteIds
                 }
-            }
+            }.collect { _isCurrentSongFavorite.value = it }
         }
         viewModelScope.launch {
             localState.map { it.currentSong }.distinctUntilChanged().collect { song ->
@@ -513,6 +534,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private suspend fun playNextFromDesktop(tracks: List<HandoffTrack>) {
+        val library = librariesBySource.values.flatMap { library -> runCatching { library.getSongs() }.getOrDefault(emptyList()) }
+        val songs = findAllInLibrary(tracks, library)
+        if (songs.isNotEmpty()) addToUpNext(songs)
+    }
+
     private fun runDesktopCommand(command: String) {
         when (command) {
             "play" -> if (!localState.value.isPlaying) repository.togglePlayPause()
@@ -587,6 +614,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 } else {
                     librariesBySource[song.source]?.setFavorite(song.id, newValue)
+                    favoritesRepository.setFavorite(song.id, newValue)
                     if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
                         `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
                     }
@@ -611,11 +639,16 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val deltaMs = (nowRealtime - lastTickRealtime).coerceAtLeast(0L)
                 lastTickRealtime = nowRealtime
 
-                localState.value.currentSong?.let { song ->
-                    if (song.source != MusicSource.Radio) {
-                        val bucket = ListeningBucket(cachedMonthKey, song.id)
-                        accumulatedListeningMs[bucket] = (accumulatedListeningMs[bucket] ?: 0L) + deltaMs
-                    }
+                val listenable = localState.value.currentSong?.takeIf { it.source != MusicSource.Radio }
+                val positionMs = _positionMs.value
+                val replayed = currentListen?.let { it.counted && positionMs < REPLAY_START_MS && positionMs < it.positionMs } == true
+                if (currentListen?.song?.id != listenable?.id || replayed) {
+                    finishListen()
+                    currentListen = listenable?.let(::CurrentListen)
+                }
+                currentListen?.let {
+                    it.listenedMs += deltaMs
+                    it.positionMs = positionMs
                 }
                 tick++
                 if (tick % 5 == 0 && listeningRoom.value.role == ListeningRoomRole.HOST) {
@@ -623,9 +656,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 val saveInterval = if (hasSubscribers) SAVE_EVERY_N_TICKS else 10
                 if (tick % saveInterval == 0) {
-                    cachedMonthKey = YearMonth.now().toString()
                     savePlaybackState()
-                    flushListeningTime()
                 }
                 maybeRecordPlay()
                 delay(tickDelay)
@@ -633,35 +664,26 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun flushListeningTime() {
-        if (!appPreferences.value.listeningStatsEnabled) {
-            accumulatedListeningMs.clear()
-            return
-        }
-        if (accumulatedListeningMs.isEmpty()) return
-        val pending = accumulatedListeningMs.toMap()
-        accumulatedListeningMs.clear()
-        viewModelScope.launch {
-            pending.forEach { (bucket, ms) ->
-                statsRepository.addListeningTime(bucket.songId, bucket.monthKey, ms)
-            }
-        }
-    }
-
     // Minimum listening duration required to count as an intentional play.
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
-        val state = localState.value
-        // Stations are not songs: no play count and no scrobble, as on the desktop.
-        val song = state.currentSong?.takeIf { it.source != MusicSource.Radio } ?: return
-        if (playRecordedForSongId == song.id) return
-        val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
-        if (threshold > 0 && _positionMs.value >= threshold) {
-            playRecordedForSongId = song.id
-            val month = cachedMonthKey
-            viewModelScope.launch { statsRepository.recordPlay(song.id, month) }
-            scrobbleManager.onTrackPlayed(song)
+        val listen = currentListen ?: return
+        val durationMs = localState.value.durationMs
+        if (countsAsPlay(listen.listenedMs, durationMs)) listen.counted = true
+        if (!listen.scrobbled && countsAsScrobble(listen.listenedMs, durationMs)) {
+            listen.scrobbled = true
+            scrobbleManager.onTrackPlayed(listen.song)
         }
+    }
+
+    private fun finishListen() {
+        val current = currentListen?.takeIf { it.counted } ?: return
+        val song = current.song
+        val listen = Listen(
+            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id
+        )
+        statsRepository.record(listen)
+        desktop.queueListen(listen)
     }
 
     private fun applyCrossfade() {
@@ -677,7 +699,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private fun stopTicker() {
         tickerJob?.cancel()
         tickerJob = null
-        flushListeningTime()
     }
 
     private fun savePlaybackState() {
@@ -816,6 +837,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         stopTicker()
+        finishListen()
         listeningRoomRepository.release()
         repository.release()
     }

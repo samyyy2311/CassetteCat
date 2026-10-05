@@ -9,6 +9,14 @@
     <string name="stats_most_played_artists">MOST PLAYED ARTISTS</string>
     <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
     <string name="stats_most_played_albums">MOST PLAYED ALBUMS</string>
+    <string name="stats_top_genres">TOP GENRES</string>
+    <string name="stats_recent_listens">RECENT LISTENS</string>
+    <string name="stats_busiest">BUSIEST</string>
+    <string name="stats_since">SINCE</string>
+    <plurals name="stats_plays">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
     <string name="stats_milestones">MILESTONES</string>
     <string name="stats_view_all_most_played">View all most played</string>
     <string name="stats_save_as_playlist">Save these tracks as a playlist</string>

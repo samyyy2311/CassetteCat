@@ -23,7 +23,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -354,7 +361,27 @@ private fun SongFilter.iconRes(): Int = when (this) {
 }
 
 @Composable
-internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist) -> Unit, onDismiss: () -> Unit) {
+internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist) -> Unit, onDismiss: () -> Unit) =
+    NamedPlaylistPickerSheet(
+        title = stringResource(AppR.string.library_add_to_playlist),
+        emptyText = stringResource(AppR.string.library_no_playlists),
+        playlists = playlists,
+        name = { it.name },
+        songCount = { it.songIds.size },
+        onSelect = onSelect,
+        onDismiss = onDismiss
+    )
+
+@Composable
+internal fun <T> NamedPlaylistPickerSheet(
+    title: String,
+    emptyText: String,
+    playlists: List<T>,
+    name: (T) -> String,
+    songCount: (T) -> Int,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit
+) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -364,13 +391,13 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                 .padding(bottom = 20.dp)
         ) {
             Text(
-                stringResource(AppR.string.library_add_to_playlist),
+                title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             if (playlists.isEmpty()) {
                 Text(
-                    stringResource(AppR.string.library_no_playlists),
+                    emptyText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -395,9 +422,9 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                         )
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(playlist.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(name(playlist), style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                pluralStringResource(AppR.plurals.library_songs, playlist.songIds.size, playlist.songIds.size),
+                                pluralStringResource(AppR.plurals.library_songs, songCount(playlist), songCount(playlist)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -424,6 +451,11 @@ internal fun SongOptionsSheet(
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current.applicationContext
+    val desktop = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktop.state.collectAsStateWithLifecycle()
+    val canSendToDesktop = desktopState.address != null && !desktopState.offlineBlackout &&
+        song.source != MusicSource.Radio && song.source != MusicSource.Desktop
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -562,6 +594,20 @@ internal fun SongOptionsSheet(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                if (canSendToDesktop) {
+                    SongOptionCardRow(
+                        iconRes = R.drawable.lucide_ic_monitor,
+                        title = stringResource(AppR.string.library_play_next_on_computer),
+                        subtitle = stringResource(AppR.string.library_play_next_on_computer_description),
+                        onClick = {
+                            desktop.playNext(song) { sent ->
+                                val message = if (sent) AppR.string.toast_playing_next_on_computer else AppR.string.toast_computer_unreachable
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            onDismiss()
+                        }
+                    )
+                }
                 SongOptionCardRow(
                     iconRes = R.drawable.lucide_ic_list_plus,
                     title = stringResource(AppR.string.library_add_to_queue),

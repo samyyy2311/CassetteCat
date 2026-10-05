@@ -99,6 +99,10 @@ class PlaylistRepository(private val context: Context) {
 
     suspend fun replaceAll(playlists: List<Playlist>) = update { playlists }
 
+    suspend fun setSongs(playlistId: String, songIds: List<String>) = update { list ->
+        list.map { if (it.id == playlistId) it.copy(songIds = songIds.distinct()) else it }
+    }
+
     suspend fun addSong(playlistId: String, songId: String) = update { list ->
         list.map { if (it.id == playlistId && songId !in it.songIds) it.copy(songIds = it.songIds + songId) else it }
     }

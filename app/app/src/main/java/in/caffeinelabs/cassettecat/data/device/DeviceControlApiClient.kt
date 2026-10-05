@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 
 import android.net.Network
 import android.os.Build
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,6 +15,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 
 @Serializable
@@ -57,7 +59,38 @@ data class HandoffTrack(val title: String, val artist: String)
 data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
 
 @Serializable
-private data class PhoneCheckInReply(val commands: List<String> = emptyList())
+data class PhoneCheckInReply(
+    val commands: List<String> = emptyList(),
+    val playNext: List<HandoffTrack> = emptyList(),
+    val likesRevision: Int? = null
+)
+
+@Serializable
+data class DesktopLikes(val library: List<String>, val liked: List<String>, val revision: Int)
+
+@Serializable
+private data class LikesChange(val like: List<String>, val unlike: List<String>)
+
+@Serializable
+private data class DesktopListens(val listens: List<Listen>)
+
+@Serializable
+private data class PairingRequest(val name: String)
+
+@Serializable
+private data class PairingTicket(val id: String)
+
+@Serializable
+data class PairingStatus(val status: String, val code: String? = null)
+
+@Serializable
+data class DesktopPlaylist(val name: String, val tracks: List<HandoffTrack>)
+
+@Serializable
+private data class DesktopPlaylists(val playlists: List<DesktopPlaylist>)
+
+@Serializable
+data class PlaylistCopyResult(val matched: Int, val total: Int)
 
 @Serializable
 private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
@@ -89,18 +122,54 @@ private data class SetTimeRequest(val epochMs: Long)
 @Serializable
 private data class OkResponse(val ok: Boolean)
 
-/** [onCodeRejected] hears of pairing codes the desktop app refused, so a phone left with an old one stops using it. */
-class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = null) {
+/**
+ * [onCodeRejected] hears of pairing codes the desktop app refused, so a phone left with an old one stops using it.
+ * [onUnreachable] hears when the desktop app did not answer at all, so the phone can look for it again.
+ */
+class DeviceControlApiClient(
+    private val onCodeRejected: ((String) -> Unit)? = null,
+    private val onUnreachable: (() -> Unit)? = null
+) {
     private fun client(network: Network?): OkHttpClient {
         val base = deviceHttpClient(network)
-        val onRejected = onCodeRejected ?: return base
+        if (onCodeRejected == null && onUnreachable == null) return base
         return base.newBuilder().addInterceptor { chain ->
-            chain.proceed(chain.request()).also { response ->
+            val response = try {
+                chain.proceed(chain.request())
+            } catch (e: IOException) {
+                onUnreachable?.invoke()
+                throw e
+            }
+            response.also {
                 val code = chain.request().header("Authorization")?.removePrefix("Bearer ")
-                if (response.code == 401 && code != null) onRejected(code)
+                if (it.code == 401 && code != null) onCodeRejected?.invoke(code)
             }
         }.build()
     }
+
+    suspend fun requestPairing(host: String, port: Int): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/pair-request")
+                    .post(sharedJson.encodeToString(PairingRequest.serializer(), PairingRequest(deviceName)).toRequestBody("application/json".toMediaType()))
+                    .build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PairingTicket>(it.body.string()).id else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun pairingStatus(host: String, port: Int, id: String): PairingStatus? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val url = "http://$host:$port/api/pair-request".toHttpUrl().newBuilder().addQueryParameter("id", id).build()
+                val request = Request.Builder().url(url).build()
+                deviceHttpClient(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PairingStatus>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
 
     /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
@@ -161,8 +230,8 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
                 .getOrDefault(false)
         }
 
-    /** Tells the desktop what this phone is playing; returns the commands it queued for the phone. */
-    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): List<String> =
+    /** Tells the desktop what this phone is playing; returns the commands and songs it queued for the phone. */
+    suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): PhoneCheckInReply =
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder()
@@ -171,9 +240,9 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
                     .withPairingCode(token)
                     .build()
                 client(null).newCall(request).execute().use {
-                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()).commands else emptyList()
+                    if (it.isSuccessful) sharedJson.decodeFromString<PhoneCheckInReply>(it.body.string()) else PhoneCheckInReply()
                 }
-            }.getOrDefault(emptyList())
+            }.getOrDefault(PhoneCheckInReply())
         }
 
     suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
@@ -181,6 +250,88 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
             val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
             runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
                 .getOrDefault(false)
+        }
+
+    suspend fun playNextOnDesktop(host: String, port: Int, token: String, track: HandoffTrack): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/queue/next", track, HandoffTrack.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun getLikes(host: String, port: Int, token: String): DesktopLikes? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/likes").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopLikes>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun changeLikes(host: String, port: Int, token: String, like: Set<String>, unlike: Set<String>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/likes", LikesChange(like.toList(), unlike.toList()), LikesChange.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun sendListens(host: String, port: Int, token: String, listens: List<Listen>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/listens", DesktopListens(listens), DesktopListens.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun getListens(host: String, port: Int, token: String, since: Long): List<Listen>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/listens?since=$since").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopListens>(it.body.string()).listens else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun getPlaylists(host: String, port: Int, token: String): List<DesktopPlaylist>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/playlists").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopPlaylists>(it.body.string()).playlists else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun sendPlaylist(host: String, port: Int, token: String, playlist: DesktopPlaylist): PlaylistCopyResult? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/playlists")
+                    .post(sharedJson.encodeToString(DesktopPlaylist.serializer(), playlist).toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PlaylistCopyResult>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun uploadBackup(host: String, port: Int, token: String, backupJson: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/backup")
+                    .post(backupJson.toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                client(null).newCall(request).execute().use { it.isSuccessful }
+            }.getOrDefault(false)
+        }
+
+    suspend fun downloadBackup(host: String, port: Int, token: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/backup").withPairingCode(token).build()
+                client(null).newCall(request).execute().use { if (it.isSuccessful) it.body.string() else null }
+            }.getOrNull()
         }
 
     suspend fun moveQueueTrack(host: String, port: Int, from: Int, to: Int, token: String): Boolean =

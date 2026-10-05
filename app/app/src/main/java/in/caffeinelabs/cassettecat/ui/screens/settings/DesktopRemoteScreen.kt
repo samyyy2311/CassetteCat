@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.device.ApprovalResult
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
 import `in`.caffeinelabs.cassettecat.data.device.PairingResult
@@ -51,6 +52,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Composable
@@ -131,6 +133,9 @@ private fun DesktopPairingForm(
     var input by rememberSaveable { mutableStateOf("") }
     var result by rememberSaveable { mutableStateOf<PairingResult?>(null) }
     var connecting by remember { mutableStateOf(false) }
+    var waitingForAllow by remember { mutableStateOf(false) }
+    var approval by remember { mutableStateOf<ApprovalResult?>(null) }
+    var approvalJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { desktop.discover() }
     LaunchedEffect(found) {
@@ -150,6 +155,16 @@ private fun DesktopPairingForm(
                         selected = computer
                         input = ""
                         result = null
+                        approval = null
+                        approvalJob?.cancel()
+                        approvalJob = scope.launch {
+                            waitingForAllow = true
+                            approval = try {
+                                desktop.pairWithApproval(computer)
+                            } finally {
+                                if (approvalJob === coroutineContext[Job]) waitingForAllow = false
+                            }
+                        }
                     }
                 )
                 SettingsDivider()
@@ -167,6 +182,10 @@ private fun DesktopPairingForm(
                 val target = selected
                 Text(
                     when {
+                        target != null && waitingForAllow -> stringResource(AppR.string.desktop_remote_waiting_for_allow, target.name)
+                        target != null && approval == ApprovalResult.NOT_ALLOWED ->
+                            stringResource(AppR.string.desktop_remote_not_allowed, target.name)
+                        target != null && approval == ApprovalResult.UNREACHABLE -> stringResource(AppR.string.desktop_remote_unreachable)
                         target != null && target.name == previousName ->
                             stringResource(AppR.string.desktop_remote_code_changed, target.name)
                         target != null -> stringResource(AppR.string.desktop_remote_code_hint, target.name)
@@ -248,6 +267,11 @@ fun DeviceConnectSheet(
 ) {
     val state by desktop.state.collectAsStateWithLifecycle()
     val status by desktop.status.collectAsStateWithLifecycle()
+    val nearby by desktop.found.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var asking by remember { mutableStateOf<DiscoveredDesktop?>(null) }
+    var notAllowed by remember { mutableStateOf<DiscoveredDesktop?>(null) }
+    var unreachable by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     DisposableEffect(desktop) {
         desktop.startPolling()
         onDispose { desktop.stopPolling() }
@@ -282,6 +306,36 @@ fun DeviceConnectSheet(
                     onClick = onSelectDesktop
                 )
             } else {
+                nearby.forEach { computer ->
+                    ActionRow(
+                        title = computer.name,
+                        subtitle = when (computer) {
+                            asking -> stringResource(AppR.string.desktop_remote_waiting_for_allow, computer.name)
+                            notAllowed -> stringResource(AppR.string.desktop_remote_not_allowed_short)
+                            unreachable -> stringResource(AppR.string.desktop_remote_unreachable)
+                            else -> stringResource(AppR.string.desktop_remote_tap_to_connect)
+                        },
+                        iconRes = R.drawable.lucide_ic_monitor,
+                        iconTint = if (computer == asking) selectedTint else idleTint,
+                        onClick = {
+                            if (asking != null) return@ActionRow
+                            asking = computer
+                            notAllowed = null
+                            unreachable = null
+                            scope.launch {
+                                val result = try {
+                                    desktop.pairWithApproval(computer)
+                                } finally {
+                                    asking = null
+                                }
+                                if (result == ApprovalResult.NOT_ALLOWED) notAllowed = computer
+                                if (result == ApprovalResult.UNREACHABLE) unreachable = computer
+                                if (result == ApprovalResult.UNSUPPORTED) onSetUpDesktop()
+                            }
+                        }
+                    )
+                    SettingsDivider()
+                }
                 ActionRow(
                     title = stringResource(AppR.string.desktop_remote_set_up),
                     subtitle = stringResource(AppR.string.desktop_remote_description),

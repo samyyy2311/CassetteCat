@@ -63,8 +63,9 @@ class BackupRepository(private val context: Context) {
             favoriteIds = favoritesRepository.favoriteIds.first(),
             folderFilter = folderRepository.folderFilterConfig.first(),
             playlists = playlists,
-            listeningStatsMonthly = statsRepository.monthlyStats.first(),
+            listeningStatsMonthly = statsRepository.earlierMonthlyStats.first(),
             listeningMilestones = statsRepository.milestones.first(),
+            listeningLog = statsRepository.listens.first(),
             streamingServers = streamingServers,
             appPreferences = appPreferencesRepository.exportForBackup()
         )
@@ -83,7 +84,7 @@ class BackupRepository(private val context: Context) {
             equalizerSettingsRepository.setBandLevels(bundle.equalizer.bandLevelsMb)
             favoritesRepository.replaceAll(bundle.favoriteIds)
             folderRepository.setFolderFilter(bundle.folderFilter)
-            statsRepository.replaceAll(bundle.listeningStatsMonthly, bundle.listeningMilestones)
+            statsRepository.replaceAll(bundle.listeningLog, bundle.listeningStatsMonthly, bundle.listeningMilestones)
 
             val restoredPlaylists = bundle.playlists.map { backupPlaylist ->
                 val coverValue = if (backupPlaylist.coverType == PlaylistCoverType.IMAGE) {

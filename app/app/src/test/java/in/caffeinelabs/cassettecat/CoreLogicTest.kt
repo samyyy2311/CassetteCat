@@ -21,14 +21,24 @@ import `in`.caffeinelabs.cassettecat.data.playback.SessionSkipTracker
 import `in`.caffeinelabs.cassettecat.data.playback.SmartShuffle
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
 import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
+import `in`.caffeinelabs.cassettecat.ui.playback.countsAsPlay
+import `in`.caffeinelabs.cassettecat.ui.playback.countsAsScrobble
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
 import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
+import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
+import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.planLikesSync
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
+import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
+import `in`.caffeinelabs.cassettecat.data.stats.monthKey
+import `in`.caffeinelabs.cassettecat.data.stats.monthlyStatsOf
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -104,6 +114,62 @@ class CoreLogicTest {
 
         assertEquals(listOf("a", "b"), matchInLibrary(fromDesktop, library).map { it.id })
         assertEquals(emptyList<Song>(), matchInLibrary(fromDesktop.drop(1), library))
+    }
+
+    @Test
+    fun likesSyncAddsOnFirstSyncAndThenCarriesLikesAndUnlikesBothWays() {
+        val shared = setOf("a", "b", "c")
+
+        val first = planLikesSync(setOf("a", "x"), setOf("b"), shared, lastAgreed = null)
+        assertEquals(setOf("b"), first.likeOnPhone)
+        assertEquals(setOf("a"), first.likeOnDesktop)
+        assertEquals(setOf("a", "b"), first.agreed)
+
+        val unlikedOnPhone = planLikesSync(setOf("b"), setOf("a", "b"), shared, lastAgreed = setOf("a", "b"))
+        assertEquals(setOf("a"), unlikedOnPhone.unlikeOnDesktop)
+        assertEquals(emptySet<String>(), unlikedOnPhone.unlikeOnPhone + unlikedOnPhone.likeOnPhone + unlikedOnPhone.likeOnDesktop)
+
+        val likedOnDesktop = planLikesSync(setOf("b"), setOf("b", "c"), shared, lastAgreed = setOf("b"))
+        assertEquals(setOf("c"), likedOnDesktop.likeOnPhone)
+        assertEquals(setOf("b", "c"), likedOnDesktop.agreed)
+
+        val songMissingForNow = planLikesSync(setOf("b"), setOf("b"), shared = setOf("b"), lastAgreed = setOf("b", "gone"))
+        assertEquals(setOf("b", "gone"), songMissingForNow.agreed)
+    }
+
+    @Test
+    fun playsCountAfterNinetyPercentHeardAndScrobblesFollowTheLastFmRule() {
+        assertTrue(countsAsPlay(listenedMs = 40_500, durationMs = 45_000))
+        assertFalse(countsAsPlay(listenedMs = 178_000, durationMs = 200_000))
+        assertTrue(countsAsPlay(listenedMs = 180_000, durationMs = 200_000))
+        assertTrue(countsAsPlay(listenedMs = 30_000, durationMs = 0))
+
+        assertFalse(countsAsScrobble(listenedMs = 25_000, durationMs = 25_000))
+        assertTrue(countsAsScrobble(listenedMs = 100_000, durationMs = 200_000))
+        assertTrue(countsAsScrobble(listenedMs = 240_000, durationMs = 900_000))
+        assertFalse(countsAsScrobble(listenedMs = 239_000, durationMs = 900_000))
+    }
+
+    @Test
+    fun monthlyStatsAddTheListeningLogToEarlierTotals() {
+        val local = Listen(at = 1_780_000_000_000L, title = "One", artist = "Ann", ms = 60_000, songId = "a")
+        val fromComputer = Listen(at = 1_780_000_000_000L, title = " Two ", artist = "BO", ms = 30_000)
+        val month = local.monthKey
+        val earlier = mapOf(month to MonthlyStats(songPlayCounts = mapOf("a" to 2), listeningMs = 100_000, songListeningMs = mapOf("a" to 100_000)))
+
+        val stats = monthlyStatsOf(listOf(local, fromComputer, fromComputer), earlier).getValue(month)
+
+        assertEquals(3, stats.songPlayCounts["a"])
+        assertEquals(2, stats.songPlayCounts["song:twobo"])
+        assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun findsASongSentFromTheDesktopByTitleAndArtist() {
+        val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
+
+        val sent = listOf(HandoffTrack(" two", "BO "), HandoffTrack("Two", "Ann"), HandoffTrack("One", "ann"), HandoffTrack("TWO", "bo"))
+        assertEquals(listOf("b", "a"), findAllInLibrary(sent, library).map { it.id })
     }
 
     @Test
@@ -270,6 +336,24 @@ class CoreLogicTest {
             candidateYear = 1985
         )
         assertEquals(0, farEra)
+    }
+
+    @Test
+    fun duplicatesMatchTitleAndArtistIgnoringCaseWhenDurationsAreClose() {
+        val groups = findDuplicateGroups(listOf(
+            testSong("a", artist = "Ann", title = "One", durationMs = 200_000L),
+            testSong("b", artist = "ann ", title = "ONE", durationMs = 201_500L),
+            testSong("c", artist = "Ann", title = "One (Live)", durationMs = 200_000L),
+            testSong("d", artist = "Bo", title = "Two", durationMs = 180_000L),
+            testSong("e", artist = "Bo", title = "Two", durationMs = 240_000L),
+            testSong("f", artist = "Ann", title = "One", durationMs = 300_000L),
+            testSong("g", artist = "Cy", title = "One", durationMs = 100_500L),
+            testSong("h", artist = "Cy", title = "One", durationMs = 100_000L),
+            testSong("i", artist = "Dee", title = "Three", durationMs = 200_000L),
+            testSong("j", artist = "Dee", title = "Three", durationMs = 202_900L),
+            testSong("k", artist = "Dee", title = "Three", durationMs = 205_800L)
+        ))
+        assertEquals(listOf(listOf("a", "b"), listOf("h", "g"), listOf("i", "j")), groups.map { group -> group.map { it.id } })
     }
 
     private fun testSong(

@@ -63,7 +63,6 @@ class PlaybackRepository(private val context: Context) {
     val skipTracker = SessionSkipTracker()
     var onQueueExhausted: (() -> Unit)? = null
     var onQueueLowWatermark: (() -> Unit)? = null
-    private var fadeJob: Job? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
@@ -260,13 +259,13 @@ class PlaybackRepository(private val context: Context) {
 
     fun pause() {
         val c = controller ?: return
-        smoothPause(c)
+        c.pause()
     }
 
     fun togglePlayPause() {
         controller?.let { c ->
             if (c.isPlaying) {
-                smoothPause(c)
+                c.pause()
             } else {
                 if (c.playbackState == Player.STATE_IDLE) {
                     c.prepare()
@@ -278,7 +277,7 @@ class PlaybackRepository(private val context: Context) {
                         c.seekTo(0, 0L)
                     }
                 }
-                smoothPlay(c)
+                c.play()
             }
         }
     }
@@ -301,45 +300,6 @@ class PlaybackRepository(private val context: Context) {
             onQueueExhausted?.invoke()
         }
     }
-
-    private fun smoothPause(c: MediaController) {
-        fadeJob?.cancel()
-        val baseVol = currentBaseVolume()
-        if (c.volume <= 0.05f) {
-            c.pause()
-            c.volume = baseVol
-            return
-        }
-        fadeJob = repositoryScope.launch {
-            val steps = 4
-            val stepDelay = 15L
-            for (i in 1..steps) {
-                delay(stepDelay)
-                c.volume = (baseVol * (1f - i.toFloat() / steps)).coerceAtLeast(0f)
-            }
-            c.pause()
-            c.volume = baseVol
-        }
-    }
-
-    private fun smoothPlay(c: MediaController) {
-        fadeJob?.cancel()
-        val targetVol = currentBaseVolume()
-        fadeJob = repositoryScope.launch {
-            c.volume = 0f
-            c.play()
-            val steps = 4
-            val stepDelay = 15L
-            for (i in 1..steps) {
-                delay(stepDelay)
-                c.volume = (targetVol * (i.toFloat() / steps)).coerceIn(0f, 1f)
-            }
-            c.volume = targetVol
-        }
-    }
-
-    private fun currentBaseVolume(): Float =
-        if (!volumeOverrideActive) replayGainVolume * volumeLimitMultiplier else (controller?.volume ?: 1f)
 
     fun skipPrevious() {
         val c = controller ?: return

@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -25,13 +24,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.backup.BackupRepository
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,8 +47,13 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val backupFailedMessage = stringResource(AppR.string.backup_create_failed)
     val restoreSuccessMessage = stringResource(AppR.string.backup_restore_success)
     val restoreFailedMessage = stringResource(AppR.string.backup_restore_failed)
+    val computerBackupDoneMessage = stringResource(AppR.string.backup_computer_done)
+    val computerBackupFailedMessage = stringResource(AppR.string.backup_computer_failed)
+    val computerRestoreUnavailableMessage = stringResource(AppR.string.backup_computer_restore_unavailable)
+    val desktopRemote = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktopRemote.state.collectAsStateWithLifecycle()
 
-    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var backupToRestore by remember { mutableStateOf<String?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
 
     val createLauncher = rememberLauncherForActivityResult(
@@ -64,7 +71,14 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) restoreUri = uri
+        if (uri != null) {
+            scope.launch {
+                val text = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                }
+                if (text == null) resultMessage = restoreFailedMessage else backupToRestore = text
+            }
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -106,24 +120,50 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 onClick = { openLauncher.launch(arrayOf("*/*")) }
             )
         }
+
+        if (desktopState.address != null && !desktopState.offlineBlackout) {
+            SettingsSection(title = stringResource(AppR.string.backup_computer_section)) {
+                NavigationRow(
+                    title = stringResource(AppR.string.backup_computer_create_title),
+                    subtitle = desktopState.lastBackupAtMs?.let {
+                        stringResource(AppR.string.backup_computer_last, DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)))
+                    } ?: stringResource(AppR.string.backup_computer_never),
+                    iconRes = R.drawable.lucide_ic_monitor,
+                    onClick = {
+                        scope.launch {
+                            val saved = desktopRemote.backUp(backupRepository.createBackup())
+                            resultMessage = if (saved) computerBackupDoneMessage else computerBackupFailedMessage
+                        }
+                    }
+                )
+                NavigationRow(
+                    title = stringResource(AppR.string.backup_computer_restore_title),
+                    subtitle = stringResource(AppR.string.backup_computer_restore_subtitle),
+                    iconRes = R.drawable.lucide_ic_upload,
+                    onClick = {
+                        scope.launch {
+                            val text = desktopRemote.downloadBackup()
+                            if (text == null) resultMessage = computerRestoreUnavailableMessage else backupToRestore = text
+                        }
+                    }
+                )
+            }
+        }
     }
 
-    if (restoreUri != null) {
+    if (backupToRestore != null) {
         AlertDialog(
-            onDismissRequest = { restoreUri = null },
+            onDismissRequest = { backupToRestore = null },
             title = { Text(stringResource(AppR.string.backup_restore_confirm_title)) },
             text = { Text(stringResource(AppR.string.backup_restore_confirm_message)) },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = restoreUri
-                    restoreUri = null
-                    if (uri != null) {
+                    val text = backupToRestore
+                    backupToRestore = null
+                    if (text != null) {
                         scope.launch {
-                            val result = withContext(Dispatchers.IO) {
-                                val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                                text?.let { backupRepository.restoreBackup(it) }
-                            }
-                            resultMessage = if (result?.isSuccess == true) restoreSuccessMessage else restoreFailedMessage
+                            val restored = backupRepository.restoreBackup(text).isSuccess
+                            resultMessage = if (restored) restoreSuccessMessage else restoreFailedMessage
                         }
                     }
                 }) {
@@ -131,7 +171,7 @@ fun BackupRestoreScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { restoreUri = null }) { Text(stringResource(AppR.string.action_cancel)) }
+                TextButton(onClick = { backupToRestore = null }) { Text(stringResource(AppR.string.action_cancel)) }
             }
         )
     }

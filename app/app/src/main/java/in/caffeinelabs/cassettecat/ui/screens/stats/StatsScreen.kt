@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.data.stats.monthKey
 import `in`.caffeinelabs.cassettecat.data.stats.Milestone
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
 import `in`.caffeinelabs.cassettecat.R as AppR
@@ -62,10 +64,14 @@ internal data class AlbumStat(
     val artSong: Song
 )
 
+internal data class GenreStat(val genre: String, val playCount: Int, val listeningMs: Long)
+
 internal data class MonthComputed(
     val topArtists: List<ArtistStat>,
     val topAlbums: List<AlbumStat>,
-    val topSongs: List<SongStat>
+    val topSongs: List<SongStat>,
+    val topGenres: List<GenreStat> = emptyList(),
+    val recentListens: List<Listen> = emptyList()
 )
 
 @Composable
@@ -86,6 +92,7 @@ fun StatsScreen(
     val repository = remember { ListeningStatsRepository(context) }
     val monthlyStats by repository.monthlyStats.collectAsStateWithLifecycle(initialValue = emptyMap<String, MonthlyStats>())
     val milestones by repository.milestones.collectAsStateWithLifecycle(initialValue = emptyList<Milestone>())
+    val listens by repository.listens.collectAsStateWithLifecycle(initialValue = emptyList())
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val allSongsById = remember(libraryState) {
         (libraryState as? LibraryUiState.Loaded)?.songs?.associateBy { it.id }.orEmpty()
@@ -129,15 +136,20 @@ fun StatsScreen(
         }
     }
 
-    val computed = remember(isRewindMode, month, activeStats, allSongsById) {
+    val periodListens = remember(listens, isRewindMode, month, year) {
+        listens.filter { if (isRewindMode) it.monthKey.startsWith("$year-") else it.monthKey == month?.toString() }
+    }
+
+    val computed = remember(isRewindMode, month, activeStats, allSongsById, periodListens) {
         val stats = activeStats ?: return@remember MonthComputed(emptyList(), emptyList(), emptyList())
         val playedSongs = stats.songPlayCounts.mapNotNull { (id, count) ->
             allSongsById[id]?.let { SongStat(it, count, stats.songListeningMs[id] ?: 0L) }
         }
+        val listensOutsideLibrary = periodListens.filter { it.songId == null || it.songId !in allSongsById }
 
-        val topArtists = playedSongs.flatMap { stat ->
+        val topArtists = (playedSongs.flatMap { stat ->
             stat.song.artist.splitArtists().map { ArtistStat(it, stat.playCount, stat.listeningMs) }
-        }
+        } + listensOutsideLibrary.flatMap { listen -> listen.artist.splitArtists().map { ArtistStat(it, 1, listen.ms) } })
             .groupBy { it.artist }
             .map { (artist, entries) ->
                 ArtistStat(artist, entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs })
@@ -160,13 +172,25 @@ fun StatsScreen(
 
         val topSongs = playedSongs.sortedByDescending { it.playCount }.take(25)
 
-        MonthComputed(topArtists, topAlbums, topSongs)
+        val topGenres = (playedSongs.mapNotNull { stat -> stat.song.genres.firstOrNull()?.let { GenreStat(it, stat.playCount, stat.listeningMs) } } +
+            listensOutsideLibrary.filter { it.genre.isNotBlank() }.map { GenreStat(it.genre, 1, it.ms) })
+            .groupBy { it.genre.trim().lowercase() }
+            .map { (_, entries) -> GenreStat(entries.first().genre.trim(), entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs }) }
+            .sortedByDescending { it.listeningMs }
+            .take(5)
+
+        MonthComputed(topArtists, topAlbums, topSongs, topGenres, periodListens.sortedByDescending { it.at }.take(20))
     }
 
     val monthMilestones = remember(milestones, month) {
         if (month == null) emptyList() else milestones.filter { isSameMonth(it.reachedAtMs, month) }
     }
 
+    val busiestMonth = if (isRewindMode) {
+        monthlyStats.filterKeys { it.startsWith("$year-") }.maxByOrNull { it.value.listeningMs }?.key
+            ?.let { runCatching { YearMonth.parse(it) }.getOrNull() }
+    } else null
+    val firstListenAt = periodListens.minOfOrNull { it.at }
     val listeningMinutes = (activeStats?.listeningMs ?: 0L) / 60_000
     val totalPlays = activeStats?.songPlayCounts?.values?.sum() ?: 0
     val uniqueSongs = activeStats?.songPlayCounts?.size ?: 0
@@ -257,7 +281,9 @@ fun StatsScreen(
                         isRewind = isRewindMode,
                         listeningMinutes = listeningMinutes,
                         totalPlays = totalPlays,
-                        uniqueSongs = uniqueSongs
+                        uniqueSongs = uniqueSongs,
+                        busiestMonth = busiestMonth,
+                        firstListenAt = firstListenAt
                     )
                     Spacer(Modifier.height(32.dp))
                 }
@@ -276,6 +302,13 @@ fun StatsScreen(
                         if (wasIdle) onNavigateToNowPlaying()
                     },
                     onViewAllMostPlayed = { showAllMostPlayed = true },
+                    onPlayListen = { listen ->
+                        allSongsById[listen.songId]?.let { song ->
+                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                            playbackViewModel.playQueue(listOf(song), 0)
+                            if (wasIdle) onNavigateToNowPlaying()
+                        }
+                    },
                     onSavePlaylist = {
                         val monthNameFormatted = month.month.getDisplayName(TextStyle.FULL, locale)
                         val name = String.format(locale, playlistTitleTemplate, monthNameFormatted, month.year)

@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -17,6 +18,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import android.os.SystemClock
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
@@ -141,6 +143,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val serviceSettingsRepository = ServiceSettingsRepository(app)
     private val appPreferencesRepository = AppPreferencesRepository(app)
     private val metadataOverridesRepo = SongMetadataOverridesRepository.getInstance(app)
+    private val favoritesRepository = FavoritesRepository(app)
+    private var favoriteIds: Set<String>? = null
     private var refreshJob: Job? = null
 
     val isOfflineMode: StateFlow<Boolean> = serviceSettingsRepository.settings
@@ -259,6 +263,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 .collect { (sub, jelly) -> updateAvailableSources(sub, jelly) }
         }
         viewModelScope.launch {
+            favoritesRepository.favoriteIds.collect {
+                favoriteIds = it
+                if (_uiState.value is LibraryUiState.Loaded) publishLoadedSongs()
+            }
+        }
+        viewModelScope.launch {
             metadataOverridesRepo.overrides.collect {
                 if (rawSongs.isNotEmpty()) {
                     loadedSongs = metadataOverridesRepo.applyTo(rawSongs)
@@ -312,6 +322,17 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         publishLoadedSongs()
         updateAvailableSources()
         _lastRefreshAtMs.value = System.currentTimeMillis()
+        results.forEach { (label, result) ->
+            val songs = result.getOrNull()
+            if (label != "Local" && songs != null) {
+                runCatching {
+                    favoritesRepository.mirror(songs.mapTo(HashSet()) { it.id }, songs.filter { it.isFavorite }.mapTo(HashSet()) { it.id })
+                }.onFailure {
+                    if (it is CancellationException) throw it
+                    Log.w("LibraryViewModel", "Couldn't save $label likes", it)
+                }
+            }
+        }
     }
 
     fun updateSongMetadata(updatedSong: Song) {
@@ -403,7 +424,11 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             val comparator = _sortOrder.value.comparator()
                 .let { if (_sortDirection.value == SortDirection.DESCENDING) it.reversed() else it }
-            LibraryUiState.Loaded(loadedSongs.sortedWith(comparator), loadedWarnings)
+            val liked = favoriteIds
+            val songs = if (liked == null) loadedSongs else loadedSongs.map { song ->
+                if (song.isFavorite == (song.id in liked)) song else song.copy(isFavorite = song.id in liked)
+            }
+            LibraryUiState.Loaded(songs.sortedWith(comparator), loadedWarnings)
         }
     }
 }

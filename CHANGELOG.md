@@ -2,6 +2,19 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.7.7]
+
+* Pair with your computer by tapping it and clicking Allow there, with no code to type. Nearby computers also show up in the player's devices button, so you can connect from there.
+* Your phone finds the computer again when it gets a new address on your Wi-Fi, without pairing again.
+* Likes stay in sync with your computer in both directions, and playlists can be sent to it or copied from it.
+* One Listening Record across both: songs you play on your phone show up on the computer, and the computer's listening counts in your phone's Stats.
+* Stats now shows top genres, recent listens, your busiest month and your first listen. Plays count once 90% of a song has been heard, like the desktop app.
+* Play Next on Computer from any song's menu, and the computer can send songs to play next on your phone.
+* Backs up to your computer once a day, and you can restore from it in Backup & Restore.
+* Find duplicate songs in Settings, under Storage & Cache, and delete the extra copies.
+* Play and pause fade in and out from the app, notification, lock screen and headphones.
+* Fixed the notification's shuffle button showing the wrong state, likes from the notification not showing up right away, the notification heart for radio stations, and a glitchy back gesture.
+
 ## [1.7.6]
 
 * Your computer shows up in Android's own output switcher, next to This phone and Bluetooth. Pick it there to move your music to the computer, and set its volume from the same place.

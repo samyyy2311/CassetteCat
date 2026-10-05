@@ -105,6 +105,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.ConnectServerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DesktopRemoteScreen
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceConnectSheet
+import `in`.caffeinelabs.cassettecat.data.backup.BackupRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CreditsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceFirmwareScreen
@@ -113,6 +114,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSettingsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceStorageScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSyncScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DownloadsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.DuplicatesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.EqualizerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ExternalServicesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ManageScanFoldersScreen
@@ -180,6 +182,7 @@ object MainRoute {
     const val EQUALIZER = "main/settings/equalizer"
     const val BACKUP_RESTORE = "main/settings/backup_restore"
     const val DOWNLOADS = "main/settings/downloads"
+    const val DUPLICATES = "main/settings/duplicates"
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
@@ -310,6 +313,8 @@ fun MainShell(
     val hasSong = playbackState.currentSong != null
     val desktopRemote = remember { DesktopRemoteRepository.getInstance(context) }
     val desktopState by desktopRemote.state.collectAsStateWithLifecycle()
+    val nearbyDesktops by desktopRemote.found.collectAsStateWithLifecycle()
+    val showDevicesButton = desktopState.address != null || (nearbyDesktops.isNotEmpty() && !desktopState.offlineBlackout)
     var showDevices by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
         desktopRemote.setInFront(true)
@@ -326,6 +331,12 @@ fun MainShell(
         if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
             updatePrompt = updateToPrompt(context, BuildConfig.VERSION_NAME)
         }
+    }
+    LaunchedEffect(desktopRemote) {
+        if (!desktopRemote.state.first { it.loaded }.offlineBlackout) desktopRemote.refind()
+        desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
+        desktopRemote.syncLikes()
+        desktopRemote.syncListens()
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {
@@ -486,7 +497,7 @@ fun MainShell(
                                         scope.launch { scaffoldState.bottomSheetState.expand() }
                                     },
                                     onThumbnailBoundsChange = { collapsedArtRect.value = it },
-                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
+                                    onOpenDevices = if (showDevicesButton) { { showDevices = true } } else null
                                 )
                             }
                             Box(
@@ -519,7 +530,7 @@ fun MainShell(
                                     onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },
                                     onNavigateToDriveMode = { navigateFromNowPlaying(MainRoute.DRIVE_MODE) },
                                     onHeaderDragProgressChange = { headerDragRevealFraction = it },
-                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
+                                    onOpenDevices = if (showDevicesButton) { { showDevices = true } } else null
                                 )
                             }
                         }
@@ -535,7 +546,9 @@ fun MainShell(
                     enterTransition = tabAwareEnter,
                     exitTransition = tabAwareExit,
                     popEnterTransition = mechanicalPopEnter,
-                    popExitTransition = mechanicalPopExit
+                    popExitTransition = mechanicalPopExit,
+                    predictivePopEnterTransition = { mechanicalPopEnter() },
+                    predictivePopExitTransition = { mechanicalPopExit() }
                 ) {
                     composable(MainRoute.HOME) {
                         HomeScreen(
@@ -766,6 +779,7 @@ fun MainShell(
                         CustomizationStorageScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
+                            onOpenDuplicates = { navController.navigate(MainRoute.DUPLICATES) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -863,6 +877,13 @@ fun MainShell(
                     }
                     composable(MainRoute.BACKUP_RESTORE) {
                         BackupRestoreScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(MainRoute.DUPLICATES) {
+                        DuplicatesScreen(
+                            libraryViewModel = libraryViewModel,
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
                     }
                     composable(MainRoute.DOWNLOADS) {
                         DownloadsScreen(libraryViewModel = libraryViewModel, onBack = { navController.popBackStack() })
