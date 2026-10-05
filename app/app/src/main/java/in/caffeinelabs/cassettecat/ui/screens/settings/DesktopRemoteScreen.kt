@@ -266,6 +266,10 @@ fun DeviceConnectSheet(
 ) {
     val state by desktop.state.collectAsStateWithLifecycle()
     val status by desktop.status.collectAsStateWithLifecycle()
+    val nearby by desktop.found.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var asking by remember { mutableStateOf<DiscoveredDesktop?>(null) }
+    var notAllowed by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     DisposableEffect(desktop) {
         desktop.startPolling()
         onDispose { desktop.stopPolling() }
@@ -300,6 +304,33 @@ fun DeviceConnectSheet(
                     onClick = onSelectDesktop
                 )
             } else {
+                nearby.forEach { computer ->
+                    ActionRow(
+                        title = computer.name,
+                        subtitle = when (computer) {
+                            asking -> stringResource(AppR.string.desktop_remote_waiting_for_allow, computer.name)
+                            notAllowed -> stringResource(AppR.string.desktop_remote_not_allowed_short)
+                            else -> stringResource(AppR.string.desktop_remote_tap_to_connect)
+                        },
+                        iconRes = R.drawable.lucide_ic_monitor,
+                        iconTint = if (computer == asking) selectedTint else idleTint,
+                        onClick = {
+                            if (asking != null) return@ActionRow
+                            asking = computer
+                            notAllowed = null
+                            scope.launch {
+                                val result = try {
+                                    desktop.pairWithApproval(computer)
+                                } finally {
+                                    asking = null
+                                }
+                                if (result != ApprovalResult.PAIRED) notAllowed = computer
+                                if (result == ApprovalResult.UNSUPPORTED) onSetUpDesktop()
+                            }
+                        }
+                    )
+                    SettingsDivider()
+                }
                 ActionRow(
                     title = stringResource(AppR.string.desktop_remote_set_up),
                     subtitle = stringResource(AppR.string.desktop_remote_description),

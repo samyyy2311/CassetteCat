@@ -313,6 +313,8 @@ fun MainShell(
     val hasSong = playbackState.currentSong != null
     val desktopRemote = remember { DesktopRemoteRepository.getInstance(context) }
     val desktopState by desktopRemote.state.collectAsStateWithLifecycle()
+    val nearbyDesktops by desktopRemote.found.collectAsStateWithLifecycle()
+    val showDevicesButton = desktopState.address != null || (nearbyDesktops.isNotEmpty() && !desktopState.offlineBlackout)
     var showDevices by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
         desktopRemote.setInFront(true)
@@ -331,7 +333,7 @@ fun MainShell(
         }
     }
     LaunchedEffect(desktopRemote) {
-        if (desktopRemote.state.first { it.loaded }.let { it.address != null && !it.offlineBlackout }) desktopRemote.refind()
+        if (!desktopRemote.state.first { it.loaded }.offlineBlackout) desktopRemote.refind()
         desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
         desktopRemote.syncLikes()
         desktopRemote.syncListens()
@@ -495,7 +497,7 @@ fun MainShell(
                                         scope.launch { scaffoldState.bottomSheetState.expand() }
                                     },
                                     onThumbnailBoundsChange = { collapsedArtRect.value = it },
-                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
+                                    onOpenDevices = if (showDevicesButton) { { showDevices = true } } else null
                                 )
                             }
                             Box(
@@ -528,7 +530,7 @@ fun MainShell(
                                     onNavigateToEqualizer = { navigateFromNowPlaying(MainRoute.EQUALIZER) },
                                     onNavigateToDriveMode = { navigateFromNowPlaying(MainRoute.DRIVE_MODE) },
                                     onHeaderDragProgressChange = { headerDragRevealFraction = it },
-                                    onOpenDevices = if (desktopState.address != null) { { showDevices = true } } else null
+                                    onOpenDevices = if (showDevicesButton) { { showDevices = true } } else null
                                 )
                             }
                         }
