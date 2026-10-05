@@ -1009,7 +1009,7 @@ fun LibraryScreen(
                 val songIds = findAllInLibrary(picked.tracks, librarySongs).map { it.id }
                 val existing = playlists.firstOrNull { !it.isSmart && it.name.equals(picked.name, ignoreCase = true) }
                 if (existing != null) {
-                    if (songIds.isNotEmpty()) playlistViewModel.setSongs(existing.id, songIds)
+                    if (songIds.isNotEmpty() || picked.tracks.isEmpty()) playlistViewModel.setSongs(existing.id, songIds)
                 } else {
                     playlistViewModel.create(picked.name) { playlist -> playlistViewModel.addSongs(playlist.id, songIds) }
                 }
