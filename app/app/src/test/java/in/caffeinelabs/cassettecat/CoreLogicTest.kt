@@ -126,6 +126,9 @@ class CoreLogicTest {
         val likedOnDesktop = planLikesSync(setOf("b"), setOf("b", "c"), shared, lastAgreed = setOf("b"))
         assertEquals(setOf("c"), likedOnDesktop.likeOnPhone)
         assertEquals(setOf("b", "c"), likedOnDesktop.agreed)
+
+        val songMissingForNow = planLikesSync(setOf("b"), setOf("b"), shared = setOf("b"), lastAgreed = setOf("b", "gone"))
+        assertEquals(setOf("b", "gone"), songMissingForNow.agreed)
     }
 
     @Test
@@ -312,9 +315,12 @@ class CoreLogicTest {
             testSong("e", artist = "Bo", title = "Two", durationMs = 240_000L),
             testSong("f", artist = "Ann", title = "One", durationMs = 300_000L),
             testSong("g", artist = "Cy", title = "One", durationMs = 100_500L),
-            testSong("h", artist = "Cy", title = "One", durationMs = 100_000L)
+            testSong("h", artist = "Cy", title = "One", durationMs = 100_000L),
+            testSong("i", artist = "Dee", title = "Three", durationMs = 200_000L),
+            testSong("j", artist = "Dee", title = "Three", durationMs = 202_900L),
+            testSong("k", artist = "Dee", title = "Three", durationMs = 205_800L)
         ))
-        assertEquals(listOf(listOf("a", "b"), listOf("h", "g")), groups.map { group -> group.map { it.id } })
+        assertEquals(listOf(listOf("a", "b"), listOf("h", "g"), listOf("i", "j")), groups.map { group -> group.map { it.id } })
     }
 
     private fun testSong(

@@ -331,6 +331,7 @@ fun MainShell(
         }
     }
     LaunchedEffect(desktopRemote) {
+        if (desktopRemote.state.first { it.loaded }.let { it.address != null && !it.offlineBlackout }) desktopRemote.refind()
         desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
         desktopRemote.syncLikes()
     }

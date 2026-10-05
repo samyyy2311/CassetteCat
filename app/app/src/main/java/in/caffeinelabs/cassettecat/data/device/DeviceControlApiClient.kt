@@ -14,6 +14,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 
 @Serializable
@@ -99,15 +100,27 @@ private data class SetTimeRequest(val epochMs: Long)
 @Serializable
 private data class OkResponse(val ok: Boolean)
 
-/** [onCodeRejected] hears of pairing codes the desktop app refused, so a phone left with an old one stops using it. */
-class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = null) {
+/**
+ * [onCodeRejected] hears of pairing codes the desktop app refused, so a phone left with an old one stops using it.
+ * [onUnreachable] hears when the desktop app did not answer at all, so the phone can look for it again.
+ */
+class DeviceControlApiClient(
+    private val onCodeRejected: ((String) -> Unit)? = null,
+    private val onUnreachable: (() -> Unit)? = null
+) {
     private fun client(network: Network?): OkHttpClient {
         val base = deviceHttpClient(network)
-        val onRejected = onCodeRejected ?: return base
+        if (onCodeRejected == null && onUnreachable == null) return base
         return base.newBuilder().addInterceptor { chain ->
-            chain.proceed(chain.request()).also { response ->
+            val response = try {
+                chain.proceed(chain.request())
+            } catch (e: IOException) {
+                onUnreachable?.invoke()
+                throw e
+            }
+            response.also {
                 val code = chain.request().header("Authorization")?.removePrefix("Bearer ")
-                if (response.code == 401 && code != null) onRejected(code)
+                if (it.code == 401 && code != null) onCodeRejected?.invoke(code)
             }
         }.build()
     }

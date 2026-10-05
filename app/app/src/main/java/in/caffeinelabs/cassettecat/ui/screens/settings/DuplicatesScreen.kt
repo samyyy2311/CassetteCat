@@ -50,7 +50,7 @@ private fun splitByDuration(songs: List<Song>): List<List<Song>> {
     val clusters = mutableListOf<MutableList<Song>>()
     songs.sortedBy { it.durationMs }.forEach { song ->
         val cluster = clusters.lastOrNull()
-        if (cluster != null && song.durationMs - cluster.last().durationMs <= DUPLICATE_DURATION_TOLERANCE_MS) cluster.add(song)
+        if (cluster != null && song.durationMs - cluster.first().durationMs <= DUPLICATE_DURATION_TOLERANCE_MS) cluster.add(song)
         else clusters.add(mutableListOf(song))
     }
     return clusters

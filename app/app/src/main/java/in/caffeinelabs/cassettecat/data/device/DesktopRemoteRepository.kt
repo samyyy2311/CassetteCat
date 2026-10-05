@@ -50,6 +50,7 @@ private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
+private const val REFIND_INTERVAL_MS = 30_000L
 
 data class DesktopAddress(val host: String, val port: Int, val code: String)
 
@@ -89,7 +90,8 @@ internal data class LikesSyncPlan(
 internal fun planLikesSync(phoneLiked: Set<String>, desktopLiked: Set<String>, shared: Set<String>, lastAgreed: Set<String>?): LikesSyncPlan {
     val phone = phoneLiked intersect shared
     val desktop = desktopLiked intersect shared
-    val agreed = if (lastAgreed == null) phone + desktop else (phone intersect desktop) + ((phone + desktop) - lastAgreed)
+    val agreed = if (lastAgreed == null) phone + desktop
+    else (phone intersect desktop) + ((phone + desktop) - lastAgreed) + (lastAgreed - shared)
     return LikesSyncPlan(agreed - phone, phone - agreed, agreed - desktop, desktop - agreed, agreed)
 }
 
@@ -118,7 +120,8 @@ data class DesktopRemoteState(
 class DesktopRemoteRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val dataStore = context.desktopRemoteDataStore
-    private val apiClient = DeviceControlApiClient(onCodeRejected = ::codeRejected)
+    private val apiClient = DeviceControlApiClient(onCodeRejected = ::codeRejected, onUnreachable = ::refindSoon)
+    private var lastRefindAtMs = 0L
     private val localLibrary = LocalLibraryRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
     private val likesSync = Mutex()
@@ -262,14 +265,23 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     fun discover() {
+        scope.launch { refind() }
+    }
+
+    /** Lists the computers nearby, following the paired one by name when the router gave it a new address. */
+    suspend fun refind() {
+        lastRefindAtMs = SystemClock.elapsedRealtime()
+        val desktops = discoverDesktops()
+        _found.value = desktops
+        val current = state.value
+        val moved = desktops.firstOrNull { it.name == current.name } ?: return
+        val address = current.address ?: return
+        if (moved.host != address.host || moved.port != address.port) save("${moved.host}:${moved.port}#${address.code}", moved.name)
+    }
+
+    private fun refindSoon() {
         scope.launch {
-            val desktops = discoverDesktops()
-            _found.value = desktops
-            // A computer that got a new address from the router is followed by name.
-            val current = state.value
-            val moved = desktops.firstOrNull { it.name == current.name } ?: return@launch
-            val address = current.address ?: return@launch
-            if (moved.host != address.host || moved.port != address.port) save("${moved.host}:${moved.port}#${address.code}", moved.name)
+            if (state.value.address != null && SystemClock.elapsedRealtime() - lastRefindAtMs >= REFIND_INTERVAL_MS) refind()
         }
     }
 
@@ -306,9 +318,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun save(address: String, name: String?, controlling: Boolean? = null) {
         scope.launch {
             dataStore.edit {
-                if (it[DESKTOP_ADDRESS] != address) {
+                if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code != parseDesktopAddress(address)?.code) {
                     it.remove(DESKTOP_LAST_BACKUP)
                     it.remove(DESKTOP_AGREED_LIKES)
+                    syncedLikesRevision = null
                 }
                 it[DESKTOP_ADDRESS] = address
                 if (name != null) it[DESKTOP_NAME] = name else it.remove(DESKTOP_NAME)
@@ -403,8 +416,11 @@ class DesktopRemoteRepository private constructor(context: Context) {
                 plan.likeOnPhone.flatMap { songsByKey[it].orEmpty() }.mapTo(HashSet()) { it.id }
             )
         }
-        dataStore.edit { it[DESKTOP_AGREED_LIKES] = plan.agreed }
-        syncedLikesRevision = remote.revision
+        dataStore.edit {
+            if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code != desktop.code) return@edit
+            it[DESKTOP_AGREED_LIKES] = plan.agreed
+            syncedLikesRevision = remote.revision
+        }
     }
 
     /** Continues [songs] on the computer from [positionMs]; it plays the ones its own library has. Returns whether it accepted them. */
