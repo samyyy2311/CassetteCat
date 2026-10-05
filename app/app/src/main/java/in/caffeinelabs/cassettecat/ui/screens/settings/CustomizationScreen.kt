@@ -60,7 +60,6 @@ import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
 import `in`.caffeinelabs.cassettecat.data.settings.AlbumArtCornerStyle
 import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
-import `in`.caffeinelabs.cassettecat.data.settings.CROSSFADE_SECONDS_OPTIONS
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
@@ -632,7 +631,7 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
                 title = stringResource(AppR.string.customization_crossfade_duration),
                 subtitle = stringResource(AppR.string.customization_crossfade_duration_description),
                 iconRes = R.drawable.lucide_ic_square_stack,
-                options = CROSSFADE_SECONDS_OPTIONS,
+                options = listOf(0, 2, 4, 6, 8, 12),
                 selected = prefs.crossfadeSeconds,
                 label = {
                     if (it == 0) stringResource(AppR.string.customization_off)

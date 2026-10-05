@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,13 +13,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -34,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -66,30 +62,6 @@ fun DesktopRemoteScreen(
 ) {
     val state by desktop.state.collectAsStateWithLifecycle()
     val title = stringResource(AppR.string.desktop_remote_title)
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var settingsCopy by remember { mutableStateOf<SettingsCopy?>(null) }
-
-    settingsCopy?.let { copy ->
-        AlertDialog(
-            onDismissRequest = { settingsCopy = null },
-            title = {
-                Text(stringResource(if (copy == SettingsCopy.TO_COMPUTER) AppR.string.desktop_remote_copy_settings_to else AppR.string.desktop_remote_copy_settings_from))
-            },
-            text = { Text(stringResource(AppR.string.desktop_remote_copy_settings_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    settingsCopy = null
-                    scope.launch {
-                        val copied = if (copy == SettingsCopy.TO_COMPUTER) desktop.copySettingsToDesktop() else desktop.copySettingsFromDesktop()
-                        val message = if (copied) AppR.string.desktop_remote_settings_copied else AppR.string.toast_computer_unreachable
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    }
-                }) { Text(stringResource(AppR.string.desktop_remote_copy), color = MaterialTheme.colorScheme.tertiary) }
-            },
-            dismissButton = { TextButton(onClick = { settingsCopy = null }) { Text(stringResource(AppR.string.action_cancel)) } }
-        )
-    }
 
     when {
         !state.loaded -> Unit
@@ -113,21 +85,6 @@ fun DesktopRemoteScreen(
                     iconRes = R.drawable.lucide_ic_monitor,
                     iconTint = if (state.controlling) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
                     onClick = { desktop.setControlling(!state.controlling) }
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            SettingsSection(title = stringResource(AppR.string.desktop_remote_settings_section)) {
-                ActionRow(
-                    title = stringResource(AppR.string.desktop_remote_copy_settings_to),
-                    subtitle = stringResource(AppR.string.desktop_remote_copy_settings_to_description),
-                    iconRes = R.drawable.lucide_ic_upload,
-                    onClick = { settingsCopy = SettingsCopy.TO_COMPUTER }
-                )
-                ActionRow(
-                    title = stringResource(AppR.string.desktop_remote_copy_settings_from),
-                    subtitle = stringResource(AppR.string.desktop_remote_copy_settings_from_description),
-                    iconRes = R.drawable.lucide_ic_download,
-                    onClick = { settingsCopy = SettingsCopy.FROM_COMPUTER }
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -336,5 +293,3 @@ fun DeviceConnectSheet(
         Spacer(Modifier.height(28.dp))
     }
 }
-
-private enum class SettingsCopy { TO_COMPUTER, FROM_COMPUTER }

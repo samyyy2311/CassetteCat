@@ -6,7 +6,6 @@ import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -260,22 +259,6 @@ class DeviceControlApiClient(
                     if (it.isSuccessful) sharedJson.decodeFromString<PlaylistCopyResult>(it.body.string()) else null
                 }
             }.getOrNull()
-        }
-
-    suspend fun getSettings(host: String, port: Int, token: String): JsonObject? =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/settings").withPairingCode(token).build()
-                client(null).newCall(request).execute().use {
-                    if (it.isSuccessful) sharedJson.decodeFromString<JsonObject>(it.body.string()) else null
-                }
-            }.getOrNull()
-        }
-
-    suspend fun sendSettings(host: String, port: Int, token: String, settings: JsonObject): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching { postJson(host, port, "/api/settings", settings, JsonObject.serializer(), null, token) }
-                .getOrDefault(false)
         }
 
     suspend fun uploadBackup(host: String, port: Int, token: String, backupJson: String): Boolean =

@@ -31,14 +31,6 @@ import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
 import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.planLikesSync
-import `in`.caffeinelabs.cassettecat.data.device.desktopServiceStates
-import `in`.caffeinelabs.cassettecat.data.device.desktopSettingsFrom
-import `in`.caffeinelabs.cassettecat.data.device.withDesktopSettings
-import `in`.caffeinelabs.cassettecat.data.backup.BackupAppPreferences
-import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
-import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
 import android.net.Uri
@@ -137,34 +129,6 @@ class CoreLogicTest {
 
         val songMissingForNow = planLikesSync(setOf("b"), setOf("b"), shared = setOf("b"), lastAgreed = setOf("b", "gone"))
         assertEquals(setOf("b", "gone"), songMissingForNow.agreed)
-    }
-
-    @Test
-    fun settingsTranslateToTheComputerAndBack() {
-        val phone = BackupAppPreferences(
-            themeAccent = "ELECTRIC_CYAN", customAccentColor = 0xFF123456, crossfadeSeconds = 4,
-            replayGainEnabled = true, lyricsFontSize = "LARGE", lyricsAlignment = "LEFT", trackRowDensity = "COMPACT"
-        )
-        val keepsAlbumGain = JsonObject(mapOf("player/replayGainMode" to JsonPrimitive("album")))
-        val sent = desktopSettingsFrom(phone, ServiceSettings(lrcLibEnabled = false), keepsAlbumGain)
-        assertEquals(JsonPrimitive("cyan"), sent["ui/accentName"])
-        assertEquals(JsonPrimitive("#123456"), sent["ui/customAccentColor"])
-        assertEquals(JsonPrimitive(3), sent["player/crossfadeSeconds"])
-        assertEquals(JsonPrimitive("album"), sent["player/replayGainMode"])
-        assertEquals(JsonPrimitive(32), sent["lyrics/fontSize"])
-        assertEquals(JsonPrimitive(false), sent["services/lrclib"])
-
-        val back = BackupAppPreferences().withDesktopSettings(sent)
-        assertEquals("ELECTRIC_CYAN", back.themeAccent)
-        assertEquals(0xFF123456, back.customAccentColor)
-        assertEquals(2, back.crossfadeSeconds)
-        assertEquals("LARGE", back.lyricsFontSize)
-        assertEquals("LEFT", back.lyricsAlignment)
-        assertEquals("COMPACT", back.trackRowDensity)
-        assertEquals(false, desktopServiceStates(sent)[ExternalService.LRCLIB])
-
-        val radiusSnapped = BackupAppPreferences().withDesktopSettings(JsonObject(mapOf("ui/albumArtRadius" to JsonPrimitive(11))))
-        assertEquals(8, radiusSnapped.albumArtCornerRadiusDp)
     }
 
     @Test

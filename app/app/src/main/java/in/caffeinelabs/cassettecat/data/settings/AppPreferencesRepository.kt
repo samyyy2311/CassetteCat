@@ -23,7 +23,6 @@ private val SHOW_REMAINING_TIME = booleanPreferencesKey("show_remaining_time")
 private val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
 
 private val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
-val CROSSFADE_SECONDS_OPTIONS = listOf(0, 2, 4, 6, 8, 12)
 private val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_playback")
 private val REPLAY_GAIN_PRE_AMP_DB = intPreferencesKey("replay_gain_pre_amp_db")
 private val MONO_AUDIO = booleanPreferencesKey("mono_audio")

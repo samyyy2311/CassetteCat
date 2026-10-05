@@ -16,7 +16,6 @@ import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
-import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -121,15 +120,13 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private var lastRefindAtMs = 0L
     private val localLibrary = LocalLibraryRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
-    private val appPreferences = AppPreferencesRepository(context)
-    private val serviceSettings = ServiceSettingsRepository(context)
     private val likesSync = Mutex()
     private var syncedLikesRevision: Int? = null
     private val playbackRepository = DevicePlaybackRepository(apiClient)
 
     val state: StateFlow<DesktopRemoteState> = combine(
         dataStore.data,
-        serviceSettings.settings
+        ServiceSettingsRepository(context).settings
     ) { prefs, services ->
         DesktopRemoteState(
             loaded = true,
@@ -459,21 +456,6 @@ class DesktopRemoteRepository private constructor(context: Context) {
     suspend fun computerPlaylists(): List<DesktopPlaylist>? {
         val desktop = connectedDesktop() ?: return null
         return apiClient.getPlaylists(desktop.host, desktop.port, desktop.code)
-    }
-
-    suspend fun copySettingsToDesktop(): Boolean {
-        val desktop = connectedDesktop() ?: return false
-        val current = apiClient.getSettings(desktop.host, desktop.port, desktop.code) ?: return false
-        val settings = desktopSettingsFrom(appPreferences.exportForBackup(), serviceSettings.settings.first(), current)
-        return apiClient.sendSettings(desktop.host, desktop.port, desktop.code, settings)
-    }
-
-    suspend fun copySettingsFromDesktop(): Boolean {
-        val desktop = connectedDesktop() ?: return false
-        val settings = apiClient.getSettings(desktop.host, desktop.port, desktop.code) ?: return false
-        appPreferences.restoreFromBackup(appPreferences.exportForBackup().withDesktopSettings(settings))
-        desktopServiceStates(settings).forEach { (service, enabled) -> serviceSettings.setEnabled(service, enabled) }
-        return true
     }
 
     suspend fun downloadBackup(): String? {
