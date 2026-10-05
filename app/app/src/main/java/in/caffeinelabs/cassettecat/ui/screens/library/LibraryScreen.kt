@@ -1004,8 +1004,9 @@ fun LibraryScreen(
             name = { it.name },
             songCount = { it.tracks.size },
             onSelect = { picked ->
+                val librarySongs = loadedState?.songs ?: return@NamedPlaylistPickerSheet
                 showComputerPlaylists = false
-                val songIds = findAllInLibrary(picked.tracks, loadedState?.songs.orEmpty()).map { it.id }
+                val songIds = findAllInLibrary(picked.tracks, librarySongs).map { it.id }
                 val existing = playlists.firstOrNull { !it.isSmart && it.name.equals(picked.name, ignoreCase = true) }
                 if (existing != null) {
                     playlistViewModel.setSongs(existing.id, songIds)
