@@ -258,6 +258,20 @@ CassetteCat is also available for Windows and Linux at
 
 ---
 
+## Acknowledgements
+
+<p align="center">
+  <a href="https://coderabbit.ai">
+    <img src="assets/coderabbit_logo.svg" width="60" height="60" alt="CodeRabbit Logo" />
+  </a>
+</p>
+
+<p align="center">
+  Special thanks to <a href="https://coderabbit.ai">CodeRabbit</a> for supporting open-source development with automated AI code reviews.
+</p>
+
+---
+
 ## License
 
 CassetteCat is licensed under the

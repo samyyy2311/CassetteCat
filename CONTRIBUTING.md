@@ -56,9 +56,10 @@ See [`TRANSLATING.md`](TRANSLATING.md) before adding or updating translations. E
 2. Keep commits atomic, clean, and focused on the problem at hand.
 3. Verify that the app builds without errors or warnings.
 4. Submit your pull request with a concise explanation of what was changed and how it was verified.
+5. Review [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for expectations regarding AI-assisted contributions.
 
 ---
 
 ## Reporting Issues
 
-Use the repository issue templates for bug reports and feature requests. Provide relevant device logs and reproduction steps where applicable.
+Use the repository issue templates for bug reports and feature requests. Provide relevant device logs and reproduction steps where applicable. Do not report security vulnerabilities publicly; read [SECURITY.md](SECURITY.md) to report vulnerabilities privately.
