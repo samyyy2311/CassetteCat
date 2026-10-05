@@ -21,6 +21,8 @@ import `in`.caffeinelabs.cassettecat.data.playback.SessionSkipTracker
 import `in`.caffeinelabs.cassettecat.data.playback.SmartShuffle
 import `in`.caffeinelabs.cassettecat.ui.theme.artworkAccentFromPixels
 import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
+import `in`.caffeinelabs.cassettecat.ui.playback.countsAsPlay
+import `in`.caffeinelabs.cassettecat.ui.playback.countsAsScrobble
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
 import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
@@ -133,6 +135,19 @@ class CoreLogicTest {
 
         val songMissingForNow = planLikesSync(setOf("b"), setOf("b"), shared = setOf("b"), lastAgreed = setOf("b", "gone"))
         assertEquals(setOf("b", "gone"), songMissingForNow.agreed)
+    }
+
+    @Test
+    fun playsCountAfterNinetyPercentHeardAndScrobblesFollowTheLastFmRule() {
+        assertTrue(countsAsPlay(listenedMs = 40_500, durationMs = 45_000))
+        assertFalse(countsAsPlay(listenedMs = 178_000, durationMs = 200_000))
+        assertTrue(countsAsPlay(listenedMs = 180_000, durationMs = 200_000))
+        assertTrue(countsAsPlay(listenedMs = 30_000, durationMs = 0))
+
+        assertFalse(countsAsScrobble(listenedMs = 25_000, durationMs = 25_000))
+        assertTrue(countsAsScrobble(listenedMs = 100_000, durationMs = 200_000))
+        assertTrue(countsAsScrobble(listenedMs = 240_000, durationMs = 900_000))
+        assertFalse(countsAsScrobble(listenedMs = 239_000, durationMs = 900_000))
     }
 
     @Test

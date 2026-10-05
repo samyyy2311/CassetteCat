@@ -70,8 +70,16 @@ import kotlin.random.Random
 private const val POSITION_TICK_ACTIVE_MS = 250L
 private const val POSITION_TICK_IDLE_MS = 1000L
 private const val SAVE_EVERY_N_TICKS = 40 // ~10s at POSITION_TICK_ACTIVE_MS
-private const val PLAY_COUNT_MAX_THRESHOLD_MS = 4 * 60 * 1000L
-private const val PLAY_COUNT_MIN_THRESHOLD_MS = 60 * 1000L
+private const val PLAY_COUNT_SHARE = 0.9
+private const val UNKNOWN_LENGTH_PLAY_MS = 30_000L
+private const val SCROBBLE_MAX_WAIT_MS = 4 * 60 * 1000L
+private const val SCROBBLE_MIN_LENGTH_MS = 30_000L
+
+internal fun countsAsPlay(listenedMs: Long, durationMs: Long): Boolean =
+    listenedMs >= if (durationMs > 0) (durationMs * PLAY_COUNT_SHARE).toLong() else UNKNOWN_LENGTH_PLAY_MS
+
+internal fun countsAsScrobble(listenedMs: Long, durationMs: Long): Boolean =
+    durationMs > SCROBBLE_MIN_LENGTH_MS && listenedMs >= minOf(durationMs / 2, SCROBBLE_MAX_WAIT_MS)
 private const val AUTOPLAY_BATCH_SIZE = 20
 private const val AUTOPLAY_SAME_ARTIST_WEIGHT = 4.0
 private const val AUTOPLAY_COLLABORATION_WEIGHT = 2.5
@@ -83,6 +91,7 @@ private const val AUTOPLAY_FAVORITE_WEIGHT = 1.5
 private class CurrentListen(val song: Song) {
     var listenedMs = 0L
     var counted = false
+    var scrobbled = false
 }
 private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
 
@@ -193,7 +202,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val equalizerSettingsRepository = EqualizerSettingsRepository(app)
     private val scrobbleManager = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager(app, viewModelScope)
     private var hasAttemptedRestore = false
-    private var playRecordedForSongId: String? = null
     private var currentListen: CurrentListen? = null
 
     // Media3 doesn't push continuous position updates, so poll while playing.
@@ -652,15 +660,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     // Minimum listening duration required to count as an intentional play.
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
-        val state = localState.value
-        // Stations are not songs: no play count and no scrobble, as on the desktop.
-        val song = state.currentSong?.takeIf { it.source != MusicSource.Radio } ?: return
-        if (playRecordedForSongId == song.id) return
-        val threshold = maxOf(minOf(state.durationMs / 2, PLAY_COUNT_MAX_THRESHOLD_MS), PLAY_COUNT_MIN_THRESHOLD_MS)
-        if (threshold > 0 && _positionMs.value >= threshold) {
-            playRecordedForSongId = song.id
-            currentListen?.takeIf { it.song.id == song.id }?.counted = true
-            scrobbleManager.onTrackPlayed(song)
+        val listen = currentListen ?: return
+        val durationMs = localState.value.durationMs
+        if (countsAsPlay(listen.listenedMs, durationMs)) listen.counted = true
+        if (!listen.scrobbled && countsAsScrobble(listen.listenedMs, durationMs)) {
+            listen.scrobbled = true
+            scrobbleManager.onTrackPlayed(listen.song)
         }
     }
 
