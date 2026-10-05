@@ -81,7 +81,9 @@ fun CassetteCatNavHost(
         enterTransition = mechanicalEnter,
         exitTransition = mechanicalExit,
         popEnterTransition = mechanicalPopEnter,
-        popExitTransition = mechanicalPopExit
+        popExitTransition = mechanicalPopExit,
+        predictivePopEnterTransition = { mechanicalPopEnter() },
+        predictivePopExitTransition = { mechanicalPopExit() }
     ) {
         onboardingGraph(navController, onOnboardingFinished)
         composable(Graph.MAIN) { entry ->

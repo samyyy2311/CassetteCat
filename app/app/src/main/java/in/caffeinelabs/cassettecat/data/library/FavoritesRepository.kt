@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.map
 private val Context.favoritesDataStore by preferencesDataStore(name = "favorites")
 private val FAVORITE_IDS = stringSetPreferencesKey("favorite_song_ids")
 
-// Stores favorites for local library tracks. Remote services sync favorites via their APIs.
+// The liked set for every library source; a streaming server's likes are mirrored in on each library load.
 class FavoritesRepository(private val context: Context) {
     val favoriteIds: Flow<Set<String>> = context.favoritesDataStore.data.map { it[FAVORITE_IDS] ?: emptySet() }
 
@@ -18,6 +18,12 @@ class FavoritesRepository(private val context: Context) {
         context.favoritesDataStore.edit { prefs ->
             val current = prefs[FAVORITE_IDS] ?: emptySet()
             prefs[FAVORITE_IDS] = if (favorite) current + songId else current - songId
+        }
+    }
+
+    suspend fun mirror(sourceSongIds: Set<String>, likedIds: Set<String>) {
+        context.favoritesDataStore.edit { prefs ->
+            prefs[FAVORITE_IDS] = (prefs[FAVORITE_IDS] ?: emptySet()) - sourceSongIds + likedIds
         }
     }
 

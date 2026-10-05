@@ -2,6 +2,13 @@
 
 package `in`.caffeinelabs.cassettecat.data.playback
 
+import android.util.Log
+import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
+import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
+import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -85,6 +92,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -99,6 +107,15 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var libraryTree: MediaLibraryTree
     private var currentFavoriteIds: Set<String> = emptySet()
+    private val radioFavoritesRepository by lazy { RadioFavoritesRepository(this) }
+    private val streamingLibraries by lazy {
+        val servers = StreamingServerRepository(this)
+        val credentials = CredentialStore(this)
+        mapOf(
+            "subsonic:" to SubsonicLibraryRepository(servers, credentials),
+            "jellyfin:" to JellyfinLibraryRepository(servers, credentials)
+        )
+    }
     private var shakeDetector: ShakeDetector? = null
     private var flipDetector: FlipDetector? = null
     private var proximityWaveDetector: ProximityWaveDetector? = null
@@ -174,6 +191,8 @@ class PlaybackService : MediaLibraryService() {
             .setHandleAudioBecomingNoisy(false)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
+        val navigationPlayer = SequentialNavigationPlayer(player, serviceScope)
+        sequentialNavigationPlayer = navigationPlayer
 
         registerReceiver(becomingNoisyReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
 
@@ -241,18 +260,18 @@ class PlaybackService : MediaLibraryService() {
             }
         )
 
-        player.addListener(object : Player.Listener {
+        navigationPlayer.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                updateNotificationLayout(player)
+                updateNotificationLayout(navigationPlayer)
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
-                updateNotificationLayout(player)
+                updateNotificationLayout(navigationPlayer)
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 syncWidgetState(player)
-                updateNotificationLayout(player)
+                updateNotificationLayout(navigationPlayer)
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
                     serviceScope.launch(Dispatchers.Main) {
                         player.pause()
@@ -287,7 +306,9 @@ class PlaybackService : MediaLibraryService() {
         val appPreferencesRepository = AppPreferencesRepository(this)
 
         serviceScope.launch {
-            favoritesRepository.favoriteIds.collect { ids ->
+            combine(favoritesRepository.favoriteIds, radioFavoritesRepository.favoriteStations) { ids, stations ->
+                ids.filterNot { it.startsWith("radio:") }.toSet() + stations.map { "radio:${it.uuid}" }
+            }.collect { ids ->
                 currentFavoriteIds = ids
                 mediaSession?.player?.let { p -> updateNotificationLayout(p) }
             }
@@ -341,8 +362,6 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val navigationPlayer = SequentialNavigationPlayer(player)
-        sequentialNavigationPlayer = navigationPlayer
         val bitmapLoader = MediaBitmapLoader(this, serviceScope)
         mediaSession = MediaLibrarySession.Builder(this, navigationPlayer, CustomMediaLibrarySessionCallback())
             .setSessionActivity(sessionActivity)
@@ -543,20 +562,27 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle
         ): ListenableFuture<SessionResult> {
             if (customCommand.customAction == ACTION_CUSTOM_FAVORITE) {
-                val currentMediaId = session.player.currentMediaItem?.mediaId
-                if (currentMediaId != null) {
-                    val isFav = currentMediaId in currentFavoriteIds
+                val currentItem = session.player.currentMediaItem
+                val currentMediaId = currentItem?.mediaId
+                if (currentMediaId != null && currentMediaId.startsWith("radio:")) {
+                    val favorite = currentMediaId !in currentFavoriteIds
                     serviceScope.launch {
-                        favoritesRepository.setFavorite(currentMediaId, !isFav)
+                        if (favorite) radioFavoritesRepository.add(currentItem.toRadioStation())
+                        else radioFavoritesRepository.remove(currentMediaId.removePrefix("radio:"))
+                    }
+                } else if (currentMediaId != null) {
+                    val favorite = currentMediaId !in currentFavoriteIds
+                    val streamingLibrary = streamingLibraries.entries.firstOrNull { currentMediaId.startsWith(it.key) }?.value
+                    serviceScope.launch {
+                        runCatching { streamingLibrary?.setFavorite(currentMediaId, favorite) }
+                            .onSuccess { favoritesRepository.setFavorite(currentMediaId, favorite) }
+                            .onFailure { Log.w("PlaybackService", "Couldn't update the like on the server", it) }
                     }
                 }
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             if (customCommand.customAction == ACTION_CUSTOM_SHUFFLE) {
-                val p = session.player
-                val nextShuffle = !p.shuffleModeEnabled
-                p.shuffleModeEnabled = nextShuffle
-                updateNotificationLayout(p)
+                session.player.shuffleModeEnabled = !session.player.shuffleModeEnabled
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             return super.onCustomCommand(session, controller, customCommand, args)
@@ -853,11 +879,60 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
     }
 
 // Keeps hardware and notification navigation sequential through the playlist timeline.
-private class SequentialNavigationPlayer(player: Player) : ForwardingPlayer(player) {
+private const val FADE_MS = 150L
+private const val FADE_STEPS = 10
+
+private class SequentialNavigationPlayer(player: Player, private val scope: CoroutineScope) : ForwardingPlayer(player) {
     // Exposes seek-to-next when Autoplay is active at queue end.
     var autoplayEnabled: Boolean = false
     private val listeners = CopyOnWriteArraySet<Player.Listener>()
     private var internalShuffleModeEnabled: Boolean = false
+    private var baseVolume = 1f
+    private var fadeMultiplier = 1f
+    private var fadeJob: Job? = null
+
+    override fun getVolume(): Float = baseVolume
+
+    override fun setVolume(volume: Float) {
+        baseVolume = volume
+        applyVolume()
+    }
+
+    override fun play() {
+        val fadingOut = fadeJob?.isActive == true
+        if (!fadingOut && !isPlaying) {
+            fadeMultiplier = 0f
+            applyVolume()
+        }
+        super.play()
+        fadeTo(1f) {}
+    }
+
+    override fun pause() {
+        if (!isPlaying) return super.pause()
+        fadeTo(0f) {
+            pauseNow()
+            fadeMultiplier = 1f
+            applyVolume()
+        }
+    }
+
+    private fun pauseNow() = super.pause()
+
+    private fun applyVolume() = super.setVolume(baseVolume * fadeMultiplier)
+
+    private fun fadeTo(target: Float, onDone: () -> Unit) {
+        fadeJob?.cancel()
+        val start = fadeMultiplier
+        fadeJob = scope.launch {
+            for (step in 1..FADE_STEPS) {
+                delay(FADE_MS / FADE_STEPS)
+                fadeMultiplier = start + (target - start) * step / FADE_STEPS
+                applyVolume()
+            }
+            onDone()
+        }
+    }
 
     override fun addListener(listener: Player.Listener) {
         listeners.add(listener)
@@ -1040,3 +1115,11 @@ private suspend fun resolveArtworkBitmap(
 
     return null
 }
+
+private fun MediaItem.toRadioStation() = RadioStation(
+    uuid = mediaId.removePrefix("radio:"),
+    name = mediaMetadata.title?.toString().orEmpty(),
+    streamUrl = localConfiguration?.uri?.toString().orEmpty(),
+    favicon = mediaMetadata.artworkUri?.toString(),
+    tags = mediaMetadata.artist?.toString().orEmpty()
+)
