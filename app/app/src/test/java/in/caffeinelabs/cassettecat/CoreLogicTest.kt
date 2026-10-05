@@ -30,6 +30,7 @@ import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
 import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
 import `in`.caffeinelabs.cassettecat.data.device.findInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.planLikesSync
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
 import android.net.Uri
@@ -107,6 +108,24 @@ class CoreLogicTest {
 
         assertEquals(listOf("a", "b"), matchInLibrary(fromDesktop, library).map { it.id })
         assertEquals(emptyList<Song>(), matchInLibrary(fromDesktop.drop(1), library))
+    }
+
+    @Test
+    fun likesSyncAddsOnFirstSyncAndThenCarriesLikesAndUnlikesBothWays() {
+        val shared = setOf("a", "b", "c")
+
+        val first = planLikesSync(setOf("a", "x"), setOf("b"), shared, lastAgreed = null)
+        assertEquals(setOf("b"), first.likeOnPhone)
+        assertEquals(setOf("a"), first.likeOnDesktop)
+        assertEquals(setOf("a", "b"), first.agreed)
+
+        val unlikedOnPhone = planLikesSync(setOf("b"), setOf("a", "b"), shared, lastAgreed = setOf("a", "b"))
+        assertEquals(setOf("a"), unlikedOnPhone.unlikeOnDesktop)
+        assertEquals(emptySet<String>(), unlikedOnPhone.unlikeOnPhone + unlikedOnPhone.likeOnPhone + unlikedOnPhone.likeOnDesktop)
+
+        val likedOnDesktop = planLikesSync(setOf("b"), setOf("b", "c"), shared, lastAgreed = setOf("b"))
+        assertEquals(setOf("c"), likedOnDesktop.likeOnPhone)
+        assertEquals(setOf("b", "c"), likedOnDesktop.agreed)
     }
 
     @Test

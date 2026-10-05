@@ -332,6 +332,7 @@ fun MainShell(
     }
     LaunchedEffect(desktopRemote) {
         desktopRemote.backUpIfDue { BackupRepository(context).createBackup() }
+        desktopRemote.syncLikes()
     }
     val currentLibrarySongs by rememberUpdatedState(librarySongs)
     LaunchedEffect(desktopRemote) {

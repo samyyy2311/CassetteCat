@@ -57,7 +57,17 @@ data class HandoffTrack(val title: String, val artist: String)
 data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
 
 @Serializable
-data class PhoneCheckInReply(val commands: List<String> = emptyList(), val playNext: List<HandoffTrack> = emptyList())
+data class PhoneCheckInReply(
+    val commands: List<String> = emptyList(),
+    val playNext: List<HandoffTrack> = emptyList(),
+    val likesRevision: Int? = null
+)
+
+@Serializable
+data class DesktopLikes(val library: List<String>, val liked: List<String>, val revision: Int)
+
+@Serializable
+private data class LikesChange(val like: List<String>, val unlike: List<String>)
 
 @Serializable
 private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
@@ -186,6 +196,22 @@ class DeviceControlApiClient(private val onCodeRejected: ((String) -> Unit)? = n
     suspend fun playNextOnDesktop(host: String, port: Int, token: String, track: HandoffTrack): Boolean =
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/queue/next", track, HandoffTrack.serializer(), null, token) }
+                .getOrDefault(false)
+        }
+
+    suspend fun getLikes(host: String, port: Int, token: String): DesktopLikes? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/likes").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopLikes>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun changeLikes(host: String, port: Int, token: String, like: Set<String>, unlike: Set<String>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/likes", LikesChange(like.toList(), unlike.toList()), LikesChange.serializer(), null, token) }
                 .getOrDefault(false)
         }
 
