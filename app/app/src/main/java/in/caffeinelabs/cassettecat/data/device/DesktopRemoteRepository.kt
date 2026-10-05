@@ -95,9 +95,9 @@ internal fun planLikesSync(phoneLiked: Set<String>, desktopLiked: Set<String>, s
     return LikesSyncPlan(agreed - phone, phone - agreed, agreed - desktop, desktop - agreed, agreed)
 }
 
-internal fun findInLibrary(track: HandoffTrack, library: List<Song>): Song? {
-    val wanted = matchKey(track.title, track.artist)
-    return library.firstOrNull { matchKey(it.title, it.artist) == wanted }
+internal fun findAllInLibrary(tracks: List<HandoffTrack>, library: List<Song>): List<Song> {
+    val byKey = library.asReversed().associateBy { matchKey(it.title, it.artist) }
+    return tracks.mapNotNull { byKey[matchKey(it.title, it.artist)] }.distinct()
 }
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
@@ -450,6 +450,17 @@ class DesktopRemoteRepository private constructor(context: Context) {
     fun playNext(song: Song, onResult: (Boolean) -> Unit) {
         val desktop = connectedDesktop() ?: return onResult(false)
         scope.launch { onResult(apiClient.playNextOnDesktop(desktop.host, desktop.port, desktop.code, HandoffTrack(song.title, song.artist))) }
+    }
+
+    fun sendPlaylist(name: String, songs: List<Song>, onResult: (PlaylistCopyResult?) -> Unit) {
+        val desktop = connectedDesktop() ?: return onResult(null)
+        val playlist = DesktopPlaylist(name, songs.map { HandoffTrack(it.title, it.artist) })
+        scope.launch { onResult(apiClient.sendPlaylist(desktop.host, desktop.port, desktop.code, playlist)) }
+    }
+
+    suspend fun computerPlaylists(): List<DesktopPlaylist>? {
+        val desktop = connectedDesktop() ?: return null
+        return apiClient.getPlaylists(desktop.host, desktop.port, desktop.code)
     }
 
     suspend fun downloadBackup(): String? {

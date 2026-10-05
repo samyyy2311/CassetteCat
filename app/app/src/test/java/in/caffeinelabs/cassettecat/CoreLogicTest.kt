@@ -28,7 +28,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
 import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
-import `in`.caffeinelabs.cassettecat.data.device.findInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.planLikesSync
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
@@ -135,8 +135,8 @@ class CoreLogicTest {
     fun findsASongSentFromTheDesktopByTitleAndArtist() {
         val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
 
-        assertEquals("b", findInLibrary(HandoffTrack(title = " two", artist = "BO "), library)?.id)
-        assertNull(findInLibrary(HandoffTrack(title = "Two", artist = "Ann"), library))
+        val sent = listOf(HandoffTrack(" two", "BO "), HandoffTrack("Two", "Ann"), HandoffTrack("One", "ann"), HandoffTrack("TWO", "bo"))
+        assertEquals(listOf("b", "a"), findAllInLibrary(sent, library).map { it.id })
     }
 
     @Test

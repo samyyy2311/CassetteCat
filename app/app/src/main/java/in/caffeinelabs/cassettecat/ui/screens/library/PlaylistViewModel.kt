@@ -43,6 +43,10 @@ class PlaylistViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repository.addSong(playlistId, songId) }
     }
 
+    fun setSongs(playlistId: String, songIds: List<String>) {
+        viewModelScope.launch { repository.setSongs(playlistId, songIds) }
+    }
+
     fun addSongs(playlistId: String, songIds: List<String>) {
         viewModelScope.launch { repository.addSongs(playlistId, songIds) }
     }

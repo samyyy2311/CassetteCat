@@ -361,7 +361,27 @@ private fun SongFilter.iconRes(): Int = when (this) {
 }
 
 @Composable
-internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist) -> Unit, onDismiss: () -> Unit) {
+internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist) -> Unit, onDismiss: () -> Unit) =
+    NamedPlaylistPickerSheet(
+        title = stringResource(AppR.string.library_add_to_playlist),
+        emptyText = stringResource(AppR.string.library_no_playlists),
+        playlists = playlists,
+        name = { it.name },
+        songCount = { it.songIds.size },
+        onSelect = onSelect,
+        onDismiss = onDismiss
+    )
+
+@Composable
+internal fun <T> NamedPlaylistPickerSheet(
+    title: String,
+    emptyText: String,
+    playlists: List<T>,
+    name: (T) -> String,
+    songCount: (T) -> Int,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit
+) {
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -371,13 +391,13 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                 .padding(bottom = 20.dp)
         ) {
             Text(
-                stringResource(AppR.string.library_add_to_playlist),
+                title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             if (playlists.isEmpty()) {
                 Text(
-                    stringResource(AppR.string.library_no_playlists),
+                    emptyText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -402,9 +422,9 @@ internal fun PlaylistPickerSheet(playlists: List<Playlist>, onSelect: (Playlist)
                         )
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(playlist.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(name(playlist), style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                pluralStringResource(AppR.plurals.library_songs, playlist.songIds.size, playlist.songIds.size),
+                                pluralStringResource(AppR.plurals.library_songs, songCount(playlist), songCount(playlist)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

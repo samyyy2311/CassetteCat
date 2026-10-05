@@ -78,6 +78,13 @@
     <string name="library_play_next_on_computer_description">Queue it after the computer’s current song, if its library has it</string>
     <string name="toast_playing_next_on_computer">Sent to your computer</string>
     <string name="toast_computer_unreachable">Couldn’t reach your computer</string>
+    <string name="library_get_from_computer">Get a playlist from your computer</string>
+    <string name="library_computer_playlists">Playlists on Your Computer</string>
+    <string name="library_computer_playlists_loading">Looking on your computer…</string>
+    <string name="library_computer_playlists_empty">Your computer has no playlists yet.</string>
+    <string name="playlist_action_send_to_computer">Send to Computer</string>
+    <string name="playlist_action_send_to_computer_desc">Copy it to your computer, replacing one with the same name</string>
+    <string name="toast_playlist_sent">Sent to your computer: %1$d of %2$d songs</string>
     <string name="library_share">Share</string>
     <string name="library_select_all">Select All</string>
     <string name="library_queue">Queue</string>

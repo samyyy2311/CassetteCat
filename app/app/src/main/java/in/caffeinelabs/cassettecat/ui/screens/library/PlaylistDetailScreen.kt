@@ -47,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import android.widget.Toast
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -102,6 +104,8 @@ fun PlaylistDetailScreen(
     listBottomPadding: Dp = 0.dp
 ) {
     val context = LocalContext.current
+    val desktop = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktop.state.collectAsStateWithLifecycle()
     val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
@@ -294,6 +298,17 @@ fun PlaylistDetailScreen(
                 val safeName = playlist.name.replace(Regex("[\\\\/:*?\"<>|]"), "_")
                 exportLauncher.launch("$safeName.m3u8")
             },
+            onSendToComputer = if (desktopState.address != null && !desktopState.offlineBlackout) {
+                {
+                    showActionsSheet = false
+                    val appContext = context.applicationContext
+                    desktop.sendPlaylist(playlist.name, sortedSongs) { result ->
+                        val message = result?.let { appContext.getString(AppR.string.toast_playlist_sent, it.matched, it.total) }
+                            ?: appContext.getString(AppR.string.toast_computer_unreachable)
+                        Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else null,
             onRename = { showActionsSheet = false; showRenameSheet = true },
             onDelete = { showActionsSheet = false; showDeleteConfirm = true },
             onDismiss = { showActionsSheet = false }
@@ -463,6 +478,7 @@ private fun PlaylistActionsSheet(
     onChangeCover: () -> Unit,
     onDownloadAll: () -> Unit,
     onExport: () -> Unit,
+    onSendToComputer: (() -> Unit)?,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
@@ -488,6 +504,9 @@ private fun PlaylistActionsSheet(
                 PlaylistActionRow(iconRes = R.drawable.lucide_ic_image, label = stringResource(AppR.string.playlist_action_change_cover), subtitle = stringResource(AppR.string.playlist_action_change_cover_desc), destructive = false, onClick = onChangeCover)
                 PlaylistActionRow(iconRes = R.drawable.lucide_ic_download, label = stringResource(AppR.string.playlist_action_download_all), subtitle = stringResource(AppR.string.playlist_action_download_all_desc), destructive = false, onClick = onDownloadAll)
                 PlaylistActionRow(iconRes = R.drawable.lucide_ic_upload, label = stringResource(AppR.string.playlist_action_export), subtitle = stringResource(AppR.string.playlist_action_export_desc), destructive = false, onClick = onExport)
+                if (onSendToComputer != null) {
+                    PlaylistActionRow(iconRes = R.drawable.lucide_ic_monitor, label = stringResource(AppR.string.playlist_action_send_to_computer), subtitle = stringResource(AppR.string.playlist_action_send_to_computer_desc), destructive = false, onClick = onSendToComputer)
+                }
                 PlaylistActionRow(iconRes = R.drawable.lucide_ic_pencil, label = stringResource(AppR.string.playlist_action_rename), subtitle = stringResource(AppR.string.playlist_action_rename_desc), destructive = false, onClick = onRename)
                 PlaylistActionRow(iconRes = R.drawable.lucide_ic_trash_2, label = stringResource(AppR.string.playlist_action_delete), subtitle = stringResource(AppR.string.playlist_action_delete_desc), destructive = true, onClick = onDelete)
             }

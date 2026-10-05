@@ -41,6 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import android.widget.Toast
+import `in`.caffeinelabs.cassettecat.data.device.DesktopPlaylist
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
+import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -183,6 +187,10 @@ fun LibraryScreen(
     var songForTagEdit by remember { mutableStateOf<Song?>(null) }
     var songsForBatchTagEdit by remember { mutableStateOf<List<Song>>(emptyList()) }
     var importSummary by remember { mutableStateOf<M3uImportSummary?>(null) }
+    val desktop = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktop.state.collectAsStateWithLifecycle()
+    var showComputerPlaylists by remember { mutableStateOf(false) }
+    var computerPlaylists by remember { mutableStateOf<List<DesktopPlaylist>?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
     BackHandler(enabled = selectionMode) {
         selectedIds = emptySet()
@@ -395,6 +403,25 @@ fun LibraryScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (viewMode == LibraryViewMode.PLAYLISTS) {
+                            if (desktopState.address != null && !desktopState.offlineBlackout) {
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_monitor,
+                                    contentDescription = stringResource(AppR.string.library_get_from_computer),
+                                    onClick = {
+                                        computerPlaylists = null
+                                        showComputerPlaylists = true
+                                        pagerScope.launch {
+                                            val found = desktop.computerPlaylists()
+                                            if (found != null) {
+                                                computerPlaylists = found
+                                            } else {
+                                                showComputerPlaylists = false
+                                                Toast.makeText(context, AppR.string.toast_computer_unreachable, Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_import,
                                 contentDescription = stringResource(AppR.string.library_import_playlist),
@@ -964,6 +991,30 @@ fun LibraryScreen(
             initialArtist = song.artist,
             albumId = song.albumId,
             onDismiss = { coverSearchSong = null }
+        )
+    }
+
+    if (showComputerPlaylists) {
+        NamedPlaylistPickerSheet(
+            title = stringResource(AppR.string.library_computer_playlists),
+            emptyText = stringResource(
+                if (computerPlaylists == null) AppR.string.library_computer_playlists_loading else AppR.string.library_computer_playlists_empty
+            ),
+            playlists = computerPlaylists.orEmpty(),
+            name = { it.name },
+            songCount = { it.tracks.size },
+            onSelect = { picked ->
+                showComputerPlaylists = false
+                val songIds = findAllInLibrary(picked.tracks, loadedState?.songs.orEmpty()).map { it.id }
+                val existing = playlists.firstOrNull { !it.isSmart && it.name.equals(picked.name, ignoreCase = true) }
+                if (existing != null) {
+                    playlistViewModel.setSongs(existing.id, songIds)
+                } else {
+                    playlistViewModel.create(picked.name) { playlist -> playlistViewModel.addSongs(playlist.id, songIds) }
+                }
+                importSummary = M3uImportSummary(picked.name, songIds.size, picked.tracks.size)
+            },
+            onDismiss = { showComputerPlaylists = false }
         )
     }
 

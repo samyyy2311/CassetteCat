@@ -71,6 +71,15 @@ data class DesktopLikes(val library: List<String>, val liked: List<String>, val 
 private data class LikesChange(val like: List<String>, val unlike: List<String>)
 
 @Serializable
+data class DesktopPlaylist(val name: String, val tracks: List<HandoffTrack>)
+
+@Serializable
+private data class DesktopPlaylists(val playlists: List<DesktopPlaylist>)
+
+@Serializable
+data class PlaylistCopyResult(val matched: Int, val total: Int)
+
+@Serializable
 private data class HandoffRequest(val tracks: List<HandoffTrack>, val index: Int, val positionMs: Long, val playing: Boolean)
 
 @Serializable
@@ -226,6 +235,30 @@ class DeviceControlApiClient(
         withContext(Dispatchers.IO) {
             runCatching { postJson(host, port, "/api/likes", LikesChange(like.toList(), unlike.toList()), LikesChange.serializer(), null, token) }
                 .getOrDefault(false)
+        }
+
+    suspend fun getPlaylists(host: String, port: Int, token: String): List<DesktopPlaylist>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url("http://$host:$port/api/playlists").withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopPlaylists>(it.body.string()).playlists else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun sendPlaylist(host: String, port: Int, token: String, playlist: DesktopPlaylist): PlaylistCopyResult? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/playlists")
+                    .post(sharedJson.encodeToString(DesktopPlaylist.serializer(), playlist).toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<PlaylistCopyResult>(it.body.string()) else null
+                }
+            }.getOrNull()
         }
 
     suspend fun uploadBackup(host: String, port: Int, token: String, backupJson: String): Boolean =

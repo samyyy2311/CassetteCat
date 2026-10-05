@@ -18,7 +18,7 @@ import `in`.caffeinelabs.cassettecat.data.download.DownloadSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteState
 import `in`.caffeinelabs.cassettecat.data.device.HandoffTrack
-import `in`.caffeinelabs.cassettecat.data.device.findInLibrary
+import `in`.caffeinelabs.cassettecat.data.device.findAllInLibrary
 import `in`.caffeinelabs.cassettecat.data.device.matchInLibrary
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
@@ -524,7 +524,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun playNextFromDesktop(tracks: List<HandoffTrack>) {
         val library = librariesBySource.values.flatMap { library -> runCatching { library.getSongs() }.getOrDefault(emptyList()) }
-        val songs = tracks.mapNotNull { findInLibrary(it, library) }
+        val songs = findAllInLibrary(tracks, library)
         if (songs.isNotEmpty()) addToUpNext(songs)
     }
 
