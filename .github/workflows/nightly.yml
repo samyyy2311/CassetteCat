@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout main
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
 
@@ -56,18 +56,18 @@ jobs:
 
       - name: Set up JDK 17
         if: steps.check.outputs.skip != 'true'
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
         if: steps.check.outputs.skip != 'true'
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
 
       - name: Setup Gradle
         if: steps.check.outputs.skip != 'true'
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Build development APK
         if: steps.check.outputs.skip != 'true'
@@ -107,7 +107,7 @@ jobs:
 
       - name: Stage nightly assets
         if: steps.check.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: nightly
           target_commitish: ${{ steps.check.outputs.commit }}
