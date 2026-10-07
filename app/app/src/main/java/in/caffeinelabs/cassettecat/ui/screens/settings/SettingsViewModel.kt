@@ -222,6 +222,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setGaplessPlayback(enabled) }
     }
 
+    fun setSkipSilence(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setSkipSilence(enabled) }
+    }
+
     fun setReplayGainPreAmpDb(db: Int) {
         viewModelScope.launch { appPreferencesRepository.setReplayGainPreAmpDb(db) }
     }

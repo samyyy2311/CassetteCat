@@ -324,6 +324,7 @@ class PlaybackService : MediaLibraryService() {
             appPreferencesRepository.preferences.collect { prefs ->
                 isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
                 isGaplessPlaybackEnabled = prefs.gaplessPlayback
+                player.skipSilenceEnabled = prefs.skipSilence
                 sequentialNavigationPlayer?.autoplayEnabled = prefs.autoplayEnabled
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
                 player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
