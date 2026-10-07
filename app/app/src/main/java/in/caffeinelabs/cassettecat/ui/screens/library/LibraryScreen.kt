@@ -109,6 +109,7 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp,
     onNavigateToFolder: (String) -> Unit = {},
+    onBrowseComputer: () -> Unit = {},
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     viewModel: LibraryViewModel = viewModel(),
     playlistViewModel: PlaylistViewModel = viewModel()
@@ -433,6 +434,13 @@ fun LibraryScreen(
                                 onClick = { showNewPlaylistSheet = true }
                             )
                         } else if (loadedState != null && filteredSongs.isNotEmpty()) {
+                            if (desktopState.address != null && !desktopState.offlineBlackout) {
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_monitor,
+                                    contentDescription = stringResource(AppR.string.library_browse_computer),
+                                    onClick = onBrowseComputer
+                                )
+                            }
                             PressDepthIconButton(
                                 iconRes = R.drawable.lucide_ic_play,
                                 contentDescription = stringResource(AppR.string.library_play_all),

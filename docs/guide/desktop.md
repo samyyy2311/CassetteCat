@@ -3,6 +3,7 @@
 [CassetteCat Desktop](https://github.com/samyyy2311/CassetteCat-Desktop) is the companion app for Windows, macOS and Linux. Once paired, your phone can:
 
 - control the computer's playback as a remote;
+- browse the computer's library, and play it on the computer or stream it to the phone;
 - move what you're listening to, with the queue and position, from one to the other;
 - keep likes in sync and copy playlists both ways;
 - share listening history, so each app's Listening Record includes both;
@@ -54,6 +55,16 @@ While a phone is in control, the computer shows a phone icon in its player bar s
 When the phone plays music itself, the computer shows **Playing on [phone]** with play, pause and next buttons, plus **Play Here** to move the music to the computer.
 
 Songs are matched by title and artist, so a song moves only if both libraries have it.
+
+## Play your computer's music
+
+When paired, you can browse everything in the computer's library from the phone. Open it from **Library** (the computer button at the top) or **Settings > Desktop Remote > Browse your computer's music**.
+
+- **Search** by song, artist or album.
+- **Tap a song** to play it where you're listening: on the computer while you're controlling it, otherwise streamed to the phone over Wi-Fi.
+- **The three dots** beside a song choose the other one: **Play on This Phone** or **Play on Computer**.
+
+Streaming needs the computer on, with CassetteCat Desktop open, on the same Wi-Fi. Songs streamed this way aren't saved on the phone.
 
 ## Likes and playlists
 

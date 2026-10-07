@@ -46,6 +46,22 @@ data class DesktopQueueTrack(
 @Serializable
 private data class DesktopQueue(val tracks: List<DesktopQueueTrack>)
 
+/** A song in the paired computer's library. [id] is stable and doesn't reveal the file's path. */
+@Serializable
+data class DesktopLibraryTrack(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val album: String = "",
+    val durationMs: Long = 0
+)
+
+@Serializable
+data class DesktopLibraryPage(val total: Int, val tracks: List<DesktopLibraryTrack>)
+
+@Serializable
+private data class LibraryPlayRequest(val ids: List<String>, val index: Int)
+
 @Serializable
 private data class QueueTrackRequest(val index: Int)
 
@@ -222,6 +238,27 @@ class DeviceControlApiClient(
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopQueue>(it.body.string()).tracks else null
                 }
             }.getOrNull()
+        }
+
+    suspend fun getLibrary(host: String, port: Int, token: String, query: String, offset: Int, limit: Int): DesktopLibraryPage? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val url = "http://$host:$port/api/library".toHttpUrl().newBuilder()
+                    .addQueryParameter("q", query)
+                    .addQueryParameter("offset", offset.toString())
+                    .addQueryParameter("limit", limit.toString())
+                    .build()
+                val request = Request.Builder().url(url).withPairingCode(token).build()
+                client(null).newCall(request).execute().use {
+                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopLibraryPage>(it.body.string()) else null
+                }
+            }.getOrNull()
+        }
+
+    suspend fun playLibrary(host: String, port: Int, token: String, ids: List<String>, index: Int): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { postJson(host, port, "/api/library/play", LibraryPlayRequest(ids, index), LibraryPlayRequest.serializer(), null, token) }
+                .getOrDefault(false)
         }
 
     suspend fun playQueueTrack(host: String, port: Int, index: Int, token: String): Boolean =

@@ -282,7 +282,7 @@ internal fun TitleRow(
                             MusicSource.Jellyfin -> AppR.string.source_jellyfin
                             MusicSource.Radio -> AppR.string.source_radio
                             MusicSource.ListeningRoomHost -> AppR.string.source_room
-                            MusicSource.Desktop -> AppR.string.source_desktop
+                            MusicSource.Desktop, MusicSource.Computer -> AppR.string.source_desktop
                             MusicSource.Local -> AppR.string.app_name
                         }
                     )
@@ -291,7 +291,7 @@ internal fun TitleRow(
                         MusicSource.Jellyfin -> Color(0xFF00A4DC)
                         MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
                         MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.secondary
-                        MusicSource.Desktop -> MaterialTheme.colorScheme.tertiary
+                        MusicSource.Desktop, MusicSource.Computer -> MaterialTheme.colorScheme.tertiary
                         MusicSource.Local -> Color.Unspecified
                     }
                     Box(

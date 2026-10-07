@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.SystemClock
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -58,6 +59,7 @@ private const val MAX_PENDING_LISTENS = 2_000
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
+private const val COMPUTER_LIBRARY_PAGE = 100
 private const val REFIND_INTERVAL_MS = 30_000L
 private const val APPROVAL_WAIT_MS = 65_000L
 private const val APPROVAL_POLL_MS = 1_000L
@@ -529,6 +531,37 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val desktop = connectedDesktop() ?: return onResult(null)
         val playlist = DesktopPlaylist(name, songs.map { HandoffTrack(it.title, it.artist) })
         scope.launch { onResult(apiClient.sendPlaylist(desktop.host, desktop.port, desktop.code, playlist)) }
+    }
+
+    /** A page of the computer's library matching [query]; null when the computer can't be reached. */
+    suspend fun computerLibrary(query: String, offset: Int, limit: Int = COMPUTER_LIBRARY_PAGE): DesktopLibraryPage? {
+        val desktop = connectedDesktop() ?: return null
+        return apiClient.getLibrary(desktop.host, desktop.port, desktop.code, query, offset, limit)
+    }
+
+    /** Plays [tracks] from the computer's library on the computer, starting at [index]. */
+    fun playOnComputer(tracks: List<DesktopLibraryTrack>, index: Int, onResult: (Boolean) -> Unit) {
+        val desktop = connectedDesktop() ?: return onResult(false)
+        scope.launch { onResult(apiClient.playLibrary(desktop.host, desktop.port, desktop.code, tracks.map { it.id }, index)) }
+    }
+
+    /** [tracks] as songs this phone streams from the computer. The URLs carry the code, as the player can't send headers. */
+    fun computerSongs(tracks: List<DesktopLibraryTrack>): List<Song> {
+        val desktop = connectedDesktop() ?: return emptyList()
+        val base = "http://${desktop.host}:${desktop.port}/api"
+        return tracks.map { track ->
+            Song(
+                id = "computer:${track.id}",
+                title = track.title,
+                artist = track.artist,
+                album = track.album,
+                albumId = "computer:${track.album}",
+                durationMs = track.durationMs,
+                contentUri = "$base/stream?id=${track.id}&code=${desktop.code}".toUri(),
+                source = MusicSource.Computer,
+                artUri = "$base/artwork?id=${track.id}&code=${desktop.code}".toUri()
+            )
+        }
     }
 
     suspend fun computerPlaylists(): List<DesktopPlaylist>? {

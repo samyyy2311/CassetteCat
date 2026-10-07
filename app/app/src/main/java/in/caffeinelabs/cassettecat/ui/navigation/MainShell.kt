@@ -82,6 +82,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.home.HomeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistDetailScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.library.ComputerLibraryScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.FolderDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.GenreDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryScreen
@@ -187,6 +188,7 @@ object MainRoute {
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
     const val DESKTOP_REMOTE = "main/settings/desktop_remote"
+    const val COMPUTER_LIBRARY = "main/computer_library"
     const val DEVICE_SYNC = "main/settings/companion/sync"
     const val DEVICE_NOW_PLAYING = "main/settings/companion/now_playing"
     const val DEVICE_STORAGE = "main/settings/companion/storage"
@@ -565,6 +567,7 @@ fun MainShell(
                     composable(MainRoute.LIBRARY) {
                         LibraryScreen(
                             playbackViewModel = playbackViewModel,
+                            onBrowseComputer = { navController.navigate(MainRoute.COMPUTER_LIBRARY) },
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },
@@ -831,6 +834,14 @@ fun MainShell(
                     composable(MainRoute.DESKTOP_REMOTE) {
                         DesktopRemoteScreen(
                             desktop = desktopRemote,
+                            onBack = { navController.popBackStack() },
+                            onBrowseComputer = { navController.navigate(MainRoute.COMPUTER_LIBRARY) },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.COMPUTER_LIBRARY) {
+                        ComputerLibraryScreen(
+                            playbackViewModel = playbackViewModel,
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
