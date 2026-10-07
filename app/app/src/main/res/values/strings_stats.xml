@@ -4,7 +4,7 @@
     <string name="stats_clear_confirm_title">Clear listening stats?</string>
     <string name="stats_clear_confirm_message">This can’t be undone.</string>
     <string name="stats_empty_title">No plays yet</string>
-    <string name="stats_empty_message">Play something past the halfway point and it’ll show up here.</string>
+    <string name="stats_empty_message">Play a song nearly to the end and it’ll show up here.</string>
     <string name="stats_most_played">Most played</string>
     <string name="stats_most_played_artists">MOST PLAYED ARTISTS</string>
     <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
