@@ -35,7 +35,7 @@
   <tr>
     <td align="center"><a href="https://play.google.com/store/apps/details?id=in.caffeinelabs.cassettecat"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="45" /></a></td>
     <td align="center"><a href="https://github.com/samyyy2311/CassetteCat/releases/latest"><img src="assets/badge_github.png" alt="Download APK from GitHub Releases" height="31" /></a></td>
-    <td align="center"><a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/samyyy2311/CassetteCat"><img src="assets/badge_obtainium.png" alt="Install CassetteCat with Obtainium" height="45" /></a></td>
+    <td align="center"><a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/samyyy2311/CassetteCat"><img src="assets/badge_obtainium.png" alt="Install CassetteCat with Obtainium" height="45" /></a></td>
     <td align="center"><img src="assets/badge_fdroid.png" alt="F-Droid (pending)" height="45" /></td>
     <td align="center"><img src="assets/badge_openapk.png" alt="OpenAPK (pending)" height="45" /></td>
   </tr>
