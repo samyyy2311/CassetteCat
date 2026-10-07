@@ -10,7 +10,7 @@ Before opening an issue, check whether your question is already covered:
 
 * **[README.md](../README.md)**: Details installation options (Google Play, GitHub Releases, Obtainium), streaming setup (Subsonic/Navidrome, Jellyfin), and companion features.
 * **[Search Existing Issues](https://github.com/samyyy2311/CassetteCat/issues?q=is%3Aissue)**: Check open and closed issues to see if a question or problem has already been addressed.
-* **General Questions**: If you cannot find an answer, open an issue using the general question format.
+* **General Questions**: If you cannot find an answer, ask in [Discussions](https://github.com/samyyy2311/CassetteCat/discussions).
 
 ---
 
@@ -21,13 +21,13 @@ If you encounter an issue or crash:
 1. **Verify your version**: Check *Settings > About & Legal* to confirm you are on the latest release.
 2. **Search open and closed issues**: Avoid duplicate reports for already tracked problems.
 3. **Use the appropriate issue template**:
-   * **App Bugs**: Use the [Bug Report](https://github.com/samyyy2311/CassetteCat/issues/new?template=bug_report.md) template. Please include:
+   * **App Bugs**: Use the [Bug Report](https://github.com/samyyy2311/CassetteCat/issues/new?template=bug_report.yml) template. Please include:
      * Device model (e.g., Google Pixel 8, Samsung Galaxy S23).
      * Android version and API level (e.g., Android 14 / API 34).
      * Audio source involved (Local MediaStore, Subsonic/Navidrome, Jellyfin, or Internet Radio).
      * Steps to reproduce the bug.
-     * Logcat output or crash stacktraces (via db logcat -d) where applicable.
-   * **Companion Player Issues**: For ESP32 physical player firmware or hardware issues, use the [Hardware / Firmware Issue](https://github.com/samyyy2311/CassetteCat/issues/new?template=hardware_firmware_issue.md) template.
+     * Logcat output or crash stacktraces (via `adb logcat -d`) where applicable.
+   * **Desktop App Issues**: For problems with the Windows, macOS or Linux app, open an issue in [CassetteCat Desktop](https://github.com/samyyy2311/CassetteCat-Desktop/issues).
 
 ---
 
@@ -36,7 +36,7 @@ If you encounter an issue or crash:
 To suggest improvements or new features:
 
 * Check existing [Feature Requests](https://github.com/samyyy2311/CassetteCat/issues?q=is%3Aissue+label%3Aenhancement) to upvote or join the discussion.
-* Open a new proposal using the [Feature Request](https://github.com/samyyy2311/CassetteCat/issues/new?template=feature_request.md) template, describing the practical use case and how it fits the player's local-first philosophy.
+* Open a new proposal using the [Feature Request](https://github.com/samyyy2311/CassetteCat/issues/new?template=feature_request.yml) template, describing the practical use case and how it fits the player's local-first philosophy.
 
 ---
 
@@ -45,8 +45,8 @@ To suggest improvements or new features:
 If you want to contribute to development:
 
 * Read [CONTRIBUTING.md](../CONTRIBUTING.md) for project guidelines, build requirements (Android Studio, JDK 17, compileSdk 37), and code economy principles.
-* Review [CODE_PATTERNS.md](../CODE_PATTERNS.md) for as-built Kotlin/Compose architecture patterns (MVVM + Repository, Media3, DataStore).
-* Read [DESIGN.md](../DESIGN.md) and [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md) for UX and design tokens.
+* Read [docs/architecture.md](../docs/architecture.md) for how the app is structured (MVVM and repositories, Media3, DataStore).
+* Read [docs/android.md](../docs/android.md) for build setup, theme tokens and signing.
 * See [TRANSLATING.md](../TRANSLATING.md) to add or update language translations in XML resources.
 * Review [AI_DISCLOSURE.md](../AI_DISCLOSURE.md) for expectations regarding AI-assisted contributions.
 

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/samyyy2311/CassetteCat/security/advisories/new
+    about: Report vulnerabilities privately, not as a public issue.
+  - name: Ask a question
+    url: https://github.com/samyyy2311/CassetteCat/discussions
+    about: Questions about setup or how something works.
+  - name: CassetteCat Desktop issues
+    url: https://github.com/samyyy2311/CassetteCat-Desktop/issues
+    about: Problems with the Windows, macOS or Linux app.

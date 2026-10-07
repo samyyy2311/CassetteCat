@@ -1,0 +1,63 @@
+name: Bug report
+description: Report a problem you can reproduce
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: CassetteCat version
+      description: Shown in Settings > About & Legal.
+      placeholder: 1.7.7
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: Pixel 8, Android 15
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where was the music coming from?
+      options:
+        - Music on this phone
+        - Subsonic or Navidrome
+        - Jellyfin
+        - Internet radio
+        - CassetteCat Desktop (Desktop Remote)
+        - Listening room
+        - Not related to playback
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows the problem every time.
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots or logs
+      description: Remove server addresses, passwords, tokens and other personal details first.
+    validations:
+      required: false
