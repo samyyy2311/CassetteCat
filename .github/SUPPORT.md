@@ -8,6 +8,8 @@ Thank you for using CassetteCat. Here is how to get help, report problems, and p
 
 Before opening an issue, check whether your question is already covered:
 
+* **[User guide](../docs/README.md#using-the-app)**: Step-by-step help for every feature, and a [troubleshooting page](../docs/guide/troubleshooting.md).
+
 * **[README.md](../README.md)**: Details installation options (Google Play, GitHub Releases, Obtainium), streaming setup (Subsonic/Navidrome, Jellyfin), and companion features.
 * **[Search Existing Issues](https://github.com/samyyy2311/CassetteCat/issues?q=is%3Aissue)**: Check open and closed issues to see if a question or problem has already been addressed.
 * **General Questions**: If you cannot find an answer, ask in [Discussions](https://github.com/samyyy2311/CassetteCat/discussions).
@@ -45,8 +47,7 @@ To suggest improvements or new features:
 If you want to contribute to development:
 
 * Read [CONTRIBUTING.md](../CONTRIBUTING.md) for project guidelines, build requirements (Android Studio, JDK 17, compileSdk 37), and code economy principles.
-* Read [docs/architecture.md](../docs/architecture.md) for how the app is structured (MVVM and repositories, Media3, DataStore).
-* Read [docs/android.md](../docs/android.md) for build setup, theme tokens and signing.
+* Read the [developer guide](../docs/README.md#working-on-the-code) for building, architecture, how-tos and releasing.
 * See [TRANSLATING.md](../TRANSLATING.md) to add or update language translations in XML resources.
 * Review [AI_DISCLOSURE.md](../AI_DISCLOSURE.md) for expectations regarding AI-assisted contributions.
 

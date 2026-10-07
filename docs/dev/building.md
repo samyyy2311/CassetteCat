@@ -1,75 +1,66 @@
-# Android Development Guide
+# Building and testing
 
-## Environment Setup
+## Requirements
 
-### Requirements
-* **Android Studio**: Ladybug (2024.2.1) or newer
-* **JDK**: Version 17 (e.g. Eclipse Temurin)
-* **SDK Tools**:
-  * `compileSdk`: 37
-  * `minSdk`: 26 (Android 8.0 Oreo)
-  * `targetSdk`: 37
+- **JDK 17**, for example Eclipse Temurin 17. Gradle and the unit tests both run on Java 17.
+- **Android SDK** with platform 37. `compileSdk` and `targetSdk` are 37; `minSdk` is 26 (Android 8.0).
+- **Android Studio** is optional but recommended. Open the `app/` folder, not the repository root.
 
-### Build System & Toolchain
-* **Android Gradle Plugin (AGP)**: 9.x (Kotlin compiler is integrated directly into AGP 9.0; do not add the standalone `org.jetbrains.kotlin.android` plugin).
-* **Package Identifier**: `in.caffeinelabs.cassettecat`. Because `in` is a reserved keyword in Kotlin, all package declarations and imports must use backticks:
-  ```kotlin
-  package `in`.caffeinelabs.cassettecat
-  ```
+The Gradle project lives in `app/`; the module is `app/app/`. Run every Gradle command from `app/`.
 
----
-
-## Build Commands
-
-From the `app/` directory:
+## Build and run
 
 ```bash
-# Compile and build the debug APK
-./gradlew assembleDebug
-
-# Run JVM unit tests
-./gradlew testDebugUnitTest
-
-# Run Android lint
-./gradlew lintDebug
-
-# Build unsigned release APK
-./gradlew assembleRelease
+cd app
+./gradlew assembleDebug        # debug APK
+./gradlew installDebug         # build and install on a connected phone or emulator
+./gradlew testDebugUnitTest    # JVM unit tests
+./gradlew lintDebug            # Android lint
 ```
 
----
+The debug APK is written to `app/app/build/outputs/apk/debug/app-debug.apk`.
 
-## Design System & Theming
+CI runs `testDebugUnitTest`, `assembleDebug` and `lintDebug` on every pull request, so run the same three before pushing.
 
-CassetteCat uses the **Owned Device** design system:
+## Things that trip people up
 
-### 1. Color Palette (`ui/theme/Color.kt`)
-* **Background**: `#000000` (Pure Black)
-* **Surface Panels**: `#1C1A18` (Dark Charcoal)
-* **Metal Surfaces / Primary**: `#C4C4C0` (Silver Neutral)
-* **Text Primary**: `#F5F0EC` (Off-white)
-* **Text Secondary**: `#A8A29A` (Muted)
-* **Active Indicator / Accent**: `#C23B30` (Signal Red): assigned to `colorScheme.tertiary` and `colorScheme.error`. Reserved strictly for active indicators and transport accents.
+- **The package name starts with `in`**, which is a Kotlin keyword. Package declarations and imports need backticks:
 
-### 2. Typography (`ui/theme/Type.kt`)
-* **Body / UI Labels**: IBM Plex Sans
-* **Timestamps / Technical Readouts**: IBM Plex Mono
+  ```kotlin
+  package `in`.caffeinelabs.cassettecat.ui.screens.home
+  ```
 
-### 3. Tactile Components
-* `TransportButton.kt`: Circular push button with 3D gradient cap, active border, and press-depth physics.
-* `PressDepthIconButton.kt`: Bare icon button maintaining identical tactile press-depth animations and haptic feedback.
+- **No Kotlin Android plugin.** Android Gradle Plugin 9 compiles Kotlin itself. Adding `org.jetbrains.kotlin.android` fails the build with "Plugin was not found" or "Kotlin plugin is no longer required". The module applies only `kotlin-compose` and `kotlin-serialization`.
+- **`Unsupported class file major version`** means Gradle is running on a different Java version. Point `JAVA_HOME` at JDK 17.
+- **Dependency versions** are in `app/gradle/libs.versions.toml`. Dependabot proposes updates weekly; minor and patch updates arrive grouped in one pull request.
 
----
+## Tests
 
-## Release Signing
+Unit tests are in `app/app/src/test/java/in/caffeinelabs/cassettecat/CoreLogicTest.kt` and run on the JVM with JUnit 4, Mockito and Robolectric. There are no instrumented tests on a device.
 
-Release signing should be performed using a private keystore configured locally or via CI environment variables:
+Test pure logic: parsing, matching, sorting, state calculations. Prefer real objects over mocks, and mock only Android or network boundaries.
 
-1. Create a `keystore.properties` file in `app/` (this file is excluded by `.gitignore`):
-   ```properties
-   storeFile=/path/to/release.keystore
-   storePassword=your_keystore_password
-   keyAlias=your_key_alias
-   keyPassword=your_key_password
-   ```
-2. For local release builds, configure your signing config in `app/app/build.gradle.kts` referencing these properties.
+## Versions
+
+`versionName` and `versionCode` come from, in order of priority:
+
+1. **CI**: the release workflow sets `GITHUB_REF_NAME` (a tag such as `v1.8.0`) and `VERSION_CODE`.
+2. **Gradle properties**: `./gradlew assembleRelease -PversionName=1.8.0 -PversionCode=26`.
+3. **Defaults** in `app/app/build.gradle.kts`, used for everyday debug builds.
+
+## Release signing
+
+A release build without signing details still builds, but unsigned. To sign locally, create `app/keystore.properties`. It's listed in `.gitignore`; never commit it.
+
+```properties
+RELEASE_STORE_FILE=/absolute/path/to/release.keystore
+RELEASE_STORE_PASSWORD=...
+RELEASE_KEY_ALIAS=...
+RELEASE_KEY_PASSWORD=...
+```
+
+Then run `./gradlew assembleRelease bundleRelease`. The same values can come from the environment variables `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`, which is how CI provides them.
+
+When `REQUIRE_PRODUCTION_SIGNING=true`, a release build fails unless signing details and a valid `VERSION_CODE` are present. CI sets this so an unsigned APK can never be published by mistake. See [Releasing](releasing.md).
+
+Release builds are minified and resource-shrunk with R8. Keep rules are in `app/app/proguard-rules.pro`.

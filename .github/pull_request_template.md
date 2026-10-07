@@ -25,7 +25,7 @@ Explain the problem or requirement this pull request addresses.
 ---
 
 ## CassetteCat Desktop Impact
-- [ ] This change affects pairing or communication with CassetteCat Desktop (see `docs/desktop-remote-protocol.md`).
+- [ ] This change affects pairing or communication with CassetteCat Desktop (see `docs/dev/desktop-remote-protocol.md`).
 - [ ] This change does not affect CassetteCat Desktop.
 
 **Impact details (if applicable):**

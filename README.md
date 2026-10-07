@@ -176,10 +176,8 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Android Development Guide](docs/android.md)
-- [Desktop Remote Protocol](docs/desktop-remote-protocol.md)
-- [Troubleshooting & FAQs](docs/troubleshooting.md)
+- [User guide](docs/README.md#using-the-app): setup, every feature, and troubleshooting
+- [Developer guide](docs/README.md#working-on-the-code): building, architecture, how-tos and releasing
 - [Privacy Policy](PRIVACY_POLICY.md)
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md)
 
