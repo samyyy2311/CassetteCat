@@ -218,17 +218,17 @@ fun AboutLegalScreen(
                 )
                 LegalLinkRow(
                     title = stringResource(AppR.string.about_privacy_policy),
-                    subtitle = "cassettecat.caffeinelabs.in/privacy",
+                    subtitle = "cassettecat.caffeinelabs.in/privacy.html",
                     iconRes = R.drawable.lucide_ic_shield,
                     iconTint = Color(0xFF10B981),
-                    onClick = { openUrl("https://cassettecat.caffeinelabs.in/privacy/") }
+                    onClick = { openUrl("https://cassettecat.caffeinelabs.in/privacy.html") }
                 )
                 LegalLinkRow(
                     title = stringResource(AppR.string.about_terms),
-                    subtitle = "cassettecat.caffeinelabs.in/terms",
+                    subtitle = "cassettecat.caffeinelabs.in/terms.html",
                     iconRes = R.drawable.lucide_ic_file_text,
                     iconTint = Color(0xFFA78BFA),
-                    onClick = { openUrl("https://cassettecat.caffeinelabs.in/terms/") }
+                    onClick = { openUrl("https://cassettecat.caffeinelabs.in/terms.html") }
                 )
                 LegalLinkRow(
                     title = stringResource(AppR.string.about_github),

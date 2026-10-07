@@ -129,7 +129,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            "https://cassettecat.caffeinelabs.in/privacy/".toUri()
+                            "https://cassettecat.caffeinelabs.in/privacy.html".toUri()
                         )
                     )
                 }

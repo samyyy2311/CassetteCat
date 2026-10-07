@@ -24,8 +24,8 @@ Explain the problem or requirement this pull request addresses.
 
 ---
 
-## Hardware / Firmware Impact
-- [ ] This change impacts hardware companion communication (Wi-Fi, HTTP, or mDNS).
-- [ ] This change does not affect hardware or firmware.
+## CassetteCat Desktop Impact
+- [ ] This change affects pairing or communication with CassetteCat Desktop (see `docs/dev/desktop-remote-protocol.md`).
+- [ ] This change does not affect CassetteCat Desktop.
 
 **Impact details (if applicable):**
