@@ -1,68 +1,36 @@
-# System Architecture
+# Architecture
 
-CassetteCat is designed around two main components:
-1. **Android Application (`app/`)**: A native music player that operates both as a standalone player and as a companion for physical devices.
-2. **Planned Hardware Player & Firmware (`hardware/`, `firmware/`)**: The Android protocol targets a future ESP32-S3 portable player. Buildable firmware and fabrication files are not yet included.
+CassetteCat is a single Android app in `app/`. It plays music from the phone, from Subsonic and Jellyfin servers, and from internet radio. It can also pair with [CassetteCat Desktop](https://github.com/samyyy2311/CassetteCat-Desktop) on the same Wi-Fi network.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    CassetteCat System                       │
-├───────────────────────────────┬─────────────────────────────┤
-│       Android Companion       │       Hardware Player       │
-│                               │                             │
-│  ┌─────────────────────────┐  │  ┌────────────────────────┐ │
-│  │   Jetpack Compose UI    │  │  │  ST7735R 128x160 LCD   │ │
-│  └────────────┬────────────┘  │  └───────────┬────────────┘ │
-│               │               │              │              │
-│  ┌────────────▼────────────┐  │  ┌───────────▼────────────┐ │
-│  │    Media3 / ExoPlayer   │  │  │    PCM5102 I2S DAC     │ │
-│  └────────────┬────────────┘  │  └───────────┬────────────┘ │
-│               │               │              │              │
-│  ┌────────────▼────────────┐  │  ┌───────────▼────────────┐ │
-│  │     Data Layer          │  │  │    ESP32-S3 Micro      │ │
-│  │ Local/Subsonic/Jellyfin │  │  │ HTTP Server / SD Card  │ │
-│  └────────────┬────────────┘  │  └───────────┬────────────┘ │
-│               │               │              │              │
-│               └──────── Wi-Fi Sync ──────────┘              │
-│                    (SoftAP / mDNS)                          │
-└─────────────────────────────────────────────────────────────┘
-```
+## UI
 
----
+* **Framework**: Jetpack Compose with Material 3 components and the app's own theme (see [android.md](android.md)).
+* **Navigation**: One activity (`MainActivity`) hosts `CassetteCatNavHost` and the bottom-sheet shell (`MainShell`).
+* **Transitions**: Linear 220 ms slide transitions (`MechanicalTransitions.kt`).
+* **Controls**: `TransportButton` for transport actions and `PressDepthIconButton` for navigation and action rows.
 
-## 1. Android Application Architecture
+## Playback
 
-The Android app follows standard MVVM architecture with a single-direction data flow and a lightweight repository layer.
+* **Engine**: AndroidX Media3 ExoPlayer, hosted in `PlaybackService`, a `MediaLibraryService`. The library it exposes is what Android Auto browses.
+* **State**: `PlaybackRepository` turns Media3 `Player.Listener` callbacks into Kotlin `StateFlow` streams for the UI.
+* **System controls**: The media notification, lock screen controls and the system output switcher all go through the Media3 session.
 
-### UI Layer
-* **Framework**: Jetpack Compose using Material 3 base components styled under the "Owned Device" design system.
-* **Navigation**: Single-activity architecture (`MainActivity`) hosting `CassetteCatNavHost` and the bottom-sheet shell (`MainShell`).
-* **Transitions**: Non-spring, linear `220ms` mechanical slide transitions (`MechanicalTransitions.kt`).
-* **Components**: Custom tactile controls (`TransportButton` for transport actions and `PressDepthIconButton` for navigation/action rows) simulating mechanical push buttons.
+## Data
 
-### Playback Layer
-* **Audio Engine**: AndroidX Media3 (`ExoPlayer`) hosted inside a bound `MediaSessionService` (`PlaybackService.kt`).
-* **State Bridge**: `PlaybackRepository.kt` connects Media3 `Player.Listener` callbacks with Kotlin Coroutine `StateFlow` streams.
-* **Controls**: Foreground service notification with media playback actions, lock-screen controls, and system media routing.
-
-### Data Layer
-* **Library Aggregation**: `LibraryViewModel` concurrently queries all configured music sources and aggregates them into a unified list:
-  * `LocalLibraryRepository`: Queries Android `MediaStore.Audio` with folder filtering via Storage Access Framework.
-  * `SubsonicLibraryRepository`: Interfaces with Subsonic-compatible APIs (salt/token authentication).
-  * `JellyfinLibraryRepository`: Communicates with Jellyfin REST endpoints via token authentication.
+* **Library**: `LibraryViewModel` queries every configured source at once and merges the results:
+  * `LocalLibraryRepository` reads `MediaStore.Audio`, limited to the folders picked with the Storage Access Framework.
+  * `SubsonicLibraryRepository` talks to Subsonic-compatible servers using salt and token authentication.
+  * `JellyfinLibraryRepository` talks to Jellyfin's REST API with an access token.
 * **Storage**:
-  * Preferences, server configurations, and play statistics are stored using Jetpack DataStore (`PreferencesDataStore`).
-  * Sensitive credentials (server passwords and auth tokens) are encrypted via AES-256/GCM using keys stored in the hardware-backed `AndroidKeyStore` (`CredentialStore.kt`).
+  * Settings, server details and listening statistics are kept in Jetpack DataStore.
+  * Server passwords and tokens are encrypted with AES-256-GCM using a key held in the Android Keystore (`CredentialStore.kt`).
 
----
+## CassetteCat Desktop
 
-## 2. Hardware and Connectivity Architecture
+The phone and the desktop app talk over HTTP on the local network. The desktop runs the server; the phone is the client. [desktop-remote-protocol.md](desktop-remote-protocol.md) lists every request.
 
-The hardware player operates independently from an SD card, while offering Wi-Fi connectivity for synchronization with the Android app.
-
-### Communication Channels
-* **SoftAP Mode**: The ESP32 creates a local Wi-Fi hotspot. The Android app connects using `WifiNetworkSpecifier` without requiring an existing router.
-* **Station Mode**: The ESP32 joins the local home Wi-Fi network and advertises its service via mDNS/NSD.
-* **Protocol**: HTTP/REST endpoints hosted on the ESP32, all app-side already built ahead of firmware:
-  * Song library sync ([device-sync-protocol.md](device-sync-protocol.md)): diff the phone's library against what's on the SD card, then upload what's missing.
-  * Remote playback control, device management (rename/restart/factory reset/rescan/clock sync), a storage browser, and firmware OTA ([device-control-protocol.md](device-control-protocol.md)).
+* **Finding the computer**: `DesktopDiscovery` broadcasts a UDP probe, and each running desktop replies with its name and port.
+* **Pairing**: The phone asks to pair, the person at the computer allows it, and the phone receives a six-character code. Every later request carries that code.
+* **Control**: `DesktopRemoteRepository` polls the desktop's playback state and sends play, pause, skip, seek, volume and queue commands through `DeviceControlApiClient`.
+* **Output switcher**: `DesktopRouteProvider` lists the paired computer in Android's output switcher, so playback can move to it from the system media controls.
+* **Sync**: Likes, playlists, listening history and a backup of the app's data are exchanged with the paired computer.

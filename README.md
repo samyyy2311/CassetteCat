@@ -176,14 +176,12 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 ## Documentation
 
-- [System Architecture](docs/architecture.md)
+- [Architecture](docs/architecture.md)
 - [Android Development Guide](docs/android.md)
-- [Firmware Architecture](docs/firmware.md)
-- [Hardware (BOM, wiring)](docs/hardware.md)
-- [Device Song Sync Protocol](docs/device-sync-protocol.md)
-- [Device Control Protocol](docs/device-control-protocol.md)
+- [Desktop Remote Protocol](docs/desktop-remote-protocol.md)
 - [Troubleshooting & FAQs](docs/troubleshooting.md)
 - [Privacy Policy](PRIVACY_POLICY.md)
+- [Third-Party Notices](THIRD_PARTY_NOTICES.md)
 
 ---
 
