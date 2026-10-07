@@ -39,6 +39,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private const val SERVICE_TYPE = "_cassettecat-room._tcp."
+// No look-alike characters (I, O, 0, 1), so codes are easy to read aloud and type.
+private const val ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 private const val MAX_WIRE_LINE_LENGTH = 65536
 private const val NO_JOIN_TIMEOUT_MS = 120_000L
 private const val CONNECT_TIMEOUT_MS = 6_000
@@ -421,7 +423,7 @@ class LocalListeningRoomRepository(context: Context) {
     }
 
     private fun buildRoomCode(): String = (1..6).joinToString("") {
-        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[rng.nextInt(30)].toString()
+        ROOM_CODE_ALPHABET[rng.nextInt(ROOM_CODE_ALPHABET.length)].toString()
     }
 
     private fun localIpAddress(): String? = runCatching {
