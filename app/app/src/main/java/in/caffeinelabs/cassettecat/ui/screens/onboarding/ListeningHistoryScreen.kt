@@ -37,6 +37,8 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsDivider
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ToggleRow
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.text
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 @Composable
@@ -49,6 +51,10 @@ fun ListeningHistoryScreen(onContinue: () -> Unit, onOpenUrl: (String) -> Unit, 
     val scrobbleSettings by scrobbleRepository.settings.collectAsStateWithLifecycle(initialValue = ScrobbleSettings())
     var connectingListenBrainz by remember { mutableStateOf(false) }
     var signingInTo by remember { mutableStateOf<ScrobbleAccount?>(null) }
+    val pendingSaves = remember { mutableListOf<Job>() }
+    fun save(block: suspend () -> Unit) {
+        pendingSaves += scope.launch { block() }
+    }
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
         OnboardingHeaderRow(currentStep = 3, totalSteps = 5)
@@ -68,7 +74,7 @@ fun ListeningHistoryScreen(onContinue: () -> Unit, onOpenUrl: (String) -> Unit, 
                 title = stringResource(AppR.string.settings_listening_record),
                 subtitle = stringResource(AppR.string.privacy_collect_listening_activity_description),
                 checked = preferences.listeningStatsEnabled,
-                onCheckedChange = { enabled -> scope.launch { preferencesRepository.setListeningStatsEnabled(enabled) } },
+                onCheckedChange = { enabled -> save { preferencesRepository.setListeningStatsEnabled(enabled) } },
                 iconRes = R.drawable.lucide_ic_disc_3
             )
             SettingsDivider(startPadding = 0.dp, endPadding = 0.dp)
@@ -108,7 +114,7 @@ fun ListeningHistoryScreen(onContinue: () -> Unit, onOpenUrl: (String) -> Unit, 
         }
 
         Spacer(Modifier.height(8.dp))
-        Button(onClick = hapticClick(onContinue), modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = hapticClick { scope.launch { pendingSaves.joinAll(); onContinue() } }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(AppR.string.action_continue))
         }
     }
@@ -117,10 +123,8 @@ fun ListeningHistoryScreen(onContinue: () -> Unit, onOpenUrl: (String) -> Unit, 
         ListenBrainzConnectDialog(
             onDismiss = { connectingListenBrainz = false },
             onConnect = { token, userName ->
-                scope.launch {
-                    scrobbleRepository.saveListenBrainz(token, userName, enabled = true)
-                    connectingListenBrainz = false
-                }
+                save { scrobbleRepository.saveListenBrainz(token, userName, enabled = true) }
+                connectingListenBrainz = false
             },
             onGetTokenClick = { onOpenUrl("https://listenbrainz.org/profile/") }
         )
@@ -130,10 +134,8 @@ fun ListeningHistoryScreen(onContinue: () -> Unit, onOpenUrl: (String) -> Unit, 
             account = account,
             onDismiss = { signingInTo = null },
             onConnect = { username, sessionKey ->
-                scope.launch {
-                    scrobbleRepository.saveAccount(account, username, sessionKey)
-                    signingInTo = null
-                }
+                save { scrobbleRepository.saveAccount(account, username, sessionKey) }
+                signingInTo = null
             }
         )
     }

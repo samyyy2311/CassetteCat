@@ -42,8 +42,8 @@ android {
         versionName = appVersionName
         // Last.fm needs the project's own API account; builds without one leave Last.fm out.
         listOf("LASTFM_API_KEY", "LASTFM_API_SECRET").forEach { name ->
-            val value = (project.findProperty(name) as? String) ?: System.getenv(name) ?: ""
-            buildConfigField("String", name, "\"$value\"")
+            val value = ((project.findProperty(name) as? String) ?: System.getenv(name) ?: "").trim()
+            buildConfigField("String", name, "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         }
     }
 

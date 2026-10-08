@@ -82,7 +82,9 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
         run: |
-          test -n "$NIGHTLY_KEYSTORE_BASE64" || { echo '::error::Add the NIGHTLY_KEYSTORE_BASE64, NIGHTLY_KEYSTORE_PASSWORD, NIGHTLY_KEY_ALIAS and NIGHTLY_KEY_PASSWORD secrets'; exit 1; }
+          for name in NIGHTLY_KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            test -n "${!name}" || { echo "::error::Add the NIGHTLY_KEYSTORE_BASE64, NIGHTLY_KEYSTORE_PASSWORD, NIGHTLY_KEY_ALIAS and NIGHTLY_KEY_PASSWORD secrets"; exit 1; }
+          done
           export KEYSTORE_FILE="$RUNNER_TEMP/nightly.keystore"
           trap 'rm -f "$KEYSTORE_FILE"' EXIT
           echo "$NIGHTLY_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"

@@ -32,7 +32,7 @@ class AudioscrobblerClient private constructor(
             form.add("format", "json")
             val request = Request.Builder().url(apiUrl).post(form.build()).build()
             sharedHttpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) response.body.string() else null
+                response.body.string().takeIf { response.isSuccessful && !it.contains("\"error\"") }
             }
         }.getOrNull()
     }

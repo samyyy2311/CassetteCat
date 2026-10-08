@@ -433,7 +433,7 @@ fun LibraryScreen(
                                 contentDescription = stringResource(AppR.string.library_new_playlist),
                                 onClick = { showNewPlaylistSheet = true }
                             )
-                        } else if (loadedState != null && filteredSongs.isNotEmpty()) {
+                        } else {
                             if (desktopState.address != null && !desktopState.offlineBlackout) {
                                 PressDepthIconButton(
                                     iconRes = R.drawable.lucide_ic_monitor,
@@ -441,24 +441,26 @@ fun LibraryScreen(
                                     onClick = onBrowseComputer
                                 )
                             }
-                            PressDepthIconButton(
-                                iconRes = R.drawable.lucide_ic_play,
-                                contentDescription = stringResource(AppR.string.library_play_all),
-                                onClick = {
-                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                    playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
-                                    if (wasIdle) onNavigateToNowPlaying()
-                                }
-                            )
-                            PressDepthIconButton(
-                                iconRes = R.drawable.lucide_ic_shuffle,
-                                contentDescription = stringResource(AppR.string.library_shuffle_all),
-                                onClick = {
-                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                    playbackViewModel.shuffleAll(filteredSongs)
-                                    if (wasIdle) onNavigateToNowPlaying()
-                                }
-                            )
+                            if (loadedState != null && filteredSongs.isNotEmpty()) {
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_play,
+                                    contentDescription = stringResource(AppR.string.library_play_all),
+                                    onClick = {
+                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                        playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
+                                        if (wasIdle) onNavigateToNowPlaying()
+                                    }
+                                )
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_shuffle,
+                                    contentDescription = stringResource(AppR.string.library_shuffle_all),
+                                    onClick = {
+                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                        playbackViewModel.shuffleAll(filteredSongs)
+                                        if (wasIdle) onNavigateToNowPlaying()
+                                    }
+                                )
+                            }
                         }
                         PressDepthIconButton(
                             iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,

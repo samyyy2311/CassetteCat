@@ -99,11 +99,8 @@ fun releaseNotes(context: Context, version: String): List<String> =
     releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version)
 
 /** Release notes to show once after updating to [version]; empty when already seen. */
-suspend fun unseenReleaseNotes(context: Context, version: String): List<String> {
-    if (context.updateDataStore.data.first()[SEEN_VERSION] == version) return emptyList()
-    markReleaseNotesSeen(context, version)
-    return releaseNotes(context, version)
-}
+suspend fun unseenReleaseNotes(context: Context, version: String): List<String> =
+    if (context.updateDataStore.data.first()[SEEN_VERSION] == version) emptyList() else releaseNotes(context, version)
 
 suspend fun markReleaseNotesSeen(context: Context, version: String) {
     context.updateDataStore.edit { it[SEEN_VERSION] = version }

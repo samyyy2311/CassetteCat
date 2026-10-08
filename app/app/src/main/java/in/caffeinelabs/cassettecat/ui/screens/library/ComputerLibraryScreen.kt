@@ -85,12 +85,14 @@ fun ComputerLibraryScreen(
         }
     }
     LaunchedEffect(query) {
-        snapshotFlow { nearEnd && !loading && tracks.size < total }
+        var exhausted = false
+        snapshotFlow { nearEnd && !loading && !exhausted && tracks.size < total }
             .distinctUntilChanged()
             .filter { it }
             .collect {
                 loading = true
-                (desktop.computerLibrary(query, offset = tracks.size) as? ComputerLibraryResult.Loaded)?.let { tracks = tracks + it.page.tracks }
+                val more = (desktop.computerLibrary(query, offset = tracks.size) as? ComputerLibraryResult.Loaded)?.page?.tracks
+                if (more.isNullOrEmpty()) exhausted = true else tracks = tracks + more
                 loading = false
             }
     }

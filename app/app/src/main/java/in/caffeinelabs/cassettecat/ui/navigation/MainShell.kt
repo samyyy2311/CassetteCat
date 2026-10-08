@@ -11,6 +11,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
+import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
 import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
 import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
@@ -968,7 +969,10 @@ fun MainShell(
         }
 
         if (whatsNew.isNotEmpty()) {
-            WhatsNewSheet(notes = whatsNew, onDismiss = { whatsNew = emptyList() })
+            WhatsNewSheet(notes = whatsNew, onDismiss = {
+                whatsNew = emptyList()
+                scope.launch { markReleaseNotesSeen(context, BuildConfig.VERSION_NAME) }
+            })
         }
 
         updatePrompt?.let { update ->

@@ -73,8 +73,8 @@ fun CassetteCatNavHost(
     val navController = rememberNavController()
     val onOnboardingFinished: () -> Unit = {
         scope.launch {
-            // Someone who just set the app up has nothing to catch up on.
-            markReleaseNotesSeen(context, BuildConfig.VERSION_NAME)
+            // Someone who just set the app up has nothing to catch up on; failing to remember that can't block setup.
+            runCatching { markReleaseNotesSeen(context, BuildConfig.VERSION_NAME) }
             repository.setOnboardingCompleted(true)
             navController.navigate(Graph.MAIN) {
                 popUpTo(Graph.ONBOARDING) { inclusive = true }

@@ -117,7 +117,7 @@ fun StatsScreen(
     // Rewind looks at one year, or one month of it; the other tabs cover the whole record, as on the computer.
     var selectedYear by rememberSaveable { mutableStateOf<Int?>(null) }
     var selectedMonth by rememberSaveable { mutableStateOf<String?>(null) }
-    val year = selectedYear ?: availableYears.firstOrNull()
+    val year = selectedYear?.takeIf { it in availableYears } ?: availableYears.firstOrNull()
     val monthsInYear = remember(availableMonths, year) { availableMonths.filter { it.year == year } }
     val rewindMonth = selectedMonth?.let { key -> monthsInYear.find { it.toString() == key } }
 

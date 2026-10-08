@@ -48,7 +48,9 @@ fun RestoreBackupScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
             scope.launch {
                 try {
                     val result = withContext(Dispatchers.IO) {
-                        val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        val text = runCatching {
+                            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        }.getOrNull()
                         text?.let { backupRepository.restoreBackup(it) }
                     }
                     if (result?.isSuccess == true) onContinue() else failureMessage = restoreFailedMessage
@@ -60,7 +62,7 @@ fun RestoreBackupScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        OnboardingHeaderRow(currentStep = 1, totalSteps = 5, onSkip = onContinue)
+        OnboardingHeaderRow(currentStep = 1, totalSteps = 5, onSkip = onContinue.takeUnless { isRestoring })
         Spacer(Modifier.height(10.dp))
 
         Text(stringResource(AppR.string.onboarding_restore_title), style = MaterialTheme.typography.titleLarge)

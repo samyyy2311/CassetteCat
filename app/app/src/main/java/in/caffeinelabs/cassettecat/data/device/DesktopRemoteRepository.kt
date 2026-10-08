@@ -312,6 +312,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     suspend fun refind() {
+        if (state.value.offlineBlackout) return
         lastRefindAtMs = SystemClock.elapsedRealtime()
         val desktops = discoverDesktops()
         _found.value = desktops
@@ -546,35 +547,44 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     private suspend fun syncListensNow(): Boolean {
         val desktop = connectedDesktop() ?: return false
+        var uploaded = true
         // Listens from before pairing were never queued, so a newly paired computer gets the whole history once. The
         // computer skips listens it already has, including its own that this phone was sent.
-        if (dataStore.data.first()[DESKTOP_HISTORY_SENT_TO] != desktop.code &&
-            apiClient.sendListens(desktop.host, desktop.port, desktop.code, statsRepository.listens.first())
-        ) {
-            dataStore.edit { it[DESKTOP_HISTORY_SENT_TO] = desktop.code }
+        if (dataStore.data.first()[DESKTOP_HISTORY_SENT_TO] != desktop.code) {
+            if (apiClient.sendListens(desktop.host, desktop.port, desktop.code, statsRepository.listens.first())) {
+                dataStore.edit { it[DESKTOP_HISTORY_SENT_TO] = desktop.code }
+            } else {
+                uploaded = false
+            }
         }
         if (dataStore.data.first()[DESKTOP_TOTALS_SENT_TO] != desktop.code) {
             val totals = earlierTotals()
             if (totals.isEmpty() || apiClient.sendListens(desktop.host, desktop.port, desktop.code, totals)) {
                 dataStore.edit { it[DESKTOP_TOTALS_SENT_TO] = desktop.code }
+            } else {
+                uploaded = false
             }
         }
         val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
-        if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
-            val sent = pending.toSet()
-            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
+        if (pending.isNotEmpty()) {
+            if (apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
+                val sent = pending.toSet()
+                dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
+            } else {
+                uploaded = false
+            }
         }
-        if (!appPreferences.preferences.first().listeningStatsEnabled) return true
+        if (!appPreferences.preferences.first().listeningStatsEnabled) return uploaded
         val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
         val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since) ?: return false
-        if (listens.isEmpty()) return true
+        if (listens.isEmpty()) return uploaded
         val songsByKey = localLibrary.getSongs().associateBy { songMatchKey(it.title, it.artist) }
         val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
         statsRepository.addListens(
             listens.map { it.copy(songId = songsByKey[songMatchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
         )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
-        return true
+        return uploaded
     }
 
     // Each song's total for a month from before single listens were kept, dated the first of that month.
