@@ -91,6 +91,9 @@ data class PhoneCheckIn(
 )
 
 @Serializable
+private data class HandoffReply(val played: Boolean = true)
+
+@Serializable
 data class PhoneCheckInReply(
     val commands: List<String> = emptyList(),
     val playNext: List<HandoffTrack> = emptyList(),
@@ -303,11 +306,22 @@ class DeviceControlApiClient(
             }.getOrDefault(PhoneCheckInReply())
         }
 
+    /** Returns whether the computer plays the first song; it can't when its library doesn't have it. */
     suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
         withContext(Dispatchers.IO) {
-            val request = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
-            runCatching { postJson(host, port, "/api/handoff", request, HandoffRequest.serializer(), null, token) }
-                .getOrDefault(false)
+            val handoff = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
+            runCatching {
+                val request = Request.Builder()
+                    .url("http://$host:$port/api/handoff")
+                    .post(sharedJson.encodeToString(HandoffRequest.serializer(), handoff).toRequestBody("application/json".toMediaType()))
+                    .withPairingCode(token)
+                    .build()
+                client(null).newCall(request).execute().use {
+                    // Older computers reply without a body.
+                    val body = it.body.string()
+                    it.isSuccessful && (body.isBlank() || sharedJson.decodeFromString<HandoffReply>(body).played)
+                }
+            }.getOrDefault(false)
         }
 
     suspend fun playNextOnDesktop(host: String, port: Int, token: String, track: HandoffTrack): Boolean =

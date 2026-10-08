@@ -393,14 +393,31 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
         if (isFollowingRoomHost()) return
-        desktop.setControlling(false)
-        viewModelScope.launch { repository.playQueue(songs, startIndex, shuffle) }
+        val picked = if (shuffle) songs.shuffled() else songs.drop(startIndex)
+        viewModelScope.launch {
+            if (!playOnControlledDesktop(picked)) repository.playQueue(songs, startIndex, shuffle)
+        }
     }
 
     fun shuffleAll(songs: List<Song>) {
         if (isFollowingRoomHost() || songs.isEmpty()) return
+        viewModelScope.launch {
+            if (!playOnControlledDesktop(songs.shuffled())) repository.shuffleAll(songs)
+        }
+    }
+
+    // While this phone controls the computer, picked songs play there. When the computer doesn't have them they play
+    // here instead, and the computer stops, so only one device plays.
+    private suspend fun playOnControlledDesktop(songs: List<Song>): Boolean {
+        val first = songs.firstOrNull()
+        if (controlledDesktop.value == null || first == null || first.source == MusicSource.Radio || first.isFromAnotherDevice) {
+            desktop.setControlling(false)
+            return false
+        }
+        if (desktop.handOff(songs.take(HANDOFF_QUEUE_LIMIT), 0, true)) return true
+        desktop.sendAction("pause")
         desktop.setControlling(false)
-        viewModelScope.launch { repository.shuffleAll(songs) }
+        return false
     }
 
     fun playInstantMix(seed: Song, library: List<Song>) {
