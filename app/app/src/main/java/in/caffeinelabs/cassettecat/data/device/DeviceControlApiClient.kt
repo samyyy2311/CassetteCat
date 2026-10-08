@@ -59,6 +59,13 @@ data class DesktopLibraryTrack(
 @Serializable
 data class DesktopLibraryPage(val total: Int, val tracks: List<DesktopLibraryTrack>)
 
+sealed interface ComputerLibraryResult {
+    data class Loaded(val page: DesktopLibraryPage) : ComputerLibraryResult
+    /** The computer runs a CassetteCat Desktop from before library browsing. */
+    data object NeedsUpdate : ComputerLibraryResult
+    data object Unreachable : ComputerLibraryResult
+}
+
 @Serializable
 private data class LibraryPlayRequest(val ids: List<String>, val index: Int)
 
@@ -240,7 +247,7 @@ class DeviceControlApiClient(
             }.getOrNull()
         }
 
-    suspend fun getLibrary(host: String, port: Int, token: String, query: String, offset: Int, limit: Int): DesktopLibraryPage? =
+    suspend fun getLibrary(host: String, port: Int, token: String, query: String, offset: Int, limit: Int): ComputerLibraryResult =
         withContext(Dispatchers.IO) {
             runCatching {
                 val url = "http://$host:$port/api/library".toHttpUrl().newBuilder()
@@ -250,9 +257,13 @@ class DeviceControlApiClient(
                     .build()
                 val request = Request.Builder().url(url).withPairingCode(token).build()
                 client(null).newCall(request).execute().use {
-                    if (it.isSuccessful) sharedJson.decodeFromString<DesktopLibraryPage>(it.body.string()) else null
+                    when {
+                        it.isSuccessful -> ComputerLibraryResult.Loaded(sharedJson.decodeFromString<DesktopLibraryPage>(it.body.string()))
+                        it.code == 404 -> ComputerLibraryResult.NeedsUpdate
+                        else -> ComputerLibraryResult.Unreachable
+                    }
                 }
-            }.getOrNull()
+            }.getOrDefault(ComputerLibraryResult.Unreachable)
         }
 
     suspend fun playLibrary(host: String, port: Int, token: String, ids: List<String>, index: Int): Boolean =

@@ -87,6 +87,7 @@
     <string name="computer_library_search">Search songs, artists, albums</string>
     <string name="computer_library_empty">Your computer’s library is empty.</string>
     <string name="computer_library_no_match">No songs match your search.</string>
+    <string name="computer_library_needs_update">Update CassetteCat on your computer to browse its music from here.</string>
     <string name="computer_library_play_here">Play on This Phone</string>
     <string name="computer_library_play_here_description">Stream it from your computer over Wi-Fi</string>
     <string name="computer_library_play_on_computer">Play on Computer</string>

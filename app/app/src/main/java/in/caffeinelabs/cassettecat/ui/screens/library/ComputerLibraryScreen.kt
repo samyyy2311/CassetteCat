@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.device.ComputerLibraryResult
 import `in`.caffeinelabs.cassettecat.data.device.DesktopLibraryTrack
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -60,7 +61,7 @@ fun ComputerLibraryScreen(
     var tracks by remember { mutableStateOf<List<DesktopLibraryTrack>>(emptyList()) }
     var total by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(true) }
-    var unreachable by remember { mutableStateOf(false) }
+    var failure by remember { mutableStateOf<ComputerLibraryResult?>(null) }
     var optionsFor by remember { mutableStateOf<Int?>(null) }
     val listState = rememberLazyListState()
 
@@ -68,8 +69,9 @@ fun ComputerLibraryScreen(
     LaunchedEffect(query) {
         loading = true
         delay(SEARCH_DELAY_MS)
-        val page = desktop.computerLibrary(query, offset = 0)
-        unreachable = page == null
+        val result = desktop.computerLibrary(query, offset = 0)
+        val page = (result as? ComputerLibraryResult.Loaded)?.page
+        failure = result.takeIf { page == null }
         tracks = page?.tracks.orEmpty()
         total = page?.total ?: 0
         loading = false
@@ -88,7 +90,7 @@ fun ComputerLibraryScreen(
             .filter { it }
             .collect {
                 loading = true
-                desktop.computerLibrary(query, offset = tracks.size)?.let { tracks = tracks + it.tracks }
+                (desktop.computerLibrary(query, offset = tracks.size) as? ComputerLibraryResult.Loaded)?.let { tracks = tracks + it.page.tracks }
                 loading = false
             }
     }
@@ -144,7 +146,8 @@ fun ComputerLibraryScreen(
         )
 
         val message = when {
-            unreachable -> AppR.string.toast_computer_unreachable
+            failure == ComputerLibraryResult.NeedsUpdate -> AppR.string.computer_library_needs_update
+            failure != null -> AppR.string.toast_computer_unreachable
             loading && tracks.isEmpty() -> AppR.string.library_computer_playlists_loading
             tracks.isEmpty() && query.isBlank() -> AppR.string.computer_library_empty
             tracks.isEmpty() -> AppR.string.computer_library_no_match

@@ -533,9 +533,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch { onResult(apiClient.sendPlaylist(desktop.host, desktop.port, desktop.code, playlist)) }
     }
 
-    /** A page of the computer's library matching [query]; null when the computer can't be reached. */
-    suspend fun computerLibrary(query: String, offset: Int, limit: Int = COMPUTER_LIBRARY_PAGE): DesktopLibraryPage? {
-        val desktop = connectedDesktop() ?: return null
+    /** A page of the computer's library matching [query]. */
+    suspend fun computerLibrary(query: String, offset: Int, limit: Int = COMPUTER_LIBRARY_PAGE): ComputerLibraryResult {
+        val desktop = connectedDesktop() ?: return ComputerLibraryResult.Unreachable
         return apiClient.getLibrary(desktop.host, desktop.port, desktop.code, query, offset, limit)
     }
 
