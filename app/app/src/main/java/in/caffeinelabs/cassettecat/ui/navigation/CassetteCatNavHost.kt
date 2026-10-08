@@ -21,7 +21,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.OnboardingRepository
+import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.LibraryScanScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.ListeningHistoryScreen
@@ -70,9 +72,13 @@ fun CassetteCatNavHost(
 
     val navController = rememberNavController()
     val onOnboardingFinished: () -> Unit = {
-        scope.launch { repository.setOnboardingCompleted(true) }
-        navController.navigate(Graph.MAIN) {
-            popUpTo(Graph.ONBOARDING) { inclusive = true }
+        scope.launch {
+            // Someone who just set the app up has nothing to catch up on.
+            markReleaseNotesSeen(context, BuildConfig.VERSION_NAME)
+            repository.setOnboardingCompleted(true)
+            navController.navigate(Graph.MAIN) {
+                popUpTo(Graph.ONBOARDING) { inclusive = true }
+            }
         }
     }
 

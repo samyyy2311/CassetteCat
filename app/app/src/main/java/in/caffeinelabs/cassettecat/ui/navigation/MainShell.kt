@@ -11,6 +11,8 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
+import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
 import androidx.compose.material3.Text
 import android.net.Uri
@@ -329,7 +331,9 @@ fun MainShell(
     }
     // Offered once per version; Settings keeps showing the update after "Later".
     var updatePrompt by remember { mutableStateOf<UpdateCheckResult.UpdateAvailable?>(null) }
+    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(Unit) {
+        whatsNew = unseenReleaseNotes(context, BuildConfig.VERSION_NAME)
         if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
             updatePrompt = updateToPrompt(context, BuildConfig.VERSION_NAME)
         }
@@ -961,6 +965,10 @@ fun MainShell(
                     }
                 )
             }
+        }
+
+        if (whatsNew.isNotEmpty()) {
+            WhatsNewSheet(notes = whatsNew, onDismiss = { whatsNew = emptyList() })
         }
 
         updatePrompt?.let { update ->

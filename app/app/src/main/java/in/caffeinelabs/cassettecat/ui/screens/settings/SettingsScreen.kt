@@ -35,7 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.update.releaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
@@ -82,6 +85,7 @@ fun SettingsScreen(
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
@@ -311,6 +315,13 @@ fun SettingsScreen(
 
         SettingsSection(title = stringResource(AppR.string.settings_support_about_section)) {
             NavigationRow(
+                title = stringResource(AppR.string.whats_new_title),
+                subtitle = stringResource(AppR.string.settings_whats_new_description),
+                iconRes = R.drawable.lucide_ic_list,
+                onClick = { whatsNew = releaseNotes(context, BuildConfig.VERSION_NAME) }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = stringResource(AppR.string.settings_about_legal),
                 subtitle = stringResource(AppR.string.settings_about_legal_description),
                 iconRes = R.drawable.lucide_ic_file_text,
@@ -359,6 +370,10 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))
+    }
+
+    if (whatsNew.isNotEmpty()) {
+        WhatsNewSheet(notes = whatsNew, onDismiss = { whatsNew = emptyList() })
     }
 
     if (showListeningRoom) {

@@ -18,7 +18,7 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.7.7"
+        ?: "1.8.0"
 
     val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
         gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
@@ -106,6 +106,30 @@ android {
         unitTests {
             isReturnDefaultValues = true
         }
+    }
+}
+
+// What's New reads the release notes from the repository's changelog.
+abstract class CopyChangelog : DefaultTask() {
+    @get:InputFile
+    abstract val changelog: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        changelog.get().asFile.copyTo(outputDir.get().file("CHANGELOG.md").asFile, overwrite = true)
+    }
+}
+
+val copyChangelog = tasks.register<CopyChangelog>("copyChangelog") {
+    changelog.set(rootProject.layout.projectDirectory.file("../CHANGELOG.md"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyChangelog, CopyChangelog::outputDir)
     }
 }
 

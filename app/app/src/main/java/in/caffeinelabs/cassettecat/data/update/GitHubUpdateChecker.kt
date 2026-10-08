@@ -19,6 +19,7 @@ private const val DAY_MS = 24 * 60 * 60 * 1000L
 private val Context.updateDataStore by preferencesDataStore(name = "updates")
 private val LAST_CHECK = longPreferencesKey("last_check")
 private val PROMPTED_VERSION = stringPreferencesKey("prompted_version")
+private val SEEN_VERSION = stringPreferencesKey("seen_version")
 
 @Serializable
 private data class GitHubRelease(
@@ -82,4 +83,28 @@ suspend fun updateToPrompt(context: Context, currentVersion: String): UpdateChec
 
 suspend fun markUpdatePrompted(context: Context, version: String) {
     context.updateDataStore.edit { it[PROMPTED_VERSION] = version }
+}
+
+/** The changelog's points for [version]: the lines starting with "* " in its section. */
+fun releaseNotesFrom(changelog: String, version: String): List<String> =
+    changelog.lineSequence()
+        .dropWhile { !it.startsWith("## [$version]") }
+        .drop(1)
+        .takeWhile { !it.startsWith("## [") }
+        .filter { it.startsWith("* ") }
+        .map { it.removePrefix("* ").replace("**", "").trim() }
+        .toList()
+
+fun releaseNotes(context: Context, version: String): List<String> =
+    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version)
+
+/** Release notes to show once after updating to [version]; empty when already seen. */
+suspend fun unseenReleaseNotes(context: Context, version: String): List<String> {
+    if (context.updateDataStore.data.first()[SEEN_VERSION] == version) return emptyList()
+    markReleaseNotesSeen(context, version)
+    return releaseNotes(context, version)
+}
+
+suspend fun markReleaseNotesSeen(context: Context, version: String) {
+    context.updateDataStore.edit { it[SEEN_VERSION] = version }
 }
