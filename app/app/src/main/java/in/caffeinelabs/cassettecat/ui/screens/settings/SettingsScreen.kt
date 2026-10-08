@@ -51,6 +51,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
+import `in`.caffeinelabs.cassettecat.ui.theme.RecordRed
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Date
@@ -136,7 +137,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_listening_record),
                 subtitle = stringResource(AppR.string.settings_listening_record_description),
                 iconRes = R.drawable.lucide_ic_disc_3,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = onNavigateToStats
             )
             SettingsDivider()
@@ -268,7 +269,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_listening_room),
                 subtitle = listeningRoomStatus(listeningRoom),
                 iconRes = R.drawable.lucide_ic_users,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = { showListeningRoom = true }
             )
         }
@@ -333,7 +334,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_credits),
                 subtitle = stringResource(AppR.string.settings_credits_description),
                 iconRes = R.drawable.lucide_ic_heart,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = onNavigateToCredits
             )
             SettingsDivider()
