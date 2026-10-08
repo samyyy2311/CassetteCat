@@ -154,7 +154,7 @@ fun StatsScreen(
             .map { (artist, entries) ->
                 ArtistStat(artist, entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs })
             }
-            .sortedWith(compareByDescending<ArtistStat> { it.listeningMs }.thenByDescending { it.playCount })
+            .sortedWith(compareByDescending<ArtistStat> { it.playCount }.thenByDescending { it.listeningMs })
             .take(10)
 
         val topAlbums = playedSongs.groupBy { it.song.albumId }
@@ -167,16 +167,17 @@ fun StatsScreen(
                     artSong = entries.first().song
                 )
             }
-            .sortedWith(compareByDescending<AlbumStat> { it.listeningMs }.thenByDescending { it.playCount })
+            .sortedWith(compareByDescending<AlbumStat> { it.playCount }.thenByDescending { it.listeningMs })
             .take(10)
 
-        val topSongs = playedSongs.sortedByDescending { it.playCount }.take(25)
+        // Ranked like the computer's Listening Record: plays first, then listening time.
+        val topSongs = playedSongs.sortedWith(compareByDescending<SongStat> { it.playCount }.thenByDescending { it.listeningMs }).take(25)
 
         val topGenres = (playedSongs.mapNotNull { stat -> stat.song.genres.firstOrNull()?.let { GenreStat(it, stat.playCount, stat.listeningMs) } } +
             listensOutsideLibrary.filter { it.genre.isNotBlank() }.map { GenreStat(it.genre, 1, it.ms) })
             .groupBy { it.genre.trim().lowercase() }
             .map { (_, entries) -> GenreStat(entries.first().genre.trim(), entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs }) }
-            .sortedByDescending { it.listeningMs }
+            .sortedWith(compareByDescending<GenreStat> { it.playCount }.thenByDescending { it.listeningMs })
             .take(5)
 
         MonthComputed(topArtists, topAlbums, topSongs, topGenres, periodListens.sortedByDescending { it.at }.take(20))

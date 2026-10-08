@@ -59,6 +59,8 @@ private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
 private val DESKTOP_PENDING_LISTENS = stringPreferencesKey("pending_listens")
 private val DESKTOP_LISTENS_SINCE = longPreferencesKey("listens_since")
+// The pairing code of the computer that has this phone's whole listening history.
+private val DESKTOP_HISTORY_SENT_TO = stringPreferencesKey("listen_history_sent_to")
 private const val MAX_PENDING_LISTENS = 2_000
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
@@ -529,6 +531,13 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     private suspend fun syncListensNow() {
         val desktop = connectedDesktop() ?: return
+        // Listens from before pairing were never queued, so a newly paired computer gets the whole history once. The
+        // computer skips listens it already has, including its own that this phone was sent.
+        if (dataStore.data.first()[DESKTOP_HISTORY_SENT_TO] != desktop.code &&
+            apiClient.sendListens(desktop.host, desktop.port, desktop.code, statsRepository.listens.first())
+        ) {
+            dataStore.edit { it[DESKTOP_HISTORY_SENT_TO] = desktop.code }
+        }
         val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
         if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
             val sent = pending.toSet()
