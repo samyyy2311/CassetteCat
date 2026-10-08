@@ -4,6 +4,7 @@ import android.content.Context
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Build
 import android.util.LruCache
 import android.util.Size
@@ -70,23 +71,26 @@ class AlbumArtLoader(private val context: Context) {
 
     private fun cacheFor(thumbnail: Boolean) = if (thumbnail) thumbnailCache else fullCache
 
-    private fun decode(song: Song, maxDimension: Int): Bitmap? {
-        val embedded = runCatching {
-            MediaMetadataRetriever().use { retriever ->
-                retriever.setDataSource(context, song.contentUri)
-                retriever.embeddedPicture?.let { bytes ->
-                    decodeSampledBitmap(bytes, maxDimension = maxDimension)
-                }
-            }
-        }.getOrNull()
-        if (embedded != null) return embedded
+    private fun decode(song: Song, maxDimension: Int): Bitmap? = decodeLocalArtwork(context, song.contentUri, maxDimension)
+}
 
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCatching {
-                context.contentResolver.loadThumbnail(song.contentUri, Size(maxDimension, maxDimension), null)
-            }.getOrNull()
-        } else null
-    }
+/** A local song's embedded cover, or the thumbnail Android keeps for it. */
+internal fun decodeLocalArtwork(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
+    val embedded = runCatching {
+        MediaMetadataRetriever().use { retriever ->
+            retriever.setDataSource(context, uri)
+            retriever.embeddedPicture?.let { bytes ->
+                decodeSampledBitmap(bytes, maxDimension = maxDimension)
+            }
+        }
+    }.getOrNull()
+    if (embedded != null) return embedded
+
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        runCatching {
+            context.contentResolver.loadThumbnail(uri, Size(maxDimension, maxDimension), null)
+        }.getOrNull()
+    } else null
 }
 
 // Closeable only from API 29+; this keeps `use { }` working uniformly down to minSdk 26.

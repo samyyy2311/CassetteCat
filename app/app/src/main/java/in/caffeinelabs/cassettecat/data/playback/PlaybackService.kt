@@ -3,6 +3,7 @@
 package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.util.Log
+import `in`.caffeinelabs.cassettecat.data.library.decodeLocalArtwork
 import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
@@ -17,7 +18,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.media.AudioManager
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -27,7 +27,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.service.quicksettings.TileService
-import android.util.Size
 import android.view.KeyEvent
 import androidx.core.content.IntentCompat
 import androidx.core.graphics.scale
@@ -81,7 +80,6 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
-import `in`.caffeinelabs.cassettecat.data.library.use
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1079,22 +1077,7 @@ private suspend fun resolveArtworkBitmap(
                 if (bitmap != null) return bitmap
             }
             "content" -> {
-                val embedded = runCatching {
-                    MediaMetadataRetriever().use { retriever ->
-                        retriever.setDataSource(context, uri)
-                        retriever.embeddedPicture?.let { bytes ->
-                            decodeSampledBitmap(bytes, maxDimension = 360)
-                        }
-                    }
-                }.getOrNull()
-                if (embedded != null) return embedded
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val thumb = runCatching {
-                        context.contentResolver.loadThumbnail(uri, Size(360, 360), null)
-                    }.getOrNull()
-                    if (thumb != null) return thumb
-                }
+                decodeLocalArtwork(context, uri, 360)?.let { return it }
 
                 val streamBitmap = runCatching {
                     context.contentResolver.openInputStream(uri)?.use { stream ->
