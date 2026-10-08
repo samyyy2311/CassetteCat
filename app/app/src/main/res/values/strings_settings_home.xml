@@ -37,7 +37,7 @@
     <string name="settings_jellyfin_description">Connect to a Jellyfin media server</string>
     <string name="settings_external_services">External Services</string>
     <string name="settings_external_services_count">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</string>
-    <string name="settings_scrobbling_description">ListenBrainz and Libre.fm listening sync</string>
+    <string name="settings_scrobbling_description">ListenBrainz, Libre.fm and Last.fm listening sync</string>
     <string name="settings_listening_room">Listening Room</string>
     <plurals name="settings_listening_room_hosting">
         <item quantity="one">Hosting · %d connected</item>

@@ -23,10 +23,10 @@ class CredentialStore(context: Context) {
 
     fun saveListenBrainzToken(token: String) = save(KEY_LISTENBRAINZ_TOKEN, token)
     fun getListenBrainzToken(): String? = load(KEY_LISTENBRAINZ_TOKEN)
-    fun saveLibreFmSessionKey(key: String) = save(KEY_LIBREFM_SESSION, key)
-    fun getLibreFmSessionKey(): String? = load(KEY_LIBREFM_SESSION)
     fun clearListenBrainzToken() = prefs.edit { remove(KEY_LISTENBRAINZ_TOKEN) }
-    fun clearLibreFmSessionKey() = prefs.edit { remove(KEY_LIBREFM_SESSION) }
+    fun saveScrobbleSessionKey(service: String, key: String) = save("${service}_session_key", key)
+    fun getScrobbleSessionKey(service: String): String? = load("${service}_session_key")
+    fun clearScrobbleSessionKey(service: String) = prefs.edit { remove("${service}_session_key") }
 
     fun clear(protocol: StreamingProtocol) {
         val key = when (protocol) {
@@ -81,6 +81,5 @@ class CredentialStore(context: Context) {
         const val KEY_SUBSONIC_PASSWORD = "subsonic_password"
         const val KEY_JELLYFIN_TOKEN = "jellyfin_access_token"
         const val KEY_LISTENBRAINZ_TOKEN = "listenbrainz_token"
-        const val KEY_LIBREFM_SESSION = "librefm_session_key"
     }
 }

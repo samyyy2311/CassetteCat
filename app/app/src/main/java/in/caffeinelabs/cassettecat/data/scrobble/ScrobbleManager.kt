@@ -15,7 +15,6 @@ class ScrobbleManager(
     private val repository = ScrobbleSettingsRepository(context)
     private val serviceSettingsRepository = ServiceSettingsRepository(context)
     private val listenBrainzClient = ListenBrainzClient()
-    private val libreFmClient = LibreFmClient()
 
     fun onTrackStarted(song: Song) {
         scope.launch {
@@ -26,8 +25,11 @@ class ScrobbleManager(
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
                 listenBrainzClient.submitNowPlaying(settings.listenBrainz.userToken, song)
             }
-            if (settings.libreFm.enabled && settings.libreFm.sessionKey.isNotBlank()) {
-                libreFmClient.updateNowPlaying(settings.libreFm.sessionKey, song)
+            ScrobbleAccount.entries.forEach { account ->
+                val config = settings.account(account)
+                if (config.enabled && config.sessionKey.isNotBlank()) {
+                    account.client?.updateNowPlaying(config.sessionKey, song)
+                }
             }
         }
     }
@@ -42,8 +44,11 @@ class ScrobbleManager(
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
                 listenBrainzClient.submitListen(settings.listenBrainz.userToken, song, nowSec)
             }
-            if (settings.libreFm.enabled && settings.libreFm.sessionKey.isNotBlank()) {
-                libreFmClient.scrobble(settings.libreFm.sessionKey, song, nowSec)
+            ScrobbleAccount.entries.forEach { account ->
+                val config = settings.account(account)
+                if (config.enabled && config.sessionKey.isNotBlank()) {
+                    account.client?.scrobble(config.sessionKey, song, nowSec)
+                }
             }
         }
     }

@@ -9,8 +9,20 @@ data class ListenBrainzConfig(
     val userName: String = ""
 )
 
+/** An account on an Audioscrobbler network; [id] names its settings and stored session key. */
+enum class ScrobbleAccount(val id: String) {
+    LIBRE_FM("librefm"),
+    LAST_FM("lastfm");
+
+    val client: AudioscrobblerClient?
+        get() = when (this) {
+            LIBRE_FM -> AudioscrobblerClient.libreFm
+            LAST_FM -> AudioscrobblerClient.lastFm
+        }
+}
+
 @Serializable
-data class LibreFmConfig(
+data class ScrobbleAccountConfig(
     val enabled: Boolean = false,
     val username: String = "",
     val sessionKey: String = ""
@@ -19,5 +31,11 @@ data class LibreFmConfig(
 @Serializable
 data class ScrobbleSettings(
     val listenBrainz: ListenBrainzConfig = ListenBrainzConfig(),
-    val libreFm: LibreFmConfig = LibreFmConfig()
-)
+    val libreFm: ScrobbleAccountConfig = ScrobbleAccountConfig(),
+    val lastFm: ScrobbleAccountConfig = ScrobbleAccountConfig()
+) {
+    fun account(account: ScrobbleAccount): ScrobbleAccountConfig = when (account) {
+        ScrobbleAccount.LIBRE_FM -> libreFm
+        ScrobbleAccount.LAST_FM -> lastFm
+    }
+}
