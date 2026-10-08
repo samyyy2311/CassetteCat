@@ -149,11 +149,12 @@ fun StatsScreen(
 
         val topArtists = (playedSongs.flatMap { stat ->
             stat.song.artist.splitArtists().map { ArtistStat(it, stat.playCount, stat.listeningMs) }
-        } + listensOutsideLibrary.flatMap { listen -> listen.artist.splitArtists().map { ArtistStat(it, 1, listen.ms) } })
+        } + listensOutsideLibrary.flatMap { listen -> listen.artist.splitArtists().map { ArtistStat(it, if (listen.counted) 1 else 0, listen.ms) } })
             .groupBy { it.artist }
             .map { (artist, entries) ->
                 ArtistStat(artist, entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs })
             }
+            .filter { it.playCount > 0 }
             .sortedWith(compareByDescending<ArtistStat> { it.playCount }.thenByDescending { it.listeningMs })
             .take(10)
 
@@ -174,13 +175,14 @@ fun StatsScreen(
         val topSongs = playedSongs.sortedWith(compareByDescending<SongStat> { it.playCount }.thenByDescending { it.listeningMs }).take(25)
 
         val topGenres = (playedSongs.mapNotNull { stat -> stat.song.genres.firstOrNull()?.let { GenreStat(it, stat.playCount, stat.listeningMs) } } +
-            listensOutsideLibrary.filter { it.genre.isNotBlank() }.map { GenreStat(it.genre, 1, it.ms) })
+            listensOutsideLibrary.filter { it.genre.isNotBlank() }.map { GenreStat(it.genre, if (it.counted) 1 else 0, it.ms) })
             .groupBy { it.genre.trim().lowercase() }
             .map { (_, entries) -> GenreStat(entries.first().genre.trim(), entries.sumOf { it.playCount }, entries.sumOf { it.listeningMs }) }
+            .filter { it.playCount > 0 }
             .sortedWith(compareByDescending<GenreStat> { it.playCount }.thenByDescending { it.listeningMs })
             .take(5)
 
-        MonthComputed(topArtists, topAlbums, topSongs, topGenres, periodListens.sortedByDescending { it.at }.take(20))
+        MonthComputed(topArtists, topAlbums, topSongs, topGenres, periodListens.filter { it.counted }.sortedByDescending { it.at }.take(20))
     }
 
     val monthMilestones = remember(milestones, month) {

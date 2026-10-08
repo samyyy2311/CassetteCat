@@ -165,6 +165,16 @@ class CoreLogicTest {
     }
 
     @Test
+    fun aSkipAddsListeningTimeButNotAPlay() {
+        val skip = Listen(at = 1_780_000_000_000L, title = "One", artist = "Ann", ms = 20_000, songId = "a", counted = false)
+
+        val stats = monthlyStatsOf(listOf(skip), emptyMap()).getValue(skip.monthKey)
+
+        assertEquals(null, stats.songPlayCounts["a"])
+        assertEquals(20_000L, stats.listeningMs)
+    }
+
+    @Test
     fun findsASongSentFromTheDesktopByTitleAndArtist() {
         val library = listOf(testSong("a", artist = "Ann", title = "One"), testSong("b", artist = "Bo", title = "Two"))
 

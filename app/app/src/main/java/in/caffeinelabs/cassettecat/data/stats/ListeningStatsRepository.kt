@@ -52,7 +52,9 @@ data class Listen(
     val album: String = "",
     val genre: String = "",
     val ms: Long,
-    val songId: String? = null
+    val songId: String? = null,
+    /** Whether this listen was a play; a skip only adds listening time. */
+    val counted: Boolean = true
 )
 
 val Listen.statsSongId: String get() = songId ?: "song:${title.trim().lowercase()}\u001f${artist.trim().lowercase()}"
@@ -64,8 +66,10 @@ internal fun monthlyStatsOf(listens: List<Listen>, earlier: Map<String, MonthlyS
     listens.forEach { listen ->
         val month = monthly.getOrDefault(listen.monthKey, MonthlyStats())
         val id = listen.statsSongId
+        // Plays follow Apple Music, counting once most of a song is heard; listening time counts every minute, as in
+        // Apple Music Replay.
         monthly[listen.monthKey] = month.copy(
-            songPlayCounts = month.songPlayCounts + (id to (month.songPlayCounts[id] ?: 0) + 1),
+            songPlayCounts = if (listen.counted) month.songPlayCounts + (id to (month.songPlayCounts[id] ?: 0) + 1) else month.songPlayCounts,
             listeningMs = month.listeningMs + listen.ms,
             songListeningMs = month.songListeningMs + (id to (month.songListeningMs[id] ?: 0L) + listen.ms)
         )

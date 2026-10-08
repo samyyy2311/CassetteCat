@@ -753,10 +753,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun finishListen() {
-        val current = currentListen?.takeIf { it.counted } ?: return
+        // Skips are logged too, for listening time, but only a counted listen is a play.
+        val current = currentListen?.takeIf { it.listenedMs > 0 } ?: return
         val song = current.song
         val listen = Listen(
-            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id
+            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id,
+            counted = current.counted
         )
         statsRepository.record(listen)
         desktop.queueListen(listen)
