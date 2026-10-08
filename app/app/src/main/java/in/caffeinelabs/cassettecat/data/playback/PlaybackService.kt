@@ -189,7 +189,8 @@ class PlaybackService : MediaLibraryService() {
                 true
             )
             .setHandleAudioBecomingNoisy(false)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
+            // Keeps Wi-Fi awake while the screen is off, for streams and for check-ins with a paired computer.
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         val navigationPlayer = SequentialNavigationPlayer(player, serviceScope)
         sequentialNavigationPlayer = navigationPlayer

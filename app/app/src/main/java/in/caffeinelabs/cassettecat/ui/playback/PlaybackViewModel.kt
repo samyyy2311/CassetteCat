@@ -3,6 +3,8 @@
 package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.util.Base64
 import android.os.SystemClock
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
@@ -46,6 +48,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
+import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -61,6 +64,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.ln
@@ -235,8 +239,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val (song, isPlaying) = playing ?: return@collectLatest
                 // A long pause stops the check-ins to save battery; pressing play starts them again.
                 val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
+                var sendArtwork = true
                 while (SystemClock.elapsedRealtime() < stopAt) {
-                    val reply = desktop.checkIn(song, isPlaying)
+                    val artwork = if (sendArtwork) desktopArtwork(song) else null
+                    val reply = desktop.checkIn(song, isPlaying, repository.currentPositionMs(), artwork)
+                    sendArtwork = reply.needsArtwork
                     reply.commands.forEach(::runDesktopCommand)
                     if (reply.playNext.isNotEmpty()) launch { playNextFromDesktop(reply.playNext) }
                     delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
@@ -547,6 +554,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
             "handoff" -> desktop.requestTransfer(toDesktop = true)
+            else -> command.removePrefix("seek:").takeIf { it != command }?.toLongOrNull()?.let(repository::seekTo)
+        }
+    }
+
+    private suspend fun desktopArtwork(song: Song): String? {
+        val cover = loadSongArtwork(getApplication(), song, thumbnail = true) ?: return null
+        return withContext(Dispatchers.Default) {
+            val bytes = java.io.ByteArrayOutputStream().also { cover.compress(Bitmap.CompressFormat.JPEG, 80, it) }.toByteArray()
+            Base64.encodeToString(bytes, Base64.NO_WRAP)
         }
     }
 

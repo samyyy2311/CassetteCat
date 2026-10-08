@@ -79,13 +79,22 @@ private data class QueueMoveRequest(val from: Int, val to: Int)
 data class HandoffTrack(val title: String, val artist: String)
 
 @Serializable
-data class PhoneCheckIn(val title: String, val artist: String, val isPlaying: Boolean)
+data class PhoneCheckIn(
+    val title: String,
+    val artist: String,
+    val isPlaying: Boolean,
+    val positionMs: Long = 0,
+    val durationMs: Long = 0,
+    /** Base64 JPEG cover, sent when the computer asks for it. */
+    val artwork: String? = null
+)
 
 @Serializable
 data class PhoneCheckInReply(
     val commands: List<String> = emptyList(),
     val playNext: List<HandoffTrack> = emptyList(),
-    val likesRevision: Int? = null
+    val likesRevision: Int? = null,
+    val needsArtwork: Boolean = false
 )
 
 @Serializable
