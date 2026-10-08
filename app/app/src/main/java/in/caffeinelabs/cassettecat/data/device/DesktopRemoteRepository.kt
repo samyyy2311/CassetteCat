@@ -585,15 +585,16 @@ class DesktopRemoteRepository private constructor(context: Context) {
             val at = runCatching {
                 YearMonth.parse(month).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             }.getOrNull() ?: return@flatMap emptyList()
-            stats.songPlayCounts.mapNotNull { (id, plays) ->
+            val (known, removed) = stats.songPlayCounts.filterValues { it > 0 }.entries.partition { (id, _) ->
+                id in songsById || id.startsWith("song:")
+            }
+            val songs = known.map { (id, plays) ->
                 val song = songsById[id]
                 // A song not in the library is kept by its title and artist.
                 val named = id.removePrefix("song:").split('\u001f')
-                val title = song?.title ?: named.getOrNull(0).orEmpty()
-                if (title.isBlank() || plays <= 0) return@mapNotNull null
                 Listen(
                     at = at,
-                    title = title,
+                    title = song?.title ?: named.getOrNull(0).orEmpty(),
                     artist = song?.artist ?: named.getOrNull(1).orEmpty(),
                     album = song?.album.orEmpty(),
                     genre = song?.genres?.firstOrNull().orEmpty(),
@@ -602,6 +603,18 @@ class DesktopRemoteRepository private constructor(context: Context) {
                     plays = plays
                 )
             }
+            // Songs since removed from the phone still count in its Stats without being listed, so they go as one
+            // untitled total for the month.
+            val removedTotal = removed.takeIf { it.isNotEmpty() }?.let { entries ->
+                Listen(
+                    at = at,
+                    title = "",
+                    artist = "",
+                    ms = entries.sumOf { stats.songListeningMs[it.key] ?: 0L }.coerceAtLeast(1L),
+                    plays = entries.sumOf { it.value }
+                )
+            }
+            songs + listOfNotNull(removedTotal)
         }
     }
 
