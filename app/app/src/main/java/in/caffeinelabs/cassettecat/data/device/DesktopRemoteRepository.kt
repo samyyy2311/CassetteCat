@@ -1,6 +1,9 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
 import android.net.Uri
 import androidx.core.net.toUri
 import android.os.SystemClock
@@ -29,6 +32,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +65,7 @@ private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
 private const val COMPUTER_LIBRARY_PAGE = 100
 private const val REFIND_INTERVAL_MS = 30_000L
+private const val NETWORK_SETTLE_MS = 1_000L
 private const val APPROVAL_WAIT_MS = 65_000L
 private const val APPROVAL_POLL_MS = 1_000L
 private const val APPROVAL_MAX_MISSED_CHECKS = 5
@@ -200,12 +205,27 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     fun setInFront(inFront: Boolean) {
         _inFront.value = inFront
+        if (inFront) refindSoon()
     }
+
+    // A new Wi-Fi network usually gives the computer a new address, so look for it again once the phone has one.
+    private val networkChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     init {
         scope.launch {
             @OptIn(FlowPreview::class)
             favoritesRepository.favoriteIds.drop(1).debounce(LIKES_SYNC_DELAY_MS).collect { syncLikes() }
+        }
+        context.getSystemService(ConnectivityManager::class.java)?.registerDefaultNetworkCallback(
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    networkChanges.tryEmit(Unit)
+                }
+            }
+        )
+        scope.launch {
+            @OptIn(FlowPreview::class)
+            networkChanges.debounce(NETWORK_SETTLE_MS).collect { if (state.value.address != null) refind() }
         }
         scope.launch {
             combine(state.map { it.address }, _inFront) { address, inFront -> address to inFront }.distinctUntilChanged().collect {

@@ -282,6 +282,7 @@ fun DeviceConnectSheet(
     var unreachable by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     DisposableEffect(desktop) {
         desktop.startPolling()
+        desktop.discover()
         onDispose { desktop.stopPolling() }
     }
     val notPlaying = stringResource(AppR.string.widget_not_playing)
