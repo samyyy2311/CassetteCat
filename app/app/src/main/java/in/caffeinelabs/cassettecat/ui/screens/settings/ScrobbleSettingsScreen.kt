@@ -1,6 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalAutofillManager
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -380,6 +384,7 @@ internal fun ScrobbleAccountDialog(
     var isAuthenticating by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val autofill = LocalAutofillManager.current
     val credentialsRequiredMessage = stringResource(AppR.string.scrobbling_credentials_required)
     val authFailedMessage = stringResource(AppR.string.scrobbling_auth_failed)
 
@@ -399,7 +404,7 @@ internal fun ScrobbleAccountDialog(
                     onValueChange = { username = it; errorMessage = null },
                     label = { Text(stringResource(AppR.string.scrobbling_username)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username }
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -409,7 +414,7 @@ internal fun ScrobbleAccountDialog(
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
                 )
                 if (errorMessage != null) {
                     Spacer(Modifier.height(6.dp))
@@ -430,6 +435,8 @@ internal fun ScrobbleAccountDialog(
                         val sessionKey = account.client?.authenticate(username.trim(), password)
                         isAuthenticating = false
                         if (sessionKey != null) {
+                            // Lets the password manager offer to save the sign-in.
+                            autofill?.commit()
                             onConnect(username.trim(), sessionKey)
                         } else {
                             errorMessage = authFailedMessage
