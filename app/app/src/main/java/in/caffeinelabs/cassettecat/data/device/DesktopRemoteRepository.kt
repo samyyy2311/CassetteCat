@@ -49,6 +49,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.YearMonth
+import java.time.ZoneId
 
 private val Context.desktopRemoteDataStore by preferencesDataStore(name = "desktop_remote")
 private val DESKTOP_ADDRESS = stringPreferencesKey("address")
@@ -61,6 +63,8 @@ private val DESKTOP_PENDING_LISTENS = stringPreferencesKey("pending_listens")
 private val DESKTOP_LISTENS_SINCE = longPreferencesKey("listens_since")
 // The pairing code of the computer that has this phone's whole listening history.
 private val DESKTOP_HISTORY_SENT_TO = stringPreferencesKey("listen_history_sent_to")
+// The pairing code of the computer that has the monthly totals from before single listens were kept.
+private val DESKTOP_TOTALS_SENT_TO = stringPreferencesKey("listen_totals_sent_to")
 private const val MAX_PENDING_LISTENS = 2_000
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
@@ -550,6 +554,12 @@ class DesktopRemoteRepository private constructor(context: Context) {
         ) {
             dataStore.edit { it[DESKTOP_HISTORY_SENT_TO] = desktop.code }
         }
+        if (dataStore.data.first()[DESKTOP_TOTALS_SENT_TO] != desktop.code) {
+            val totals = earlierTotals()
+            if (totals.isEmpty() || apiClient.sendListens(desktop.host, desktop.port, desktop.code, totals)) {
+                dataStore.edit { it[DESKTOP_TOTALS_SENT_TO] = desktop.code }
+            }
+        }
         val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
         if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
             val sent = pending.toSet()
@@ -566,6 +576,33 @@ class DesktopRemoteRepository private constructor(context: Context) {
         )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
         return true
+    }
+
+    // Each song's total for a month from before single listens were kept, dated the first of that month.
+    private suspend fun earlierTotals(): List<Listen> {
+        val songsById = localLibrary.getSongs().associateBy { it.id }
+        return statsRepository.earlierMonthlyStats.first().flatMap { (month, stats) ->
+            val at = runCatching {
+                YearMonth.parse(month).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }.getOrNull() ?: return@flatMap emptyList()
+            stats.songPlayCounts.mapNotNull { (id, plays) ->
+                val song = songsById[id]
+                // A song not in the library is kept by its title and artist.
+                val named = id.removePrefix("song:").split('\u001f')
+                val title = song?.title ?: named.getOrNull(0).orEmpty()
+                if (title.isBlank() || plays <= 0) return@mapNotNull null
+                Listen(
+                    at = at,
+                    title = title,
+                    artist = song?.artist ?: named.getOrNull(1).orEmpty(),
+                    album = song?.album.orEmpty(),
+                    genre = song?.genres?.firstOrNull().orEmpty(),
+                    ms = (stats.songListeningMs[id] ?: 0L).coerceAtLeast(1L),
+                    songId = id,
+                    plays = plays
+                )
+            }
+        }
     }
 
     private fun pendingListens(json: String?): List<Listen> =

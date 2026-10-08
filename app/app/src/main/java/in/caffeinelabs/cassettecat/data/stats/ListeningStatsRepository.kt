@@ -54,7 +54,9 @@ data class Listen(
     val ms: Long,
     val songId: String? = null,
     /** Whether this listen was a play; a skip only adds listening time. */
-    val counted: Boolean = true
+    val counted: Boolean = true,
+    /** Set only on a month's total for a song from before single listens were kept, sent to the computer. */
+    val plays: Int? = null
 )
 
 val Listen.statsSongId: String get() = songId ?: "song:${title.trim().lowercase()}\u001f${artist.trim().lowercase()}"
