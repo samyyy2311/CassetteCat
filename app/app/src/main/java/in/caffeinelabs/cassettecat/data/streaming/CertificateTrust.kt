@@ -8,6 +8,8 @@ import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
@@ -62,6 +64,15 @@ private class TofuTrustManager(private val systemDefault: X509TrustManager) : X5
 }
 
 val tofuTrustManager: X509TrustManager = TofuTrustManager(systemDefaultTrustManager())
+
+private val systemHostnameVerifier: HostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
+
+/** Accepts a pinned certificate whatever the host is called, as the pin itself names the server. */
+val pinnedHostnameVerifier = HostnameVerifier { host, session ->
+    systemHostnameVerifier.verify(host, session) ||
+        runCatching { (session.peerCertificates.first() as X509Certificate).sha256Fingerprint() }.getOrNull() in
+        CertificatePinStore.pinned
+}
 
 val tofuSslSocketFactory: SSLSocketFactory = SSLContext.getInstance("TLS").apply {
     init(null, arrayOf<TrustManager>(tofuTrustManager), null)

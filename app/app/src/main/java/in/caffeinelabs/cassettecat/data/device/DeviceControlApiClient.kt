@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 import android.net.Network
 import android.os.Build
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
+import `in`.caffeinelabs.cassettecat.data.streaming.findUntrustedCertificateCause
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -165,8 +166,12 @@ private data class OkResponse(val ok: Boolean)
  */
 class DeviceControlApiClient(
     private val onCodeRejected: ((String) -> Unit)? = null,
-    private val onUnreachable: (() -> Unit)? = null
+    private val onUnreachable: (() -> Unit)? = null,
+    private val pinCertificate: (suspend (String) -> Unit)? = null
 ) {
+    // The computer is always reached with its pairing code and over TLS; the hardware player has neither.
+    private fun baseUrl(host: String, port: Int, token: String?) = "${if (token != null) "https" else "http"}://$host:$port"
+
     private fun client(network: Network?): OkHttpClient {
         val base = deviceHttpClient(network)
         if (onCodeRejected == null && onUnreachable == null) return base
@@ -174,7 +179,8 @@ class DeviceControlApiClient(
             val response = try {
                 chain.proceed(chain.request())
             } catch (e: IOException) {
-                onUnreachable?.invoke()
+                val code = chain.request().header("Authorization")?.removePrefix("Bearer ")
+                if (e.findUntrustedCertificateCause() != null && code != null) onCodeRejected?.invoke(code) else onUnreachable?.invoke()
                 throw e
             }
             response.also {
@@ -186,21 +192,21 @@ class DeviceControlApiClient(
 
     suspend fun requestPairing(host: String, port: Int): String? =
         withContext(Dispatchers.IO) {
-            runCatching {
+            pinOnFirstContact {
                 val request = Request.Builder()
-                    .url("http://$host:$port/api/pair-request")
+                    .url("https://$host:$port/api/pair-request")
                     .post(sharedJson.encodeToString(PairingRequest.serializer(), PairingRequest(deviceName)).toRequestBody("application/json".toMediaType()))
                     .build()
                 deviceHttpClient(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<PairingTicket>(it.body.string()).id else null
                 }
-            }.getOrNull()
+            }
         }
 
     suspend fun pairingStatus(host: String, port: Int, id: String): PairingStatus? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val url = "http://$host:$port/api/pair-request".toHttpUrl().newBuilder().addQueryParameter("id", id).build()
+                val url = "https://$host:$port/api/pair-request".toHttpUrl().newBuilder().addQueryParameter("id", id).build()
                 val request = Request.Builder().url(url).build()
                 deviceHttpClient(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<PairingStatus>(it.body.string()) else null
@@ -211,8 +217,8 @@ class DeviceControlApiClient(
     /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
+            pinOnFirstContact {
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/playback").withPairingCode(token).build()
                 deviceHttpClient(null).newCall(request).execute().use {
                     when {
                         it.isSuccessful -> true
@@ -220,12 +226,23 @@ class DeviceControlApiClient(
                         else -> null
                     }
                 }
-            }.getOrNull()
+            }
         }
+
+    /**
+     * Runs a pairing request, trusting and pinning the certificate the computer presents when none of its is pinned
+     * yet. Phones pin on first pairing, as the computer's certificate is self-signed.
+     */
+    private suspend fun <T> pinOnFirstContact(request: () -> T): T? {
+        val first = runCatching(request)
+        val untrusted = first.exceptionOrNull()?.findUntrustedCertificateCause() ?: return first.getOrNull()
+        pinCertificate?.invoke(untrusted.fingerprint) ?: return null
+        return runCatching(request).getOrNull()
+    }
 
     private fun <T> postJson(host: String, port: Int, path: String, body: T, serializer: kotlinx.serialization.KSerializer<T>, network: Network?, token: String? = null): Boolean {
         val request = Request.Builder()
-            .url("http://$host:$port$path")
+            .url("${baseUrl(host, port, token)}$path")
             .post(sharedJson.encodeToString(serializer, body).toRequestBody("application/json".toMediaType()))
             .withPairingCode(token)
             .build()
@@ -236,7 +253,7 @@ class DeviceControlApiClient(
     suspend fun getPlaybackStatus(host: String, port: Int = 80, network: Network? = null, token: String? = null): DevicePlaybackStatus? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/playback").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/playback").withPairingCode(token).build()
                 val response = client(network).newCall(request).execute()
                 response.use {
                     if (!it.isSuccessful) return@runCatching null
@@ -254,7 +271,7 @@ class DeviceControlApiClient(
     suspend fun getQueue(host: String, port: Int, token: String): List<DesktopQueueTrack>? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/queue").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/queue").withPairingCode(token).build()
                 client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopQueue>(it.body.string()).tracks else null
                 }
@@ -264,7 +281,7 @@ class DeviceControlApiClient(
     suspend fun getLibrary(host: String, port: Int, token: String, query: String, offset: Int, limit: Int): ComputerLibraryResult =
         withContext(Dispatchers.IO) {
             runCatching {
-                val url = "http://$host:$port/api/library".toHttpUrl().newBuilder()
+                val url = "${baseUrl(host, port, token)}/api/library".toHttpUrl().newBuilder()
                     .addQueryParameter("q", query)
                     .addQueryParameter("offset", offset.toString())
                     .addQueryParameter("limit", limit.toString())
@@ -297,7 +314,7 @@ class DeviceControlApiClient(
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder()
-                    .url("http://$host:$port/api/phone-state")
+                    .url("${baseUrl(host, port, token)}/api/phone-state")
                     .post(sharedJson.encodeToString(PhoneCheckIn.serializer(), state).toRequestBody("application/json".toMediaType()))
                     .withPairingCode(token)
                     .build()
@@ -313,7 +330,7 @@ class DeviceControlApiClient(
             val handoff = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)
             runCatching {
                 val request = Request.Builder()
-                    .url("http://$host:$port/api/handoff")
+                    .url("${baseUrl(host, port, token)}/api/handoff")
                     .post(sharedJson.encodeToString(HandoffRequest.serializer(), handoff).toRequestBody("application/json".toMediaType()))
                     .withPairingCode(token)
                     .build()
@@ -334,7 +351,7 @@ class DeviceControlApiClient(
     suspend fun getLikes(host: String, port: Int, token: String): DesktopLikes? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/likes").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/likes").withPairingCode(token).build()
                 client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopLikes>(it.body.string()) else null
                 }
@@ -356,7 +373,7 @@ class DeviceControlApiClient(
     suspend fun getListens(host: String, port: Int, token: String, since: Long): List<Listen>? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/listens?since=$since").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/listens?since=$since").withPairingCode(token).build()
                 client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopListens>(it.body.string()).listens else null
                 }
@@ -366,7 +383,7 @@ class DeviceControlApiClient(
     suspend fun getPlaylists(host: String, port: Int, token: String): List<DesktopPlaylist>? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/playlists").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/playlists").withPairingCode(token).build()
                 client(null).newCall(request).execute().use {
                     if (it.isSuccessful) sharedJson.decodeFromString<DesktopPlaylists>(it.body.string()).playlists else null
                 }
@@ -377,7 +394,7 @@ class DeviceControlApiClient(
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder()
-                    .url("http://$host:$port/api/playlists")
+                    .url("${baseUrl(host, port, token)}/api/playlists")
                     .post(sharedJson.encodeToString(DesktopPlaylist.serializer(), playlist).toRequestBody("application/json".toMediaType()))
                     .withPairingCode(token)
                     .build()
@@ -391,7 +408,7 @@ class DeviceControlApiClient(
         withContext(Dispatchers.IO) {
             runCatching {
                 val request = Request.Builder()
-                    .url("http://$host:$port/api/backup")
+                    .url("${baseUrl(host, port, token)}/api/backup")
                     .post(backupJson.toRequestBody("application/json".toMediaType()))
                     .withPairingCode(token)
                     .build()
@@ -402,7 +419,7 @@ class DeviceControlApiClient(
     suspend fun downloadBackup(host: String, port: Int, token: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url("http://$host:$port/api/backup").withPairingCode(token).build()
+                val request = Request.Builder().url("${baseUrl(host, port, token)}/api/backup").withPairingCode(token).build()
                 client(null).newCall(request).execute().use { if (it.isSuccessful) it.body.string() else null }
             }.getOrNull()
         }

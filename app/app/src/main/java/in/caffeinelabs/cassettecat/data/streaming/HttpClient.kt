@@ -15,6 +15,7 @@ import kotlin.coroutines.resumeWithException
 
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
+    .hostnameVerifier(pinnedHostnameVerifier)
     .connectionPool(ConnectionPool(5, 1, TimeUnit.MINUTES))
     // Hard ceiling on total duration; per-read timeouts reset when servers trickle bytes.
     .callTimeout(45, TimeUnit.SECONDS)

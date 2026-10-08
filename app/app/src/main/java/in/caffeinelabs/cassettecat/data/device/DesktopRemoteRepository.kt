@@ -26,6 +26,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.statsSongId
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.CertificatePinRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -141,7 +142,11 @@ data class DesktopRemoteState(
 class DesktopRemoteRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val dataStore = context.desktopRemoteDataStore
-    private val apiClient = DeviceControlApiClient(onCodeRejected = ::codeRejected, onUnreachable = ::refindSoon)
+    private val apiClient = DeviceControlApiClient(
+        onCodeRejected = ::codeRejected,
+        onUnreachable = ::refindSoon,
+        pinCertificate = CertificatePinRepository(context.applicationContext)::pin
+    )
     private var lastRefindAtMs = 0L
     private val localLibrary = LocalLibraryRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
@@ -273,7 +278,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun artworkUri(key: String?): Uri? {
         val desktop = connectedDesktop() ?: return null
         if (key.isNullOrEmpty()) return null
-        return Uri.parse("http://${desktop.host}:${desktop.port}/api/artwork?key=$key&code=${desktop.code}")
+        return Uri.parse("https://${desktop.host}:${desktop.port}/api/artwork?key=$key&code=${desktop.code}")
     }
 
     private fun songFor(status: DevicePlaybackStatus): Song {
@@ -651,7 +656,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     /** [tracks] as songs this phone streams from the computer. The URLs carry the code, as the player can't send headers. */
     fun computerSongs(tracks: List<DesktopLibraryTrack>): List<Song> {
         val desktop = connectedDesktop() ?: return emptyList()
-        val base = "http://${desktop.host}:${desktop.port}/api"
+        val base = "https://${desktop.host}:${desktop.port}/api"
         return tracks.map { track ->
             Song(
                 id = "computer:${track.id}",

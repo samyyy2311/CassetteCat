@@ -1,6 +1,6 @@
 # Desktop Remote protocol
 
-This is the HTTP API that CassetteCat Desktop serves and the Android app calls. The desktop implements it in `src/remote_control.cpp`; the phone side is `DeviceControlApiClient` and `DesktopRemoteRepository`.
+This is the HTTPS API that CassetteCat Desktop serves and the Android app calls. The desktop implements it in `src/remote_control.cpp`; the phone side is `DeviceControlApiClient` and `DesktopRemoteRepository`.
 
 ## Discovery
 
@@ -10,11 +10,14 @@ The phone broadcasts the UDP datagram `CASSETTECAT_DISCOVER` to port 47800. Each
 {"name": "DESKTOP-1234", "port": 47800}
 ```
 
-`port` is the HTTP port to use. The desktop only answers private, link-local or loopback addresses.
+`port` is the HTTPS port to use. The desktop only answers private, link-local or loopback addresses.
 
 ## Requests
 
-* Requests and responses are JSON over plain HTTP.
+* Requests and responses are JSON over TLS 1.2 or later. The desktop makes a self-signed certificate on first use and
+  keeps it. The phone trusts the certificate it sees when it first pairs and pins it by its SHA-256 fingerprint, for
+  any address the computer later has. A different certificate afterwards makes the phone ask to pair again.
+* Plain HTTP is refused.
 * The desktop accepts requests only from private, link-local or loopback addresses; anything else gets `403`.
 * Every request except pairing needs `Authorization: Bearer <code>`, where `<code>` is the six-character pairing code. `GET /api/artwork` and `GET /api/stream` can pass it as `?code=` instead, because image loaders and media players cannot set headers.
 * `X-Device-Name` names the phone. The desktop shows it as the device in control.

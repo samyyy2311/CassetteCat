@@ -4,6 +4,7 @@ import android.app.Application
 import `in`.caffeinelabs.cassettecat.data.device.listDesktopInOutputSwitcher
 import `in`.caffeinelabs.cassettecat.data.diagnostics.CrashLogRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.CertificatePinRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.pinnedHostnameVerifier
 import `in`.caffeinelabs.cassettecat.data.streaming.tofuSslSocketFactory
 import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.runBlocking
@@ -13,6 +14,7 @@ class CassetteCatApplication : Application() {
         super.onCreate()
         CrashLogRepository(this).install()
         HttpsURLConnection.setDefaultSSLSocketFactory(tofuSslSocketFactory)
+        HttpsURLConnection.setDefaultHostnameVerifier(pinnedHostnameVerifier)
         runBlocking { CertificatePinRepository(this@CassetteCatApplication).loadIntoMemory() }
         listDesktopInOutputSwitcher(this)
     }
