@@ -559,9 +559,10 @@ fun LibraryScreen(
             }
             Spacer(Modifier.height(12.dp))
 
-            LibraryViewModeTabs(
+            UnderlineTabs(
                 modes = visibleModes,
                 selected = viewMode,
+                label = { it.label },
                 onSelect = { mode ->
                     if (!selectionMode) pagerScope.launch { pagerState.animateScrollToPage(visibleModes.indexOf(mode)) }
                 }
