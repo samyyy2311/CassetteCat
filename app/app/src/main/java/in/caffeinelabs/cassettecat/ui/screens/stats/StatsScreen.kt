@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
@@ -90,6 +92,9 @@ fun StatsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { ListeningStatsRepository(context) }
+    val desktop = remember { DesktopRemoteRepository.getInstance(context) }
+    val desktopState by desktop.state.collectAsStateWithLifecycle()
+    var syncing by remember { mutableStateOf(false) }
     val monthlyStats by repository.monthlyStats.collectAsStateWithLifecycle(initialValue = emptyMap<String, MonthlyStats>())
     val milestones by repository.milestones.collectAsStateWithLifecycle(initialValue = emptyList<Milestone>())
     val listens by repository.listens.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -229,6 +234,25 @@ fun StatsScreen(
                 onClick = onBack
             )
             Text(stringResource(AppR.string.stats_listening_record), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            if (desktopState.address != null) {
+                val computer = desktopState.name ?: stringResource(AppR.string.desktop_remote_your_computer)
+                val synced = stringResource(AppR.string.stats_synced, computer)
+                val notReached = stringResource(AppR.string.stats_sync_failed, computer)
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_refresh_cw,
+                    contentDescription = stringResource(AppR.string.stats_sync_desc, computer),
+                    onClick = {
+                        if (!syncing) {
+                            syncing = true
+                            scope.launch {
+                                val reached = desktop.syncWithDesktop()
+                                syncing = false
+                                Toast.makeText(context, if (reached) synced else notReached, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                )
+            }
             if (activeStats != null && year != null) {
                 PressDepthIconButton(
                     iconRes = R.drawable.lucide_ic_share_2,

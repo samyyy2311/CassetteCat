@@ -583,6 +583,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
             "handoff" -> desktop.requestTransfer(toDesktop = true)
+            "sync" -> viewModelScope.launch { desktop.syncWithDesktop() }
             else -> when {
                 command.startsWith("seek:") -> command.removePrefix("seek:").toLongOrNull()?.let(repository::seekTo)
                 command.startsWith("volume:") -> command.removePrefix("volume:").toIntOrNull()?.let(::setMediaVolumePercent)

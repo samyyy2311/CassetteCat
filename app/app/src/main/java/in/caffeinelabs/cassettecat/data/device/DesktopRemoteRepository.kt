@@ -243,6 +243,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch {
             status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) requestTransfer(toDesktop = false) }
         }
+        // The computer's Sync button reaches a phone that is controlling it through its status.
+        scope.launch {
+            status.filterNotNull().collect { if (it.syncRequested) syncWithDesktop() }
+        }
         // A computer paired by typing its address is named once it answers.
         scope.launch {
             status.filterNotNull().map { it.deviceName }.distinctUntilChanged().collect { name ->
@@ -520,17 +524,25 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun syncListens() = listensSync.withLock {
+    /** Syncs likes and the listening record with the computer; returns whether the computer was reached. */
+    suspend fun syncWithDesktop(): Boolean {
+        val reached = syncListens()
+        syncLikes()
+        return reached
+    }
+
+    suspend fun syncListens(): Boolean = listensSync.withLock {
         try {
             syncListensNow()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             Log.w("DesktopRemote", "Couldn't sync listens", e)
+            false
         }
     }
 
-    private suspend fun syncListensNow() {
-        val desktop = connectedDesktop() ?: return
+    private suspend fun syncListensNow(): Boolean {
+        val desktop = connectedDesktop() ?: return false
         // Listens from before pairing were never queued, so a newly paired computer gets the whole history once. The
         // computer skips listens it already has, including its own that this phone was sent.
         if (dataStore.data.first()[DESKTOP_HISTORY_SENT_TO] != desktop.code &&
@@ -543,15 +555,17 @@ class DesktopRemoteRepository private constructor(context: Context) {
             val sent = pending.toSet()
             dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
         }
-        if (!appPreferences.preferences.first().listeningStatsEnabled) return
+        if (!appPreferences.preferences.first().listeningStatsEnabled) return true
         val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
-        val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since)?.takeIf { it.isNotEmpty() } ?: return
+        val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since) ?: return false
+        if (listens.isEmpty()) return true
         val songsByKey = localLibrary.getSongs().associateBy { matchKey(it.title, it.artist) }
         val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
         statsRepository.addListens(
             listens.map { it.copy(songId = songsByKey[matchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
         )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
+        return true
     }
 
     private fun pendingListens(json: String?): List<Listen> =
