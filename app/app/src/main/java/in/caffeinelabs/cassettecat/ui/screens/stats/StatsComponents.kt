@@ -329,7 +329,7 @@ internal fun StatSongRow(song: Song, count: Int, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun StatTextRow(title: String, detail: String, trailing: String?, onClick: (() -> Unit)? = null) {
+internal fun StatTextRow(title: String, detail: String?, trailing: String?, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -339,14 +339,13 @@ internal fun StatTextRow(title: String, detail: String, trailing: String?, onCli
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            detail?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         trailing?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.width(12.dp))
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -505,8 +504,8 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
         items(computed.topGenres, key = { "genre:${it.genre}" }) { genre ->
             StatTextRow(
                 title = genre.genre,
-                detail = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount),
-                trailing = formatRecordedMinutes(genre.listeningMs)
+                detail = null,
+                trailing = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount)
             )
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -519,7 +518,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
             StatTextRow(
                 title = listen.title,
                 detail = listen.artist,
-                trailing = DateTimeFormatter.ofPattern("MMM d · HH:mm", locale).format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
+                trailing = DateTimeFormatter.ofPattern("MMM d", locale).format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
                 onClick = { onPlayListen(listen) }
             )
         }

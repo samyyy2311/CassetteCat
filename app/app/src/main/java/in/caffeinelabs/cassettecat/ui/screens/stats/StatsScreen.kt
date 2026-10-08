@@ -251,7 +251,8 @@ fun StatsScreen(
                             Spacer(Modifier.height(32.dp))
                         }
                         statsSections(
-                            computed = allTime.computed.summary(),
+                            // History lists every listen, so the overview doesn't repeat them.
+                            computed = allTime.computed.summary().copy(recentListens = emptyList()),
                             monthMilestones = emptyList(),
                             onNavigateToArtist = onNavigateToArtist,
                             onNavigateToAlbum = onNavigateToAlbum,

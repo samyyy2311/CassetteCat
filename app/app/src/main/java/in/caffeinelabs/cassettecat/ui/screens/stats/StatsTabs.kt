@@ -40,6 +40,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.time.Instant
+import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneId
@@ -185,7 +186,6 @@ internal fun StatRankRow(
     title: String,
     detail: String,
     playCount: Int,
-    listeningMs: Long,
     onClick: () -> Unit,
     art: @Composable (Modifier) -> Unit,
     artShape: RoundedCornerShape = RoundedCornerShape(6.dp)
@@ -209,20 +209,11 @@ internal fun StatRankRow(
             }
         }
         Spacer(Modifier.width(12.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                pluralStringResource(AppR.plurals.stats_plays, playCount, playCount),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            formatRecordedMinutes(listeningMs)?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Text(
+            pluralStringResource(AppR.plurals.stats_plays, playCount, playCount),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -235,7 +226,6 @@ internal fun TopTracksTab(songs: List<SongStat>, onPlay: (SongStat) -> Unit, lis
                 title = stat.song.title,
                 detail = stat.song.artist,
                 playCount = stat.playCount,
-                listeningMs = stat.listeningMs,
                 onClick = { onPlay(stat) },
                 art = { modifier -> AlbumArt(song = stat.song, modifier = modifier) }
             )
@@ -252,7 +242,6 @@ internal fun TopArtistsTab(artists: List<ArtistStat>, onOpen: (String) -> Unit, 
                 title = stat.artist,
                 detail = "",
                 playCount = stat.playCount,
-                listeningMs = stat.listeningMs,
                 onClick = { onOpen(stat.artist) },
                 art = { modifier -> ArtistImage(artist = stat.artist, modifier = modifier) },
                 artShape = RoundedCornerShape(24.dp)
@@ -270,7 +259,6 @@ internal fun TopAlbumsTab(albums: List<AlbumStat>, onOpen: (String) -> Unit, lis
                 title = stat.album,
                 detail = stat.artSong.artist,
                 playCount = stat.playCount,
-                listeningMs = stat.listeningMs,
                 onClick = { onOpen(stat.albumId) },
                 art = { modifier -> AlbumArt(song = stat.artSong, modifier = modifier) }
             )
@@ -281,24 +269,28 @@ internal fun TopAlbumsTab(albums: List<AlbumStat>, onOpen: (String) -> Unit, lis
 @Composable
 internal fun HistoryTab(listens: List<Listen>, onPlay: (Listen) -> Unit, listBottomPadding: Dp) {
     val locale = LocalLocale.current.platformLocale
-    val format = DateTimeFormatter.ofPattern("MMM d · HH:mm", locale)
+    val time = DateTimeFormatter.ofPattern("HH:mm", locale)
+    val day = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
+    val today = LocalDate.now()
+    val todayLabel = stringResource(AppR.string.stats_today)
+    val yesterdayLabel = stringResource(AppR.string.stats_yesterday)
+    // Listens are grouped under their day, so each row shows only the time.
     LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = listBottomPadding + 24.dp)) {
-        var lastMonth: String? = null
+        var lastDay: LocalDate? = null
         listens.forEachIndexed { index, listen ->
-            if (listen.monthKey != lastMonth) {
-                lastMonth = listen.monthKey
-                val month = YearMonth.parse(listen.monthKey)
-                item(key = "month:${listen.monthKey}") {
-                    SectionHeader(month.month.getDisplayName(TextStyle.FULL, locale) + " " + month.year)
+            val at = Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())
+            val date = at.toLocalDate()
+            if (date != lastDay) {
+                lastDay = date
+                val label = when (date) {
+                    today -> todayLabel
+                    today.minusDays(1) -> yesterdayLabel
+                    else -> day.format(date) + if (date.year != today.year) " ${date.year}" else ""
                 }
+                item(key = "day:$date") { SectionHeader(label) }
             }
             item(key = "listen:$index:${listen.at}") {
-                StatTextRow(
-                    title = listen.title,
-                    detail = listen.artist,
-                    trailing = format.format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
-                    onClick = { onPlay(listen) }
-                )
+                StatTextRow(title = listen.title, detail = listen.artist, trailing = time.format(at), onClick = { onPlay(listen) })
             }
         }
     }
