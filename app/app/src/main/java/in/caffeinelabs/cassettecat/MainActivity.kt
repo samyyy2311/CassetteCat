@@ -1,10 +1,12 @@
 package `in`.caffeinelabs.cassettecat
 
 import android.app.Activity
+import android.app.SearchManager
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -93,6 +95,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleShortcutIntent(intent: Intent?) {
+        // "Play ... on CassetteCat" from voice assistants arrives as a media search with the words in SearchManager.QUERY.
+        if (intent?.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
+            shortcutAction.value = AppShortcutAction.PLAY_MEDIA
+            shortcutQuery.value = intent.getStringExtra(SearchManager.QUERY)
+            shortcutMediaType.value = null
+            return
+        }
         shortcutAction.value = intent?.action?.takeIf { it in AppShortcutAction.all }
         shortcutQuery.value = intent?.getStringExtra("query")
         shortcutMediaType.value = intent?.getStringExtra("mediaType")
