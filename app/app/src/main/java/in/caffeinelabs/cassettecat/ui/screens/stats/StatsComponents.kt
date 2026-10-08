@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import androidx.compose.ui.platform.LocalLocale
-import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import java.time.Instant
 import java.time.ZoneId
 import java.time.YearMonth
@@ -64,8 +63,8 @@ internal fun formatListeningTime(minutes: Long): String = when {
 
 internal fun formatRecordedMinutes(listeningMs: Long): String? = when {
     listeningMs < 1_000L -> null
-    listeningMs < 60_000L -> "< 1 MIN"
-    else -> "${listeningMs / 60_000} MIN"
+    listeningMs < 60_000L -> "< 1 min"
+    else -> "${listeningMs / 60_000} min"
 }
 
 internal fun isSameMonth(epochMs: Long, month: YearMonth): Boolean =
@@ -297,7 +296,7 @@ internal fun RankedCard(
         subtitle?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -392,7 +391,6 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
     onNavigateToAlbum: (String) -> Unit,
     onPlayTrack: (SongStat) -> Unit,
     onViewAllMostPlayed: (() -> Unit)?,
-    onPlayListen: (Listen) -> Unit,
     onSavePlaylist: (() -> Unit)?
 ) {
     if (computed.topArtists.isNotEmpty()) {
@@ -490,8 +488,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                         title = album.album,
                         subtitle = formatRecordedMinutes(album.listeningMs),
                         onClick = { onNavigateToAlbum(album.albumId) },
-                        art = { artModifier -> AlbumArt(song = album.artSong, modifier = artModifier) },
-                        width = 224.dp
+                        art = { artModifier -> AlbumArt(song = album.artSong, modifier = artModifier) }
                     )
                 }
             }
@@ -506,20 +503,6 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                 title = genre.genre,
                 detail = null,
                 trailing = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount)
-            )
-        }
-        item { Spacer(Modifier.height(24.dp)) }
-    }
-
-    if (computed.recentListens.isNotEmpty()) {
-        item { SectionHeader(stringResource(AppR.string.stats_recent_listens)) }
-        items(computed.recentListens) { listen ->
-            val locale = LocalLocale.current.platformLocale
-            StatTextRow(
-                title = listen.title,
-                detail = listen.artist,
-                trailing = DateTimeFormatter.ofPattern("MMM d", locale).format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
-                onClick = { onPlayListen(listen) }
             )
         }
         item { Spacer(Modifier.height(24.dp)) }

@@ -112,8 +112,7 @@ internal fun periodRecord(months: Collection<MonthlyStats>, listens: List<Listen
 internal fun MonthComputed.summary() = copy(
     topArtists = topArtists.take(10),
     topAlbums = topAlbums.take(10),
-    topGenres = topGenres.take(5),
-    recentListens = recentListens.take(20)
+    topGenres = topGenres.take(5)
 )
 
 /** Listening time per month of [year], as bars; [selected] is highlighted and tapping a month picks it. */

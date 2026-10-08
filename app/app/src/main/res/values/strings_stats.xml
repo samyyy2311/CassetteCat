@@ -22,7 +22,6 @@
     <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
     <string name="stats_most_played_albums">MOST PLAYED ALBUMS</string>
     <string name="stats_top_genres">TOP GENRES</string>
-    <string name="stats_recent_listens">RECENT LISTENS</string>
     <string name="stats_busiest">BUSIEST</string>
     <string name="stats_since">SINCE</string>
     <plurals name="stats_plays">

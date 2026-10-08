@@ -251,14 +251,12 @@ fun StatsScreen(
                             Spacer(Modifier.height(32.dp))
                         }
                         statsSections(
-                            // History lists every listen, so the overview doesn't repeat them.
-                            computed = allTime.computed.summary().copy(recentListens = emptyList()),
+                            computed = allTime.computed.summary(),
                             monthMilestones = emptyList(),
                             onNavigateToArtist = onNavigateToArtist,
                             onNavigateToAlbum = onNavigateToAlbum,
                             onPlayTrack = { playStat(allTime.computed.topSongs, it) },
                             onViewAllMostPlayed = { showTab(StatsTab.TRACKS) },
-                            onPlayListen = ::playListen,
                             onSavePlaylist = null
                         )
                     }
@@ -312,7 +310,6 @@ fun StatsScreen(
                             onNavigateToAlbum = onNavigateToAlbum,
                             onPlayTrack = { playStat(rewind.computed.topSongs, it) },
                             onViewAllMostPlayed = null,
-                            onPlayListen = ::playListen,
                             onSavePlaylist = {
                                 val period = rewindMonth?.month?.getDisplayName(TextStyle.FULL, locale)
                                 val name = if (period != null) {
