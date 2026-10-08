@@ -30,6 +30,7 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
@@ -40,9 +41,9 @@ private const val DUPLICATE_DURATION_TOLERANCE_MS = 3_000L
 
 internal fun findDuplicateGroups(songs: List<Song>): List<List<Song>> =
     songs.filter { it.source == MusicSource.Local }
-        .groupBy { it.title.trim().lowercase() to it.artist.trim().lowercase() }
+        .groupBy { songMatchKey(it.title, it.artist) }
         .entries
-        .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+        .sortedBy { it.key }
         .flatMap { (_, group) -> splitByDuration(group) }
         .filter { it.size > 1 }
 

@@ -18,6 +18,7 @@ import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -89,11 +90,9 @@ internal fun parseDesktopAddress(text: String): DesktopAddress? {
     return DesktopAddress(host, port, code)
 }
 
-private fun matchKey(title: String, artist: String) = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()
-
 /** Finds [wanted] in [library] by title and artist, in order; empty when the first song is not there. */
 internal fun matchInLibrary(wanted: List<Song>, library: List<Song>): List<Song> {
-    fun key(song: Song) = matchKey(song.title, song.artist)
+    fun key(song: Song) = songMatchKey(song.title, song.artist)
     val byKey = library.asReversed().associateBy(::key)
     if (wanted.firstOrNull()?.let { byKey[key(it)] } == null) return emptyList()
     return wanted.mapNotNull { byKey[key(it)] }
@@ -116,8 +115,8 @@ internal fun planLikesSync(phoneLiked: Set<String>, desktopLiked: Set<String>, s
 }
 
 internal fun findAllInLibrary(tracks: List<HandoffTrack>, library: List<Song>): List<Song> {
-    val byKey = library.asReversed().associateBy { matchKey(it.title, it.artist) }
-    return tracks.mapNotNull { byKey[matchKey(it.title, it.artist)] }.distinct()
+    val byKey = library.asReversed().associateBy { songMatchKey(it.title, it.artist) }
+    return tracks.mapNotNull { byKey[songMatchKey(it.title, it.artist)] }.distinct()
 }
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
@@ -469,7 +468,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private suspend fun syncLikesNow() {
         val desktop = connectedDesktop() ?: return
         val remote = apiClient.getLikes(desktop.host, desktop.port, desktop.code) ?: return
-        val songsByKey = localLibrary.getSongs().groupBy { matchKey(it.title, it.artist) }
+        val songsByKey = localLibrary.getSongs().groupBy { songMatchKey(it.title, it.artist) }
         val favoriteIds = favoritesRepository.favoriteIds.first()
         val phoneLiked = songsByKey.filterValues { songs -> songs.any { it.id in favoriteIds } }.keys
         val shared = songsByKey.keys intersect remote.library.toSet()
@@ -569,10 +568,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
         val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since) ?: return false
         if (listens.isEmpty()) return true
-        val songsByKey = localLibrary.getSongs().associateBy { matchKey(it.title, it.artist) }
+        val songsByKey = localLibrary.getSongs().associateBy { songMatchKey(it.title, it.artist) }
         val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
         statsRepository.addListens(
-            listens.map { it.copy(songId = songsByKey[matchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
+            listens.map { it.copy(songId = songsByKey[songMatchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
         )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
         return true

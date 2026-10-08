@@ -37,3 +37,6 @@ data class Song(
     val bitrateKbps: Int = 0,
     val country: String = ""
 )
+
+/** What makes two songs the same song, here and on the computer: title and artist, ignoring case. */
+fun songMatchKey(title: String, artist: String): String = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()
