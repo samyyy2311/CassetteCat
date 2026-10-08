@@ -93,14 +93,14 @@ jobs:
         id: prepare
         if: steps.check.outputs.skip != 'true'
         env:
-          COMMIT: ${{ steps.check.outputs.commit }}
+          BUILT_COMMIT: ${{ steps.check.outputs.commit }}
         run: |
           set -euo pipefail
           apk="$(find app/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$apk"
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$apksigner" verify "$apk"
-          commit="$COMMIT"
+          commit="$BUILT_COMMIT"
           date="$(date -u +%F)"
           name="CassetteCat-nightly.staging.apk"
           mkdir -p nightly-assets
