@@ -4,6 +4,7 @@ package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.media.AudioManager
 import android.util.Base64
 import android.os.SystemClock
 import androidx.core.net.toUri
@@ -143,6 +144,7 @@ private const val DESKTOP_CHECK_IN_MS = 1_500L
 // Kept under the six seconds after which the computer stops showing the phone.
 private const val DESKTOP_BACKGROUND_CHECK_IN_MS = 4_000L
 private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
+private const val DESKTOP_IDLE_CHECK_IN_MS = 30_000L
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
@@ -237,16 +239,22 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     ?.let { it to local.isPlaying }
             }.distinctUntilChanged().collectLatest { playing ->
                 val (song, isPlaying) = playing ?: return@collectLatest
-                // A long pause stops the check-ins to save battery; pressing play starts them again.
-                val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
+                // After a long pause the check-ins slow down to save battery; the computer keeps showing the phone.
+                val idleAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
                 var sendArtwork = true
-                while (SystemClock.elapsedRealtime() < stopAt) {
+                while (true) {
                     val artwork = if (sendArtwork) desktopArtwork(song) else null
-                    val reply = desktop.checkIn(song, isPlaying, repository.currentPositionMs(), artwork)
+                    val reply = desktop.checkIn(song, isPlaying, repository.currentPositionMs(), mediaVolumePercent(), artwork)
                     sendArtwork = reply.needsArtwork
                     reply.commands.forEach(::runDesktopCommand)
                     if (reply.playNext.isNotEmpty()) launch { playNextFromDesktop(reply.playNext) }
-                    delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
+                    delay(
+                        when {
+                            SystemClock.elapsedRealtime() >= idleAt -> DESKTOP_IDLE_CHECK_IN_MS
+                            desktop.isInFront -> DESKTOP_CHECK_IN_MS
+                            else -> DESKTOP_BACKGROUND_CHECK_IN_MS
+                        }
+                    )
                 }
             }
         }
@@ -554,8 +562,23 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
             "handoff" -> desktop.requestTransfer(toDesktop = true)
-            else -> command.removePrefix("seek:").takeIf { it != command }?.toLongOrNull()?.let(repository::seekTo)
+            else -> when {
+                command.startsWith("seek:") -> command.removePrefix("seek:").toLongOrNull()?.let(repository::seekTo)
+                command.startsWith("volume:") -> command.removePrefix("volume:").toIntOrNull()?.let(::setMediaVolumePercent)
+            }
         }
+    }
+
+    private val audioManager get() = getApplication<Application>().getSystemService(AudioManager::class.java)
+
+    private fun mediaVolumePercent(): Int {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        return audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max
+    }
+
+    private fun setMediaVolumePercent(percent: Int) {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (percent.coerceIn(0, 100) * max + 50) / 100, 0)
     }
 
     private suspend fun desktopArtwork(song: Song): String? {

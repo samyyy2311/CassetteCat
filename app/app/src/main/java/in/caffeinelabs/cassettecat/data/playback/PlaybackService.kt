@@ -386,7 +386,7 @@ class PlaybackService : MediaLibraryService() {
         desktop.state.map { it.controlling }.distinctUntilChanged().collectLatest { controlling ->
             if (!controlling) return@collectLatest
             val commands = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-            val player = DesktopSessionPlayer(desktop) { commands.tryEmit(Unit) }
+            val player = DesktopSessionPlayer(this, desktop) { commands.tryEmit(Unit) }
             val session = MediaSession.Builder(this, player)
                 .setId(DESKTOP_SESSION_ID)
                 .setSessionActivity(sessionActivity)

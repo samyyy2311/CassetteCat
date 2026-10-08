@@ -1,5 +1,8 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
+import android.content.Context
+import android.media.MediaRouter2
+import android.os.Build
 import android.os.Looper
 import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
@@ -22,6 +25,7 @@ private const val VOLUME_STEPS = 20
  */
 @UnstableApi
 internal class DesktopSessionPlayer(
+    private val context: Context,
     private val desktop: DesktopRemoteRepository,
     private val onCommand: () -> Unit
 ) : SimpleBasePlayer(Looper.getMainLooper()) {
@@ -42,7 +46,19 @@ internal class DesktopSessionPlayer(
         Player.COMMAND_ADJUST_DEVICE_VOLUME_WITH_FLAGS
     ).build()
 
-    private val deviceInfo = DeviceInfo.Builder(DeviceInfo.PLAYBACK_TYPE_REMOTE).setMaxVolume(VOLUME_STEPS).build()
+    // Android names the output after the routing controller playing to the computer; without one, the media
+    // controls only say "Other device".
+    private fun deviceInfo() = DeviceInfo.Builder(DeviceInfo.PLAYBACK_TYPE_REMOTE)
+        .setMaxVolume(VOLUME_STEPS)
+        .setRoutingControllerId(desktopRoutingControllerId())
+        .build()
+
+    private fun desktopRoutingControllerId(): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+        return MediaRouter2.getInstance(context).controllers
+            .firstOrNull { controller -> controller.selectedRoutes.any { DESKTOP_ROUTE_CATEGORY in it.features } }
+            ?.id
+    }
 
     /** Keeps the session showing what the computer plays, until cancelled. */
     suspend fun follow() = combine(desktop.controlledState, desktop.status) { _, _ -> }.collect { invalidateState() }
@@ -51,7 +67,7 @@ internal class DesktopSessionPlayer(
         val remote = desktop.controlledState.value
         val builder = State.Builder()
             .setAvailableCommands(commands)
-            .setDeviceInfo(deviceInfo)
+            .setDeviceInfo(deviceInfo())
             .setDeviceVolume((desktop.status.value?.volumePercent ?: 0) * VOLUME_STEPS / 100)
         val current = remote?.currentSong ?: return builder.setPlaybackState(Player.STATE_IDLE).build()
         // The up-next songs follow the current one so next is available and the queue can be picked from.

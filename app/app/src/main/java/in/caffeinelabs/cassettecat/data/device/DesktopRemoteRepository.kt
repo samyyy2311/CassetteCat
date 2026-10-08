@@ -439,9 +439,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     /** Reports what this phone plays to the paired computer; returns the commands and songs the computer sent back. */
-    suspend fun checkIn(song: Song, isPlaying: Boolean, positionMs: Long, artwork: String?): PhoneCheckInReply {
+    suspend fun checkIn(song: Song, isPlaying: Boolean, positionMs: Long, volumePercent: Int, artwork: String?): PhoneCheckInReply {
         val desktop = connectedDesktop() ?: return PhoneCheckInReply()
-        val state = PhoneCheckIn(song.title, song.artist, isPlaying, positionMs, song.durationMs, artwork)
+        val state = PhoneCheckIn(song.title, song.artist, isPlaying, positionMs, song.durationMs, volumePercent, artwork)
         val reply = apiClient.checkIn(desktop.host, desktop.port, desktop.code, state)
         if (reply.likesRevision != null && reply.likesRevision != syncedLikesRevision) scope.launch { syncLikes() }
         return reply

@@ -85,6 +85,7 @@ data class PhoneCheckIn(
     val isPlaying: Boolean,
     val positionMs: Long = 0,
     val durationMs: Long = 0,
+    val volumePercent: Int = -1,
     /** Base64 JPEG cover, sent when the computer asks for it. */
     val artwork: String? = null
 )
