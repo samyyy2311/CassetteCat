@@ -51,6 +51,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepo
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -145,6 +146,8 @@ private const val DESKTOP_CHECK_IN_MS = 1_500L
 private const val DESKTOP_BACKGROUND_CHECK_IN_MS = 4_000L
 private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
 private const val DESKTOP_IDLE_CHECK_IN_MS = 30_000L
+// The computer accepts check-ins up to 64 KB.
+private const val DESKTOP_ARTWORK_MAX_CHARS = 48_000
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
@@ -241,7 +244,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val (song, isPlaying) = playing ?: return@collectLatest
                 // After a long pause the check-ins slow down to save battery; the computer keeps showing the phone.
                 val idleAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
-                var sendArtwork = true
+                // The first check-in goes out at once; the cover follows only when the computer asks for it.
+                var sendArtwork = false
                 while (true) {
                     val artwork = if (sendArtwork) desktopArtwork(song) else null
                     val reply = desktop.checkIn(song, isPlaying, repository.currentPositionMs(), mediaVolumePercent(), artwork)
@@ -581,12 +585,28 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (percent.coerceIn(0, 100) * max + 50) / 100, 0)
     }
 
+    // Kept for the current song, so pausing and resuming doesn't load and encode the cover again.
+    private var desktopArtworkFor: Pair<String, String?>? = null
+
+    // A cover that can't be loaded, or is too large for the computer to accept, is left out rather than failing
+    // the check-in.
     private suspend fun desktopArtwork(song: Song): String? {
-        val cover = loadSongArtwork(getApplication(), song, thumbnail = true) ?: return null
-        return withContext(Dispatchers.Default) {
-            val bytes = java.io.ByteArrayOutputStream().also { cover.compress(Bitmap.CompressFormat.JPEG, 80, it) }.toByteArray()
-            Base64.encodeToString(bytes, Base64.NO_WRAP)
+        desktopArtworkFor?.takeIf { it.first == song.id }?.let { return it.second }
+        val encoded = try {
+            loadSongArtwork(getApplication(), song, thumbnail = true)?.let { cover ->
+                withContext(Dispatchers.Default) {
+                    val bytes = java.io.ByteArrayOutputStream()
+                        .also { cover.compress(Bitmap.CompressFormat.JPEG, 75, it) }
+                        .toByteArray()
+                    Base64.encodeToString(bytes, Base64.NO_WRAP).takeIf { it.length <= DESKTOP_ARTWORK_MAX_CHARS }
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
         }
+        desktopArtworkFor = song.id to encoded
+        return encoded
     }
 
     // Sends [action] to the computer when it is the device being controlled; returns whether it did.
