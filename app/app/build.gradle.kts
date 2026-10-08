@@ -84,7 +84,6 @@ android {
             if (isProductionRelease && !hasProductionSigning) {
                 error("Release signing is required in CI")
             }
-            isProfileable = hasProductionSigning
             if (hasProductionSigning) {
                 signingConfig = releaseSigning
             }

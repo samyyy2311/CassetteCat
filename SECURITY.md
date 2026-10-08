@@ -6,8 +6,8 @@ Only the latest release and the current `main` branch receive active security up
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.7.x   | Yes                |
-| < 1.7.0 | No                 |
+| 1.8.x   | Yes                |
+| < 1.8.0 | No                 |
 
 ## Reporting a Vulnerability
 

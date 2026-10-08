@@ -130,9 +130,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PLAY_PAUSE" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_NEXT" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PREV" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
