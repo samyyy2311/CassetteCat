@@ -71,3 +71,28 @@ jobs:
           name: cassettecat-debug-apk
           path: app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
+
+  # Lets dependency review and Dependabot alerts see the Gradle dependencies, which GitHub can't read from the
+  # build scripts by itself.
+  dependency-submission:
+    name: Submit Gradle dependencies
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Submit dependency graph
+        uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          build-root-directory: app
