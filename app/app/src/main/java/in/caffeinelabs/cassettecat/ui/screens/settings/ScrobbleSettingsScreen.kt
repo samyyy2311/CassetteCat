@@ -205,7 +205,7 @@ fun ScrobbleSettingsScreen(
 }
 
 @Composable
-private fun ListenBrainzConnectDialog(
+internal fun ListenBrainzConnectDialog(
     onDismiss: () -> Unit,
     onConnect: (token: String, userName: String) -> Unit,
     onGetTokenClick: () -> Unit
@@ -280,7 +280,7 @@ private fun ListenBrainzConnectDialog(
     )
 }
 
-private class ScrobbleAccountText(
+internal class ScrobbleAccountText(
     val name: Int,
     val section: Int,
     val icon: Int,
@@ -290,7 +290,7 @@ private class ScrobbleAccountText(
     val dialogDescription: Int
 )
 
-private val ScrobbleAccount.text: ScrobbleAccountText
+internal val ScrobbleAccount.text: ScrobbleAccountText
     get() = when (this) {
         ScrobbleAccount.LIBRE_FM -> ScrobbleAccountText(
             AppR.string.scrobbling_librefm_name, AppR.string.scrobbling_librefm_section, AppR.drawable.ic_logo_librefm,
@@ -370,7 +370,7 @@ private fun ScrobbleAccountSection(
 }
 
 @Composable
-private fun ScrobbleAccountDialog(
+internal fun ScrobbleAccountDialog(
     account: ScrobbleAccount,
     onDismiss: () -> Unit,
     onConnect: (username: String, sessionKey: String) -> Unit

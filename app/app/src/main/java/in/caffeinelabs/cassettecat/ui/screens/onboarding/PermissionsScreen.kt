@@ -65,12 +65,6 @@ fun PermissionsScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
                 title = stringResource(AppR.string.onboarding_permission_notifications_title),
                 description = stringResource(AppR.string.onboarding_permission_notifications_description)
             )
-            Spacer(Modifier.height(28.dp))
-            PermissionCard(
-                iconRes = R.drawable.lucide_ic_wifi,
-                title = stringResource(AppR.string.onboarding_permission_nearby_title),
-                description = stringResource(AppR.string.onboarding_permission_nearby_description)
-            )
         }
 
         Spacer(Modifier.weight(1f))

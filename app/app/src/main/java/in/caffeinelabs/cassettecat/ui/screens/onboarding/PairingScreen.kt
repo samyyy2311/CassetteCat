@@ -48,7 +48,6 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 fun PairingScreen(
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
-    isOnboarding: Boolean = false,
     listBottomPadding: Dp = 0.dp,
     onNavigateToSync: () -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
@@ -76,46 +75,32 @@ fun PairingScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        if (isOnboarding) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                OnboardingHeaderRow(currentStep = 4, totalSteps = 5, onSkip = onFinish)
-                Spacer(Modifier.height(10.dp))
-                Text(stringResource(AppR.string.pairing_onboarding_title), style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(AppR.string.pairing_onboarding_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PressDepthIconButton(
-                    R.drawable.lucide_ic_chevron_left,
-                    stringResource(AppR.string.action_back),
-                    onFinish
-                )
-                Text(stringResource(AppR.string.pairing_player_title), style = MaterialTheme.typography.headlineSmall)
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PressDepthIconButton(
+                R.drawable.lucide_ic_chevron_left,
+                stringResource(AppR.string.action_back),
+                onFinish
+            )
+            Text(stringResource(AppR.string.pairing_player_title), style = MaterialTheme.typography.headlineSmall)
+        }
 
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    stringResource(AppR.string.pairing_companion_label),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                Text(
-                    stringResource(AppR.string.pairing_companion_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                stringResource(AppR.string.pairing_companion_label),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.tertiary
+            )
+            Text(
+                stringResource(AppR.string.pairing_companion_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
 
         Spacer(Modifier.height(24.dp))
