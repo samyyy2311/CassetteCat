@@ -186,8 +186,8 @@ jobs:
             exit 1
           fi
           # gh release create reuses an existing tag, which could point at a different commit than this build.
-          tagged=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha 2>/dev/null || true)
-          if [ -n "$tagged" ] && [ "$tagged" != "$TARGET" ]; then
+          # gh api prints the error body on stdout when the tag doesn't exist, so only a successful call counts.
+          if tagged=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha 2>/dev/null) && [ "$tagged" != "$TARGET" ]; then
             echo "::error::Tag $TAG already points at $tagged, not $TARGET"
             exit 1
           fi
