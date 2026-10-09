@@ -89,6 +89,12 @@ android {
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Test builds are signed with another key, so they install beside the released app instead of over it.
+        // The launcher shortcuts in res/xml/shortcuts.xml still open the released app.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     compileOptions {

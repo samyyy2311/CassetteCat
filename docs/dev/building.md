@@ -18,7 +18,7 @@ cd app
 ./gradlew lintDebug            # Android lint
 ```
 
-The debug APK is written to `app/app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK is written to `app/app/build/outputs/apk/debug/app-debug.apk`. It installs as a separate app, **CassetteCat Debug** (`in.caffeinelabs.cassettecat.debug`), beside the released one, so testing never replaces your real install or its data. Its launcher shortcuts still open the released app.
 
 CI runs `testDebugUnitTest`, `assembleDebug` and `lintDebug` on every pull request, so run the same three before pushing.
 
