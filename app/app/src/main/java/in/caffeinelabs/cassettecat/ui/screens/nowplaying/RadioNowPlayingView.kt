@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.listeningRoomStatus
 import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -28,7 +29,6 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
-import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 
@@ -83,7 +83,7 @@ internal fun RadioNowPlayingView(
         }
         if (listeningRoomState.role != ListeningRoomRole.NONE) {
             Spacer(Modifier.height(8.dp))
-            StatusPill(R.drawable.lucide_ic_users, listeningRoomState.statusSubtitle())
+            StatusPill(R.drawable.lucide_ic_users, listeningRoomStatus(listeningRoomState))
         }
         Spacer(Modifier.height(32.dp))
         RadioControlsRow(

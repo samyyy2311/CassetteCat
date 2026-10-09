@@ -138,7 +138,7 @@ private fun SyncSongRow(song: Song, state: SyncItemState?, isPending: Boolean) {
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                 }
-                is SyncItemState.Failed -> Text(state.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                is SyncItemState.Failed -> Text(stringResource(AppR.string.device_sync_upload_failed), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                 SyncItemState.Queued -> Text(
                     stringResource(AppR.string.device_sync_queued),
                     style = MaterialTheme.typography.bodyMedium,

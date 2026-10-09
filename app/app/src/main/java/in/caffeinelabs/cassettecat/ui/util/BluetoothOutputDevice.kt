@@ -1,5 +1,6 @@
 ﻿package `in`.caffeinelabs.cassettecat.ui.util
 
+import `in`.caffeinelabs.cassettecat.R as AppR
 import android.Manifest
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothManager
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -145,7 +147,7 @@ fun BluetoothOutputLabel(modifier: Modifier = Modifier) {
             modifier = Modifier.size(13.dp)
         )
         Text(
-            if (hasPermission) device.productName.toString() else "Bluetooth device",
+            if (hasPermission) device.productName.toString() else stringResource(AppR.string.bluetooth_device_fallback),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,

@@ -47,6 +47,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -253,11 +254,11 @@ fun SearchScreen(
     Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                "Search",
+                stringResource(AppR.string.search_title),
                 style = MaterialTheme.typography.headlineMedium
             )
             Text(
-                "Find songs, artists, albums, and genres",
+                stringResource(AppR.string.search_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp)
@@ -272,7 +273,7 @@ fun SearchScreen(
             },
             placeholder = {
                 Text(
-                    "Search songs, artists, albums…",
+                    stringResource(AppR.string.search_placeholder),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -324,8 +325,8 @@ fun SearchScreen(
             query.isBlank() && recentQueries.isEmpty() && topArtists.isEmpty() && popularGenres.isEmpty() -> {
                 SearchPrompt(
                     iconRes = R.drawable.lucide_ic_search,
-                    title = "Search your library",
-                    subtitle = "Find songs, artists, albums, and more.",
+                    title = stringResource(AppR.string.search_start_title),
+                    subtitle = stringResource(AppR.string.search_start_message),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -414,16 +415,16 @@ fun SearchScreen(
 
             libraryState is LibraryUiState.Loading -> SearchPrompt(
                 iconRes = R.drawable.lucide_ic_search,
-                title = "Loading your library...",
-                subtitle = "Search will work once it is ready.",
+                title = stringResource(AppR.string.search_loading_title),
+                subtitle = stringResource(AppR.string.search_loading_message),
                 modifier = Modifier.weight(1f)
             )
 
             matchedSongs.isEmpty() && matchedArtists.isEmpty() && matchedAlbums.isEmpty() && matchedGenres.isEmpty() && matchedFolders.isEmpty() -> {
                 SearchPrompt(
                     iconRes = R.drawable.lucide_ic_search_x,
-                    title = "No matches",
-                    subtitle = "Nothing found for \"$query\".",
+                    title = stringResource(AppR.string.search_no_matches_title),
+                    subtitle = stringResource(AppR.string.search_no_matches_message, query),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -804,7 +805,7 @@ private fun SearchArtistRow(artistGroup: ArtistGroup, onClick: () -> Unit) {
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = if (artistGroup.songs.size == 1) "1 song" else "${artistGroup.songs.size} songs",
+                    text = pluralStringResource(AppR.plurals.library_songs, artistGroup.songs.size, artistGroup.songs.size),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

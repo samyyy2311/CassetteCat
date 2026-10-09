@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import `in`.caffeinelabs.cassettecat.data.device.DesktopRemoteRepository
 import android.widget.Toast
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,8 +79,11 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
-private enum class PlaylistSortOrder(val label: String) {
-    PLAYLIST_ORDER("Playlist Order"), TITLE("Title"), ARTIST("Artist"), ALBUM("Album")
+private enum class PlaylistSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    PLAYLIST_ORDER(AppR.string.library_sort_playlist_order, SortKind.TEXT),
+    TITLE(AppR.string.library_sort_title, SortKind.TEXT),
+    ARTIST(AppR.string.library_sort_artist, SortKind.ARTIST),
+    ALBUM(AppR.string.library_sort_album, SortKind.ALBUM)
 }
 
 private fun List<Song>.sortedForPlaylist(order: PlaylistSortOrder, direction: SortDirection): List<Song> {
@@ -151,12 +155,10 @@ fun PlaylistDetailScreen(
     }
 
     val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
-    val durationText = remember(totalDurationMs) {
-        if (totalDurationMs > 0) formatPlaylistDuration(totalDurationMs) else ""
-    }
+    val durationText = collectionDurationText(totalDurationMs)
 
     val subtitleDetails = listOfNotNull(
-        if (songs.size == 1) "1 song" else "${songs.size} songs",
+        pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -260,9 +262,9 @@ fun PlaylistDetailScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
                     EmptyState(
                         catRes = AppR.drawable.cat_calico_player,
-                        title = "No songs yet",
-                        message = "Add some tracks to start this playlist.",
-                        actionLabel = "Add Songs",
+                        title = stringResource(AppR.string.playlist_empty_title),
+                        message = stringResource(AppR.string.playlist_empty_message),
+                        actionLabel = stringResource(AppR.string.playlist_add_songs),
                         onAction = { showAddSongsSheet = true },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -387,7 +389,6 @@ fun PlaylistDetailScreen(
     if (showSortSheet) {
         SortOptionsSheet(
             options = PlaylistSortOrder.entries,
-            labelOf = { it.label },
             selected = sortOrder,
             direction = sortDirection,
             onSelect = { order ->
@@ -491,7 +492,7 @@ private fun PlaylistActionsSheet(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                "Playlist Options",
+                stringResource(AppR.string.playlist_options_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
@@ -562,6 +563,17 @@ private fun PlaylistActionRow(
         )
     }
 }
+private fun SmartRuleType.labelRes(): Int = when (this) {
+    SmartRuleType.RECENTLY_ADDED -> AppR.string.smart_rule_recently_added
+    SmartRuleType.FAVORITES_ONLY -> AppR.string.smart_rule_favorites_only
+    SmartRuleType.MIN_DURATION -> AppR.string.smart_rule_min_duration
+    SmartRuleType.MAX_DURATION -> AppR.string.smart_rule_max_duration
+    SmartRuleType.DECADE_90S -> AppR.string.smart_rule_decade_90s
+    SmartRuleType.DECADE_2000S -> AppR.string.smart_rule_decade_2000s
+    SmartRuleType.DECADE_2010S -> AppR.string.smart_rule_decade_2010s
+    SmartRuleType.DECADE_2020S -> AppR.string.smart_rule_decade_2020s
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistNameSheet(
@@ -571,6 +583,7 @@ fun PlaylistNameSheet(
     onConfirmSmart: ((String, SmartPlaylistCriteria) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    val ruleNames = SmartRuleType.entries.associateWith { stringResource(it.labelRes()) }
     var name by remember { mutableStateOf(initialName) }
     var isSmartMode by remember { mutableStateOf(false) }
     var selectedRules by remember { mutableStateOf(setOf<SmartRuleType>()) }
@@ -597,7 +610,7 @@ fun PlaylistNameSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Standard",
+                            stringResource(AppR.string.playlist_type_standard),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (!isSmartMode) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (!isSmartMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -614,7 +627,7 @@ fun PlaylistNameSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Smart Rules",
+                            stringResource(AppR.string.playlist_type_smart),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (isSmartMode) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (isSmartMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -664,25 +677,13 @@ fun PlaylistNameSheet(
                                         withoutConflicts + rule
                                     }
                                     if (name.isBlank() && selectedRules.isNotEmpty()) {
-                                        name = selectedRules.first().label
+                                        name = ruleNames.getValue(selectedRules.first())
                                     }
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            val ruleLabel = stringResource(
-                                when (rule) {
-                                    SmartRuleType.RECENTLY_ADDED -> AppR.string.smart_rule_recently_added
-                                    SmartRuleType.FAVORITES_ONLY -> AppR.string.smart_rule_favorites_only
-                                    SmartRuleType.MIN_DURATION -> AppR.string.smart_rule_min_duration
-                                    SmartRuleType.MAX_DURATION -> AppR.string.smart_rule_max_duration
-                                    SmartRuleType.DECADE_90S -> AppR.string.smart_rule_decade_90s
-                                    SmartRuleType.DECADE_2000S -> AppR.string.smart_rule_decade_2000s
-                                    SmartRuleType.DECADE_2010S -> AppR.string.smart_rule_decade_2010s
-                                    SmartRuleType.DECADE_2020S -> AppR.string.smart_rule_decade_2020s
-                                }
-                            )
                             Text(
-                                ruleLabel,
+                                ruleNames.getValue(rule),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium
                                 ),
@@ -799,7 +800,7 @@ private fun SongPickerRow(song: Song, selected: Boolean, onToggle: () -> Unit) {
         }
         Icon(
             painter = painterResource(if (selected) R.drawable.lucide_ic_circle_check_big else R.drawable.lucide_ic_circle),
-            contentDescription = if (selected) "Remove from playlist" else "Add to playlist",
+            contentDescription = stringResource(if (selected) AppR.string.playlist_remove_song else AppR.string.playlist_add_song),
             tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

@@ -337,4 +337,35 @@
     <string name="greeting_after_hours_rotation">After-hours rotation</string>
     <string name="toast_nothing_to_play">Nothing to play yet</string>
     <string name="toast_queue_saved">Queue saved to %1$s</string>
+    <string name="tile_playing">Playing</string>
+    <string name="tile_paused">Paused</string>
+    <string name="bluetooth_device_fallback">Bluetooth device</string>
+    <string name="notification_favorite">Favorite</string>
+    <string name="notification_unfavorite">Unfavorite</string>
+    <string name="notification_shuffle_on">Shuffle on</string>
+    <string name="notification_shuffle_off">Shuffle off</string>
+    <string name="auto_liked_songs">Liked Songs</string>
+    <string name="auto_playlists">Playlists</string>
+    <string name="auto_albums">Albums</string>
+    <string name="auto_artists">Artists</string>
+    <string name="auto_all_songs">All Songs</string>
+    <string name="auto_radio">Radio</string>
+    <string name="auto_radio_favorites">Favorites</string>
+    <string name="auto_top_stations">Top Stations</string>
+    <string name="auto_no_radio_favorites">No favorite radio stations yet</string>
+    <string name="auto_finish_setup">Open CassetteCat on your phone to finish setup</string>
+    <string-array name="empty_state_cat_taps">
+        <item>(=^･ω･^=) Meow!</item>
+        <item>🐾 Purrrrr…</item>
+        <item>CassetteCat loves music 🎵</item>
+        <item>🎧 Turn up the tape deck!</item>
+        <item>✨ Secret Cat Lounge unlocked!</item>
+    </string-array>
+    <string-array name="empty_state_cat_more">
+        <item>(=^･ω･^=)</item>
+        <item>Purr… 🐾</item>
+        <item>Meow! 🐱</item>
+        <item>CassetteCat 🎵</item>
+        <item>Hi friend! 🐾</item>
+    </string-array>
 </resources>

@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -40,10 +41,10 @@ sealed interface LibraryUiState {
     data class Loaded(val songs: List<Song>, val sourceWarnings: List<String> = emptyList()) : LibraryUiState
 }
 
-enum class SongSortOrder(val label: String) {
-    TITLE("Title"),
-    ARTIST("Artist"),
-    ALBUM("Album")
+enum class SongSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    TITLE(AppR.string.library_sort_title, SortKind.TEXT),
+    ARTIST(AppR.string.library_sort_artist, SortKind.ARTIST),
+    ALBUM(AppR.string.library_sort_album, SortKind.ALBUM)
 }
 
 enum class SortDirection { ASCENDING, DESCENDING }

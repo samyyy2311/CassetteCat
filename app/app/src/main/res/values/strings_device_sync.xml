@@ -8,4 +8,12 @@
     <string name="device_sync_queued">Queued</string>
     <string name="device_sync_on_device">On device</string>
     <string name="device_sync_not_synced">Not synced</string>
+    <string name="pairing_not_found_wifi">No CassetteCat device found on this Wi-Fi network.</string>
+    <string name="pairing_not_found_hotspot">No CassetteCat device found on Wi-Fi hotspot.</string>
+    <string name="pairing_hotspot_no_response">Connected to the hotspot, but the player didn’t respond.</string>
+    <string name="pairing_hotspot_join_failed">Couldn’t join the CassetteCat hotspot. Make sure the player is powered on.</string>
+    <string name="pairing_hotspot_lost">Lost connection to the CassetteCat hotspot.</string>
+    <string name="pairing_player_stopped">The player stopped responding.</string>
+    <string name="pairing_discovery_failed">Network discovery failed (%1$d)</string>
+    <string name="device_sync_upload_failed">Upload failed</string>
 </resources>

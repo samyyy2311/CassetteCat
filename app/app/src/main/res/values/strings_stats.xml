@@ -46,4 +46,13 @@
     <string name="poster_top_albums">Top Albums</string>
     <string name="poster_minutes">%1$s minutes</string>
     <string name="poster_rewind">Rewind</string>
+    <string name="stats_under_a_minute">&lt; 1 min</string>
+    <string name="stats_minutes">%1$d min</string>
+    <string name="stats_recorded_all_time">RECORDED // ALL TIME</string>
+    <string name="stats_recorded_rewind">CASSETTE REWIND // ANNUAL RECAP %1$d</string>
+    <string name="stats_recorded_month">RECORDED // %1$s %2$d</string>
+    <string name="stats_time_none">No listening time has been recorded yet.</string>
+    <string name="stats_time_total">Total listening time</string>
+    <string name="stats_time_year">Total listening time for %1$d</string>
+    <string name="stats_time_month">Listening time for this month</string>
 </resources>

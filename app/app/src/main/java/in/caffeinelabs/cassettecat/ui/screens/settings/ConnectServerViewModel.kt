@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import `in`.caffeinelabs.cassettecat.R as AppR
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -134,10 +135,10 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun Throwable.toFriendlyMessage(): String = when (this) {
-        is UnknownHostException -> "Couldn't find that server. Check the URL."
-        is ConnectException -> "Couldn't reach the server. Check the URL and that it's running."
-        is SocketTimeoutException -> "The server took too long to respond. Check the URL and your connection."
-        else -> message ?: "Couldn't connect"
+        is UnknownHostException -> getApplication<Application>().getString(AppR.string.connect_error_unknown_host)
+        is ConnectException -> getApplication<Application>().getString(AppR.string.connect_error_unreachable)
+        is SocketTimeoutException -> getApplication<Application>().getString(AppR.string.connect_error_timeout)
+        else -> message ?: getApplication<Application>().getString(AppR.string.connect_error_generic)
     }
 
     private suspend fun connectSubsonic(serverUrl: String, username: String, password: String): ConnectionState {

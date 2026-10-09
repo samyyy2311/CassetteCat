@@ -433,8 +433,8 @@ private fun QueueRow(song: Song, onClick: () -> Unit, modifier: Modifier = Modif
                     val (tagLabel, tagColor) = when (song.source) {
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.ListeningRoomHost -> "Room" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room) to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
                         MusicSource.Local, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
                     }
                     Spacer(Modifier.width(6.dp))

@@ -315,7 +315,7 @@ private fun MiniPlayerSongRow(
                     Spacer(Modifier.width(5.dp))
                 }
                 Text(
-                    text = deviceName ?: if (isRadio) "LIVE · ${song.artist.ifEmpty { "Radio" }}" else song.artist,
+                    text = deviceName ?: if (isRadio) stringResource(AppR.string.mini_player_live, song.artist.ifEmpty { stringResource(AppR.string.source_radio) }) else song.artist,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (deviceName != null || isRadio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

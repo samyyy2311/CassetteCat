@@ -48,6 +48,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -87,6 +88,8 @@ fun EmptyState(
     }
     var tapCount by remember { mutableIntStateOf(0) }
     var easterEggQuote by remember { mutableStateOf<String?>(null) }
+    val tapQuotes = stringArrayResource(AppR.array.empty_state_cat_taps)
+    val moreQuotes = stringArrayResource(AppR.array.empty_state_cat_more)
 
     val scale = remember { Animatable(1f) }
     val rotation = remember { Animatable(0f) }
@@ -191,14 +194,7 @@ fun EmptyState(
                                 }
                             }
 
-                            easterEggQuote = when (tapCount) {
-                                1 -> "(=^･ω･^=) Meow!"
-                                2 -> "🐾 Purrrrr..."
-                                3 -> "CassetteCat loves music 🎵"
-                                4 -> "🎧 Turn up the tape deck!"
-                                5 -> "✨ Secret Cat Lounge unlocked!"
-                                else -> listOf("(=^･ω･^=)", "Purr... 🐾", "Meow! 🐱", "CassetteCat 🎵", "Hi friend! 🐾").random()
-                            }
+                            easterEggQuote = tapQuotes.getOrNull(tapCount - 1) ?: moreQuotes.random()
                         }
                     }
             )

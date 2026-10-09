@@ -83,11 +83,18 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
 
-internal fun formatPlaylistDuration(durationMs: Long): String {
-    val totalSeconds = durationMs / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    return if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
+// A collection's total length, such as "1h 5m" or "42 min"; empty when unknown.
+@Composable
+internal fun collectionDurationText(durationMs: Long): String {
+    if (durationMs <= 0) return ""
+    val totalMinutes = durationMs / 60_000
+    val hours = (totalMinutes / 60).toInt()
+    val minutes = (totalMinutes % 60).toInt()
+    return if (hours > 0) {
+        stringResource(AppR.string.smart_playlist_duration_hours_minutes, hours, minutes)
+    } else {
+        stringResource(AppR.string.smart_playlist_duration_minutes, minutes)
+    }
 }
 
 @Composable
@@ -164,12 +171,12 @@ internal fun RowScope.SongListRowContent(
     }
 
     val sourceLabel = when (song.source) {
-        MusicSource.Local -> "Local"
-        MusicSource.Subsonic -> "Subsonic"
-        MusicSource.Jellyfin -> "Jellyfin"
-        MusicSource.ListeningRoomHost -> "Room"
-        MusicSource.Radio -> "Radio"
-        MusicSource.Desktop, MusicSource.Computer -> "Computer"
+        MusicSource.Local -> stringResource(AppR.string.library_source_local)
+        MusicSource.Subsonic -> stringResource(AppR.string.source_subsonic)
+        MusicSource.Jellyfin -> stringResource(AppR.string.source_jellyfin)
+        MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room)
+        MusicSource.Radio -> stringResource(AppR.string.source_radio)
+        MusicSource.Desktop, MusicSource.Computer -> stringResource(AppR.string.source_desktop)
     }
 
     val sourceColor = when (song.source) {
@@ -452,7 +459,7 @@ internal fun AlbumCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+            pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
@@ -487,7 +494,7 @@ internal fun ArtistCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+            pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
@@ -761,7 +768,7 @@ internal fun ArtistListRow(
 ) {
     CollectionListRow(
         title = group.artist,
-        subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+        subtitle = pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
         onClick = onClick,
         onLongClick = onLongClick,
         selected = selected,
@@ -781,7 +788,7 @@ internal fun AlbumListRow(
 ) {
     CollectionListRow(
         title = group.album,
-        subtitle = "${group.artist} · ${if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"}",
+        subtitle = "${group.artist} · ${pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size)}",
         onClick = onClick,
         onLongClick = onLongClick,
         selected = selected,
@@ -803,7 +810,7 @@ internal fun GenreListRow(
     val rule = genreRuleFor(group.genre)
     CollectionListRow(
         title = group.genre,
-        subtitle = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs",
+        subtitle = pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size),
         onClick = onClick,
         onPlay = onPlay,
         onLongClick = onLongClick,
@@ -829,7 +836,7 @@ internal fun FolderListRow(
     selectionMode: Boolean = false,
     onChangeCover: (() -> Unit)? = null
 ) {
-    val songCountLabel = if (group.songs.size == 1) "1 song" else "${group.songs.size} songs"
+    val songCountLabel = pluralStringResource(AppR.plurals.library_songs, group.songs.size, group.songs.size)
     CollectionListRow(
         title = group.folderName,
         subtitle = group.parentName?.let { "$songCountLabel · in $it" } ?: songCountLabel,

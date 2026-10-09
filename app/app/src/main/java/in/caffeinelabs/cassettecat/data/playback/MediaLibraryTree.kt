@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.playback
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistRepository
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -44,16 +45,16 @@ class MediaLibraryTree(private val context: Context) {
 
     suspend fun item(mediaId: String): MediaItem? = when {
         mediaId == ROOT_ID -> rootItem
-        mediaId == LIKED_SONGS_ID -> folderItem(LIKED_SONGS_ID, "Liked Songs")
-        mediaId == PLAYLISTS_ID -> folderItem(PLAYLISTS_ID, "Playlists")
-        mediaId == ALBUMS_ID -> folderItem(ALBUMS_ID, "Albums")
-        mediaId == ARTISTS_ID -> folderItem(ARTISTS_ID, "Artists")
-        mediaId == ALL_SONGS_ID -> folderItem(ALL_SONGS_ID, "All Songs")
-        mediaId == RADIO_ID -> folderItem(RADIO_ID, "Radio")
-        mediaId == RADIO_FAVORITES_ID -> folderItem(RADIO_FAVORITES_ID, "Favorites")
-        mediaId == RADIO_TOP_ID -> folderItem(RADIO_TOP_ID, "Top Stations")
+        mediaId == LIKED_SONGS_ID -> folderItem(LIKED_SONGS_ID, context.getString(R.string.auto_liked_songs))
+        mediaId == PLAYLISTS_ID -> folderItem(PLAYLISTS_ID, context.getString(R.string.auto_playlists))
+        mediaId == ALBUMS_ID -> folderItem(ALBUMS_ID, context.getString(R.string.auto_albums))
+        mediaId == ARTISTS_ID -> folderItem(ARTISTS_ID, context.getString(R.string.auto_artists))
+        mediaId == ALL_SONGS_ID -> folderItem(ALL_SONGS_ID, context.getString(R.string.auto_all_songs))
+        mediaId == RADIO_ID -> folderItem(RADIO_ID, context.getString(R.string.auto_radio))
+        mediaId == RADIO_FAVORITES_ID -> folderItem(RADIO_FAVORITES_ID, context.getString(R.string.auto_radio_favorites))
+        mediaId == RADIO_TOP_ID -> folderItem(RADIO_TOP_ID, context.getString(R.string.auto_top_stations))
         mediaId == EMPTY_LIBRARY_MESSAGE_ID -> messageItem()
-        mediaId == EMPTY_RADIO_MESSAGE_ID -> messageItem(EMPTY_RADIO_MESSAGE_ID, "No favorite radio stations yet")
+        mediaId == EMPTY_RADIO_MESSAGE_ID -> messageItem(EMPTY_RADIO_MESSAGE_ID, context.getString(R.string.auto_no_radio_favorites))
 
         mediaId.startsWith(RADIO_STATION_PREFIX) -> {
             val favoriteSong = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }.firstOrNull { it.id == mediaId }
@@ -80,23 +81,23 @@ class MediaLibraryTree(private val context: Context) {
                 listOf(messageItem())
             } else {
                 listOf(
-                    folderItem(LIKED_SONGS_ID, "Liked Songs"),
-                    folderItem(PLAYLISTS_ID, "Playlists"),
-                    folderItem(ALBUMS_ID, "Albums"),
-                    folderItem(ARTISTS_ID, "Artists"),
-                    folderItem(ALL_SONGS_ID, "All Songs"),
-                    folderItem(RADIO_ID, "Radio")
+                    folderItem(LIKED_SONGS_ID, context.getString(R.string.auto_liked_songs)),
+                    folderItem(PLAYLISTS_ID, context.getString(R.string.auto_playlists)),
+                    folderItem(ALBUMS_ID, context.getString(R.string.auto_albums)),
+                    folderItem(ARTISTS_ID, context.getString(R.string.auto_artists)),
+                    folderItem(ALL_SONGS_ID, context.getString(R.string.auto_all_songs)),
+                    folderItem(RADIO_ID, context.getString(R.string.auto_radio))
                 )
             }
 
             parentId == RADIO_ID -> listOf(
-                folderItem(RADIO_FAVORITES_ID, "Favorites"),
-                folderItem(RADIO_TOP_ID, "Top Stations")
+                folderItem(RADIO_FAVORITES_ID, context.getString(R.string.auto_radio_favorites)),
+                folderItem(RADIO_TOP_ID, context.getString(R.string.auto_top_stations))
             )
 
             parentId == RADIO_FAVORITES_ID -> {
                 val favorites = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }
-                if (favorites.isEmpty()) listOf(messageItem(EMPTY_RADIO_MESSAGE_ID, "No favorite radio stations yet"))
+                if (favorites.isEmpty()) listOf(messageItem(EMPTY_RADIO_MESSAGE_ID, context.getString(R.string.auto_no_radio_favorites)))
                 else favorites.map { it.toMediaItem(context) }
             }
 
@@ -170,7 +171,7 @@ class MediaLibraryTree(private val context: Context) {
 
     private fun messageItem(
         id: String = EMPTY_LIBRARY_MESSAGE_ID,
-        text: String = "Open CassetteCat on your phone to finish setup"
+        text: String = context.getString(R.string.auto_finish_setup)
     ): MediaItem = MediaItem.Builder()
         .setMediaId(id)
         .setMediaMetadata(
