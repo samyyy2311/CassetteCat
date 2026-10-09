@@ -32,10 +32,28 @@ tailrec fun Throwable.findUntrustedCertificateCause(): UntrustedCertificateExcep
     else -> null
 }
 
+/** The paired computer's self-signed certificate, trusted only at the computer's address. */
+data class DesktopCertificate(val host: String, val fingerprint: String)
+
 // TOFU certificate pinning keys on the certificate fingerprint rather than hostname.
 private object CertificatePinStore {
     @Volatile var pinned: Set<String> = emptySet()
+    @Volatile var desktop: DesktopCertificate? = null
+    // Trusted in memory while a computer is being paired, and saved only once pairing succeeds.
+    @Volatile var pairingDesktop: DesktopCertificate? = null
 }
+
+fun trustDesktopCertificate(certificate: DesktopCertificate?) {
+    CertificatePinStore.desktop = certificate
+}
+
+fun trustPairingCertificate(certificate: DesktopCertificate?) {
+    CertificatePinStore.pairingDesktop = certificate
+}
+
+val pairingCertificate: DesktopCertificate? get() = CertificatePinStore.pairingDesktop
+
+private fun desktopCertificates() = listOfNotNull(CertificatePinStore.desktop, CertificatePinStore.pairingDesktop)
 
 private fun systemDefaultTrustManager(): X509TrustManager {
     val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
@@ -54,7 +72,7 @@ private class TofuTrustManager(private val systemDefault: X509TrustManager) : X5
         } catch (systemFailure: CertificateException) {
             val leaf = chain.firstOrNull() ?: throw systemFailure
             val fingerprint = leaf.sha256Fingerprint()
-            if (fingerprint !in CertificatePinStore.pinned) {
+            if (fingerprint !in CertificatePinStore.pinned && desktopCertificates().none { it.fingerprint == fingerprint }) {
                 throw UntrustedCertificateException(fingerprint, systemFailure)
             }
         }
@@ -67,11 +85,12 @@ val tofuTrustManager: X509TrustManager = TofuTrustManager(systemDefaultTrustMana
 
 private val systemHostnameVerifier: HostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
 
-/** Accepts a pinned certificate whatever the host is called, as the pin itself names the server. */
+/** Accepts the computer's certificate, which names no host, only at the computer's own address. */
 val pinnedHostnameVerifier = HostnameVerifier { host, session ->
-    systemHostnameVerifier.verify(host, session) ||
-        runCatching { (session.peerCertificates.first() as X509Certificate).sha256Fingerprint() }.getOrNull() in
-        CertificatePinStore.pinned
+    systemHostnameVerifier.verify(host, session) || run {
+        val fingerprint = runCatching { (session.peerCertificates.first() as X509Certificate).sha256Fingerprint() }.getOrNull()
+        desktopCertificates().any { it.host == host && it.fingerprint == fingerprint }
+    }
 }
 
 val tofuSslSocketFactory: SSLSocketFactory = SSLContext.getInstance("TLS").apply {

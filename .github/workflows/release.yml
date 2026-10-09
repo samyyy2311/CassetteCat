@@ -185,6 +185,12 @@ jobs:
             echo "::error::Release $TAG already exists"
             exit 1
           fi
+          # gh release create reuses an existing tag, which could point at a different commit than this build.
+          tagged=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha 2>/dev/null || true)
+          if [ -n "$tagged" ] && [ "$tagged" != "$TARGET" ]; then
+            echo "::error::Tag $TAG already points at $tagged, not $TARGET"
+            exit 1
+          fi
           args=("$TAG" release-assets/*.apk release-assets/*.apk.sha256 --title "$TAG" --notes-file release-assets/release_notes.md --target "$TARGET")
           [[ "$TAG" == *-* ]] && args+=(--prerelease)
           gh release create "${args[@]}"

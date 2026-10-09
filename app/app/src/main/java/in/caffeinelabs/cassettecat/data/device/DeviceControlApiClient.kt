@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.device
 import android.net.Network
 import android.os.Build
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
+import `in`.caffeinelabs.cassettecat.data.streaming.DesktopCertificate
 import `in`.caffeinelabs.cassettecat.data.streaming.findUntrustedCertificateCause
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
@@ -167,7 +168,7 @@ private data class OkResponse(val ok: Boolean)
 class DeviceControlApiClient(
     private val onCodeRejected: ((String) -> Unit)? = null,
     private val onUnreachable: (() -> Unit)? = null,
-    private val pinCertificate: (suspend (String) -> Unit)? = null
+    private val trustPairingCertificate: ((DesktopCertificate) -> Unit)? = null
 ) {
     // The computer is always reached with its pairing code and over TLS; the hardware player has neither.
     private fun baseUrl(host: String, port: Int, token: String?) = "${if (token != null) "https" else "http"}://$host:$port"
@@ -192,7 +193,7 @@ class DeviceControlApiClient(
 
     suspend fun requestPairing(host: String, port: Int): String? =
         withContext(Dispatchers.IO) {
-            pinOnFirstContact {
+            pinOnFirstContact(host) {
                 val request = Request.Builder()
                     .url("https://$host:$port/api/pair-request")
                     .post(sharedJson.encodeToString(PairingRequest.serializer(), PairingRequest(deviceName)).toRequestBody("application/json".toMediaType()))
@@ -217,7 +218,7 @@ class DeviceControlApiClient(
     /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
         withContext(Dispatchers.IO) {
-            pinOnFirstContact {
+            pinOnFirstContact(host) {
                 val request = Request.Builder().url("${baseUrl(host, port, token)}/api/playback").withPairingCode(token).build()
                 deviceHttpClient(null).newCall(request).execute().use {
                     when {
@@ -230,13 +231,13 @@ class DeviceControlApiClient(
         }
 
     /**
-     * Runs a pairing request, trusting and pinning the certificate the computer presents when none of its is pinned
-     * yet. Phones pin on first pairing, as the computer's certificate is self-signed.
+     * Runs a pairing request, trusting the self-signed certificate the computer at [host] presents for the rest of the
+     * pairing. It is saved only once pairing succeeds.
      */
-    private suspend fun <T> pinOnFirstContact(request: () -> T): T? {
+    private fun <T> pinOnFirstContact(host: String, request: () -> T): T? {
         val first = runCatching(request)
         val untrusted = first.exceptionOrNull()?.findUntrustedCertificateCause() ?: return first.getOrNull()
-        pinCertificate?.invoke(untrusted.fingerprint) ?: return null
+        trustPairingCertificate?.invoke(DesktopCertificate(host, untrusted.fingerprint)) ?: return null
         return runCatching(request).getOrNull()
     }
 

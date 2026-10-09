@@ -92,7 +92,9 @@ fun DesktopRemoteScreen(
                 SettingsDivider()
                 ActionRow(
                     title = stringResource(AppR.string.library_browse_computer),
-                    subtitle = stringResource(AppR.string.computer_library_plays_here),
+                    subtitle = stringResource(
+                        if (state.controlling) AppR.string.computer_library_plays_on_computer else AppR.string.computer_library_plays_here
+                    ),
                     iconRes = R.drawable.lucide_ic_library,
                     onClick = onBrowseComputer
                 )

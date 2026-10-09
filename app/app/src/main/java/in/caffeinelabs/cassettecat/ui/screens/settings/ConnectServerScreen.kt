@@ -82,9 +82,9 @@ fun ConnectServerScreen(
     }
 
     val autofill = LocalAutofillManager.current
-    // Lets the password manager offer to save the sign-in once the server accepts it.
+    // Lets the password manager offer to save the sign-in once the server accepts it. Quick Connect has no password.
     LaunchedEffect(state) {
-        if (state is ConnectionState.Connected) autofill?.commit()
+        if (state is ConnectionState.Connected && password.isNotEmpty()) autofill?.commit()
     }
 
     LaunchedEffect(savedConfig) {

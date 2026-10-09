@@ -26,7 +26,10 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.statsSongId
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
-import `in`.caffeinelabs.cassettecat.data.streaming.CertificatePinRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.DesktopCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.pairingCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.trustDesktopCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.trustPairingCertificate
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +62,7 @@ private val DESKTOP_ADDRESS = stringPreferencesKey("address")
 private val DESKTOP_NAME = stringPreferencesKey("name")
 // Whether this phone is controlling the desktop, as when a device is picked in Spotify Connect.
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
+private val DESKTOP_CERTIFICATE = stringPreferencesKey("certificate")
 private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
 private val DESKTOP_PENDING_LISTENS = stringPreferencesKey("pending_listens")
@@ -145,7 +149,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private val apiClient = DeviceControlApiClient(
         onCodeRejected = ::codeRejected,
         onUnreachable = ::refindSoon,
-        pinCertificate = CertificatePinRepository(context.applicationContext)::pin
+        trustPairingCertificate = ::trustPairingCertificate
     )
     private var lastRefindAtMs = 0L
     private val localLibrary = LocalLibraryRepository(context)
@@ -222,6 +226,13 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private val networkChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     init {
+        scope.launch {
+            dataStore.data.map { prefs ->
+                val host = prefs[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.host
+                val fingerprint = prefs[DESKTOP_CERTIFICATE]
+                if (host != null && fingerprint != null) DesktopCertificate(host, fingerprint) else null
+            }.distinctUntilChanged().collect(::trustDesktopCertificate)
+        }
         scope.launch {
             @OptIn(FlowPreview::class)
             favoritesRepository.favoriteIds.drop(1).debounce(LIKES_SYNC_DELAY_MS).collect { syncLikes() }
@@ -334,41 +345,51 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     /** Pairs with the "ip:port#CODE" address typed by hand. */
-    suspend fun pair(text: String): PairingResult = pairAddress(text.trim(), name = null)
+    suspend fun pair(text: String): PairingResult = pairing { pairAddress(text.trim(), name = null) }
 
-    suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult {
-        val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return ApprovalResult.UNSUPPORTED
+    suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult = pairing {
+        val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return@pairing ApprovalResult.UNSUPPORTED
         val deadline = SystemClock.elapsedRealtime() + APPROVAL_WAIT_MS
         var missedChecks = 0
         while (SystemClock.elapsedRealtime() < deadline) {
             delay(APPROVAL_POLL_MS)
             val status = apiClient.pairingStatus(desktop.host, desktop.port, id)
             if (status == null) {
-                if (++missedChecks >= APPROVAL_MAX_MISSED_CHECKS) return ApprovalResult.UNREACHABLE
+                if (++missedChecks >= APPROVAL_MAX_MISSED_CHECKS) return@pairing ApprovalResult.UNREACHABLE
                 continue
             }
             missedChecks = 0
             if (status.status == "allowed") {
-                return when (pair(desktop, status.code.orEmpty())) {
+                return@pairing when (pair(desktop, status.code.orEmpty())) {
                     PairingResult.PAIRED -> ApprovalResult.PAIRED
                     PairingResult.UNREACHABLE -> ApprovalResult.UNREACHABLE
                     PairingResult.INVALID_ADDRESS, PairingResult.WRONG_CODE -> ApprovalResult.NOT_ALLOWED
                 }
             }
-            if (status.status == "denied") return ApprovalResult.NOT_ALLOWED
+            if (status.status == "denied") return@pairing ApprovalResult.NOT_ALLOWED
         }
-        return ApprovalResult.NOT_ALLOWED
+        ApprovalResult.NOT_ALLOWED
     }
 
     // The computer's copy button gives the whole address, so a pasted one contributes just its code.
-    suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult =
+    suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult = pairing {
         pairAddress("${desktop.host}:${desktop.port}#${code.substringAfterLast('#').trim()}", desktop.name)
+    }
+
+    // A certificate trusted while pairing is forgotten when pairing ends; a successful pairing has saved it by then.
+    private inline fun <T> pairing(block: () -> T): T = try {
+        block()
+    } finally {
+        trustPairingCertificate(null)
+    }
 
     // The code is checked first, so a mistyped one is caught here instead of failing quietly afterwards.
     private suspend fun pairAddress(text: String, name: String?): PairingResult {
         val address = parseDesktopAddress(text) ?: return PairingResult.INVALID_ADDRESS
         return when (apiClient.acceptsPairingCode(address.host, address.port, address.code)) {
-            true -> PairingResult.PAIRED.also { save(text, name, controlling = true) }
+            true -> PairingResult.PAIRED.also {
+                save(text, name, controlling = true, certificate = pairingCertificate?.takeIf { it.host == address.host })
+            }
             false -> PairingResult.WRONG_CODE
             null -> PairingResult.UNREACHABLE
         }
@@ -381,13 +402,14 @@ class DesktopRemoteRepository private constructor(context: Context) {
             dataStore.edit {
                 if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code == code) {
                     it.remove(DESKTOP_ADDRESS)
+                    it.remove(DESKTOP_CERTIFICATE)
                     it[DESKTOP_ACTIVE] = false
                 }
             }
         }
     }
 
-    private fun save(address: String, name: String?, controlling: Boolean? = null) {
+    private fun save(address: String, name: String?, controlling: Boolean? = null, certificate: DesktopCertificate? = null) {
         scope.launch {
             dataStore.edit {
                 if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code != parseDesktopAddress(address)?.code) {
@@ -398,6 +420,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
                 it[DESKTOP_ADDRESS] = address
                 if (name != null) it[DESKTOP_NAME] = name else it.remove(DESKTOP_NAME)
                 if (controlling != null) it[DESKTOP_ACTIVE] = controlling
+                if (certificate != null) it[DESKTOP_CERTIFICATE] = certificate.fingerprint
             }
         }
     }
