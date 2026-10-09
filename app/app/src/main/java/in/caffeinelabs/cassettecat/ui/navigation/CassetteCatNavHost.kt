@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.navigation
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -145,10 +143,8 @@ private fun NavGraphBuilder.onboardingGraph(
             )
         }
         composable(OnboardingRoute.LISTENING_HISTORY) {
-            val context = LocalContext.current
             ListeningHistoryScreen(
                 onContinue = { navController.navigate(OnboardingRoute.CUSTOMIZATION) },
-                onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
                 modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
             )
         }

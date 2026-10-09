@@ -76,6 +76,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // Puts the native libraries' debug symbols in the App Bundle, so Play can read native crashes and ANRs.
+            ndk.debugSymbolLevel = "FULL"
             val releaseSigning = signingConfigs.getByName("release")
             val hasProductionSigning = releaseSigning.storeFile?.exists() == true &&
                 !releaseSigning.storePassword.isNullOrBlank() &&

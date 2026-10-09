@@ -10,7 +10,8 @@ All notable changes to CassetteCat are documented in this file.
 * One Listening Record with your computer: your whole history is shared, both rank songs the same way, songs you skip still add listening time, and a Sync button in Stats brings them together.
 * Last.fm scrobbling, alongside ListenBrainz and Libre.fm.
 * Skip Silence skips long quiet stretches, such as pauses in live recordings and podcasts.
-* A shorter setup: restore a backup first, then choose your folders, your Listening Record and scrobbling, and how the app looks.
+* A shorter setup: restore a backup first, then choose your folders, your Listening Record and how the app looks. Scrobbling is connected later in Settings.
+* A redesigned home screen widget that keeps showing your last song after a restart.
 * Your phone finds the computer again as soon as your Wi-Fi changes.
 * Lossless audio is called Lossless rather than Lossless Uncompressed.
 

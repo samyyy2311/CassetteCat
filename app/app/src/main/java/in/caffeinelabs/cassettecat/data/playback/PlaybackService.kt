@@ -23,6 +23,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -152,6 +154,7 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onCreate() {
         super.onCreate()
+        CassetteWidgetProvider.onWidgetsAdded = { mediaSession?.player?.let(::syncWidgetState) }
         favoritesRepository = FavoritesRepository(this)
         libraryTree = MediaLibraryTree(this)
 
@@ -385,6 +388,10 @@ class PlaybackService : MediaLibraryService() {
             if (!controlling) return@collectLatest
             val commands = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
             val player = DesktopSessionPlayer(this, desktop) { commands.tryEmit(Unit) }
+            // Nothing plays on the phone meanwhile, so some phones (Motorola's freezer) suspend the app once it locks.
+            val wakeLock = getSystemService(PowerManager::class.java)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CassetteCat:desktopRemote")
+                .apply { setReferenceCounted(false) }
             val session = MediaSession.Builder(this, player)
                 .setId(DESKTOP_SESSION_ID)
                 .setSessionActivity(sessionActivity)
@@ -399,9 +406,13 @@ class PlaybackService : MediaLibraryService() {
                     commands.onStart { emit(Unit) }.collectLatest {
                         desktop.startPolling()
                         try {
-                            do delay(DESKTOP_IDLE_POLL_MS) while (desktop.status.value?.isPlaying == true)
+                            do {
+                                wakeLock.acquire(DESKTOP_IDLE_POLL_MS + WAKE_LOCK_MARGIN_MS)
+                                delay(DESKTOP_IDLE_POLL_MS)
+                            } while (desktop.status.value?.isPlaying == true)
                         } finally {
                             desktop.stopPolling()
+                            if (wakeLock.isHeld) wakeLock.release()
                         }
                     }
                 }
@@ -416,6 +427,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        CassetteWidgetProvider.onWidgetsAdded = null
         cancelFlipTimeout()
         shakeDetector?.stop()
         flipDetector?.stop()
@@ -734,6 +746,7 @@ class PlaybackService : MediaLibraryService() {
         val artworkData = metadata.artworkData
         val artworkUri = metadata.artworkUri
 
+        val generation = SystemClock.elapsedRealtimeNanos()
         syncWidgetJob?.cancel()
         syncWidgetJob = serviceScope.launch(Dispatchers.Default) {
             val hasWidgets = CassetteWidgetProvider.hasActiveWidgets(this@PlaybackService)
@@ -749,6 +762,7 @@ class PlaybackService : MediaLibraryService() {
                 runCatching {
                     CassetteWidgetProvider.updateAllWidgets(
                         context = this@PlaybackService,
+                        generation = generation,
                         title = title,
                         artist = artist,
                         isPlaying = isPlaying,
@@ -800,6 +814,7 @@ class PlaybackService : MediaLibraryService() {
     companion object {
         private const val FLIP_PAUSE_TIMEOUT_MS = 20 * 60 * 1000L
         private const val DESKTOP_IDLE_POLL_MS = 10 * 60 * 1000L
+        private const val WAKE_LOCK_MARGIN_MS = 60 * 1000L
         private const val DESKTOP_SESSION_ID = "desktop"
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
         const val ACTION_CUSTOM_SHUFFLE = "in.caffeinelabs.cassettecat.action.CUSTOM_SHUFFLE"
