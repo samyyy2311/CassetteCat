@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name" translatable="false">CassetteCat</string>
     <string name="download_channel_name">Downloads</string>
-    <string name="widget_description">Playback controls styled as a classic transparent cassette tape</string>
+    <string name="widget_description">The current song, with play, pause and skip</string>
     <string name="widget_not_playing">Not playing</string>
     <string name="widget_previous">Previous</string>
     <string name="widget_play_pause">Play/Pause</string>
@@ -89,7 +89,7 @@
     <string name="onboarding_history_title">Keep your listening history</string>
     <string name="onboarding_history_subtitle">See what you play most over the year, here and on your computer.</string>
     <string name="onboarding_scrobbling_label">Scrobbling</string>
-    <string name="onboarding_scrobbling_body">Optional. Send what you play to a scrobbling profile.</string>
+    <string name="onboarding_scrobbling_body">To send what you play to Last.fm, ListenBrainz or Libre.fm, connect them later in Settings, under Scrobbling.</string>
 
     <string name="onboarding_customization_title">Make it yours</string>
     <string name="onboarding_customization_subtitle">Personalize your accent, font, and gestures.</string>
