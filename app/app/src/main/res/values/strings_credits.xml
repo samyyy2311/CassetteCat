@@ -26,6 +26,8 @@
     <string name="credits_listenbrainz_description">Open scrobbling platform and CC0 listening data</string>
     <string name="credits_librefm" translatable="false">Libre.fm</string>
     <string name="credits_librefm_description">Free software music scrobbling network (GNU FM)</string>
+    <string name="credits_lastfm" translatable="false">Last.fm</string>
+    <string name="credits_lastfm_description">Scrobbling through the Last.fm API</string>
     <string name="credits_subsonic" translatable="false">Subsonic API</string>
     <string name="credits_subsonic_description">Open streaming protocol for Navidrome, Gonic, and Subsonic servers</string>
     <string name="credits_jellyfin" translatable="false">Jellyfin API</string>

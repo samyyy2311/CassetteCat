@@ -11,6 +11,9 @@ import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
+import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
+import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
 import androidx.compose.material3.Text
 import android.net.Uri
@@ -82,6 +85,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.home.HomeScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistDetailScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.library.ComputerLibraryScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.FolderDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.GenreDetailScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryScreen
@@ -187,6 +191,7 @@ object MainRoute {
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
     const val DESKTOP_REMOTE = "main/settings/desktop_remote"
+    const val COMPUTER_LIBRARY = "main/computer_library"
     const val DEVICE_SYNC = "main/settings/companion/sync"
     const val DEVICE_NOW_PLAYING = "main/settings/companion/now_playing"
     const val DEVICE_STORAGE = "main/settings/companion/storage"
@@ -331,7 +336,9 @@ fun MainShell(
     }
     // Offered once per version; Settings keeps showing the update after "Later".
     var updatePrompt by remember { mutableStateOf<UpdateCheckResult.UpdateAvailable?>(null) }
+    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(Unit) {
+        whatsNew = unseenReleaseNotes(context, BuildConfig.VERSION_NAME)
         if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
             updatePrompt = updateToPrompt(context, BuildConfig.VERSION_NAME)
         }
@@ -569,6 +576,7 @@ fun MainShell(
                     composable(MainRoute.LIBRARY) {
                         LibraryScreen(
                             playbackViewModel = playbackViewModel,
+                            onBrowseComputer = { navController.navigate(MainRoute.COMPUTER_LIBRARY) },
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },
@@ -836,6 +844,14 @@ fun MainShell(
                         DesktopRemoteScreen(
                             desktop = desktopRemote,
                             onBack = { navController.popBackStack() },
+                            onBrowseComputer = { navController.navigate(MainRoute.COMPUTER_LIBRARY) },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(MainRoute.COMPUTER_LIBRARY) {
+                        ComputerLibraryScreen(
+                            playbackViewModel = playbackViewModel,
+                            onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -954,6 +970,13 @@ fun MainShell(
                     }
                 )
             }
+        }
+
+        if (whatsNew.isNotEmpty()) {
+            WhatsNewSheet(notes = whatsNew, onDismiss = {
+                whatsNew = emptyList()
+                scope.launch { markReleaseNotesSeen(context, BuildConfig.VERSION_NAME) }
+            })
         }
 
         updatePrompt?.let { update ->

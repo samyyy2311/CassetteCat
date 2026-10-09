@@ -1,6 +1,6 @@
 # Desktop Remote protocol
 
-This is the HTTP API that CassetteCat Desktop serves and the Android app calls. The desktop implements it in `src/remote_control.cpp`; the phone side is `DeviceControlApiClient` and `DesktopRemoteRepository`.
+This is the HTTPS API that CassetteCat Desktop serves and the Android app calls. The desktop implements it in `src/remote_control.cpp`; the phone side is `DeviceControlApiClient` and `DesktopRemoteRepository`.
 
 ## Discovery
 
@@ -10,13 +10,16 @@ The phone broadcasts the UDP datagram `CASSETTECAT_DISCOVER` to port 47800. Each
 {"name": "DESKTOP-1234", "port": 47800}
 ```
 
-`port` is the HTTP port to use. The desktop only answers private, link-local or loopback addresses.
+`port` is the HTTPS port to use. The desktop only answers private, link-local or loopback addresses.
 
 ## Requests
 
-* Requests and responses are JSON over plain HTTP.
+* Requests and responses are JSON over TLS 1.2 or later. The desktop makes a self-signed certificate on first use and
+  keeps it. The phone trusts the certificate it sees when it first pairs and pins it by its SHA-256 fingerprint, for
+  any address the computer later has. A different certificate afterwards makes the phone ask to pair again.
+* Plain HTTP is refused.
 * The desktop accepts requests only from private, link-local or loopback addresses; anything else gets `403`.
-* Every request except pairing needs `Authorization: Bearer <code>`, where `<code>` is the six-character pairing code. `GET /api/artwork` can pass it as `?code=` instead, because image loaders cannot set headers.
+* Every request except pairing needs `Authorization: Bearer <code>`, where `<code>` is the six-character pairing code. `GET /api/artwork` and `GET /api/stream` can pass it as `?code=` instead, because image loaders and media players cannot set headers.
 * `X-Device-Name` names the phone. The desktop shows it as the device in control.
 * Ten wrong codes in a row lock the server for one minute; during that time every request gets `429`.
 * Unless noted, a successful request returns `{"ok":true}` and a failed one `{"ok":false}`.
@@ -70,6 +73,17 @@ An unanswered request expires after 60 seconds.
 | `POST /api/queue/remove` | `{"index": 6}` | |
 | `POST /api/queue/next` | `{"title": "...", "artist": "..."}` | Play this track next, if the desktop library has it. |
 | `POST /api/handoff` | `{"tracks": [{"title", "artist"}], "index": 0, "positionMs": 0, "playing": true}` | Continue the phone's queue on the desktop. |
+
+## The computer's library
+
+| Request | Body | Notes |
+|---|---|---|
+| `GET /api/library?q=...&offset=0&limit=100` | | `{"total": 1064, "tracks": [{"id", "title", "artist", "album", "durationMs"}]}`. `q` matches title, artist or album. `limit` is 1 to 500. |
+| `POST /api/library/play` | `{"ids": ["..."], "index": 0}` | Plays these library songs on the computer, starting at `index`. `400` if none of the ids is in the library. |
+| `GET /api/stream?id=...` | | The song's audio file. Honours a single `Range: bytes=start-end`, answering `206` with `Content-Range`, so the phone can seek. `404` for an id that isn't in the library. |
+| `GET /api/artwork?id=...` | | The cover of a library song. |
+
+`id` is the first 16 hex characters of the SHA-1 of the song's path on the computer. It stays the same while the file doesn't move, and the path itself is never sent. Only files in the library can be streamed.
 
 ## Phone playback
 

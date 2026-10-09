@@ -36,7 +36,7 @@
     <string name="audio_quality_sample_rate_value">%1$d Hz (%2$.1f kHz)</string>
     <string name="audio_quality_bit_depth_value">%1$d-bit</string>
     <string name="audio_quality_bitrate_value">%1$d kbps</string>
-    <string name="audio_quality_lossless_encoding">Lossless Uncompressed</string>
+    <string name="audio_quality_lossless_encoding">Lossless</string>
     <string name="audio_quality_lossy_encoding">Lossy Compressed</string>
 
     <string name="source_subsonic" translatable="false">Subsonic</string>

@@ -1,7 +1,11 @@
 package `in`.caffeinelabs.cassettecat.data.device
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.SystemClock
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -14,6 +18,7 @@ import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -21,6 +26,10 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.statsSongId
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.DesktopCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.pairingCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.trustDesktopCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.trustPairingCertificate
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +37,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,21 +54,30 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.YearMonth
+import java.time.ZoneId
 
 private val Context.desktopRemoteDataStore by preferencesDataStore(name = "desktop_remote")
 private val DESKTOP_ADDRESS = stringPreferencesKey("address")
 private val DESKTOP_NAME = stringPreferencesKey("name")
 // Whether this phone is controlling the desktop, as when a device is picked in Spotify Connect.
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
+private val DESKTOP_CERTIFICATE = stringPreferencesKey("certificate")
 private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
 private val DESKTOP_PENDING_LISTENS = stringPreferencesKey("pending_listens")
 private val DESKTOP_LISTENS_SINCE = longPreferencesKey("listens_since")
+// The pairing code of the computer that has this phone's whole listening history.
+private val DESKTOP_HISTORY_SENT_TO = stringPreferencesKey("listen_history_sent_to")
+// The pairing code of the computer that has the monthly totals from before single listens were kept.
+private val DESKTOP_TOTALS_SENT_TO = stringPreferencesKey("listen_totals_sent_to")
 private const val MAX_PENDING_LISTENS = 2_000
 private const val QUEUE_SONG_PREFIX = "desktop:queue:"
 private const val BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000L
 private const val LIKES_SYNC_DELAY_MS = 2_000L
+private const val COMPUTER_LIBRARY_PAGE = 100
 private const val REFIND_INTERVAL_MS = 30_000L
+private const val NETWORK_SETTLE_MS = 1_000L
 private const val APPROVAL_WAIT_MS = 65_000L
 private const val APPROVAL_POLL_MS = 1_000L
 private const val APPROVAL_MAX_MISSED_CHECKS = 5
@@ -76,11 +95,9 @@ internal fun parseDesktopAddress(text: String): DesktopAddress? {
     return DesktopAddress(host, port, code)
 }
 
-private fun matchKey(title: String, artist: String) = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()
-
 /** Finds [wanted] in [library] by title and artist, in order; empty when the first song is not there. */
 internal fun matchInLibrary(wanted: List<Song>, library: List<Song>): List<Song> {
-    fun key(song: Song) = matchKey(song.title, song.artist)
+    fun key(song: Song) = songMatchKey(song.title, song.artist)
     val byKey = library.asReversed().associateBy(::key)
     if (wanted.firstOrNull()?.let { byKey[key(it)] } == null) return emptyList()
     return wanted.mapNotNull { byKey[key(it)] }
@@ -103,8 +120,8 @@ internal fun planLikesSync(phoneLiked: Set<String>, desktopLiked: Set<String>, s
 }
 
 internal fun findAllInLibrary(tracks: List<HandoffTrack>, library: List<Song>): List<Song> {
-    val byKey = library.asReversed().associateBy { matchKey(it.title, it.artist) }
-    return tracks.mapNotNull { byKey[matchKey(it.title, it.artist)] }.distinct()
+    val byKey = library.asReversed().associateBy { songMatchKey(it.title, it.artist) }
+    return tracks.mapNotNull { byKey[songMatchKey(it.title, it.artist)] }.distinct()
 }
 
 enum class PairingResult { PAIRED, INVALID_ADDRESS, WRONG_CODE, UNREACHABLE }
@@ -129,7 +146,12 @@ data class DesktopRemoteState(
 class DesktopRemoteRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val dataStore = context.desktopRemoteDataStore
-    private val apiClient = DeviceControlApiClient(onCodeRejected = ::codeRejected, onUnreachable = ::refindSoon)
+    private val apiClient = DeviceControlApiClient(
+        onCodeRejected = ::codeRejected,
+        onCertificateUntrusted = ::certificateUntrusted,
+        onUnreachable = ::refindSoon,
+        trustPairingCertificate = ::trustPairingCertificate
+    )
     private var lastRefindAtMs = 0L
     private val localLibrary = LocalLibraryRepository(context)
     private val favoritesRepository = FavoritesRepository(context)
@@ -198,12 +220,34 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     fun setInFront(inFront: Boolean) {
         _inFront.value = inFront
+        if (inFront) refindSoon()
     }
+
+    // A new Wi-Fi network usually gives the computer a new address, so look for it again once the phone has one.
+    private val networkChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     init {
         scope.launch {
+            dataStore.data.map { prefs ->
+                val host = prefs[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.host
+                val fingerprint = prefs[DESKTOP_CERTIFICATE]
+                if (host != null && fingerprint != null) DesktopCertificate(host, fingerprint) else null
+            }.distinctUntilChanged().collect(::trustDesktopCertificate)
+        }
+        scope.launch {
             @OptIn(FlowPreview::class)
             favoritesRepository.favoriteIds.drop(1).debounce(LIKES_SYNC_DELAY_MS).collect { syncLikes() }
+        }
+        context.getSystemService(ConnectivityManager::class.java)?.registerDefaultNetworkCallback(
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    networkChanges.tryEmit(Unit)
+                }
+            }
+        )
+        scope.launch {
+            @OptIn(FlowPreview::class)
+            networkChanges.debounce(NETWORK_SETTLE_MS).collect { if (state.value.address != null) refind() }
         }
         scope.launch {
             combine(state.map { it.address }, _inFront) { address, inFront -> address to inFront }.distinctUntilChanged().collect {
@@ -218,6 +262,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
         scope.launch {
             status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) requestTransfer(toDesktop = false) }
+        }
+        // The computer's Sync button reaches a phone that is controlling it through its status.
+        scope.launch {
+            status.filterNotNull().collect { if (it.syncRequested) syncWithDesktop() }
         }
         // A computer paired by typing its address is named once it answers.
         scope.launch {
@@ -242,7 +290,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private fun artworkUri(key: String?): Uri? {
         val desktop = connectedDesktop() ?: return null
         if (key.isNullOrEmpty()) return null
-        return Uri.parse("http://${desktop.host}:${desktop.port}/api/artwork?key=$key&code=${desktop.code}")
+        return Uri.parse("https://${desktop.host}:${desktop.port}/api/artwork?key=$key&code=${desktop.code}")
     }
 
     private fun songFor(status: DevicePlaybackStatus): Song {
@@ -281,6 +329,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     suspend fun refind() {
+        if (state.value.offlineBlackout) return
         lastRefindAtMs = SystemClock.elapsedRealtime()
         val desktops = discoverDesktops()
         _found.value = desktops
@@ -297,41 +346,51 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     /** Pairs with the "ip:port#CODE" address typed by hand. */
-    suspend fun pair(text: String): PairingResult = pairAddress(text.trim(), name = null)
+    suspend fun pair(text: String): PairingResult = pairing { pairAddress(text.trim(), name = null) }
 
-    suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult {
-        val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return ApprovalResult.UNSUPPORTED
+    suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult = pairing {
+        val id = apiClient.requestPairing(desktop.host, desktop.port) ?: return@pairing ApprovalResult.UNSUPPORTED
         val deadline = SystemClock.elapsedRealtime() + APPROVAL_WAIT_MS
         var missedChecks = 0
         while (SystemClock.elapsedRealtime() < deadline) {
             delay(APPROVAL_POLL_MS)
             val status = apiClient.pairingStatus(desktop.host, desktop.port, id)
             if (status == null) {
-                if (++missedChecks >= APPROVAL_MAX_MISSED_CHECKS) return ApprovalResult.UNREACHABLE
+                if (++missedChecks >= APPROVAL_MAX_MISSED_CHECKS) return@pairing ApprovalResult.UNREACHABLE
                 continue
             }
             missedChecks = 0
             if (status.status == "allowed") {
-                return when (pair(desktop, status.code.orEmpty())) {
+                return@pairing when (pair(desktop, status.code.orEmpty())) {
                     PairingResult.PAIRED -> ApprovalResult.PAIRED
                     PairingResult.UNREACHABLE -> ApprovalResult.UNREACHABLE
                     PairingResult.INVALID_ADDRESS, PairingResult.WRONG_CODE -> ApprovalResult.NOT_ALLOWED
                 }
             }
-            if (status.status == "denied") return ApprovalResult.NOT_ALLOWED
+            if (status.status == "denied") return@pairing ApprovalResult.NOT_ALLOWED
         }
-        return ApprovalResult.NOT_ALLOWED
+        ApprovalResult.NOT_ALLOWED
     }
 
     // The computer's copy button gives the whole address, so a pasted one contributes just its code.
-    suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult =
+    suspend fun pair(desktop: DiscoveredDesktop, code: String): PairingResult = pairing {
         pairAddress("${desktop.host}:${desktop.port}#${code.substringAfterLast('#').trim()}", desktop.name)
+    }
+
+    // A certificate trusted while pairing is forgotten when pairing ends; a successful pairing has saved it by then.
+    private inline fun <T> pairing(block: () -> T): T = try {
+        block()
+    } finally {
+        trustPairingCertificate(null)
+    }
 
     // The code is checked first, so a mistyped one is caught here instead of failing quietly afterwards.
     private suspend fun pairAddress(text: String, name: String?): PairingResult {
         val address = parseDesktopAddress(text) ?: return PairingResult.INVALID_ADDRESS
         return when (apiClient.acceptsPairingCode(address.host, address.port, address.code)) {
-            true -> PairingResult.PAIRED.also { save(text, name, controlling = true) }
+            true -> PairingResult.PAIRED.also {
+                save(text, name, controlling = true, certificate = pairingCertificate?.takeIf { it.host == address.host })
+            }
             false -> PairingResult.WRONG_CODE
             null -> PairingResult.UNREACHABLE
         }
@@ -344,13 +403,22 @@ class DesktopRemoteRepository private constructor(context: Context) {
             dataStore.edit {
                 if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code == code) {
                     it.remove(DESKTOP_ADDRESS)
+                    it.remove(DESKTOP_CERTIFICATE)
                     it[DESKTOP_ACTIVE] = false
                 }
             }
         }
     }
 
-    private fun save(address: String, name: String?, controlling: Boolean? = null) {
+    // A computer paired before the connection was encrypted has no saved certificate, so it has to be paired again. One
+    // with a saved certificate stays paired: a different certificate may just be another device on the network.
+    private fun certificateUntrusted(code: String) {
+        scope.launch {
+            if (dataStore.data.first()[DESKTOP_CERTIFICATE] == null) codeRejected(code) else refindSoon()
+        }
+    }
+
+    private fun save(address: String, name: String?, controlling: Boolean? = null, certificate: DesktopCertificate? = null) {
         scope.launch {
             dataStore.edit {
                 if (it[DESKTOP_ADDRESS]?.let(::parseDesktopAddress)?.code != parseDesktopAddress(address)?.code) {
@@ -361,6 +429,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
                 it[DESKTOP_ADDRESS] = address
                 if (name != null) it[DESKTOP_NAME] = name else it.remove(DESKTOP_NAME)
                 if (controlling != null) it[DESKTOP_ACTIVE] = controlling
+                if (certificate != null) it[DESKTOP_CERTIFICATE] = certificate.fingerprint
             }
         }
     }
@@ -417,9 +486,10 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     /** Reports what this phone plays to the paired computer; returns the commands and songs the computer sent back. */
-    suspend fun checkIn(song: Song, isPlaying: Boolean): PhoneCheckInReply {
+    suspend fun checkIn(song: Song, isPlaying: Boolean, positionMs: Long, volumePercent: Int, artwork: String?): PhoneCheckInReply {
         val desktop = connectedDesktop() ?: return PhoneCheckInReply()
-        val reply = apiClient.checkIn(desktop.host, desktop.port, desktop.code, PhoneCheckIn(song.title, song.artist, isPlaying))
+        val state = PhoneCheckIn(song.title, song.artist, isPlaying, positionMs, song.durationMs, volumePercent, artwork)
+        val reply = apiClient.checkIn(desktop.host, desktop.port, desktop.code, state)
         if (reply.likesRevision != null && reply.likesRevision != syncedLikesRevision) scope.launch { syncLikes() }
         return reply
     }
@@ -436,7 +506,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private suspend fun syncLikesNow() {
         val desktop = connectedDesktop() ?: return
         val remote = apiClient.getLikes(desktop.host, desktop.port, desktop.code) ?: return
-        val songsByKey = localLibrary.getSongs().groupBy { matchKey(it.title, it.artist) }
+        val songsByKey = localLibrary.getSongs().groupBy { songMatchKey(it.title, it.artist) }
         val favoriteIds = favoritesRepository.favoriteIds.first()
         val phoneLiked = songsByKey.filterValues { songs -> songs.any { it.id in favoriteIds } }.keys
         val shared = songsByKey.keys intersect remote.library.toSet()
@@ -495,31 +565,103 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun syncListens() = listensSync.withLock {
+    /** Syncs likes and the listening record with the computer; returns whether the computer was reached. */
+    suspend fun syncWithDesktop(): Boolean {
+        val reached = syncListens()
+        syncLikes()
+        return reached
+    }
+
+    suspend fun syncListens(): Boolean = listensSync.withLock {
         try {
             syncListensNow()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             Log.w("DesktopRemote", "Couldn't sync listens", e)
+            false
         }
     }
 
-    private suspend fun syncListensNow() {
-        val desktop = connectedDesktop() ?: return
-        val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
-        if (pending.isNotEmpty() && apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
-            val sent = pending.toSet()
-            dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
+    private suspend fun syncListensNow(): Boolean {
+        val desktop = connectedDesktop() ?: return false
+        var uploaded = true
+        // Listens from before pairing were never queued, so a newly paired computer gets the whole history once. The
+        // computer skips listens it already has, including its own that this phone was sent.
+        if (dataStore.data.first()[DESKTOP_HISTORY_SENT_TO] != desktop.code) {
+            if (apiClient.sendListens(desktop.host, desktop.port, desktop.code, statsRepository.listens.first())) {
+                dataStore.edit { it[DESKTOP_HISTORY_SENT_TO] = desktop.code }
+            } else {
+                uploaded = false
+            }
         }
-        if (!appPreferences.preferences.first().listeningStatsEnabled) return
+        if (dataStore.data.first()[DESKTOP_TOTALS_SENT_TO] != desktop.code) {
+            val totals = earlierTotals()
+            if (totals.isEmpty() || apiClient.sendListens(desktop.host, desktop.port, desktop.code, totals)) {
+                dataStore.edit { it[DESKTOP_TOTALS_SENT_TO] = desktop.code }
+            } else {
+                uploaded = false
+            }
+        }
+        val pending = pendingListens(dataStore.data.first()[DESKTOP_PENDING_LISTENS])
+        if (pending.isNotEmpty()) {
+            if (apiClient.sendListens(desktop.host, desktop.port, desktop.code, pending)) {
+                val sent = pending.toSet()
+                dataStore.edit { it[DESKTOP_PENDING_LISTENS] = sharedJson.encodeToString(pendingListens(it[DESKTOP_PENDING_LISTENS]).filterNot { listen -> listen in sent }) }
+            } else {
+                uploaded = false
+            }
+        }
+        if (!appPreferences.preferences.first().listeningStatsEnabled) return uploaded
         val since = dataStore.data.first()[DESKTOP_LISTENS_SINCE] ?: 0L
-        val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since)?.takeIf { it.isNotEmpty() } ?: return
-        val songsByKey = localLibrary.getSongs().associateBy { matchKey(it.title, it.artist) }
+        val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since) ?: return false
+        if (listens.isEmpty()) return uploaded
+        val songsByKey = localLibrary.getSongs().associateBy { songMatchKey(it.title, it.artist) }
         val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
         statsRepository.addListens(
-            listens.map { it.copy(songId = songsByKey[matchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
+            listens.map { it.copy(songId = songsByKey[songMatchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
         )
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
+        return uploaded
+    }
+
+    // Each song's total for a month from before single listens were kept, dated the first of that month.
+    private suspend fun earlierTotals(): List<Listen> {
+        val songsById = localLibrary.getSongs().associateBy { it.id }
+        return statsRepository.earlierMonthlyStats.first().flatMap { (month, stats) ->
+            val at = runCatching {
+                YearMonth.parse(month).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }.getOrNull() ?: return@flatMap emptyList()
+            val (known, removed) = stats.songPlayCounts.filterValues { it > 0 }.entries.partition { (id, _) ->
+                id in songsById || id.startsWith("song:")
+            }
+            val songs = known.map { (id, plays) ->
+                val song = songsById[id]
+                // A song not in the library is kept by its title and artist.
+                val named = id.removePrefix("song:").split('\u001f')
+                Listen(
+                    at = at,
+                    title = song?.title ?: named.getOrNull(0).orEmpty(),
+                    artist = song?.artist ?: named.getOrNull(1).orEmpty(),
+                    album = song?.album.orEmpty(),
+                    genre = song?.genres?.firstOrNull().orEmpty(),
+                    ms = (stats.songListeningMs[id] ?: 0L).coerceAtLeast(1L),
+                    songId = id,
+                    plays = plays
+                )
+            }
+            // Songs since removed from the phone still count in its Stats without being listed, so they go as one
+            // untitled total for the month.
+            val removedTotal = removed.takeIf { it.isNotEmpty() }?.let { entries ->
+                Listen(
+                    at = at,
+                    title = "",
+                    artist = "",
+                    ms = entries.sumOf { stats.songListeningMs[it.key] ?: 0L }.coerceAtLeast(1L),
+                    plays = entries.sumOf { it.value }
+                )
+            }
+            songs + listOfNotNull(removedTotal)
+        }
     }
 
     private fun pendingListens(json: String?): List<Listen> =
@@ -529,6 +671,37 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val desktop = connectedDesktop() ?: return onResult(null)
         val playlist = DesktopPlaylist(name, songs.map { HandoffTrack(it.title, it.artist) })
         scope.launch { onResult(apiClient.sendPlaylist(desktop.host, desktop.port, desktop.code, playlist)) }
+    }
+
+    /** A page of the computer's library matching [query]. */
+    suspend fun computerLibrary(query: String, offset: Int, limit: Int = COMPUTER_LIBRARY_PAGE): ComputerLibraryResult {
+        val desktop = connectedDesktop() ?: return ComputerLibraryResult.Unreachable
+        return apiClient.getLibrary(desktop.host, desktop.port, desktop.code, query, offset, limit)
+    }
+
+    /** Plays [tracks] from the computer's library on the computer, starting at [index]. */
+    fun playOnComputer(tracks: List<DesktopLibraryTrack>, index: Int, onResult: (Boolean) -> Unit) {
+        val desktop = connectedDesktop() ?: return onResult(false)
+        scope.launch { onResult(apiClient.playLibrary(desktop.host, desktop.port, desktop.code, tracks.map { it.id }, index)) }
+    }
+
+    /** [tracks] as songs this phone streams from the computer. The URLs carry the code, as the player can't send headers. */
+    fun computerSongs(tracks: List<DesktopLibraryTrack>): List<Song> {
+        val desktop = connectedDesktop() ?: return emptyList()
+        val base = "https://${desktop.host}:${desktop.port}/api"
+        return tracks.map { track ->
+            Song(
+                id = "computer:${track.id}",
+                title = track.title,
+                artist = track.artist,
+                album = track.album,
+                albumId = "computer:${track.album}",
+                durationMs = track.durationMs,
+                contentUri = "$base/stream?id=${track.id}&code=${desktop.code}".toUri(),
+                source = MusicSource.Computer,
+                artUri = "$base/artwork?id=${track.id}&code=${desktop.code}".toUri()
+            )
+        }
     }
 
     suspend fun computerPlaylists(): List<DesktopPlaylist>? {

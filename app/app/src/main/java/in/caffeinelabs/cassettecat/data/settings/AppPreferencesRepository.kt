@@ -24,6 +24,7 @@ private val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_ena
 
 private val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
 private val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_playback")
+private val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
 private val REPLAY_GAIN_PRE_AMP_DB = intPreferencesKey("replay_gain_pre_amp_db")
 private val MONO_AUDIO = booleanPreferencesKey("mono_audio")
 private val AUTOPLAY_ENABLED = booleanPreferencesKey("autoplay_enabled")
@@ -206,6 +207,7 @@ data class AppPreferences(
     val hapticFeedbackEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val gaplessPlayback: Boolean = true,
+    val skipSilence: Boolean = false,
     val replayGainPreAmpDb: Int = 0,
     val monoAudio: Boolean = false,
     val autoplayEnabled: Boolean = false,
@@ -289,6 +291,7 @@ class AppPreferencesRepository(private val context: Context) {
             hapticFeedbackEnabled = prefs[HAPTIC_FEEDBACK_ENABLED] ?: true,
             crossfadeSeconds = prefs[CROSSFADE_SECONDS] ?: 0,
             gaplessPlayback = prefs[GAPLESS_PLAYBACK] ?: true,
+            skipSilence = prefs[SKIP_SILENCE] ?: false,
             replayGainPreAmpDb = prefs[REPLAY_GAIN_PRE_AMP_DB] ?: 0,
             monoAudio = prefs[MONO_AUDIO] ?: false,
             autoplayEnabled = prefs[AUTOPLAY_ENABLED] ?: false,
@@ -414,6 +417,10 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setGaplessPlayback(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[GAPLESS_PLAYBACK] = enabled }
+    }
+
+    suspend fun setSkipSilence(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[SKIP_SILENCE] = enabled }
     }
 
     suspend fun setReplayGainPreAmpDb(db: Int) {
@@ -686,6 +693,7 @@ class AppPreferencesRepository(private val context: Context) {
             hapticFeedbackEnabled = current.hapticFeedbackEnabled,
             crossfadeSeconds = current.crossfadeSeconds,
             gaplessPlayback = current.gaplessPlayback,
+            skipSilence = current.skipSilence,
             replayGainPreAmpDb = current.replayGainPreAmpDb,
             monoAudio = current.monoAudio,
             autoplayEnabled = current.autoplayEnabled,
@@ -761,6 +769,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[HAPTIC_FEEDBACK_ENABLED] = backup.hapticFeedbackEnabled
             prefs[CROSSFADE_SECONDS] = backup.crossfadeSeconds
             prefs[GAPLESS_PLAYBACK] = backup.gaplessPlayback
+            prefs[SKIP_SILENCE] = backup.skipSilence
             prefs[REPLAY_GAIN_PRE_AMP_DB] = backup.replayGainPreAmpDb
             prefs[MONO_AUDIO] = backup.monoAudio
             prefs[AUTOPLAY_ENABLED] = backup.autoplayEnabled

@@ -1,6 +1,18 @@
 <resources>
     <string name="stats_listening_record">Listening Record</string>
+    <string name="stats_tab_overview">Overview</string>
+    <string name="stats_tab_tracks">Top Tracks</string>
+    <string name="stats_tab_artists">Top Artists</string>
+    <string name="stats_tab_albums">Top Albums</string>
+    <string name="stats_tab_history">History</string>
+    <string name="stats_tab_rewind">Rewind</string>
+    <string name="stats_listening_by_month">Listening in %1$d</string>
+    <string name="stats_today">Today</string>
+    <string name="stats_yesterday">Yesterday</string>
     <string name="stats_clear_stats_desc">Clear stats</string>
+    <string name="stats_sync_desc">Sync with %1$s</string>
+    <string name="stats_synced">Listening Record synced with %1$s</string>
+    <string name="stats_sync_failed">Couldn\u2019t reach %1$s. Check it\u2019s on the same Wi-Fi.</string>
     <string name="stats_clear_confirm_title">Clear listening stats?</string>
     <string name="stats_clear_confirm_message">This can’t be undone.</string>
     <string name="stats_empty_title">No plays yet</string>
@@ -10,7 +22,6 @@
     <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
     <string name="stats_most_played_albums">MOST PLAYED ALBUMS</string>
     <string name="stats_top_genres">TOP GENRES</string>
-    <string name="stats_recent_listens">RECENT LISTENS</string>
     <string name="stats_busiest">BUSIEST</string>
     <string name="stats_since">SINCE</string>
     <plurals name="stats_plays">

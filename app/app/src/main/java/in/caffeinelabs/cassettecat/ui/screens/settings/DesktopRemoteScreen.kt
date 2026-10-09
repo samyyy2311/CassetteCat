@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
 fun DesktopRemoteScreen(
     desktop: DesktopRemoteRepository,
     onBack: () -> Unit,
+    onBrowseComputer: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
@@ -87,6 +88,15 @@ fun DesktopRemoteScreen(
                     iconRes = R.drawable.lucide_ic_monitor,
                     iconTint = if (state.controlling) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
                     onClick = { desktop.setControlling(!state.controlling) }
+                )
+                SettingsDivider()
+                ActionRow(
+                    title = stringResource(AppR.string.library_browse_computer),
+                    subtitle = stringResource(
+                        if (state.controlling) AppR.string.computer_library_plays_on_computer else AppR.string.computer_library_plays_here
+                    ),
+                    iconRes = R.drawable.lucide_ic_library,
+                    onClick = onBrowseComputer
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -274,6 +284,7 @@ fun DeviceConnectSheet(
     var unreachable by remember { mutableStateOf<DiscoveredDesktop?>(null) }
     DisposableEffect(desktop) {
         desktop.startPolling()
+        desktop.discover()
         onDispose { desktop.stopPolling() }
     }
     val notPlaying = stringResource(AppR.string.widget_not_playing)

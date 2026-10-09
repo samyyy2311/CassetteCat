@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.ui.components.ApprovedEasterEggCats
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
@@ -201,6 +202,16 @@ fun CreditsScreen(
                 iconTint = Color.Unspecified,
                 onClick = { openUrl("https://libre.fm") }
             )
+            if (AudioscrobblerClient.lastFm != null) {
+                SettingsDivider()
+                NavigationRow(
+                    title = stringResource(AppR.string.credits_lastfm),
+                    subtitle = stringResource(AppR.string.credits_lastfm_description),
+                    iconRes = AppR.drawable.ic_logo_lastfm,
+                    iconTint = Color.Unspecified,
+                    onClick = { openUrl("https://www.last.fm") }
+                )
+            }
             SettingsDivider()
             NavigationRow(
                 title = stringResource(AppR.string.credits_subsonic),

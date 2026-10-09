@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import androidx.compose.ui.platform.LocalLocale
-import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import java.time.Instant
 import java.time.ZoneId
 import java.time.YearMonth
@@ -64,8 +63,8 @@ internal fun formatListeningTime(minutes: Long): String = when {
 
 internal fun formatRecordedMinutes(listeningMs: Long): String? = when {
     listeningMs < 1_000L -> null
-    listeningMs < 60_000L -> "< 1 MIN"
-    else -> "${listeningMs / 60_000} MIN"
+    listeningMs < 60_000L -> "< 1 min"
+    else -> "${listeningMs / 60_000} min"
 }
 
 internal fun isSameMonth(epochMs: Long, month: YearMonth): Boolean =
@@ -177,7 +176,7 @@ internal fun MonthTabs(
 @Composable
 internal fun ListeningRecordReadout(
     month: YearMonth?,
-    year: Int,
+    year: Int?,
     isRewind: Boolean,
     listeningMinutes: Long,
     totalPlays: Int,
@@ -186,13 +185,17 @@ internal fun ListeningRecordReadout(
     firstListenAt: Long?
 ) {
     val locale = LocalLocale.current.platformLocale
-    val subtitle = if (isRewind) "CASSETTE REWIND // ANNUAL RECAP $year" else "RECORDED // ${month?.month?.getDisplayName(TextStyle.SHORT, Locale.US)?.uppercase(Locale.US) ?: ""} $year"
-    val description = if (listeningMinutes == 0L) {
-        "No listening time has been recorded yet."
-    } else if (isRewind) {
-        "Total listening time for $year"
-    } else {
-        "Listening time for this month"
+    // No year is the whole record, as on the computer's Overview.
+    val subtitle = when {
+        year == null -> "RECORDED // ALL TIME"
+        isRewind -> "CASSETTE REWIND // ANNUAL RECAP $year"
+        else -> "RECORDED // ${month?.month?.getDisplayName(TextStyle.SHORT, Locale.US)?.uppercase(Locale.US) ?: ""} $year"
+    }
+    val description = when {
+        listeningMinutes == 0L -> "No listening time has been recorded yet."
+        year == null -> "Total listening time"
+        isRewind -> "Total listening time for $year"
+        else -> "Listening time for this month"
     }
 
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -293,7 +296,7 @@ internal fun RankedCard(
         subtitle?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = IbmPlexMonoFontFamily),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -325,7 +328,7 @@ internal fun StatSongRow(song: Song, count: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StatTextRow(title: String, detail: String, trailing: String?, onClick: (() -> Unit)? = null) {
+internal fun StatTextRow(title: String, detail: String?, trailing: String?, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -335,59 +338,13 @@ private fun StatTextRow(title: String, detail: String, trailing: String?, onClic
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            detail?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         trailing?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-internal fun MostPlayedTracksScreen(
-    songs: List<SongStat>,
-    monthName: String,
-    onBack: () -> Unit,
-    onPlay: (SongStat) -> Unit,
-    listBottomPadding: Dp
-) {
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 16.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(AppR.string.stats_most_played), style = MaterialTheme.typography.titleLarge)
-                Text(
-                    monthName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        LazyColumn(contentPadding = PaddingValues(bottom = listBottomPadding)) {
-            itemsIndexed(songs, key = { _, stat -> stat.song.id }) { index, stat ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        (index + 1).toString(),
-                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(36.dp).padding(start = 16.dp)
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        StatSongRow(song = stat.song, count = stat.playCount, onClick = { onPlay(stat) })
-                    }
-                }
-            }
+            Spacer(Modifier.width(12.dp))
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -429,14 +386,12 @@ internal fun MilestoneRow(milestone: Milestone) {
 
 internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
     computed: MonthComputed,
-    month: YearMonth,
     monthMilestones: List<Milestone>,
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: (String) -> Unit,
     onPlayTrack: (SongStat) -> Unit,
-    onViewAllMostPlayed: () -> Unit,
-    onPlayListen: (Listen) -> Unit,
-    onSavePlaylist: () -> Unit
+    onViewAllMostPlayed: (() -> Unit)?,
+    onSavePlaylist: (() -> Unit)?
 ) {
     if (computed.topArtists.isNotEmpty()) {
         item {
@@ -472,7 +427,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
             )
         }
         item {
-            if (computed.topSongs.size > 5) {
+            if (computed.topSongs.size > 5 && onViewAllMostPlayed != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -494,24 +449,26 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .tapScale(onSavePlaylist)
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_list_plus),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary
-                )
-                Spacer(Modifier.width(16.dp))
-                Text(
-                    stringResource(AppR.string.stats_save_as_playlist),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
+            if (onSavePlaylist != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .tapScale(onSavePlaylist)
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_list_plus),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        stringResource(AppR.string.stats_save_as_playlist),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -531,8 +488,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
                         title = album.album,
                         subtitle = formatRecordedMinutes(album.listeningMs),
                         onClick = { onNavigateToAlbum(album.albumId) },
-                        art = { artModifier -> AlbumArt(song = album.artSong, modifier = artModifier) },
-                        width = 224.dp
+                        art = { artModifier -> AlbumArt(song = album.artSong, modifier = artModifier) }
                     )
                 }
             }
@@ -545,22 +501,8 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.statsSections(
         items(computed.topGenres, key = { "genre:${it.genre}" }) { genre ->
             StatTextRow(
                 title = genre.genre,
-                detail = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount),
-                trailing = formatRecordedMinutes(genre.listeningMs)
-            )
-        }
-        item { Spacer(Modifier.height(24.dp)) }
-    }
-
-    if (computed.recentListens.isNotEmpty()) {
-        item { SectionHeader(stringResource(AppR.string.stats_recent_listens)) }
-        items(computed.recentListens) { listen ->
-            val locale = LocalLocale.current.platformLocale
-            StatTextRow(
-                title = listen.title,
-                detail = listen.artist,
-                trailing = DateTimeFormatter.ofPattern("MMM d · HH:mm", locale).format(Instant.ofEpochMilli(listen.at).atZone(ZoneId.systemDefault())),
-                onClick = { onPlayListen(listen) }
+                detail = null,
+                trailing = pluralStringResource(AppR.plurals.stats_plays, genre.playCount, genre.playCount)
             )
         }
         item { Spacer(Modifier.height(24.dp)) }

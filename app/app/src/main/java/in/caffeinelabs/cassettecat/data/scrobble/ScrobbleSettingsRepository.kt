@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -18,8 +19,8 @@ private val LISTENBRAINZ_ENABLED = booleanPreferencesKey("listenbrainz_enabled")
 private val LISTENBRAINZ_TOKEN = stringPreferencesKey("listenbrainz_token")
 private val LISTENBRAINZ_USER = stringPreferencesKey("listenbrainz_user")
 
-private val LIBREFM_ENABLED = booleanPreferencesKey("librefm_enabled")
-private val LIBREFM_USERNAME = stringPreferencesKey("librefm_username")
+private val ScrobbleAccount.enabledKey get() = booleanPreferencesKey("${id}_enabled")
+private val ScrobbleAccount.usernameKey get() = stringPreferencesKey("${id}_username")
 private val LIBREFM_SESSION_KEY = stringPreferencesKey("librefm_session_key")
 
 internal fun credentialToMigrate(legacy: String?, encrypted: String?): String? =
@@ -37,14 +38,17 @@ class ScrobbleSettingsRepository(private val context: Context) {
                     userToken = credentialStore.getListenBrainzToken().orEmpty(),
                     userName = prefs[LISTENBRAINZ_USER] ?: ""
                 ),
-                libreFm = LibreFmConfig(
-                    enabled = prefs[LIBREFM_ENABLED] ?: false,
-                    username = prefs[LIBREFM_USERNAME] ?: "",
-                    sessionKey = credentialStore.getLibreFmSessionKey().orEmpty()
-                )
+                libreFm = accountConfig(prefs, ScrobbleAccount.LIBRE_FM),
+                lastFm = accountConfig(prefs, ScrobbleAccount.LAST_FM)
             )
         })
     }
+
+    private fun accountConfig(prefs: Preferences, account: ScrobbleAccount) = ScrobbleAccountConfig(
+        enabled = prefs[account.enabledKey] ?: false,
+        username = prefs[account.usernameKey] ?: "",
+        sessionKey = credentialStore.getScrobbleSessionKey(account.id).orEmpty()
+    )
 
     suspend fun saveListenBrainz(token: String, userName: String, enabled: Boolean = true) {
         credentialStore.saveListenBrainzToken(token)
@@ -70,27 +74,25 @@ class ScrobbleSettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun saveLibreFm(username: String, sessionKey: String, enabled: Boolean = true) {
-        credentialStore.saveLibreFmSessionKey(sessionKey)
+    suspend fun saveAccount(account: ScrobbleAccount, username: String, sessionKey: String) {
+        credentialStore.saveScrobbleSessionKey(account.id, sessionKey)
         context.scrobbleDataStore.edit { prefs ->
-            prefs[LIBREFM_USERNAME] = username
-            prefs.remove(LIBREFM_SESSION_KEY)
-            prefs[LIBREFM_ENABLED] = enabled
+            prefs[account.usernameKey] = username
+            prefs[account.enabledKey] = true
         }
     }
 
-    suspend fun setLibreFmEnabled(enabled: Boolean) {
+    suspend fun setAccountEnabled(account: ScrobbleAccount, enabled: Boolean) {
         context.scrobbleDataStore.edit { prefs ->
-            prefs[LIBREFM_ENABLED] = enabled
+            prefs[account.enabledKey] = enabled
         }
     }
 
-    suspend fun disconnectLibreFm() {
-        credentialStore.clearLibreFmSessionKey()
+    suspend fun disconnectAccount(account: ScrobbleAccount) {
+        credentialStore.clearScrobbleSessionKey(account.id)
         context.scrobbleDataStore.edit { prefs ->
-            prefs[LIBREFM_USERNAME] = ""
-            prefs.remove(LIBREFM_SESSION_KEY)
-            prefs[LIBREFM_ENABLED] = false
+            prefs[account.usernameKey] = ""
+            prefs[account.enabledKey] = false
         }
     }
 
@@ -101,8 +103,8 @@ class ScrobbleSettingsRepository(private val context: Context) {
         if (listenBrainzToken.isNullOrEmpty() && libreFmSession.isNullOrEmpty()) return
         credentialToMigrate(listenBrainzToken, credentialStore.getListenBrainzToken())
             ?.let(credentialStore::saveListenBrainzToken)
-        credentialToMigrate(libreFmSession, credentialStore.getLibreFmSessionKey())
-            ?.let(credentialStore::saveLibreFmSessionKey)
+        credentialToMigrate(libreFmSession, credentialStore.getScrobbleSessionKey(ScrobbleAccount.LIBRE_FM.id))
+            ?.let { credentialStore.saveScrobbleSessionKey(ScrobbleAccount.LIBRE_FM.id, it) }
         context.scrobbleDataStore.edit {
             it.remove(LISTENBRAINZ_TOKEN)
             it.remove(LIBREFM_SESSION_KEY)

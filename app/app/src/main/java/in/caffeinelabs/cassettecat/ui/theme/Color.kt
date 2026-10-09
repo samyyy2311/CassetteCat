@@ -1,8 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 
-val RecordRed = Color(0xFFC23B30)
+val RecordRed = Color(ThemeAccent.RECORD_RED.colorValue)
 
 val Background = Color(0xFF000000)
 val Surface = Color(0xFF1C1A18)

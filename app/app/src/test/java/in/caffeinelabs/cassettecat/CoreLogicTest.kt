@@ -12,6 +12,7 @@ import `in`.caffeinelabs.cassettecat.data.radio.radioBrowserMirrors
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
+import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.orderedEnumValues
@@ -162,6 +163,24 @@ class CoreLogicTest {
         assertEquals(3, stats.songPlayCounts["a"])
         assertEquals(2, stats.songPlayCounts["song:twobo"])
         assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun releaseNotesComeFromTheVersionsSection() {
+        val changelog = "# Changelog\n\n## [1.1.0]\n\n* **Lyrics** sync.\n* Faster.\n\n## [1.0.0]\n\n* Old.\n"
+
+        assertEquals(listOf("Lyrics sync.", "Faster."), releaseNotesFrom(changelog, "1.1.0"))
+        assertEquals(emptyList<String>(), releaseNotesFrom(changelog, "2.0.0"))
+    }
+
+    @Test
+    fun aSkipAddsListeningTimeButNotAPlay() {
+        val skip = Listen(at = 1_780_000_000_000L, title = "One", artist = "Ann", ms = 20_000, songId = "a", counted = false)
+
+        val stats = monthlyStatsOf(listOf(skip), emptyMap()).getValue(skip.monthKey)
+
+        assertEquals(null, stats.songPlayCounts["a"])
+        assertEquals(20_000L, stats.listeningMs)
     }
 
     @Test

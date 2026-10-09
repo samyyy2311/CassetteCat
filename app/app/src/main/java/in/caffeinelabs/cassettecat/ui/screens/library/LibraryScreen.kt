@@ -109,6 +109,7 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp,
     onNavigateToFolder: (String) -> Unit = {},
+    onBrowseComputer: () -> Unit = {},
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     viewModel: LibraryViewModel = viewModel(),
     playlistViewModel: PlaylistViewModel = viewModel()
@@ -432,25 +433,34 @@ fun LibraryScreen(
                                 contentDescription = stringResource(AppR.string.library_new_playlist),
                                 onClick = { showNewPlaylistSheet = true }
                             )
-                        } else if (loadedState != null && filteredSongs.isNotEmpty()) {
-                            PressDepthIconButton(
-                                iconRes = R.drawable.lucide_ic_play,
-                                contentDescription = stringResource(AppR.string.library_play_all),
-                                onClick = {
-                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                    playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
-                                    if (wasIdle) onNavigateToNowPlaying()
-                                }
-                            )
-                            PressDepthIconButton(
-                                iconRes = R.drawable.lucide_ic_shuffle,
-                                contentDescription = stringResource(AppR.string.library_shuffle_all),
-                                onClick = {
-                                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                    playbackViewModel.shuffleAll(filteredSongs)
-                                    if (wasIdle) onNavigateToNowPlaying()
-                                }
-                            )
+                        } else {
+                            if (desktopState.address != null && !desktopState.offlineBlackout) {
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_monitor,
+                                    contentDescription = stringResource(AppR.string.library_browse_computer),
+                                    onClick = onBrowseComputer
+                                )
+                            }
+                            if (loadedState != null && filteredSongs.isNotEmpty()) {
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_play,
+                                    contentDescription = stringResource(AppR.string.library_play_all),
+                                    onClick = {
+                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                        playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
+                                        if (wasIdle) onNavigateToNowPlaying()
+                                    }
+                                )
+                                PressDepthIconButton(
+                                    iconRes = R.drawable.lucide_ic_shuffle,
+                                    contentDescription = stringResource(AppR.string.library_shuffle_all),
+                                    onClick = {
+                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
+                                        playbackViewModel.shuffleAll(filteredSongs)
+                                        if (wasIdle) onNavigateToNowPlaying()
+                                    }
+                                )
+                            }
                         }
                         PressDepthIconButton(
                             iconRes = if (collectionLayout == CollectionLayout.GRID) R.drawable.lucide_ic_layout_list else R.drawable.lucide_ic_layout_grid,
@@ -551,9 +561,10 @@ fun LibraryScreen(
             }
             Spacer(Modifier.height(12.dp))
 
-            LibraryViewModeTabs(
+            UnderlineTabs(
                 modes = visibleModes,
                 selected = viewMode,
+                label = { it.label },
                 onSelect = { mode ->
                     if (!selectionMode) pagerScope.launch { pagerState.animateScrollToPage(visibleModes.indexOf(mode)) }
                 }

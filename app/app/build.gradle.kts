@@ -18,7 +18,7 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.7.7"
+        ?: "1.8.0"
 
     val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
         gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
@@ -40,6 +40,11 @@ android {
         targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
+        // Last.fm needs the project's own API account; builds without one leave Last.fm out.
+        listOf("LASTFM_API_KEY", "LASTFM_API_SECRET").forEach { name ->
+            val value = ((project.findProperty(name) as? String) ?: System.getenv(name) ?: "").trim()
+            buildConfigField("String", name, "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+        }
     }
 
     signingConfigs {
@@ -79,7 +84,6 @@ android {
             if (isProductionRelease && !hasProductionSigning) {
                 error("Release signing is required in CI")
             }
-            isProfileable = hasProductionSigning
             if (hasProductionSigning) {
                 signingConfig = releaseSigning
             }
@@ -101,6 +105,30 @@ android {
         unitTests {
             isReturnDefaultValues = true
         }
+    }
+}
+
+// What's New reads the release notes from the repository's changelog.
+abstract class CopyChangelog : DefaultTask() {
+    @get:InputFile
+    abstract val changelog: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        changelog.get().asFile.copyTo(outputDir.get().file("CHANGELOG.md").asFile, overwrite = true)
+    }
+}
+
+val copyChangelog = tasks.register<CopyChangelog>("copyChangelog") {
+    changelog.set(rootProject.layout.projectDirectory.file("../CHANGELOG.md"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyChangelog, CopyChangelog::outputDir)
     }
 }
 

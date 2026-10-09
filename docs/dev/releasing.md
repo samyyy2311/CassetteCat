@@ -31,7 +31,7 @@ The workflow also builds an Android App Bundle (`bundleRelease`) but doesn't upl
 
 ### Signing secrets
 
-The release workflow needs these repository secrets:
+The release workflow reads these secrets from the `release` environment, which only `main` can use:
 
 | Secret | Contents |
 |---|---|

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import java.io.File
 import java.time.Instant
@@ -52,10 +53,14 @@ data class Listen(
     val album: String = "",
     val genre: String = "",
     val ms: Long,
-    val songId: String? = null
+    val songId: String? = null,
+    /** Whether this listen was a play; a skip only adds listening time. */
+    val counted: Boolean = true,
+    /** Set only on a month's total for a song from before single listens were kept, sent to the computer. */
+    val plays: Int? = null
 )
 
-val Listen.statsSongId: String get() = songId ?: "song:${title.trim().lowercase()}\u001f${artist.trim().lowercase()}"
+val Listen.statsSongId: String get() = songId ?: "song:" + songMatchKey(title, artist)
 
 val Listen.monthKey: String get() = YearMonth.from(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())).toString()
 
@@ -64,8 +69,10 @@ internal fun monthlyStatsOf(listens: List<Listen>, earlier: Map<String, MonthlyS
     listens.forEach { listen ->
         val month = monthly.getOrDefault(listen.monthKey, MonthlyStats())
         val id = listen.statsSongId
+        // Plays follow Apple Music, counting once most of a song is heard; listening time counts every minute, as in
+        // Apple Music Replay.
         monthly[listen.monthKey] = month.copy(
-            songPlayCounts = month.songPlayCounts + (id to (month.songPlayCounts[id] ?: 0) + 1),
+            songPlayCounts = if (listen.counted) month.songPlayCounts + (id to (month.songPlayCounts[id] ?: 0) + 1) else month.songPlayCounts,
             listeningMs = month.listeningMs + listen.ms,
             songListeningMs = month.songListeningMs + (id to (month.songListeningMs[id] ?: 0L) + listen.ms)
         )

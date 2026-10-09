@@ -50,10 +50,11 @@ import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun LibraryViewModeTabs(
-    modes: List<LibraryViewMode>,
-    selected: LibraryViewMode,
-    onSelect: (LibraryViewMode) -> Unit
+internal fun <T> UnderlineTabs(
+    modes: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val selectedIndex = modes.indexOf(selected).coerceAtLeast(0)
@@ -83,7 +84,7 @@ internal fun LibraryViewModeTabs(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = mode.label,
+                    text = label(mode),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                     ),

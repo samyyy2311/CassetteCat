@@ -96,7 +96,9 @@ fun HomeScreen(
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val recentlyPlayed = playbackState.history
     val favorites = allSongs.filter { it.isFavorite }
-    val shufflePicks = remember(allSongs) {
+    // Pulling to refresh deals new picks even when the library itself hasn't changed.
+    var refreshCount by remember { mutableStateOf(0) }
+    val shufflePicks = remember(allSongs, refreshCount) {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         if (hour >= 22 || hour < 5) {
             val soft = allSongs.filter { it.isSoftGenre() }.shuffled()
@@ -105,9 +107,9 @@ fun HomeScreen(
             allSongs.shuffled().take(8)
         }
     }
-    val heroSong = remember(allSongs) { allSongs.randomOrNull() }
+    val heroSong = remember(allSongs, refreshCount) { allSongs.randomOrNull() }
 
-    val greetingRes = remember { getDynamicGreetingRes() }
+    val greetingRes = remember(refreshCount) { getDynamicGreetingRes() }
 
     val heavyRotation = remember(allSongs, monthlyStats) {
         val counts = monthlyStats.values
@@ -154,7 +156,10 @@ fun HomeScreen(
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
-        onRefresh = { libraryViewModel.refresh() },
+        onRefresh = {
+            refreshCount++
+            libraryViewModel.refresh()
+        },
         modifier = modifier.fillMaxSize()
     ) {
         Crossfade(

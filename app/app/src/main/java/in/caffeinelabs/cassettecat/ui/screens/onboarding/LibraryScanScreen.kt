@@ -44,7 +44,7 @@ fun LibraryScanScreen(
     val config by viewModel.config.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        OnboardingHeaderRow(currentStep = 1, totalSteps = 5, onSkip = { viewModel.skip(onSkip) })
+        OnboardingHeaderRow(currentStep = 2, totalSteps = 5, onSkip = { viewModel.skip(onSkip) })
         Spacer(Modifier.height(10.dp))
 
         Text(stringResource(AppR.string.onboarding_library_title), style = MaterialTheme.typography.titleLarge)

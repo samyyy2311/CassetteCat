@@ -151,34 +151,7 @@ fun LyricShareSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LyricCardTheme.entries.forEach { theme ->
-                    val isSelected = selectedTheme == theme
-                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
-                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .clip(CircleShape)
-                            .background(bgColor)
-                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
-                            .clickable { selectedTheme = theme }
-                            .padding(horizontal = 18.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = lyricCardThemeLabel(theme),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = textColor
-                        )
-                    }
-                }
-            }
+            LyricCardThemePicker(selected = selectedTheme, onSelect = { selectedTheme = it })
 
             Spacer(Modifier.height(24.dp))
 
@@ -382,6 +355,38 @@ private fun LyricQuoteCard(
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.45f),
                     modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun LyricCardThemePicker(selected: LyricCardTheme, onSelect: (LyricCardTheme) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LyricCardTheme.entries.forEach { theme ->
+            val isSelected = selected == theme
+            val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+            val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .clip(CircleShape)
+                    .background(bgColor)
+                    .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
+                    .clickable { onSelect(theme) }
+                    .padding(horizontal = 18.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = lyricCardThemeLabel(theme),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = textColor
                 )
             }
         }

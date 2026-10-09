@@ -70,21 +70,39 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      - name: Build development APK
+      # A release build signed with the nightly key, so one nightly installs over the last and isn't debuggable.
+      - name: Build nightly APK
         if: steps.check.outputs.skip != 'true'
         working-directory: ./app
+        env:
+          NIGHTLY_KEYSTORE_BASE64: ${{ secrets.NIGHTLY_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.NIGHTLY_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.NIGHTLY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.NIGHTLY_KEY_PASSWORD }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
         run: |
+          for name in NIGHTLY_KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            test -n "${!name}" || { echo "::error::Add the NIGHTLY_KEYSTORE_BASE64, NIGHTLY_KEYSTORE_PASSWORD, NIGHTLY_KEY_ALIAS and NIGHTLY_KEY_PASSWORD secrets"; exit 1; }
+          done
+          export KEYSTORE_FILE="$RUNNER_TEMP/nightly.keystore"
+          trap 'rm -f "$KEYSTORE_FILE"' EXIT
+          echo "$NIGHTLY_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleRelease --stacktrace
 
       - name: Prepare nightly assets
         id: prepare
         if: steps.check.outputs.skip != 'true'
+        env:
+          BUILT_COMMIT: ${{ steps.check.outputs.commit }}
         run: |
           set -euo pipefail
-          apk="$(find app/app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          apk="$(find app/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$apk"
-          commit="${{ steps.check.outputs.commit }}"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$apksigner" verify "$apk"
+          commit="$BUILT_COMMIT"
           date="$(date -u +%F)"
           name="CassetteCat-nightly.staging.apk"
           mkdir -p nightly-assets
@@ -108,23 +126,22 @@ jobs:
 
       - name: Stage nightly assets
         if: steps.check.outputs.skip != 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: nightly
-          target_commitish: ${{ steps.check.outputs.commit }}
-          name: CassetteCat Nightly - ${{ steps.prepare.outputs.date }}
-          prerelease: true
-          make_latest: false
-          overwrite_files: true
-          body: |
-            Nightly development build. May be unstable and is intended for testing only.
-
-            Commit: ${{ steps.check.outputs.commit }}
-            Short commit: ${{ steps.prepare.outputs.short_sha }}
-            Built: ${{ steps.prepare.outputs.date }} UTC
-          files: |
-            nightly-assets/CassetteCat-nightly.staging.apk
-            nightly-assets/CassetteCat-nightly.staging.apk.sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ steps.check.outputs.commit }}
+          SHORT_SHA: ${{ steps.prepare.outputs.short_sha }}
+          BUILD_DATE: ${{ steps.prepare.outputs.date }}
+        run: |
+          set -euo pipefail
+          notes="$(printf 'Nightly development build. May be unstable and is intended for testing only.\n\nCommit: %s\nShort commit: %s\nBuilt: %s UTC\n' "$COMMIT" "$SHORT_SHA" "$BUILD_DATE")"
+          title="CassetteCat Nightly - $BUILD_DATE"
+          if gh release view nightly >/dev/null 2>&1; then
+            gh release edit nightly --title "$title" --notes "$notes" --prerelease --latest=false --target "$COMMIT"
+          else
+            gh release create nightly --title "$title" --notes "$notes" --prerelease --latest=false --target "$COMMIT"
+          fi
+          gh release upload nightly nightly-assets/CassetteCat-nightly.staging.apk nightly-assets/CassetteCat-nightly.staging.apk.sha256 --clobber
 
       - name: Promote nightly assets
         if: steps.check.outputs.skip != 'true'

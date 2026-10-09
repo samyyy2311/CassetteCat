@@ -10,11 +10,13 @@ sealed interface MusicSource {
     data object Radio : MusicSource
     // Playing on the paired computer: shown and controlled from the phone, never played on it.
     data object Desktop : MusicSource
+    // A song from the paired computer's library, streamed to and played on this phone.
+    data object Computer : MusicSource
 }
 
-/** Shown for music playing on another device, so this phone's library actions do not apply to it. */
+/** Shown for music whose file lives on another device, so this phone's library actions do not apply to it. */
 val Song.isFromAnotherDevice: Boolean
-    get() = source == MusicSource.ListeningRoomHost || source == MusicSource.Desktop
+    get() = source == MusicSource.ListeningRoomHost || source == MusicSource.Desktop || source == MusicSource.Computer
 
 data class Song(
     // Source-prefixed to stay globally unique across local and remote libraries.
@@ -35,3 +37,6 @@ data class Song(
     val bitrateKbps: Int = 0,
     val country: String = ""
 )
+
+/** What makes two songs the same song, here and on the computer: title and artist, ignoring case. */
+fun songMatchKey(title: String, artist: String): String = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()

@@ -1223,7 +1223,7 @@ private fun ArtistSongRow(
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
                         MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop -> "" to Color.Unspecified
+                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
                         Text(
@@ -1390,7 +1390,7 @@ private fun AlbumDetailHeader(
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
                         MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop -> "" to Color.Unspecified
+                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
                         Text(

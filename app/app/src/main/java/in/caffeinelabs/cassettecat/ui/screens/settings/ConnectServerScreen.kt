@@ -1,5 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalAutofillManager
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,10 +75,17 @@ fun ConnectServerScreen(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var showHttpWarning by rememberSaveable { mutableStateOf(false) }
     var pendingQuickConnect by rememberSaveable { mutableStateOf(false) }
+    var signedInWithPassword by rememberSaveable { mutableStateOf(false) }
 
     fun normalizedServerUrl(): String {
         val trimmed = serverUrl.trim()
         return if (trimmed.toUri().scheme == null) "https://$trimmed" else trimmed
+    }
+
+    val autofill = LocalAutofillManager.current
+    // Lets the password manager offer to save the sign-in once the server accepts it. Quick Connect has no password.
+    LaunchedEffect(state) {
+        if (state is ConnectionState.Connected && signedInWithPassword) autofill?.commit()
     }
 
     LaunchedEffect(savedConfig) {
@@ -213,7 +224,7 @@ fun ConnectServerScreen(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username }
                     )
 
                     OutlinedTextField(
@@ -252,7 +263,7 @@ fun ConnectServerScreen(
                                     .clickable(onClick = hapticClick { passwordVisible = !passwordVisible })
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
                     )
 
                     if (current is ConnectionState.Failed) {
@@ -297,6 +308,7 @@ fun ConnectServerScreen(
                         if (normalizedServerUrl().toUri().scheme.equals("http", ignoreCase = true)) {
                             showHttpWarning = true
                         } else {
+                            signedInWithPassword = true
                             viewModel.connect(protocol, normalizedServerUrl(), username.trim(), password)
                         }
                     },
@@ -323,6 +335,7 @@ fun ConnectServerScreen(
                                 pendingQuickConnect = true
                                 showHttpWarning = true
                             } else {
+                                signedInWithPassword = false
                                 viewModel.startQuickConnect(normalizedServerUrl())
                             }
                         },
@@ -395,8 +408,10 @@ fun ConnectServerScreen(
                     showHttpWarning = false
                     if (pendingQuickConnect) {
                         pendingQuickConnect = false
+                        signedInWithPassword = false
                         viewModel.startQuickConnect(normalizedServerUrl())
                     } else {
+                        signedInWithPassword = true
                         viewModel.connect(protocol, normalizedServerUrl(), username.trim(), password)
                     }
                 }) { Text(stringResource(AppR.string.action_connect)) }

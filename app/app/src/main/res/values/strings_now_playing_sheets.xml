@@ -85,6 +85,7 @@
     <string name="credits_source_jellyfin">Jellyfin server</string>
     <string name="credits_source_room">Streamed from Listening Room host</string>
     <string name="credits_source_desktop">Playing on your computer</string>
+    <string name="credits_source_computer">Streamed from your computer</string>
     <string name="credits_source_radio">Internet radio</string>
     <string name="credits_not_supplied">Not supplied</string>
     <string name="credits_performing_artist">Performing artist</string>

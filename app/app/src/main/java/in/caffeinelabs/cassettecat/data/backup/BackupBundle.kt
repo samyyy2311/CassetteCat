@@ -4,6 +4,7 @@ import `in`.caffeinelabs.cassettecat.data.library.FolderFilterConfig
 import `in`.caffeinelabs.cassettecat.data.library.PlaylistCoverType
 import `in`.caffeinelabs.cassettecat.data.playback.EqualizerLevels
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
+import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
 import `in`.caffeinelabs.cassettecat.data.stats.Milestone
 import `in`.caffeinelabs.cassettecat.data.stats.MonthlyStats
@@ -31,7 +32,7 @@ data class BackupBundle(
 @Serializable
 data class BackupAppPreferences(
     val themeAccent: String = "RECORD_RED",
-    val customAccentColor: Long = 0xFFC23B30,
+    val customAccentColor: Long = ThemeAccent.RECORD_RED.colorValue,
     val amoledDarkTheme: Boolean = false,
     val defaultLibraryTab: String = "SONGS",
     val albumArtCornerRadiusDp: Int = 16,
@@ -39,6 +40,7 @@ data class BackupAppPreferences(
     val hapticFeedbackEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val gaplessPlayback: Boolean = true,
+    val skipSilence: Boolean = false,
     val replayGainPreAmpDb: Int = 0,
     val monoAudio: Boolean = false,
     val autoplayEnabled: Boolean = false,

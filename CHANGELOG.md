@@ -2,6 +2,18 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.8.0]
+
+* Browse your computer's music from the phone and play it there or stream it here.
+* While you control the computer, songs you pick play on it. It shows up by name in your media controls, and its volume follows your phone's.
+* The computer shows what your phone is playing, with the cover and progress, and can take over or control it. Music plays on one device at a time.
+* One Listening Record with your computer: your whole history is shared, both rank songs the same way, songs you skip still add listening time, and a Sync button in Stats brings them together.
+* Last.fm scrobbling, alongside ListenBrainz and Libre.fm.
+* Skip Silence skips long quiet stretches, such as pauses in live recordings and podcasts.
+* A shorter setup: restore a backup first, then choose your folders, your Listening Record and scrobbling, and how the app looks.
+* Your phone finds the computer again as soon as your Wi-Fi changes.
+* Lossless audio is called Lossless rather than Lossless Uncompressed.
+
 ## [1.7.7]
 
 * Pair with your computer by tapping it and clicking Allow there, with no code to type. Nearby computers also show up in the player's devices button, so you can connect from there.

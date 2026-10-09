@@ -1,6 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import android.content.Intent
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.platform.LocalAutofillManager
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,8 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.data.scrobble.LibreFmClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccount
+import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccountConfig
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleSettings
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -63,7 +68,7 @@ fun ScrobbleSettingsScreen(
     val settings by repository.settings.collectAsStateWithLifecycle(initialValue = ScrobbleSettings())
 
     var showListenBrainzDialog by remember { mutableStateOf(false) }
-    var showLibreFmDialog by remember { mutableStateOf(false) }
+    var signingInTo by remember { mutableStateOf<ScrobbleAccount?>(null) }
 
     val openUrl: (String) -> Unit = { url ->
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
@@ -161,62 +166,19 @@ fun ScrobbleSettingsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        SettingsSection(title = stringResource(AppR.string.scrobbling_librefm_section)) {
-            val isConnected = settings.libreFm.sessionKey.isNotBlank()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    painter = painterResource(AppR.drawable.ic_logo_librefm),
-                    contentDescription = null,
-                    tint = androidx.compose.ui.graphics.Color.Unspecified,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(AppR.string.scrobbling_librefm_name), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        if (isConnected) {
-                            stringResource(AppR.string.scrobbling_connected_as, settings.libreFm.username)
-                        } else {
-                            stringResource(AppR.string.scrobbling_not_connected)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isConnected) {
-                    Switch(
-                        checked = settings.libreFm.enabled,
-                        onCheckedChange = hapticToggle { enabled -> scope.launch { repository.setLibreFmEnabled(enabled) } },
-                        colors = appSwitchColors()
-                    )
-                }
-            }
-
-            SettingsDivider()
-
-            if (isConnected) {
-                TextButton(
-                    onClick = hapticClick { scope.launch { repository.disconnectLibreFm() } },
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
-                ) {
-                    Text(stringResource(AppR.string.scrobbling_disconnect_librefm), color = MaterialTheme.colorScheme.error)
-                }
-            } else {
-                NavigationRow(
-                    title = stringResource(AppR.string.scrobbling_connect_account),
-                    subtitle = stringResource(AppR.string.scrobbling_librefm_connect_description),
-                    iconRes = R.drawable.lucide_ic_link,
-                    onClick = { showLibreFmDialog = true }
-                )
-            }
+        ScrobbleAccount.entries.filter { it.client != null }.forEach { account ->
+            val config = settings.account(account)
+            ScrobbleAccountSection(
+                account = account,
+                config = config,
+                onEnabledChange = { enabled -> scope.launch { repository.setAccountEnabled(account, enabled) } },
+                onDisconnect = { scope.launch { repository.disconnectAccount(account) } },
+                onConnect = { signingInTo = account }
+            )
+            Spacer(Modifier.height(24.dp))
         }
 
-        Spacer(Modifier.height(listBottomPadding + 24.dp))
+        Spacer(Modifier.height(listBottomPadding))
     }
 
     if (showListenBrainzDialog) {
@@ -232,13 +194,14 @@ fun ScrobbleSettingsScreen(
         )
     }
 
-    if (showLibreFmDialog) {
-        LibreFmConnectDialog(
-            onDismiss = { showLibreFmDialog = false },
+    signingInTo?.let { account ->
+        ScrobbleAccountDialog(
+            account = account,
+            onDismiss = { signingInTo = null },
             onConnect = { username, sessionKey ->
                 scope.launch {
-                    repository.saveLibreFm(username, sessionKey, enabled = true)
-                    showLibreFmDialog = false
+                    repository.saveAccount(account, username, sessionKey)
+                    signingInTo = null
                 }
             }
         )
@@ -246,7 +209,7 @@ fun ScrobbleSettingsScreen(
 }
 
 @Composable
-private fun ListenBrainzConnectDialog(
+internal fun ListenBrainzConnectDialog(
     onDismiss: () -> Unit,
     onConnect: (token: String, userName: String) -> Unit,
     onGetTokenClick: () -> Unit
@@ -321,8 +284,98 @@ private fun ListenBrainzConnectDialog(
     )
 }
 
+internal class ScrobbleAccountText(
+    val name: Int,
+    val section: Int,
+    val icon: Int,
+    val connectDescription: Int,
+    val disconnect: Int,
+    val dialogTitle: Int,
+    val dialogDescription: Int
+)
+
+internal val ScrobbleAccount.text: ScrobbleAccountText
+    get() = when (this) {
+        ScrobbleAccount.LIBRE_FM -> ScrobbleAccountText(
+            AppR.string.scrobbling_librefm_name, AppR.string.scrobbling_librefm_section, AppR.drawable.ic_logo_librefm,
+            AppR.string.scrobbling_librefm_connect_description, AppR.string.scrobbling_disconnect_librefm,
+            AppR.string.scrobbling_librefm_dialog_title, AppR.string.scrobbling_librefm_dialog_description
+        )
+        ScrobbleAccount.LAST_FM -> ScrobbleAccountText(
+            AppR.string.scrobbling_lastfm_name, AppR.string.scrobbling_lastfm_section, AppR.drawable.ic_logo_lastfm,
+            AppR.string.scrobbling_lastfm_connect_description, AppR.string.scrobbling_disconnect_lastfm,
+            AppR.string.scrobbling_lastfm_dialog_title, AppR.string.scrobbling_lastfm_dialog_description
+        )
+    }
+
 @Composable
-private fun LibreFmConnectDialog(
+private fun ScrobbleAccountSection(
+    account: ScrobbleAccount,
+    config: ScrobbleAccountConfig,
+    onEnabledChange: (Boolean) -> Unit,
+    onDisconnect: () -> Unit,
+    onConnect: () -> Unit
+) {
+    val text = account.text
+    SettingsSection(title = stringResource(text.section)) {
+        val isConnected = config.sessionKey.isNotBlank()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(text.icon),
+                contentDescription = null,
+                tint = androidx.compose.ui.graphics.Color.Unspecified,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(text.name), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (isConnected) {
+                        stringResource(AppR.string.scrobbling_connected_as, config.username)
+                    } else {
+                        stringResource(AppR.string.scrobbling_not_connected)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (isConnected) {
+                Switch(
+                    checked = config.enabled,
+                    onCheckedChange = hapticToggle(onEnabledChange),
+                    colors = appSwitchColors()
+                )
+            }
+        }
+
+        SettingsDivider()
+
+        if (isConnected) {
+            TextButton(
+                onClick = hapticClick(onDisconnect),
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+            ) {
+                Text(stringResource(text.disconnect), color = MaterialTheme.colorScheme.error)
+            }
+        } else {
+            NavigationRow(
+                title = stringResource(AppR.string.scrobbling_connect_account),
+                subtitle = stringResource(text.connectDescription),
+                iconRes = R.drawable.lucide_ic_link,
+                onClick = onConnect
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ScrobbleAccountDialog(
+    account: ScrobbleAccount,
     onDismiss: () -> Unit,
     onConnect: (username: String, sessionKey: String) -> Unit
 ) {
@@ -331,17 +384,17 @@ private fun LibreFmConnectDialog(
     var isAuthenticating by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val client = remember { LibreFmClient() }
+    val autofill = LocalAutofillManager.current
     val credentialsRequiredMessage = stringResource(AppR.string.scrobbling_credentials_required)
     val authFailedMessage = stringResource(AppR.string.scrobbling_auth_failed)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(AppR.string.scrobbling_librefm_dialog_title)) },
+        title = { Text(stringResource(account.text.dialogTitle)) },
         text = {
             Column {
                 Text(
-                    stringResource(AppR.string.scrobbling_librefm_dialog_description),
+                    stringResource(account.text.dialogDescription),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -351,7 +404,7 @@ private fun LibreFmConnectDialog(
                     onValueChange = { username = it; errorMessage = null },
                     label = { Text(stringResource(AppR.string.scrobbling_username)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username }
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -361,7 +414,7 @@ private fun LibreFmConnectDialog(
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
                 )
                 if (errorMessage != null) {
                     Spacer(Modifier.height(6.dp))
@@ -379,9 +432,11 @@ private fun LibreFmConnectDialog(
                     isAuthenticating = true
                     errorMessage = null
                     scope.launch {
-                        val sessionKey = client.authenticate(username.trim(), password)
+                        val sessionKey = account.client?.authenticate(username.trim(), password)
                         isAuthenticating = false
                         if (sessionKey != null) {
+                            // Lets the password manager offer to save the sign-in.
+                            autofill?.commit()
                             onConnect(username.trim(), sessionKey)
                         } else {
                             errorMessage = authFailedMessage

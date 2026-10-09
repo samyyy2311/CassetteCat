@@ -38,6 +38,7 @@
     <application
         android:name=".CassetteCatApplication"
         android:allowBackup="true"
+        android:hasFragileUserData="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -141,9 +142,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PLAY_PAUSE" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_NEXT" />
-                <action android:name="in.caffeinelabs.cassettecat.widget.ACTION_PREV" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

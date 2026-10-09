@@ -35,7 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.update.releaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.data.library.FolderFilterMode
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
@@ -48,6 +51,7 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ListeningRoomSheet
+import `in`.caffeinelabs.cassettecat.ui.theme.RecordRed
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Date
@@ -82,6 +86,7 @@ fun SettingsScreen(
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
@@ -132,7 +137,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_listening_record),
                 subtitle = stringResource(AppR.string.settings_listening_record_description),
                 iconRes = R.drawable.lucide_ic_disc_3,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = onNavigateToStats
             )
             SettingsDivider()
@@ -264,7 +269,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_listening_room),
                 subtitle = listeningRoomStatus(listeningRoom),
                 iconRes = R.drawable.lucide_ic_users,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = { showListeningRoom = true }
             )
         }
@@ -311,6 +316,13 @@ fun SettingsScreen(
 
         SettingsSection(title = stringResource(AppR.string.settings_support_about_section)) {
             NavigationRow(
+                title = stringResource(AppR.string.whats_new_title),
+                subtitle = stringResource(AppR.string.settings_whats_new_description),
+                iconRes = R.drawable.lucide_ic_list,
+                onClick = { whatsNew = releaseNotes(context, BuildConfig.VERSION_NAME) }
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = stringResource(AppR.string.settings_about_legal),
                 subtitle = stringResource(AppR.string.settings_about_legal_description),
                 iconRes = R.drawable.lucide_ic_file_text,
@@ -322,7 +334,7 @@ fun SettingsScreen(
                 title = stringResource(AppR.string.settings_credits),
                 subtitle = stringResource(AppR.string.settings_credits_description),
                 iconRes = R.drawable.lucide_ic_heart,
-                iconTint = Color(0xFFC23B30),
+                iconTint = RecordRed,
                 onClick = onNavigateToCredits
             )
             SettingsDivider()
@@ -359,6 +371,10 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))
+    }
+
+    if (whatsNew.isNotEmpty()) {
+        WhatsNewSheet(notes = whatsNew, onDismiss = { whatsNew = emptyList() })
     }
 
     if (showListeningRoom) {

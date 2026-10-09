@@ -649,6 +649,14 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
             )
             SettingsDivider()
             ToggleRow(
+                title = stringResource(AppR.string.customization_skip_silence),
+                subtitle = stringResource(AppR.string.customization_skip_silence_description),
+                checked = prefs.skipSilence,
+                onCheckedChange = viewModel::setSkipSilence,
+                iconRes = R.drawable.lucide_ic_skip_forward,
+            )
+            SettingsDivider()
+            ToggleRow(
                 title = stringResource(AppR.string.customization_replaygain),
                 subtitle = stringResource(AppR.string.customization_replaygain_description),
                 checked = prefs.replayGainEnabled,

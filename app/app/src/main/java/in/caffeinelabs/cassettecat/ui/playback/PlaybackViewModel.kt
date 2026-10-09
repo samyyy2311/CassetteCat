@@ -3,6 +3,9 @@
 package `in`.caffeinelabs.cassettecat.ui.playback
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.media.AudioManager
+import android.util.Base64
 import android.os.SystemClock
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
@@ -46,7 +49,9 @@ import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
+import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,6 +66,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.ln
@@ -139,6 +145,9 @@ private const val DESKTOP_CHECK_IN_MS = 1_500L
 // Kept under the six seconds after which the computer stops showing the phone.
 private const val DESKTOP_BACKGROUND_CHECK_IN_MS = 4_000L
 private const val DESKTOP_PAUSED_CHECK_IN_MS = 10 * 60 * 1000L
+private const val DESKTOP_IDLE_CHECK_IN_MS = 30_000L
+// The computer accepts check-ins up to 64 KB.
+private const val DESKTOP_ARTWORK_MAX_CHARS = 48_000
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
@@ -233,13 +242,23 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     ?.let { it to local.isPlaying }
             }.distinctUntilChanged().collectLatest { playing ->
                 val (song, isPlaying) = playing ?: return@collectLatest
-                // A long pause stops the check-ins to save battery; pressing play starts them again.
-                val stopAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
-                while (SystemClock.elapsedRealtime() < stopAt) {
-                    val reply = desktop.checkIn(song, isPlaying)
+                // After a long pause the check-ins slow down to save battery; the computer keeps showing the phone.
+                val idleAt = if (isPlaying) Long.MAX_VALUE else SystemClock.elapsedRealtime() + DESKTOP_PAUSED_CHECK_IN_MS
+                // The first check-in goes out at once; the cover follows only when the computer asks for it.
+                var sendArtwork = false
+                while (true) {
+                    val artwork = if (sendArtwork) desktopArtwork(song) else null
+                    val reply = desktop.checkIn(song, isPlaying, repository.currentPositionMs(), mediaVolumePercent(), artwork)
+                    sendArtwork = reply.needsArtwork
                     reply.commands.forEach(::runDesktopCommand)
                     if (reply.playNext.isNotEmpty()) launch { playNextFromDesktop(reply.playNext) }
-                    delay(if (desktop.isInFront) DESKTOP_CHECK_IN_MS else DESKTOP_BACKGROUND_CHECK_IN_MS)
+                    delay(
+                        when {
+                            SystemClock.elapsedRealtime() >= idleAt -> DESKTOP_IDLE_CHECK_IN_MS
+                            desktop.isInFront -> DESKTOP_CHECK_IN_MS
+                            else -> DESKTOP_BACKGROUND_CHECK_IN_MS
+                        }
+                    )
                 }
             }
         }
@@ -374,14 +393,31 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playQueue(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false) {
         if (isFollowingRoomHost()) return
-        desktop.setControlling(false)
-        viewModelScope.launch { repository.playQueue(songs, startIndex, shuffle) }
+        val picked = if (shuffle) songs.shuffled() else songs.drop(startIndex)
+        viewModelScope.launch {
+            if (!playOnControlledDesktop(picked)) repository.playQueue(songs, startIndex, shuffle)
+        }
     }
 
     fun shuffleAll(songs: List<Song>) {
         if (isFollowingRoomHost() || songs.isEmpty()) return
+        viewModelScope.launch {
+            if (!playOnControlledDesktop(songs.shuffled())) repository.shuffleAll(songs)
+        }
+    }
+
+    // While this phone controls the computer, picked songs play there. When the computer doesn't have them they play
+    // here instead, and the computer stops, so only one device plays.
+    private suspend fun playOnControlledDesktop(songs: List<Song>): Boolean {
+        val first = songs.firstOrNull()
+        if (controlledDesktop.value == null || first == null || first.source == MusicSource.Radio || first.isFromAnotherDevice) {
+            desktop.setControlling(false)
+            return false
+        }
+        if (desktop.handOff(songs.take(HANDOFF_QUEUE_LIMIT), 0, true)) return true
+        desktop.sendAction("pause")
         desktop.setControlling(false)
-        viewModelScope.launch { repository.shuffleAll(songs) }
+        return false
     }
 
     fun playInstantMix(seed: Song, library: List<Song>) {
@@ -547,7 +583,48 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
             "handoff" -> desktop.requestTransfer(toDesktop = true)
+            "sync" -> viewModelScope.launch { desktop.syncWithDesktop() }
+            else -> when {
+                command.startsWith("seek:") -> command.removePrefix("seek:").toLongOrNull()?.let(repository::seekTo)
+                command.startsWith("volume:") -> command.removePrefix("volume:").toIntOrNull()?.let(::setMediaVolumePercent)
+            }
         }
+    }
+
+    private val audioManager get() = getApplication<Application>().getSystemService(AudioManager::class.java)
+
+    private fun mediaVolumePercent(): Int {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        return audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max
+    }
+
+    private fun setMediaVolumePercent(percent: Int) {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (percent.coerceIn(0, 100) * max + 50) / 100, 0)
+    }
+
+    // Kept for the current song, so pausing and resuming doesn't load and encode the cover again.
+    private var desktopArtworkFor: Pair<String, String?>? = null
+
+    // A cover that can't be loaded, or is too large for the computer to accept, is left out rather than failing
+    // the check-in.
+    private suspend fun desktopArtwork(song: Song): String? {
+        desktopArtworkFor?.takeIf { it.first == song.id }?.let { return it.second }
+        val encoded = try {
+            loadSongArtwork(getApplication(), song, thumbnail = true)?.let { cover ->
+                withContext(Dispatchers.Default) {
+                    val bytes = java.io.ByteArrayOutputStream()
+                        .also { cover.compress(Bitmap.CompressFormat.JPEG, 75, it) }
+                        .toByteArray()
+                    Base64.encodeToString(bytes, Base64.NO_WRAP).takeIf { it.length <= DESKTOP_ARTWORK_MAX_CHARS }
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
+        }
+        desktopArtworkFor = song.id to encoded
+        return encoded
     }
 
     // Sends [action] to the computer when it is the device being controlled; returns whether it did.
@@ -677,10 +754,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun finishListen() {
-        val current = currentListen?.takeIf { it.counted } ?: return
+        if (!appPreferences.value.listeningStatsEnabled) return
+        // Skips are logged too, for listening time, but only a counted listen is a play.
+        val current = currentListen?.takeIf { it.listenedMs > 0 } ?: return
         val song = current.song
         val listen = Listen(
-            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id
+            System.currentTimeMillis(), song.title, song.artist, song.album, song.genres.firstOrNull().orEmpty(), current.listenedMs, song.id,
+            counted = current.counted
         )
         statsRepository.record(listen)
         desktop.queueListen(listen)

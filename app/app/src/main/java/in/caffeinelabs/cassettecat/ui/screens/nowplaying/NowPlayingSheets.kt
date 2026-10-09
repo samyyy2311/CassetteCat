@@ -178,7 +178,7 @@ internal fun NowPlayingActionsSheet(
             stringResource(AppR.string.source_radio)
         }
         MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room)
-        MusicSource.Desktop -> stringResource(AppR.string.source_desktop)
+        MusicSource.Desktop, MusicSource.Computer -> stringResource(AppR.string.source_desktop)
     }
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -775,6 +775,7 @@ internal fun SongCreditsSheet(song: Song, onDismiss: () -> Unit) {
         MusicSource.Jellyfin -> stringResource(AppR.string.credits_source_jellyfin)
         MusicSource.ListeningRoomHost -> stringResource(AppR.string.credits_source_room)
         MusicSource.Desktop -> stringResource(AppR.string.credits_source_desktop)
+        MusicSource.Computer -> stringResource(AppR.string.credits_source_computer)
         MusicSource.Radio -> stringResource(AppR.string.credits_source_radio)
     }
     val genre = song.genres.filter { it.isNotBlank() }.joinToString(" · ").ifBlank { notSupplied }

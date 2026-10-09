@@ -87,6 +87,8 @@
     <string name="customization_seconds_short">%1$ds</string>
     <string name="customization_gapless">Gapless Playback</string>
     <string name="customization_gapless_description">Remove gaps between continuous tracks</string>
+    <string name="customization_skip_silence">Skip Silence</string>
+    <string name="customization_skip_silence_description">Skip quiet stretches, such as long pauses in live recordings and podcasts</string>
     <string name="customization_replaygain">Volume Normalisation (ReplayGain)</string>
     <string name="customization_replaygain_description">Keep loudness more consistent between tracks</string>
     <string name="customization_replaygain_preamp">ReplayGain Pre-Amp Gain</string>
