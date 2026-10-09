@@ -53,6 +53,7 @@ fun CassetteCatNavHost(
     shortcutAction: String? = null,
     shortcutQuery: String? = null,
     shortcutMediaType: String? = null,
+    shortcutArtist: String? = null,
     onShortcutHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -101,6 +102,7 @@ fun CassetteCatNavHost(
                 shortcutAction = shortcutAction,
                 shortcutQuery = shortcutQuery,
                 shortcutMediaType = shortcutMediaType,
+                shortcutArtist = shortcutArtist,
                 onShortcutHandled = onShortcutHandled
             )
         }

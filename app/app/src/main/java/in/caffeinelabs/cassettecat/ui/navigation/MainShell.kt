@@ -224,7 +224,8 @@ private fun resolvePlayMediaQueue(
     query: String?,
     songs: List<Song>,
     playlists: List<Playlist>,
-    mediaType: String? = null
+    mediaType: String? = null,
+    artist: String? = null
 ): List<Song> {
     val q = query?.trim().orEmpty()
     if (q.isEmpty()) return songs
@@ -232,7 +233,9 @@ private fun resolvePlayMediaQueue(
         "PLAYLIST" -> return resolvePlaylistMatch(q, songs, playlists).orEmpty()
         "ARTIST" -> return songs.filter { it.artist.contains(q, ignoreCase = true) }
         "ALBUM" -> return songs.filter { it.album.contains(q, ignoreCase = true) }
-        "SONG", "TRACK" -> return songs.filter { it.title.contains(q, ignoreCase = true) }
+        "SONG", "TRACK" -> return songs.filter {
+            it.title.contains(q, ignoreCase = true) && (artist == null || it.artist.contains(artist, ignoreCase = true))
+        }
     }
     resolvePlaylistMatch(q, songs, playlists)?.let { return it }
     songs.filter { it.artist.contains(q, ignoreCase = true) }.takeIf { it.isNotEmpty() }?.let { return it }
@@ -256,6 +259,7 @@ fun MainShell(
     shortcutAction: String? = null,
     shortcutQuery: String? = null,
     shortcutMediaType: String? = null,
+    shortcutArtist: String? = null,
     onShortcutHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
@@ -408,7 +412,7 @@ fun MainShell(
             AppShortcutAction.SHUFFLE_ALL -> librarySongs to true
             AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite } to false
             AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() } to false
-            AppShortcutAction.PLAY_MEDIA -> resolvePlayMediaQueue(shortcutQuery, librarySongs, playlists, shortcutMediaType) to false
+            AppShortcutAction.PLAY_MEDIA -> resolvePlayMediaQueue(shortcutQuery, librarySongs, playlists, shortcutMediaType, shortcutArtist) to false
             else -> emptyList<Song>() to false
         }
         onShortcutHandled()

@@ -120,9 +120,9 @@
 
 ### Device Integration
 
-- **Android Auto & Android Automotive OS**: Browse your local library (Liked
-  Songs, Playlists, Albums, Artists, All Songs) and control playback directly
-  from the car.
+- **Android Auto**: Browse your local library (Liked Songs, Playlists, Albums,
+  Artists, All Songs) and radio favourites, search, and control playback from
+  the car.
 - **Quick Settings Tile**: Play, pause, and see what's playing without opening
   the app.
 - **Desktop Remote**: Pick your computer from the devices button to control
