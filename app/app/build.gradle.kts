@@ -89,6 +89,12 @@ android {
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Test builds are signed with another key, so they install beside the released app instead of over it.
+        // The launcher shortcuts in res/xml/shortcuts.xml still open the released app.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     compileOptions {
@@ -141,6 +147,14 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    // Android lint runs with its own copies of the build libraries pinned in ../build.gradle.kts; keep these patched too.
+    constraints {
+        add("androidLintTool", "org.bouncycastle:bcprov-jdk18on:1.85")
+        add("androidLintTool", "org.bouncycastle:bcpkix-jdk18on:1.85")
+        add("androidLintTool", "org.bouncycastle:bcutil-jdk18on:1.85")
+        add("androidLintTool", "org.apache.commons:commons-lang3:3.18.0")
+        add("androidLintTool", "org.apache.httpcomponents:httpclient:4.5.14")
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
