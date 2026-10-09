@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="now_playing_empty_title">कुछ नहीं चल रहा</string>
-    <string name="now_playing_empty_message">सुनना शुरू करने के लिए अपनी लाइब्रेरी से कोई ट्रैक चुनें।</string>
-    <string name="now_playing_browse_library">लाइब्रेरी देखें</string>
-</resources>

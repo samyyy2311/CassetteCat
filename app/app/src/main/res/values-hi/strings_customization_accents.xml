@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="customization_theme_record_red_short">लाल</string>
-    <string name="customization_theme_cassette_amber_short">एम्बर</string>
-    <string name="customization_theme_electric_cyan_short">सियान</string>
-    <string name="customization_theme_neon_emerald_short">पन्ना</string>
-    <string name="customization_theme_tape_magenta_short">मैजेंटा</string>
-    <string name="customization_theme_monochrome_short">मोनोक्रोम</string>
-</resources>
