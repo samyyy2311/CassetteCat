@@ -148,6 +148,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
     private val dataStore = context.desktopRemoteDataStore
     private val apiClient = DeviceControlApiClient(
         onCodeRejected = ::codeRejected,
+        onCertificateUntrusted = ::certificateUntrusted,
         onUnreachable = ::refindSoon,
         trustPairingCertificate = ::trustPairingCertificate
     )
@@ -406,6 +407,14 @@ class DesktopRemoteRepository private constructor(context: Context) {
                     it[DESKTOP_ACTIVE] = false
                 }
             }
+        }
+    }
+
+    // A computer paired before the connection was encrypted has no saved certificate, so it has to be paired again. One
+    // with a saved certificate stays paired: a different certificate may just be another device on the network.
+    private fun certificateUntrusted(code: String) {
+        scope.launch {
+            if (dataStore.data.first()[DESKTOP_CERTIFICATE] == null) codeRejected(code) else refindSoon()
         }
     }
 

@@ -167,6 +167,7 @@ private data class OkResponse(val ok: Boolean)
  */
 class DeviceControlApiClient(
     private val onCodeRejected: ((String) -> Unit)? = null,
+    private val onCertificateUntrusted: ((String) -> Unit)? = null,
     private val onUnreachable: (() -> Unit)? = null,
     private val trustPairingCertificate: ((DesktopCertificate) -> Unit)? = null
 ) {
@@ -181,7 +182,7 @@ class DeviceControlApiClient(
                 chain.proceed(chain.request())
             } catch (e: IOException) {
                 val code = chain.request().header("Authorization")?.removePrefix("Bearer ")
-                if (e.findUntrustedCertificateCause() != null && code != null) onCodeRejected?.invoke(code) else onUnreachable?.invoke()
+                if (e.findUntrustedCertificateCause() != null && code != null) onCertificateUntrusted?.invoke(code) else onUnreachable?.invoke()
                 throw e
             }
             response.also {
