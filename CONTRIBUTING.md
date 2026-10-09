@@ -43,7 +43,7 @@ cd app
 
 ## Translations
 
-See [`TRANSLATING.md`](TRANSLATING.md) before adding or updating translations. English is the source language, and user-facing text should use Android string resources instead of hardcoded UI strings.
+Translations are made on [Weblate](https://hosted.weblate.org/engage/cassettecat/). See [`TRANSLATING.md`](TRANSLATING.md) for guidelines. English is the source language, and user-facing text should use Android string resources instead of hardcoded UI strings.
 
 ---
 

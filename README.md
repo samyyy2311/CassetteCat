@@ -24,6 +24,7 @@
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose" /></a>
   <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-0289D5?style=flat-square&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
   <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
+  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/svg-badge.svg" alt="Translation status" /></a>
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?utm_source=oss&utm_medium=github&utm_campaign=samyyy2311%2FCassetteCat&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews" alt="CodeRabbit Pull Request Reviews" /></a>
 </p>
 
@@ -190,6 +191,12 @@ Contributions are welcome.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and
 [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used in this
 project.
+
+### Translate CassetteCat
+
+Translations are done on [Weblate](https://hosted.weblate.org/engage/cassettecat/), in your browser, with no
+coding needed. Pick a language, or add yours, and Weblate sends the changes here as a pull request. See
+[TRANSLATING.md](TRANSLATING.md) for a few guidelines.
 
 ---
 
