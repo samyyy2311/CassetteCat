@@ -452,7 +452,7 @@ private fun serverStatus(
 }
 
 @Composable
-private fun listeningRoomStatus(state: ListeningRoomState): String = when (state.role) {
+internal fun listeningRoomStatus(state: ListeningRoomState): String = when (state.role) {
     ListeningRoomRole.HOST -> pluralStringResource(
         AppR.plurals.settings_listening_room_hosting,
         state.participantCount,

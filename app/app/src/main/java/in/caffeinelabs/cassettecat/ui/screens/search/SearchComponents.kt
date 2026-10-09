@@ -50,14 +50,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.genreRuleFor
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
-enum class SearchCategory(val label: String) {
-    ALL("All"),
-    SONGS("Songs"),
-    ARTISTS("Artists"),
-    ALBUMS("Albums"),
-    GENRES("Genres"),
-    FOLDERS("Folders")
-}
+enum class SearchCategory { ALL, SONGS, ARTISTS, ALBUMS, GENRES, FOLDERS }
 
 @Composable
 internal fun SearchCategoryPills(

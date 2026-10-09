@@ -49,7 +49,6 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
-        android:localeConfig="@xml/locales_config"
         tools:targetApi="33">
 
         <!-- Android Auto only lists media apps that declare this. -->

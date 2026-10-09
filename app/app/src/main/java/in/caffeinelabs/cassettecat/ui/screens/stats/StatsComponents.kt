@@ -61,10 +61,11 @@ internal fun formatListeningTime(minutes: Long): String = when {
     else -> "%02d MIN".format(Locale.US, minutes)
 }
 
+@Composable
 internal fun formatRecordedMinutes(listeningMs: Long): String? = when {
     listeningMs < 1_000L -> null
-    listeningMs < 60_000L -> "< 1 min"
-    else -> "${listeningMs / 60_000} min"
+    listeningMs < 60_000L -> stringResource(AppR.string.stats_under_a_minute)
+    else -> stringResource(AppR.string.stats_minutes, listeningMs / 60_000)
 }
 
 internal fun isSameMonth(epochMs: Long, month: YearMonth): Boolean =
@@ -187,15 +188,19 @@ internal fun ListeningRecordReadout(
     val locale = LocalLocale.current.platformLocale
     // No year is the whole record, as on the computer's Overview.
     val subtitle = when {
-        year == null -> "RECORDED // ALL TIME"
-        isRewind -> "CASSETTE REWIND // ANNUAL RECAP $year"
-        else -> "RECORDED // ${month?.month?.getDisplayName(TextStyle.SHORT, Locale.US)?.uppercase(Locale.US) ?: ""} $year"
+        year == null -> stringResource(AppR.string.stats_recorded_all_time)
+        isRewind -> stringResource(AppR.string.stats_recorded_rewind, year)
+        else -> stringResource(
+            AppR.string.stats_recorded_month,
+            month?.month?.getDisplayName(TextStyle.SHORT, locale)?.uppercase(locale) ?: "",
+            year
+        )
     }
     val description = when {
-        listeningMinutes == 0L -> "No listening time has been recorded yet."
-        year == null -> "Total listening time"
-        isRewind -> "Total listening time for $year"
-        else -> "Listening time for this month"
+        listeningMinutes == 0L -> stringResource(AppR.string.stats_time_none)
+        year == null -> stringResource(AppR.string.stats_time_total)
+        isRewind -> stringResource(AppR.string.stats_time_year, year)
+        else -> stringResource(AppR.string.stats_time_month)
     }
 
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {

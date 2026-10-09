@@ -1,19 +1,32 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 
-enum class LibraryViewMode(val label: String) {
-    SONGS("Songs"), ARTISTS("Artists"), ALBUMS("Albums"), GENRES("Genres"), PLAYLISTS("Playlists"), FOLDERS("Folders")
+enum class LibraryViewMode(@StringRes val labelRes: Int) {
+    SONGS(AppR.string.customization_library_songs),
+    ARTISTS(AppR.string.customization_library_artists),
+    ALBUMS(AppR.string.customization_library_albums),
+    GENRES(AppR.string.customization_library_genres),
+    PLAYLISTS(AppR.string.customization_library_playlists),
+    FOLDERS(AppR.string.customization_library_folders)
 }
 
 enum class CollectionLayout { GRID, LIST }
 
-enum class SongFilter(val label: String) {
-    ALL("All songs"), FAVORITES("Favorites"), DOWNLOADED("Downloaded"), RECENTLY_ADDED("Recently added")
+enum class SongFilter(@StringRes val labelRes: Int) {
+    ALL(AppR.string.library_filter_all_songs),
+    FAVORITES(AppR.string.library_filter_favorites),
+    DOWNLOADED(AppR.string.library_filter_downloaded),
+    RECENTLY_ADDED(AppR.string.library_filter_recently_added)
 }
 
 enum class LibrarySourceFilter(val storageKey: String) {
@@ -22,9 +35,10 @@ enum class LibrarySourceFilter(val storageKey: String) {
     SUBSONIC("SUBSONIC"),
     JELLYFIN("JELLYFIN");
 
+    @Composable
     fun displayName(): String = when (this) {
-        ALL -> "All"
-        LOCAL -> "Local"
+        ALL -> stringResource(AppR.string.library_source_all)
+        LOCAL -> stringResource(AppR.string.library_source_local)
         SUBSONIC -> "Subsonic"
         JELLYFIN -> "Jellyfin"
     }
@@ -37,10 +51,36 @@ fun List<Song>.filterBySource(filter: LibrarySourceFilter): List<Song> = when (f
     LibrarySourceFilter.JELLYFIN -> filter { it.source == MusicSource.Jellyfin }
 }
 
-enum class ArtistSortOrder(val label: String) { NAME("Name"), SONG_COUNT("Song Count") }
-enum class AlbumSortOrder(val label: String) { ALBUM("Album"), ARTIST("Artist"), SONG_COUNT("Song Count") }
-enum class GenreSortOrder(val label: String) { NAME("Name"), SONG_COUNT("Song Count") }
-enum class FolderSortOrder(val label: String) { NAME("Name"), SONG_COUNT("Song Count") }
+// The sort sheet picks each option's icon and direction wording from what it orders by.
+enum class SortKind(@DrawableRes val iconRes: Int) {
+    TEXT(R.drawable.lucide_ic_arrow_up_down),
+    COUNT(R.drawable.lucide_ic_hash),
+    ALBUM(R.drawable.lucide_ic_disc_3),
+    ARTIST(R.drawable.lucide_ic_mic_vocal)
+}
+
+interface SortOption {
+    @get:StringRes val labelRes: Int
+    val kind: SortKind
+}
+
+enum class ArtistSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    NAME(AppR.string.library_sort_name, SortKind.TEXT),
+    SONG_COUNT(AppR.string.library_sort_song_count, SortKind.COUNT)
+}
+enum class AlbumSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    ALBUM(AppR.string.library_sort_album, SortKind.ALBUM),
+    ARTIST(AppR.string.library_sort_artist, SortKind.ARTIST),
+    SONG_COUNT(AppR.string.library_sort_song_count, SortKind.COUNT)
+}
+enum class GenreSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    NAME(AppR.string.library_sort_name, SortKind.TEXT),
+    SONG_COUNT(AppR.string.library_sort_song_count, SortKind.COUNT)
+}
+enum class FolderSortOrder(override val labelRes: Int, override val kind: SortKind) : SortOption {
+    NAME(AppR.string.library_sort_name, SortKind.TEXT),
+    SONG_COUNT(AppR.string.library_sort_song_count, SortKind.COUNT)
+}
 
 data class M3uImportSummary(val name: String, val matched: Int, val total: Int)
 

@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
 internal fun <T> UnderlineTabs(
     modes: List<T>,
     selected: T,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     onSelect: (T) -> Unit
 ) {
     val scrollState = rememberScrollState()

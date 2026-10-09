@@ -35,6 +35,12 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsDivider
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SheetPickerRow
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ToggleRow
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.appFontFullLabel
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.appFontShortLabel
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.backdropDescription
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.backdropLabel
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.startScreenLabel
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.themeAccentShortLabel
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
@@ -69,7 +75,7 @@ fun SetupCustomizationScreen(onFinish: () -> Unit, modifier: Modifier = Modifier
                             val isSelected = prefs.themeAccent == accent
                             AccentSwatchItem(
                                 color = Color(accent.colorValue),
-                                label = accent.label.substringBefore(" "),
+                                label = themeAccentShortLabel(accent),
                                 isSelected = isSelected,
                                 iconRes = if (isSelected) R.drawable.lucide_ic_check else null,
                                 iconTint = if (accent == ThemeAccent.MONOCHROME_SILVER) Color.Black else Color.White,
@@ -97,8 +103,8 @@ fun SetupCustomizationScreen(onFinish: () -> Unit, modifier: Modifier = Modifier
                 iconRes = R.drawable.lucide_ic_type,
                 options = AppFontFamily.entries,
                 selected = prefs.appFontFamily,
-                label = { it.shortName },
-                sheetLabel = { it.label },
+                label = { appFontShortLabel(it) },
+                sheetLabel = { appFontFullLabel(it) },
                 onSelect = viewModel::setAppFontFamily
             )
             SettingsDivider(startPadding = 0.dp, endPadding = 0.dp)
@@ -108,8 +114,8 @@ fun SetupCustomizationScreen(onFinish: () -> Unit, modifier: Modifier = Modifier
                 iconRes = R.drawable.lucide_ic_image,
                 options = NowPlayingBackdropStyle.entries,
                 selected = prefs.nowPlayingBackdropStyle,
-                label = { it.label },
-                sheetSubtitle = { it.description },
+                label = { backdropLabel(it) },
+                sheetSubtitle = { backdropDescription(it) },
                 optionLeading = { item, isSheet -> BackdropStylePreviewDot(item, size = if (isSheet) 24.dp else 12.dp) },
                 onSelect = viewModel::setNowPlayingBackdropStyle
             )
@@ -120,7 +126,7 @@ fun SetupCustomizationScreen(onFinish: () -> Unit, modifier: Modifier = Modifier
                 iconRes = R.drawable.lucide_ic_house,
                 options = DefaultStartScreen.entries,
                 selected = prefs.defaultStartScreen,
-                label = { it.label },
+                label = { startScreenLabel(it) },
                 onSelect = viewModel::setDefaultStartScreen
             )
 

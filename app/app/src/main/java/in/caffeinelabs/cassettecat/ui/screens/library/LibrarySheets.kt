@@ -52,11 +52,10 @@ import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 
 @Composable
-internal fun <T> LibraryRefineSheet(
+internal fun <T : SortOption> LibraryRefineSheet(
     filter: SongFilter,
     onFilterSelect: (SongFilter) -> Unit,
     sortOptions: List<T>,
-    sortLabelOf: (T) -> String,
     selectedSort: T,
     sortDirection: SortDirection,
     onSortSelect: (T) -> Unit,
@@ -177,7 +176,7 @@ internal fun <T> LibraryRefineSheet(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            option.label,
+                            stringResource(option.labelRes),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             ),
@@ -208,11 +207,9 @@ internal fun <T> LibraryRefineSheet(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 sortOptions.forEach { option ->
-                    val label = sortLabelOf(option)
-                    val isSelected = option == selectedSort
                     SortOptionCard(
-                        label = label,
-                        selected = isSelected,
+                        option = option,
+                        selected = option == selectedSort,
                         direction = sortDirection,
                         onClick = { onSortSelect(option) }
                     )
@@ -223,9 +220,8 @@ internal fun <T> LibraryRefineSheet(
 }
 
 @Composable
-fun <T> SortOptionsSheet(
+fun <T : SortOption> SortOptionsSheet(
     options: List<T>,
-    labelOf: (T) -> String,
     selected: T,
     direction: SortDirection,
     onSelect: (T) -> Unit,
@@ -255,9 +251,8 @@ fun <T> SortOptionsSheet(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 options.forEach { option ->
-                    val label = labelOf(option)
                     SortOptionCard(
-                        label = label,
+                        option = option,
                         selected = option == selected,
                         direction = direction,
                         onClick = {
@@ -273,7 +268,7 @@ fun <T> SortOptionsSheet(
 
 @Composable
 internal fun SortOptionCard(
-    label: String,
+    option: SortOption,
     selected: Boolean,
     direction: SortDirection,
     onClick: () -> Unit
@@ -293,14 +288,14 @@ internal fun SortOptionCard(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            painter = painterResource(sortIconFor(label)),
+            painter = painterResource(option.kind.iconRes),
             contentDescription = null,
             tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(14.dp))
         Text(
-            label,
+            stringResource(option.labelRes),
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
             ),
@@ -308,7 +303,14 @@ internal fun SortOptionCard(
             modifier = Modifier.weight(1f)
         )
         if (selected) {
-            val directionText = directionLabelFor(label, direction)
+            val ascending = direction == SortDirection.ASCENDING
+            val directionText = stringResource(
+                if (option.kind == SortKind.COUNT) {
+                    if (ascending) AppR.string.library_sort_low_high else AppR.string.library_sort_high_low
+                } else {
+                    if (ascending) AppR.string.library_sort_a_z else AppR.string.library_sort_z_a
+                }
+            )
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
@@ -335,22 +337,6 @@ internal fun SortOptionCard(
             }
         }
     }
-}
-
-private fun directionLabelFor(label: String, direction: SortDirection): String = when {
-    label.contains("Song Count", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "1 → 9" else "9 → 1"
-    label.contains("Recent", ignoreCase = true) || label.contains("Date", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Oldest" else "Newest"
-    label.contains("Duration", ignoreCase = true) -> if (direction == SortDirection.ASCENDING) "Shortest" else "Longest"
-    else -> if (direction == SortDirection.ASCENDING) "A → Z" else "Z → A"
-}
-
-private fun sortIconFor(label: String): Int = when {
-    label.contains("Song Count", ignoreCase = true) -> R.drawable.lucide_ic_hash
-    label.contains("Recent", ignoreCase = true) || label.contains("Duration", ignoreCase = true) || label.contains("Date", ignoreCase = true) -> R.drawable.lucide_ic_clock
-    label.contains("Album", ignoreCase = true) -> R.drawable.lucide_ic_disc_3
-    label.contains("Artist", ignoreCase = true) -> R.drawable.lucide_ic_mic_vocal
-    label.contains("Folder", ignoreCase = true) -> R.drawable.lucide_ic_folder
-    else -> R.drawable.lucide_ic_arrow_up_down
 }
 
 private fun SongFilter.iconRes(): Int = when (this) {

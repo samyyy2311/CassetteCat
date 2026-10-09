@@ -250,6 +250,7 @@ fun LibraryScreen(
         filteredSongs.groupedByFolder().map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
     }
 
+    val importedPlaylistName = stringResource(AppR.string.library_imported_playlist_name)
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val librarySongs = loadedState?.songs.orEmpty()
@@ -258,7 +259,7 @@ fun LibraryScreen(
                 val result = withContext(Dispatchers.IO) {
                     val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                         if (cursor.moveToFirst()) cursor.getString(0) else null
-                    }?.substringBeforeLast(".") ?: "Imported Playlist"
+                    }?.substringBeforeLast(".") ?: importedPlaylistName
                     val text = resolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     text?.let { parseM3u(it) }?.let { entries -> Triple(name, librarySongs.matchM3uEntries(entries), entries.size) }
                 }
@@ -564,7 +565,7 @@ fun LibraryScreen(
             UnderlineTabs(
                 modes = visibleModes,
                 selected = viewMode,
-                label = { it.label },
+                label = { stringResource(it.labelRes) },
                 onSelect = { mode ->
                     if (!selectionMode) pagerScope.launch { pagerState.animateScrollToPage(visibleModes.indexOf(mode)) }
                 }
@@ -649,9 +650,9 @@ fun LibraryScreen(
                             is LibraryUiState.Empty -> {
                                 EmptyState(
                                     catRes = AppR.drawable.cat_black_cassette,
-                                    title = "No music found",
-                                    message = "Pull down to rescan, or check your library scan folders.",
-                                    actionLabel = "Scan Library",
+                                    title = stringResource(AppR.string.library_no_music_title),
+                                    message = stringResource(AppR.string.library_no_music_message),
+                                    actionLabel = stringResource(AppR.string.library_scan_action),
                                     onAction = { viewModel.refresh() },
                                     modifier = Modifier.fillMaxSize()
                                 )
@@ -772,7 +773,6 @@ fun LibraryScreen(
                 filter = songFilter,
                 onFilterSelect = viewModel::setSongFilter,
                 sortOptions = SongSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = sortOrder,
                 sortDirection = sortDirection,
                 onSortSelect = { order ->
@@ -789,7 +789,6 @@ fun LibraryScreen(
                 filter = songFilter,
                 onFilterSelect = viewModel::setSongFilter,
                 sortOptions = ArtistSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = artistSortOrder,
                 sortDirection = artistSortDirection,
                 onSortSelect = { order ->
@@ -806,7 +805,6 @@ fun LibraryScreen(
                 filter = songFilter,
                 onFilterSelect = viewModel::setSongFilter,
                 sortOptions = AlbumSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = albumSortOrder,
                 sortDirection = albumSortDirection,
                 onSortSelect = { order ->
@@ -823,7 +821,6 @@ fun LibraryScreen(
                 filter = songFilter,
                 onFilterSelect = viewModel::setSongFilter,
                 sortOptions = GenreSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = genreSortOrder,
                 sortDirection = genreSortDirection,
                 onSortSelect = { order ->
@@ -840,7 +837,6 @@ fun LibraryScreen(
                 filter = songFilter,
                 onFilterSelect = viewModel::setSongFilter,
                 sortOptions = FolderSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = folderSortOrder,
                 sortDirection = folderSortDirection,
                 onSortSelect = { order ->
@@ -859,7 +855,7 @@ fun LibraryScreen(
 
     if (showNewPlaylistSheet) {
         PlaylistNameSheet(
-            title = "New Playlist",
+            title = stringResource(AppR.string.playlist_new_title),
             initialName = "",
             onConfirm = { name ->
                 showNewPlaylistSheet = false

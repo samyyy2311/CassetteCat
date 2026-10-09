@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.listeningRoomStatus
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
@@ -59,7 +60,6 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomRole
 import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
-import `in`.caffeinelabs.cassettecat.data.listeningroom.statusSubtitle
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
@@ -123,7 +123,7 @@ internal fun NowPlayingPlayerView(
         )
         if (listeningRoomState.role != ListeningRoomRole.NONE) {
             Spacer(Modifier.height(8.dp))
-            StatusPill(R.drawable.lucide_ic_users, listeningRoomState.statusSubtitle())
+            StatusPill(R.drawable.lucide_ic_users, listeningRoomStatus(listeningRoomState))
         }
         Spacer(Modifier.height(20.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))

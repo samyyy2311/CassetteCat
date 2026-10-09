@@ -240,7 +240,7 @@ private fun ArtistCatalogScreen(
                 )
             }
             if (recentTracks.isNotEmpty()) {
-                item(key = "recent-title", contentType = "section_title") { ArtistSectionTitle("Recently Added") }
+                item(key = "recent-title", contentType = "section_title") { ArtistSectionTitle(stringResource(AppR.string.artist_section_recently_added)) }
                 itemsIndexed(recentTracks, key = { _, it -> "recent:${it.id}" }, contentType = { _, _ -> "song" }) { index, song ->
                     ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
                 }
@@ -248,7 +248,7 @@ private fun ArtistCatalogScreen(
             if (albumsOnly.isNotEmpty()) {
                 item(key = "albums", contentType = "album_shelf") {
                     ArtistAlbumShelf(
-                        title = "Albums",
+                        title = stringResource(AppR.string.artist_section_albums),
                         albums = albumsOnly,
                         onAlbumClick = { onNavigateToAlbum(it.cover.albumId) }
                     )
@@ -257,7 +257,7 @@ private fun ArtistCatalogScreen(
             if (singles.isNotEmpty()) {
                 item(key = "singles", contentType = "album_shelf") {
                     ArtistAlbumShelf(
-                        title = "Singles & EPs",
+                        title = stringResource(AppR.string.artist_section_singles),
                         albums = singles,
                         onAlbumClick = { onNavigateToAlbum(it.cover.albumId) }
                     )
@@ -266,14 +266,14 @@ private fun ArtistCatalogScreen(
             if (appearsOn.isNotEmpty()) {
                 item(key = "appears", contentType = "album_shelf") {
                     ArtistAlbumShelf(
-                        title = "Appears On",
+                        title = stringResource(AppR.string.artist_section_appears_on),
                         albums = appearsOn,
                         onAlbumClick = { onNavigateToAlbum(it.cover.albumId) }
                     )
                 }
             }
             if (allSongsSorted.isNotEmpty()) {
-                item(key = "all-songs-title", contentType = "section_title") { ArtistSectionTitle("All Songs") }
+                item(key = "all-songs-title", contentType = "section_title") { ArtistSectionTitle(stringResource(AppR.string.artist_section_all_songs)) }
                 itemsIndexed(allSongsSorted, key = { _, it -> "all:${it.id}" }, contentType = { _, _ -> "song" }) { index, song ->
                     ArtistSongRow(song = song, trackIndex = index + 1, onClick = { play(song) })
                 }
@@ -293,7 +293,7 @@ private fun ArtistCatalogScreen(
                     .graphicsLayer { alpha = compactHeaderProgress },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
                 Text(
                     artist,
                     style = MaterialTheme.typography.titleLarge,
@@ -372,7 +372,7 @@ private fun ArtistAboutSection(biography: ArtistBiography) {
         )
         if (biography.text.length > 160 || biography.text.lines().size > 2) {
             Text(
-                text = if (expanded) "Show less" else "Read more",
+                text = stringResource(if (expanded) AppR.string.library_show_less else AppR.string.library_read_more),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
@@ -394,18 +394,11 @@ private fun ArtistCatalogHero(
     onPlay: () -> Unit,
     onShuffle: () -> Unit
 ) {
-    val durationText = remember(totalDurationMs) {
-        if (totalDurationMs > 0) {
-            val totalSeconds = totalDurationMs / 1000
-            val hours = totalSeconds / 3600
-            val minutes = (totalSeconds % 3600) / 60
-            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
-        } else ""
-    }
+    val durationText = collectionDurationText(totalDurationMs)
 
     val statsText = listOfNotNull(
-        "$songCount ${if (songCount == 1) "song" else "songs"}",
-        "$albumCount ${if (albumCount == 1) "album" else "albums"}",
+        pluralStringResource(AppR.plurals.library_songs, songCount, songCount),
+        pluralStringResource(AppR.plurals.library_albums, albumCount, albumCount),
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -571,7 +564,7 @@ fun AlbumDetailScreen(
     val songs = allSongs.filterBySource(sourceFilter).ifEmpty { allSongs }
 
     LibraryGroupDetailScreen(
-        title = songs.firstOrNull()?.album ?: "Album",
+        title = songs.firstOrNull()?.album ?: stringResource(AppR.string.library_sort_album),
         subtitle = songs.firstOrNull()?.artist,
         wikipediaQuery = songs.firstOrNull()?.album,
         wikipediaAlbumArtist = songs.firstOrNull()?.artist,
@@ -684,7 +677,7 @@ fun FolderDetailScreen(
 
     LibraryGroupDetailScreen(
         title = folderName,
-        subtitle = if (songs.size == 1) "1 song" else "${songs.size} songs",
+        subtitle = pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
         wikipediaQuery = null,
         artistForHero = null,
         albumHeroSong = null,
@@ -895,7 +888,7 @@ private fun LibraryGroupDetailScreen(
             if (songs.isNotEmpty()) {
                 item(contentType = "songs_header") {
                     SongSectionHeader(
-                        title = if (albumHeroSong != null) "Tracks" else if (artistForHero != null) "Popular Songs" else "Tracks",
+                        title = stringResource(if (albumHeroSong == null && artistForHero != null) AppR.string.artist_section_popular else AppR.string.album_section_tracks),
                         songs = songs,
                         onPlayAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) playAll else null,
                         onShuffleAll = if (albumHeroSong == null && artistForHero == null && folderHeroPath == null) shuffleAll else null,
@@ -1044,7 +1037,6 @@ private fun LibraryGroupDetailScreen(
                 filter = songFilter,
                 onFilterSelect = { songFilter = it },
                 sortOptions = SongSortOrder.entries,
-                sortLabelOf = { it.label },
                 selectedSort = sortOrder,
                 sortDirection = sortDirection,
                 onSortSelect = { order ->
@@ -1222,7 +1214,7 @@ private fun ArtistSongRow(
                     val (sourceLabel, sourceColor) = when (song.source) {
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
                         MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
@@ -1270,18 +1262,13 @@ private fun AlbumDetailHeader(
     onMore: () -> Unit,
     onChangeCover: (() -> Unit)? = null
 ) {
-    val durationText = if (totalDurationMs > 0) {
-        val totalSeconds = totalDurationMs / 1000
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
-    } else ""
+    val durationText = collectionDurationText(totalDurationMs)
 
     val genres = song.genres.take(1).joinToString("")
     val releaseDetails = listOfNotNull(
         genres.takeIf { it.isNotBlank() },
         song.releaseYear?.toString(),
-        "$songCount ${if (songCount == 1) "track" else "tracks"}",
+        pluralStringResource(AppR.plurals.library_tracks, songCount, songCount),
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -1389,7 +1376,7 @@ private fun AlbumDetailHeader(
                     val (sourceLabel, sourceColor) = when (song.source) {
                         MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
                         MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.Radio -> "Radio" to MaterialTheme.colorScheme.tertiary
+                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
                         MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
                     }
                     if (sourceLabel.isNotEmpty()) {
@@ -1449,7 +1436,7 @@ private fun AlbumActionsSheet(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                "Album Options",
+                stringResource(AppR.string.album_options_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
@@ -1652,7 +1639,7 @@ private fun FolderDetailHeader(
         )
 
         Text(
-            text = if (songCount == 1) "1 track" else "$songCount tracks",
+            text = pluralStringResource(AppR.plurals.library_tracks, songCount, songCount),
             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.tertiary,
             textAlign = TextAlign.Center,
@@ -1682,14 +1669,14 @@ private fun GroupDetailHeader(
         modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PressDepthIconButton(R.drawable.lucide_ic_chevron_left, "Back", onBack)
+        PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
             if (subtitle != null) {
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                if (songCount == 1) "1 song" else "$songCount songs",
+                pluralStringResource(AppR.plurals.library_songs, songCount, songCount),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1709,15 +1696,11 @@ private fun SongSectionHeader(
     onRefine: (() -> Unit)? = null,
     isRefined: Boolean = false
 ) {
-    val totalDurationText = remember(songs) {
-        if (songs.isEmpty()) "" else {
-            val totalMs = songs.sumOf { it.durationMs }
-            val totalMinutes = totalMs / (1000 * 60)
-            val hours = totalMinutes / 60
-            val minutes = totalMinutes % 60
-            if (hours > 0) "${songs.size} tracks • ${hours}h ${minutes}m" else "${songs.size} tracks • ${minutes} min"
-        }
-    }
+    val totalMs = remember(songs) { songs.sumOf { it.durationMs } }
+    val totalDurationText = if (songs.isEmpty()) "" else listOfNotNull(
+        pluralStringResource(AppR.plurals.library_tracks, songs.size, songs.size),
+        collectionDurationText(totalMs).takeIf { it.isNotEmpty() }
+    ).joinToString(" • ")
 
     Row(
         modifier = Modifier

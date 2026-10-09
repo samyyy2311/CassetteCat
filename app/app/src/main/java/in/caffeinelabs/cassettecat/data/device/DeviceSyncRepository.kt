@@ -16,7 +16,7 @@ sealed interface SyncItemState {
     data object Queued : SyncItemState
     data object Uploading : SyncItemState
     data object Done : SyncItemState
-    data class Failed(val message: String) : SyncItemState
+    data object Failed : SyncItemState
 }
 
 class DeviceSyncRepository {
@@ -52,7 +52,7 @@ class DeviceSyncRepository {
                 _syncStates.value = _syncStates.value + (song.id to SyncItemState.Uploading)
                 val ok = apiClient.uploadSong(host, port, song, network)
                 _syncStates.value = _syncStates.value + (
-                    song.id to if (ok) SyncItemState.Done else SyncItemState.Failed("Upload failed")
+                    song.id to if (ok) SyncItemState.Done else SyncItemState.Failed
                 )
             }
             refreshManifest(host, port, network)

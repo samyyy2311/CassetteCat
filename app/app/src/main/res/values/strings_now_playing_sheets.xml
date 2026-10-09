@@ -129,4 +129,17 @@
         <item quantity="one">%d min</item>
         <item quantity="other">%d min</item>
     </plurals>
+    <string name="listening_room_name">Listening Room</string>
+    <string name="listening_room_default_name">Listening Room %1$s</string>
+    <string name="listening_room_blackout_closed">Offline Blackout Mode activated. Room closed.</string>
+    <string name="listening_room_blackout_disabled">Listening Room is disabled while Offline Blackout Mode is active.</string>
+    <string name="listening_room_nobody_joined">No one joined within 2 minutes. Room closed.</string>
+    <string name="listening_room_start_failed">Couldn’t start a nearby room. Check your Wi-Fi and try again.</string>
+    <string name="listening_room_discovery_unavailable">Nearby room discovery is unavailable on this network.</string>
+    <string name="listening_room_enter_address_code">Enter the address and room code as shown by the host.</string>
+    <string name="listening_room_enter_address">Enter the address as shown on the host, such as 192.168.1.1:12345</string>
+    <string name="listening_room_join_failed">Couldn’t join this room. Check that you’re on the same Wi-Fi as the host.</string>
+    <string name="listening_room_following_notice">Following the host on this Wi-Fi network.</string>
+    <string name="listening_room_reconnecting">Reconnecting…</string>
+    <string name="listening_room_lost_host">Lost connection to the host.</string>
 </resources>

@@ -104,4 +104,9 @@
     <string name="update_prompt_title">Update available</string>
     <string name="update_prompt_message">CassetteCat %1$s is ready to download. Your library, playlists and settings stay as they are.</string>
     <string name="settings_updates_failed">Couldn’t check, tap to retry</string>
+    <string name="connect_error_unknown_host">Couldn\'t find that server. Check the URL.</string>
+    <string name="connect_error_unreachable">Couldn\'t reach the server. Check the URL and that it\'s running.</string>
+    <string name="connect_error_timeout">The server took too long to respond. Check the URL and your connection.</string>
+    <string name="connect_error_generic">Couldn\'t connect</string>
+    <string name="connect_error_quick_connect_expired">The Quick Connect code expired. Try again.</string>
 </resources>

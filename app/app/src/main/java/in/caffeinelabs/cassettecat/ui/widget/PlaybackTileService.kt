@@ -66,9 +66,9 @@ class PlaybackTileService : TileService() {
         val title = c.mediaMetadata.title?.toString()
         qsTile?.apply {
             state = if (isPlaying) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-            label = title ?: "CassetteCat"
+            label = title ?: getString(R.string.app_name)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                subtitle = if (isPlaying) "Playing" else "Paused"
+                subtitle = getString(if (isPlaying) R.string.tile_playing else R.string.tile_paused)
             }
             icon = Icon.createWithResource(this@PlaybackTileService, if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play)
             updateTile()

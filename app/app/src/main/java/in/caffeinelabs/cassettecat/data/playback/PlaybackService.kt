@@ -511,7 +511,7 @@ class PlaybackService : MediaLibraryService() {
         val favoriteButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
             .setCustomIconResId(favoriteIconRes)
             .setSessionCommand(SessionCommand(ACTION_CUSTOM_FAVORITE, Bundle.EMPTY))
-            .setDisplayName(if (isFavorite) "Unfavorite" else "Favorite")
+            .setDisplayName(getString(if (isFavorite) R.string.notification_unfavorite else R.string.notification_favorite))
             .build()
 
         val shuffleIconRes = if (isShuffle) {
@@ -522,7 +522,7 @@ class PlaybackService : MediaLibraryService() {
         val shuffleButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
             .setCustomIconResId(shuffleIconRes)
             .setSessionCommand(SessionCommand(ACTION_CUSTOM_SHUFFLE, Bundle.EMPTY))
-            .setDisplayName(if (isShuffle) "Shuffle on" else "Shuffle off")
+            .setDisplayName(getString(if (isShuffle) R.string.notification_shuffle_on else R.string.notification_shuffle_off))
             .build()
 
         return listOf(favoriteButton, shuffleButton)

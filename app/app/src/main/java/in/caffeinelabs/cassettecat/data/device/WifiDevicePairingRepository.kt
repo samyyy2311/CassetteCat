@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import `in`.caffeinelabs.cassettecat.R
 
 private const val SOFT_AP_HOST = "192.168.4.1"
 private const val SOFT_AP_PORT = 80
@@ -64,7 +65,7 @@ class WifiDevicePairingRepository(private val context: Context) {
                 searchJob = scope.launch {
                     delay(15000)
                     if (_pairingState.value is DevicePairingState.Searching) {
-                        _pairingState.value = DevicePairingState.Failed(mode, "No CassetteCat device found on this Wi-Fi network.")
+                        _pairingState.value = DevicePairingState.Failed(mode, context.getString(R.string.pairing_not_found_wifi))
                     }
                 }
             }
@@ -85,7 +86,7 @@ class WifiDevicePairingRepository(private val context: Context) {
                 }
                 attempts++
             }
-            _pairingState.value = DevicePairingState.Failed(mode, "No CassetteCat device found on Wi-Fi hotspot.")
+            _pairingState.value = DevicePairingState.Failed(mode, context.getString(R.string.pairing_not_found_hotspot))
         }
     }
 
@@ -116,12 +117,12 @@ class WifiDevicePairingRepository(private val context: Context) {
                         attempts++
                         delay(1200)
                     }
-                    _pairingState.value = DevicePairingState.Failed(mode, "Connected to the hotspot, but the player didn't respond.")
+                    _pairingState.value = DevicePairingState.Failed(mode, context.getString(R.string.pairing_hotspot_no_response))
                 }
             }
 
             override fun onUnavailable() {
-                _pairingState.value = DevicePairingState.Failed(mode, "Couldn't join the CassetteCat hotspot. Make sure the player is powered on.")
+                _pairingState.value = DevicePairingState.Failed(mode, context.getString(R.string.pairing_hotspot_join_failed))
             }
 
             override fun onLost(network: Network) {
@@ -129,7 +130,7 @@ class WifiDevicePairingRepository(private val context: Context) {
                     searchJob?.cancel()
                     searchJob = null
                     boundNetwork = null
-                    _pairingState.value = DevicePairingState.Failed(mode, "Lost connection to the CassetteCat hotspot.")
+                    _pairingState.value = DevicePairingState.Failed(mode, context.getString(R.string.pairing_hotspot_lost))
                 }
             }
         }
@@ -154,7 +155,7 @@ class WifiDevicePairingRepository(private val context: Context) {
         _pairingState.value = if (status != null) {
             DevicePairingState.Connected(device.copy(status = status))
         } else {
-            DevicePairingState.Failed(device.connectionType, "The player stopped responding.")
+            DevicePairingState.Failed(device.connectionType, context.getString(R.string.pairing_player_stopped))
         }
     }
 
@@ -166,7 +167,7 @@ class WifiDevicePairingRepository(private val context: Context) {
     private fun startMdnsDiscovery() {
         val listener = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(serviceType: String?, errorCode: Int) {
-                _pairingState.value = DevicePairingState.Failed(DeviceConnectionType.STATION, "Network discovery failed ($errorCode)")
+                _pairingState.value = DevicePairingState.Failed(DeviceConnectionType.STATION, context.getString(R.string.pairing_discovery_failed, errorCode))
             }
 
             override fun onStopDiscoveryFailed(serviceType: String?, errorCode: Int) {}

@@ -10,6 +10,8 @@ plugins {
 android {
     namespace = "in.caffeinelabs.cassettecat"
     compileSdk = 37
+    // Lists the app's translations for Android 13+'s per-app language setting.
+    androidResources.generateLocaleConfig = true
     // Extracts the native libraries' debug symbols for Play; CI installs this version.
     ndkVersion = "28.2.13676358"
 

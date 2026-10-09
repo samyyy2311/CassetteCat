@@ -1354,7 +1354,7 @@ private fun themeAccentLabel(accent: ThemeAccent): String = stringResource(
 )
 
 @Composable
-private fun themeAccentShortLabel(accent: ThemeAccent): String = stringResource(
+internal fun themeAccentShortLabel(accent: ThemeAccent): String = stringResource(
     when (accent) {
         ThemeAccent.RECORD_RED -> AppR.string.customization_theme_record_red_short
         ThemeAccent.CASSETTE_AMBER -> AppR.string.customization_theme_cassette_amber_short
@@ -1427,7 +1427,7 @@ private fun albumCornerDescription(style: AlbumArtCornerStyle): String = stringR
 )
 
 @Composable
-private fun startScreenLabel(screen: DefaultStartScreen): String = stringResource(
+internal fun startScreenLabel(screen: DefaultStartScreen): String = stringResource(
     when (screen) {
         DefaultStartScreen.HOME -> AppR.string.customization_start_home
         DefaultStartScreen.LIBRARY -> AppR.string.customization_start_library
@@ -1478,7 +1478,7 @@ private fun lyricsActiveStyleLabel(style: LyricsActiveStyle): String = stringRes
 )
 
 @Composable
-private fun appFontShortLabel(font: AppFontFamily): String = stringResource(
+internal fun appFontShortLabel(font: AppFontFamily): String = stringResource(
     when (font) {
         AppFontFamily.SPACE_GROTESK -> AppR.string.customization_font_space_grotesk
         AppFontFamily.IBM_PLEX_SANS -> AppR.string.customization_font_ibm_sans
@@ -1493,7 +1493,7 @@ private fun appFontShortLabel(font: AppFontFamily): String = stringResource(
 )
 
 @Composable
-private fun appFontFullLabel(font: AppFontFamily): String = stringResource(
+internal fun appFontFullLabel(font: AppFontFamily): String = stringResource(
     when (font) {
         AppFontFamily.SPACE_GROTESK -> AppR.string.customization_font_space_grotesk_full
         AppFontFamily.IBM_PLEX_SANS -> AppR.string.customization_font_ibm_sans_full
@@ -1523,7 +1523,7 @@ private fun lyricsFontFamilyLabel(font: LyricsFontFamily): String = stringResour
 )
 
 @Composable
-private fun backdropLabel(style: NowPlayingBackdropStyle): String = stringResource(
+internal fun backdropLabel(style: NowPlayingBackdropStyle): String = stringResource(
     when (style) {
         NowPlayingBackdropStyle.ATMOSPHERE_BLUR -> AppR.string.customization_backdrop_atmosphere
         NowPlayingBackdropStyle.LIQUID_GRADIENT -> AppR.string.customization_backdrop_liquid
@@ -1533,7 +1533,7 @@ private fun backdropLabel(style: NowPlayingBackdropStyle): String = stringResour
 )
 
 @Composable
-private fun backdropDescription(style: NowPlayingBackdropStyle): String = stringResource(
+internal fun backdropDescription(style: NowPlayingBackdropStyle): String = stringResource(
     when (style) {
         NowPlayingBackdropStyle.ATMOSPHERE_BLUR -> AppR.string.customization_backdrop_atmosphere_description
         NowPlayingBackdropStyle.LIQUID_GRADIENT -> AppR.string.customization_backdrop_liquid_description

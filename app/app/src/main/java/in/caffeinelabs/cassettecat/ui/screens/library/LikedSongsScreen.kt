@@ -19,6 +19,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -61,17 +62,10 @@ fun LikedSongsScreen(
     val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
 
     val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
-    val durationText = remember(totalDurationMs) {
-        if (totalDurationMs > 0) {
-            val totalSeconds = totalDurationMs / 1000
-            val hours = totalSeconds / 3600
-            val minutes = (totalSeconds % 3600) / 60
-            if (hours > 0) "${hours}h ${minutes}m" else "${minutes} min"
-        } else ""
-    }
+    val durationText = collectionDurationText(totalDurationMs)
 
     val subtitleDetails = listOfNotNull(
-        if (songs.size == 1) "1 song" else "${songs.size} songs",
+        pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
         durationText.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -136,8 +130,8 @@ fun LikedSongsScreen(
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
                     EmptyState(
                         catRes = AppR.drawable.cat_gray_dancing,
-                        title = "No liked songs yet",
-                        message = "Tap the heart on any track to keep it here.",
+                        title = stringResource(AppR.string.liked_empty_title),
+                        message = stringResource(AppR.string.liked_empty_message),
                         modifier = Modifier.fillMaxSize()
                     )
                 }

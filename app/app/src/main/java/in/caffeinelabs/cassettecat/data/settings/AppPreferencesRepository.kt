@@ -93,109 +93,57 @@ private val RADIO_SELECTED_LANGUAGE = stringPreferencesKey("radio_selected_langu
 private val RADIO_SELECTED_TAG = stringPreferencesKey("radio_selected_tag")
 private val RADIO_DEFAULT_COUNTRY_APPLIED = booleanPreferencesKey("radio_default_country_applied")
 
-enum class ThemeAccent(val label: String, val colorValue: Long, val containerValue: Long) {
-    RECORD_RED("Record Red", 0xFFC23B30, 0xFF3A1512),
-    CASSETTE_AMBER("Cassette Amber", 0xFFF59E0B, 0xFF3D2606),
-    ELECTRIC_CYAN("Electric Cyan", 0xFF06B6D4, 0xFF082F3B),
-    NEON_EMERALD("Neon Emerald", 0xFF10B981, 0xFF062E20),
-    TAPE_MAGENTA("Tape Magenta", 0xFFEC4899, 0xFF3B0D24),
-    MONOCHROME_SILVER("Monochrome", 0xFFC4C4C0, 0xFF262624),
-    CUSTOM("Custom", 0xFFC23B30, 0xFF3A1512)
+enum class ThemeAccent(val colorValue: Long, val containerValue: Long) {
+    RECORD_RED(0xFFC23B30, 0xFF3A1512),
+    CASSETTE_AMBER(0xFFF59E0B, 0xFF3D2606),
+    ELECTRIC_CYAN(0xFF06B6D4, 0xFF082F3B),
+    NEON_EMERALD(0xFF10B981, 0xFF062E20),
+    TAPE_MAGENTA(0xFFEC4899, 0xFF3B0D24),
+    MONOCHROME_SILVER(0xFFC4C4C0, 0xFF262624),
+    CUSTOM(0xFFC23B30, 0xFF3A1512)
 }
 
-enum class DefaultLibraryTab(val label: String) {
-    SONGS("Songs"),
-    ARTISTS("Artists"),
-    ALBUMS("Albums"),
-    GENRES("Genres"),
-    PLAYLISTS("Playlists"),
-    FOLDERS("Folders")
+enum class DefaultLibraryTab { SONGS, ARTISTS, ALBUMS, GENRES, PLAYLISTS, FOLDERS }
+
+enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOTTEN_FAVORITES }
+
+enum class MiniPlayerAction { NEXT, PREVIOUS, FAVORITE, QUEUE, REPEAT }
+
+enum class AlbumArtCornerStyle(val radiusDp: Int) {
+    CURVED(16),
+    SOFT(8),
+    SQUARE(0)
 }
 
-enum class HomeSection(val label: String) {
-    HEAVY_ROTATION("Heavy Rotation"),
-    RECENTLY_PLAYED("Recently Played"),
-    RECENTLY_ADDED("Recently Added"),
-    FORGOTTEN_FAVORITES("Forgotten Favorites")
+enum class DefaultStartScreen(val routeName: String) {
+    HOME("home"),
+    LIBRARY("library"),
+    LAST_OPENED("")
 }
 
-enum class MiniPlayerAction(val label: String) {
-    NEXT("Next track"),
-    PREVIOUS("Previous track"),
-    FAVORITE("Favorite"),
-    QUEUE("Queue"),
-    REPEAT("Repeat mode")
+enum class LyricsFontSize(val scaleMultiplier: Float) {
+    SMALL(0.85f),
+    MEDIUM(1.0f),
+    LARGE(1.25f)
 }
 
-enum class AlbumArtCornerStyle(val shortName: String, val label: String, val radiusDp: Int) {
-    CURVED("Curved", "Curved (16dp)", 16),
-    SOFT("Soft", "Soft (8dp)", 8),
-    SQUARE("Square", "Vinyl / Square (0dp)", 0)
+enum class TrackRowDensity { DETAILED, COMPACT }
+
+enum class DefaultSortMetric { TITLE, ARTIST, ALBUM }
+
+enum class LyricsAlignment { CENTER, LEFT }
+
+enum class LyricsActiveStyle { ACCENT_GLOW, CLEAN_WHITE }
+
+enum class AppFontFamily {
+    SPACE_GROTESK, IBM_PLEX_SANS, IBM_PLEX_MONO, SILKSCREEN, VT323, MONOCRAFT, SYSTEM_DEFAULT, SYSTEM_SERIF, SYSTEM_MONO
 }
 
-enum class DefaultStartScreen(val label: String, val routeName: String) {
-    HOME("Home", "home"),
-    LIBRARY("Library", "library"),
-    LAST_OPENED("Last active tab", "")
+enum class LyricsFontFamily {
+    SPACE_GROTESK, IBM_PLEX_SANS, IBM_PLEX_MONO, SILKSCREEN, VT323, MONOCRAFT, SYSTEM_DEFAULT, SYSTEM_SERIF, SYSTEM_MONO
 }
 
-enum class LyricsFontSize(val label: String, val scaleMultiplier: Float) {
-    SMALL("Small", 0.85f),
-    MEDIUM("Standard", 1.0f),
-    LARGE("Large", 1.25f)
-}
-
-enum class TrackRowDensity(val label: String) {
-    DETAILED("Detailed"),
-    COMPACT("Compact")
-}
-
-enum class DefaultSortMetric(val label: String) {
-    TITLE("Title"),
-    ARTIST("Artist"),
-    ALBUM("Album")
-}
-
-enum class LyricsAlignment(val label: String) {
-    CENTER("Centre (Karaoke)"),
-    LEFT("Left (Editorial)")
-}
-
-enum class LyricsActiveStyle(val label: String) {
-    ACCENT_GLOW("Accent Glow"),
-    CLEAN_WHITE("Pure White")
-}
-
-enum class AppFontFamily(val shortName: String, val label: String) {
-    SPACE_GROTESK("Space Grotesk", "Space Grotesk (Default)"),
-    IBM_PLEX_SANS("IBM Plex Sans", "IBM Plex Sans (Clean UI)"),
-    IBM_PLEX_MONO("IBM Plex Mono", "IBM Plex Mono (Retro Tech)"),
-    SILKSCREEN("Silkscreen", "Silkscreen (8-bit Arcade)"),
-    VT323("VT323", "VT323 (Retro CRT Terminal)"),
-    MONOCRAFT("Monocraft", "Monocraft (Pixel Monospace)"),
-    SYSTEM_DEFAULT("System Sans", "System Default (Sans-serif)"),
-    SYSTEM_SERIF("System Serif", "System Serif (Editorial)"),
-    SYSTEM_MONO("System Mono", "System Monospace")
-}
-
-enum class LyricsFontFamily(val label: String) {
-    SPACE_GROTESK("Space Grotesk"),
-    IBM_PLEX_SANS("IBM Plex Sans"),
-    IBM_PLEX_MONO("IBM Plex Mono"),
-    SILKSCREEN("Silkscreen (8-bit)"),
-    VT323("VT323 (CRT)"),
-    MONOCRAFT("Monocraft (Pixel)"),
-    SYSTEM_DEFAULT("System Sans-serif"),
-    SYSTEM_SERIF("System Serif"),
-    SYSTEM_MONO("System Monospace")
-}
-
-enum class NowPlayingBackdropStyle(val label: String, val description: String) {
-    ATMOSPHERE_BLUR("Atmosphere Blur", "Full-bleed blurred album art with cinematic dark scrim"),
-    LIQUID_GRADIENT("Liquid Gradient", "Dynamic reactive mesh blur with organic drift"),
-    AMBIENT_GLOW("Ambient Glow", "Soft luminous aura centered behind artwork"),
-    OLED_BLACK("Obsidian", "True pitch black backdrop with subtle contrast")
-}
+enum class NowPlayingBackdropStyle { ATMOSPHERE_BLUR, LIQUID_GRADIENT, AMBIENT_GLOW, OLED_BLACK }
 
 data class AppPreferences(
     val themeAccent: ThemeAccent = ThemeAccent.RECORD_RED,

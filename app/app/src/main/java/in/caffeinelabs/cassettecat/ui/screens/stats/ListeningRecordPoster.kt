@@ -87,10 +87,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class ListeningRecordTheme(val label: String) {
-    ATMOSPHERE("Atmosphere"),
-    OBSIDIAN("Obsidian")
-}
+enum class ListeningRecordTheme { ATMOSPHERE, OBSIDIAN }
 
 internal fun buildListeningRecordPoster(
     context: Context,
@@ -506,7 +503,7 @@ internal fun ListeningRecordPreviewCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Rewind",
+                    text = stringResource(AppR.string.poster_rewind),
                     style = MaterialTheme.typography.titleLarge.copy(fontSize = 17.sp),
                     fontFamily = SpaceGroteskFontFamily,
                     fontWeight = FontWeight.Bold,
