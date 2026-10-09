@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">परिचय और कानूनी जानकारी</string>
+    <string name="about_subtitle">ऑडियो DSP, डेटा सोर्स, प्राइवेसी और अनुमतियां</string>
+    <string name="about_version">v%1$s</string>
+    <string name="about_audio_engine_title">ऑडियो इंजन और हाई-फ़ाई DSP</string>
+    <string name="about_audio_engine_body">32-बिट फ़्लोट इंटरनल ऑडियो प्रोसेसिंग के साथ बिट-परफ़ेक्ट लोकल प्लेबैक। पैरामेट्रिक इक्वलाइज़ेशन और हेडफ़ोन फ़्रीक्वेंसी रिस्पॉन्स सुधार कर्व Jaakko Pasanen के कैलिब्रेटेड AutoEq डेटाबेस से आते हैं।</string>
+    <string name="about_data_sources_title">डेटा सोर्स</string>
+    <string name="about_data_sources_body">रियल-टाइम सिंक और सादे बोल LRCLIB से आते हैं। एल्बम कवर और मेटाडेटा MusicBrainz और Cover Art Archive से लिए जाते हैं। कलाकारों की जीवनी और जानकारी Wikipedia और Wikimedia (CC BY-SA 4.0) से ली जाती है।</string>
+    <string name="about_data_sources_cache">बिना रुकावट ऑफ़लाइन प्लेबैक के लिए मेटाडेटा और बोल डिवाइस पर सेव रहते हैं।</string>
+    <string name="about_privacy_title">प्राइवेसी और लोकल-फ़र्स्ट डेटा</string>
+    <string name="about_privacy_body">सुनने की हिस्ट्री, आंकड़े, पसंदीदा और प्लेलिस्ट सिर्फ़ आपके डिवाइस पर रहते हैं। कोई यूज़र अकाउंट ज़रूरी नहीं। कोई एनालिटिक्स या विज्ञापन SDK शामिल नहीं हैं। अगर ऐप क्रैश होता है, तो गड़बड़ी सिर्फ़ आपके डिवाइस की एक फ़ाइल में दर्ज होती है, कहीं भेजी नहीं जाती; आप इसे सेटिंग → प्राइवेसी → क्रैश लॉग में देख, शेयर या साफ़ कर सकते हैं।</string>
+    <string name="about_privacy_credentials">सेव किए गए स्ट्रीमिंग सर्वर पासवर्ड और एक्सेस टोकन हार्डवेयर-आधारित Android Keystore से एन्क्रिप्ट किए जाते हैं।</string>
+    <string name="about_permissions_title">इस्तेमाल की गई अनुमतियां</string>
+    <string name="about_permission_music_title">संगीत और ऑडियो</string>
+    <string name="about_permission_music_description">आपके डिवाइस पर रखी ऑडियो फ़ाइलें ढूंढने और चलाने के लिए ज़रूरी।</string>
+    <string name="about_permission_notifications_title">सूचनाएं</string>
+    <string name="about_permission_notifications_description">वैकल्पिक। स्टेटस बार और लॉक स्क्रीन पर बैकग्राउंड प्लेबैक कंट्रोल के लिए।</string>
+    <string name="about_permission_wifi_title">आस-पास के Wi-Fi डिवाइस</string>
+    <string name="about_permission_wifi_description">वैकल्पिक। आपके Wi-Fi नेटवर्क पर CassetteCat साथी प्लेयर ढूंढने के लिए।</string>
+    <string name="about_permission_bluetooth_title">Bluetooth</string>
+    <string name="about_permission_bluetooth_description">वैकल्पिक। सिर्फ़ उस Bluetooth स्पीकर या हेडफ़ोन का नाम दिखाने के लिए जिस पर आप सुन रहे हैं।</string>
+    <string name="about_feedback_title">सुझाव और ओपन सोर्स</string>
+    <string name="about_feedback_body">कोई बग मिला, कोई फ़ीचर चाहिए, या सोर्स कोड देखना है? CassetteCat मुफ़्त और ओपन सोर्स सॉफ़्टवेयर है, जो GNU GPL v3.0 लाइसेंस के तहत है।</string>
+    <string name="about_website">आधिकारिक वेबसाइट</string>
+    <string name="about_privacy_policy">प्राइवेसी नीति</string>
+    <string name="about_terms">सेवा की शर्तें</string>
+    <string name="about_github">GitHub इश्यू और सोर्स कोड</string>
+</resources>

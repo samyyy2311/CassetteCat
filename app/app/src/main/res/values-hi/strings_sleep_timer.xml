@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_timer_title">स्लीप टाइमर</string>
+    <string name="sleep_timer_description">चुने गए समय के बाद प्लेबैक अपने आप रोकें।</string>
+    <string name="sleep_timer_set_section">टाइमर सेट करें</string>
+    <string name="sleep_timer_end_of_song">मौजूदा गाने के आखिर में</string>
+    <plurals name="sleep_timer_minutes">
+        <item quantity="one">%d मिनट</item>
+        <item quantity="other">%d मिनट</item>
+    </plurals>
+    <string name="sleep_timer_behavior_section">व्यवहार</string>
+    <string name="sleep_timer_fade_title">आवाज़ धीरे-धीरे कम करें</string>
+    <string name="sleep_timer_fade_description">आखिरी %1$ds में आवाज़ धीरे-धीरे कम करें</string>
+    <string name="sleep_timer_fade_duration">फ़ेड-आउट अवधि</string>
+    <string name="sleep_timer_fade_duration_description">आवाज़ को पूरी तरह शांत होने में कितना समय लगे</string>
+    <string name="sleep_timer_seconds_short">%1$ds</string>
+    <string name="sleep_timer_finish_song">गाना खत्म होने दें</string>
+    <string name="sleep_timer_finish_song_description">ट्रैक को बीच में कटने से बचाएं</string>
+    <string name="sleep_timer_active_section">चालू टाइमर</string>
+    <string name="sleep_timer_active">स्लीप टाइमर चालू है</string>
+    <string name="sleep_timer_turn_off">बंद करें</string>
+</resources>

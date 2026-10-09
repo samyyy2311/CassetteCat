@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="equalizer_title">इक्वलाइज़र</string>
+    <string name="equalizer_reset">EQ रीसेट करें</string>
+    <string name="equalizer_idle_title">ऑडियो DSP निष्क्रिय</string>
+    <string name="equalizer_idle_message">इक्वलाइज़र और ऑडियो इफ़ेक्ट जोड़ने के लिए कोई गाना चलाएं।</string>
+    <string name="equalizer_headphone_calibration_section">हेडफ़ोन कैलिब्रेशन (AUTOEQ)</string>
+    <string name="equalizer_select_headphone">हेडफ़ोन मॉडल चुनें</string>
+    <string name="equalizer_autoeq_applied">AutoEq कर्व लागू हुआ</string>
+    <string name="equalizer_calibrated_models">%1$d+ कैलिब्रेटेड मॉडल</string>
+    <string name="equalizer_presets_section">प्रीसेट</string>
+    <string name="equalizer_save_preset">प्रीसेट सेव करें</string>
+    <string name="equalizer_frequency_bands_section">फ़्रीक्वेंसी बैंड</string>
+    <string name="equalizer_audio_enhancements_section">ऑडियो सुधार</string>
+    <string name="equalizer_bass_boost">बास बूस्ट</string>
+    <string name="equalizer_surround_virtualizer">सराउंड वर्चुअलाइज़र</string>
+    <string name="equalizer_loudness_dynamics_section">लाउडनेस और डायनेमिक्स</string>
+    <string name="equalizer_preamp_gain">प्री-एम्प गेन</string>
+    <string name="equalizer_loudness_normalization">लाउडनेस नॉर्मलाइज़ेशन</string>
+    <string name="equalizer_loudness_normalization_description">अलग-अलग ऑडियो सोर्स की आवाज़ बराबर रखें</string>
+    <string name="equalizer_save_dialog_title">इक्वलाइज़र प्रीसेट सेव करें</string>
+    <string name="equalizer_save_dialog_message">मौजूदा बैंड लेवल, बास बूस्ट और प्री-एम्प गेन को कस्टम प्रीसेट के रूप में सेव करें।</string>
+    <string name="equalizer_save_dialog_placeholder">जैसे, ज़्यादा बास, साफ़ आवाज़</string>
+    <string name="equalizer_calibration_title">हेडफ़ोन कैलिब्रेशन</string>
+    <string name="equalizer_calibration_description">AutoEq के कैलिब्रेटेड फ़्रीक्वेंसी रिस्पॉन्स कर्व</string>
+    <string name="equalizer_search_placeholder">ब्रांड या मॉडल ढूंढें (जैसे, Sony, HD 600)…</string>
+    <string name="equalizer_selected">चुना गया</string>
+    <string name="equalizer_delete_preset">प्रीसेट मिटाएं</string>
+</resources>

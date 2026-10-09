@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_card_title">शेयर कार्ड</string>
+    <string name="share_lyric_quote_title">बोल की पंक्तियां शेयर करें</string>
+    <string name="share_mode_song">गाना</string>
+    <string name="share_mode_lyrics">बोल</string>
+    <string name="share_theme_atmosphere">माहौल</string>
+    <string name="share_theme_obsidian">ऑब्सिडियन</string>
+    <string name="share_select_different_lyrics">दूसरी पंक्तियां चुनें</string>
+    <string name="share_copy_text">टेक्स्ट कॉपी करें</string>
+    <string name="share_copied">क्लिपबोर्ड पर कॉपी हुआ</string>
+    <string name="share_lyrics_copied">बोल क्लिपबोर्ड पर कॉपी हुए</string>
+    <string name="share_track_credit">%1$s - %2$s</string>
+    <string name="share_to_stories">स्टोरीज़ पर शेयर करें</string>
+</resources>
