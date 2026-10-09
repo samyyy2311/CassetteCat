@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private val shortcutAction = mutableStateOf<String?>(null)
     private val shortcutQuery = mutableStateOf<String?>(null)
     private val shortcutMediaType = mutableStateOf<String?>(null)
+    private val shortcutArtist = mutableStateOf<String?>(null)
     // ScreenCaptureCallback crashes on class verification below API 34.
     private val screenshotCallback: Activity.ScreenCaptureCallback? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -75,10 +76,12 @@ class MainActivity : ComponentActivity() {
                             shortcutAction = shortcutAction.value,
                             shortcutQuery = shortcutQuery.value,
                             shortcutMediaType = shortcutMediaType.value,
+                            shortcutArtist = shortcutArtist.value,
                             onShortcutHandled = {
                                 shortcutAction.value = null
                                 shortcutQuery.value = null
                                 shortcutMediaType.value = null
+                                shortcutArtist.value = null
                             },
                             modifier = Modifier.fillMaxSize()
                         )
@@ -97,14 +100,25 @@ class MainActivity : ComponentActivity() {
     private fun handleShortcutIntent(intent: Intent?) {
         // "Play ... on CassetteCat" from voice assistants arrives as a media search with the words in SearchManager.QUERY.
         if (intent?.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
+            val artist = intent.getStringExtra(MediaStore.EXTRA_MEDIA_ARTIST)
+            // The focus says whether the words name a song, album, artist or playlist, with that name in its own extra.
+            val (mediaType, query) = when (intent.getStringExtra(MediaStore.EXTRA_MEDIA_FOCUS)) {
+                MediaStore.Audio.Media.ENTRY_CONTENT_TYPE -> "SONG" to intent.getStringExtra(MediaStore.EXTRA_MEDIA_TITLE)
+                MediaStore.Audio.Albums.ENTRY_CONTENT_TYPE -> "ALBUM" to intent.getStringExtra(MediaStore.EXTRA_MEDIA_ALBUM)
+                MediaStore.Audio.Artists.ENTRY_CONTENT_TYPE -> "ARTIST" to artist
+                MediaStore.Audio.Playlists.ENTRY_CONTENT_TYPE -> "PLAYLIST" to intent.getStringExtra(MediaStore.EXTRA_MEDIA_PLAYLIST)
+                else -> null to null
+            }
             shortcutAction.value = AppShortcutAction.PLAY_MEDIA
-            shortcutQuery.value = intent.getStringExtra(SearchManager.QUERY)
-            shortcutMediaType.value = null
+            shortcutQuery.value = query ?: intent.getStringExtra(SearchManager.QUERY)
+            shortcutMediaType.value = mediaType.takeIf { query != null }
+            shortcutArtist.value = artist.takeIf { mediaType == "SONG" }
             return
         }
         shortcutAction.value = intent?.action?.takeIf { it in AppShortcutAction.all }
         shortcutQuery.value = intent?.getStringExtra("query")
         shortcutMediaType.value = intent?.getStringExtra("mediaType")
+        shortcutArtist.value = null
     }
 
     private fun requestHighestRefreshRate() {
