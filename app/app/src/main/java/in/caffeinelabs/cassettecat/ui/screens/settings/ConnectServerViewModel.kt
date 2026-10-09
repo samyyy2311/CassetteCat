@@ -1,6 +1,8 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinApiException
+import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicApiException
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -88,7 +90,7 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
             val deadline = System.currentTimeMillis() + QUICK_CONNECT_TIMEOUT_MS
             fun checkNotExpired() {
                 if (System.currentTimeMillis() >= deadline) {
-                    throw IllegalStateException("Quick Connect code expired. Try again.")
+                    throw JellyfinApiException(getApplication<Application>().getString(AppR.string.connect_error_quick_connect_expired))
                 }
             }
             while (true) {
@@ -127,7 +129,7 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-    // API exceptions already contain user-readable messages; only map raw network failures.
+    // Only the servers' API errors carry messages meant for people; anything else gets a plain explanation.
     private fun Throwable.toConnectionState(): ConnectionState {
         val untrusted = findUntrustedCertificateCause()
         if (untrusted != null) return ConnectionState.UntrustedCertificate(untrusted.fingerprint)
@@ -138,7 +140,9 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
         is UnknownHostException -> getApplication<Application>().getString(AppR.string.connect_error_unknown_host)
         is ConnectException -> getApplication<Application>().getString(AppR.string.connect_error_unreachable)
         is SocketTimeoutException -> getApplication<Application>().getString(AppR.string.connect_error_timeout)
-        else -> message ?: getApplication<Application>().getString(AppR.string.connect_error_generic)
+        is JellyfinApiException, is SubsonicApiException ->
+            message ?: getApplication<Application>().getString(AppR.string.connect_error_generic)
+        else -> getApplication<Application>().getString(AppR.string.connect_error_generic)
     }
 
     private suspend fun connectSubsonic(serverUrl: String, username: String, password: String): ConnectionState {

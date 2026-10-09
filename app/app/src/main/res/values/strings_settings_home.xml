@@ -108,4 +108,5 @@
     <string name="connect_error_unreachable">Couldn\'t reach the server. Check the URL and that it\'s running.</string>
     <string name="connect_error_timeout">The server took too long to respond. Check the URL and your connection.</string>
     <string name="connect_error_generic">Couldn\'t connect</string>
+    <string name="connect_error_quick_connect_expired">The Quick Connect code expired. Try again.</string>
 </resources>
