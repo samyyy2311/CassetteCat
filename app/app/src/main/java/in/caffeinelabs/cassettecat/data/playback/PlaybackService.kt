@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -153,6 +154,7 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onCreate() {
         super.onCreate()
+        CassetteWidgetProvider.onWidgetsAdded = { mediaSession?.player?.let(::syncWidgetState) }
         favoritesRepository = FavoritesRepository(this)
         libraryTree = MediaLibraryTree(this)
 
@@ -425,6 +427,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        CassetteWidgetProvider.onWidgetsAdded = null
         cancelFlipTimeout()
         shakeDetector?.stop()
         flipDetector?.stop()
@@ -743,6 +746,7 @@ class PlaybackService : MediaLibraryService() {
         val artworkData = metadata.artworkData
         val artworkUri = metadata.artworkUri
 
+        val generation = SystemClock.elapsedRealtimeNanos()
         syncWidgetJob?.cancel()
         syncWidgetJob = serviceScope.launch(Dispatchers.Default) {
             val hasWidgets = CassetteWidgetProvider.hasActiveWidgets(this@PlaybackService)
@@ -754,15 +758,17 @@ class PlaybackService : MediaLibraryService() {
                 } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
             } else null
 
-            // Runs without widgets too, so one added mid-song starts with the right title.
-            runCatching {
-                CassetteWidgetProvider.updateAllWidgets(
-                    context = this@PlaybackService,
-                    title = title,
-                    artist = artist,
-                    isPlaying = isPlaying,
-                    artBitmap = artBitmap
-                )
+            if (hasWidgets) {
+                runCatching {
+                    CassetteWidgetProvider.updateAllWidgets(
+                        context = this@PlaybackService,
+                        generation = generation,
+                        title = title,
+                        artist = artist,
+                        isPlaying = isPlaying,
+                        artBitmap = artBitmap
+                    )
+                }
             }
             runCatching {
                 TileService.requestListeningState(this@PlaybackService, ComponentName(this@PlaybackService, PlaybackTileService::class.java))

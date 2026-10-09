@@ -28,6 +28,8 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId, state.title, state.artist, state.isPlaying, state.art)
         }
+        // A running player redraws with the current cover, which is only looked up while widgets exist.
+        onWidgetsAdded?.invoke()
     }
 
     companion object {
@@ -35,6 +37,10 @@ class CassetteWidgetProvider : AppWidgetProvider() {
 
         // Matches the player while the app is running; after the app has been closed the saved song shows as paused.
         @Volatile private var current: WidgetState? = null
+        private var appliedGeneration = 0L
+
+        // Set by the playback service while it runs.
+        @Volatile var onWidgetsAdded: (() -> Unit)? = null
 
         private const val PREFS = "cassette_widget"
         private const val KEY_TITLE = "title"
@@ -70,11 +76,21 @@ class CassetteWidgetProvider : AppWidgetProvider() {
 
         fun updateAllWidgets(
             context: Context,
+            generation: Long,
             title: String?,
             artist: String?,
             isPlaying: Boolean,
             artBitmap: Bitmap?
         ) {
+            // Cover lookups can finish out of order; an older song must not replace a newer one.
+            synchronized(this) {
+                if (generation < appliedGeneration) return
+                appliedGeneration = generation
+                show(context, title, artist, isPlaying, artBitmap)
+            }
+        }
+
+        private fun show(context: Context, title: String?, artist: String?, isPlaying: Boolean, artBitmap: Bitmap?) {
             runCatching {
                 val state = WidgetState(title, artist, isPlaying, artBitmap)
                 current = state
