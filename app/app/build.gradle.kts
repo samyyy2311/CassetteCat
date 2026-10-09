@@ -10,6 +10,8 @@ plugins {
 android {
     namespace = "in.caffeinelabs.cassettecat"
     compileSdk = 37
+    // Extracts the native libraries' debug symbols for Play; CI installs this version.
+    ndkVersion = "28.2.13676358"
 
     dependenciesInfo {
         includeInApk = false
