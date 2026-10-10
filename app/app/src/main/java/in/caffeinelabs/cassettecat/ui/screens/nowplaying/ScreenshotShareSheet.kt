@@ -27,6 +27,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -301,11 +302,13 @@ private fun shareCardModeLabel(mode: ShareCardMode): String = stringResource(
     }
 )
 
+/** What every share preview sits on: the theme's background, with the cover blurred behind it for Atmosphere. */
 @Composable
-private fun SongSharePreviewCard(
+private fun ShareCardBackground(
     song: Song,
     theme: LyricCardTheme,
-    modifier: Modifier = Modifier
+    modifier: Modifier,
+    content: @Composable BoxScope.() -> Unit
 ) {
     Box(
         modifier = modifier
@@ -339,6 +342,17 @@ private fun SongSharePreviewCard(
             }
         }
 
+        content()
+    }
+}
+
+@Composable
+private fun SongSharePreviewCard(
+    song: Song,
+    theme: LyricCardTheme,
+    modifier: Modifier = Modifier
+) {
+    ShareCardBackground(song, theme, modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -408,38 +422,7 @@ internal fun LyricSharePreviewCard(
     theme: LyricCardTheme,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .then(
-                when (theme) {
-                    LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
-                    LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color.Black)
-                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
-                }
-            )
-    ) {
-        if (theme == LyricCardTheme.ATMOSPHERE) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AlbumArt(
-                    song = song,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(50.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.85f))
-                            )
-                        )
-                )
-            }
-        }
-
+    ShareCardBackground(song, theme, modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
