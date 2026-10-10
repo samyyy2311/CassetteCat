@@ -279,60 +279,15 @@ internal fun ScreenshotShareSheet(
                     }
                 )
 
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = stringResource(AppR.string.share_whatsapp),
-                    packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
-                    backgroundColor = Color(0xFF25D366),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
-                                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
-                            } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
+                ShareImageActions { target ->
+                    scope.launch {
+                        val artBitmap = loadSongArtwork(context, song)
+                        val bitmap = withContext(Dispatchers.Default) {
+                            generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
                         }
+                        shareImage(context, bitmap, trackCredit, target, selectedTheme)
                     }
-                )
-
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_instagram,
-                    label = stringResource(AppR.string.share_stories),
-                    packageNames = listOf("com.instagram.android"),
-                    backgroundBrush = Brush.linearGradient(
-                        listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
-                    ),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            shareImageToInstagramStories(context, bitmap, trackCredit, selectedTheme)
-                        }
-                    }
-                )
-
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_share_2,
-                    label = stringResource(AppR.string.share_more),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            shareImageWithApp(context, bitmap, trackCredit, null)
-                        }
-                    }
-                )
+                }
             }
         }
     }
@@ -566,6 +521,57 @@ private fun LyricSharePreviewCard(
                 )
             }
         }
+    }
+}
+
+internal enum class ShareTarget { WHATSAPP, INSTAGRAM_STORIES, OTHER }
+
+private val whatsAppPackages = listOf("com.whatsapp", "com.whatsapp.w4b")
+
+/** The WhatsApp, Instagram Stories and More buttons that end every share sheet. */
+@Composable
+internal fun ShareImageActions(onShare: (ShareTarget) -> Unit) {
+    ShareActionPill(
+        iconRes = AppR.drawable.ic_logo_whatsapp,
+        label = stringResource(AppR.string.share_whatsapp),
+        packageNames = whatsAppPackages,
+        backgroundColor = Color(0xFF25D366),
+        iconTint = Color.White,
+        onClick = { onShare(ShareTarget.WHATSAPP) }
+    )
+    ShareActionPill(
+        iconRes = AppR.drawable.ic_logo_instagram,
+        label = stringResource(AppR.string.share_stories),
+        packageNames = listOf("com.instagram.android"),
+        backgroundBrush = Brush.linearGradient(listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))),
+        iconTint = Color.White,
+        onClick = { onShare(ShareTarget.INSTAGRAM_STORIES) }
+    )
+    ShareActionPill(
+        iconRes = R.drawable.lucide_ic_share_2,
+        label = stringResource(AppR.string.share_more),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        iconTint = MaterialTheme.colorScheme.onSurface,
+        onClick = { onShare(ShareTarget.OTHER) }
+    )
+}
+
+internal suspend fun shareImage(
+    context: Context,
+    bitmap: Bitmap,
+    title: String,
+    target: ShareTarget,
+    storyTheme: LyricCardTheme = LyricCardTheme.ATMOSPHERE
+) {
+    when (target) {
+        ShareTarget.WHATSAPP -> {
+            val installed = whatsAppPackages.firstOrNull { pkg ->
+                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
+            }
+            shareImageWithApp(context, bitmap, title, installed ?: whatsAppPackages.first())
+        }
+        ShareTarget.INSTAGRAM_STORIES -> shareImageToInstagramStories(context, bitmap, title, storyTheme)
+        ShareTarget.OTHER -> shareImageWithApp(context, bitmap, title, null)
     }
 }
 

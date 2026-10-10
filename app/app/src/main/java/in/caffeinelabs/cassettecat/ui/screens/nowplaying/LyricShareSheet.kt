@@ -173,60 +173,15 @@ fun LyricShareSheet(
                     }
                 )
 
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = stringResource(AppR.string.share_whatsapp),
-                    packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
-                    backgroundColor = Color(0xFF25D366),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
-                                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
-                            } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
+                ShareImageActions { target ->
+                    scope.launch {
+                        val artBitmap = loadSongArtwork(context, song)
+                        val bitmap = withContext(Dispatchers.Default) {
+                            buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
                         }
+                        shareImage(context, bitmap, trackCredit, target)
                     }
-                )
-
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_instagram,
-                    label = stringResource(AppR.string.share_stories),
-                    packageNames = listOf("com.instagram.android"),
-                    backgroundBrush = Brush.linearGradient(
-                        listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
-                    ),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            shareImageToInstagramStories(context, bitmap, trackCredit)
-                        }
-                    }
-                )
-
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_share_2,
-                    label = stringResource(AppR.string.share_more),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            shareImageWithApp(context, bitmap, trackCredit, null)
-                        }
-                    }
-                )
+                }
             }
         }
     }
