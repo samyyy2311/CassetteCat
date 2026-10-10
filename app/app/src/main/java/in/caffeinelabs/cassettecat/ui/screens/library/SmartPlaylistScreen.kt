@@ -177,16 +177,7 @@ fun SmartPlaylistScreen(
     val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
 
     val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
-    val durationText = if (totalDurationMs > 0) {
-        val totalSeconds = totalDurationMs / 1000
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        if (hours > 0) {
-            stringResource(AppR.string.smart_playlist_duration_hours_minutes, hours, minutes)
-        } else {
-            stringResource(AppR.string.smart_playlist_duration_minutes, minutes)
-        }
-    } else ""
+    val durationText = collectionDurationText(totalDurationMs)
 
     val songsCountText = pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size)
     val subtitleDetails = listOfNotNull(

@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.components.SourceTag
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
@@ -170,24 +171,6 @@ internal fun RowScope.SongListRowContent(
         } else ""
     }
 
-    val sourceLabel = when (song.source) {
-        MusicSource.Local -> stringResource(AppR.string.library_source_local)
-        MusicSource.Subsonic -> stringResource(AppR.string.source_subsonic)
-        MusicSource.Jellyfin -> stringResource(AppR.string.source_jellyfin)
-        MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room)
-        MusicSource.Radio -> stringResource(AppR.string.source_radio)
-        MusicSource.Desktop, MusicSource.Computer -> stringResource(AppR.string.source_desktop)
-    }
-
-    val sourceColor = when (song.source) {
-        MusicSource.Local -> MaterialTheme.colorScheme.onSurfaceVariant
-        MusicSource.Subsonic -> Color(0xFFFF8500)
-        MusicSource.Jellyfin -> Color(0xFF00A4DC)
-        MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.tertiary
-        MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
-        MusicSource.Desktop, MusicSource.Computer -> MaterialTheme.colorScheme.tertiary
-    }
-
     Box(
         modifier = Modifier
             .size(artSize)
@@ -233,16 +216,7 @@ internal fun RowScope.SongListRowContent(
             overflow = TextOverflow.Ellipsis
         )
         if (song.source != MusicSource.Local) {
-            Text(
-                text = sourceLabel,
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
-                color = sourceColor,
-                modifier = Modifier
-                    .padding(top = 2.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(sourceColor.copy(alpha = 0.12f))
-                    .padding(horizontal = 4.dp, vertical = 1.dp)
-            )
+            SourceTag(song.source, Modifier.padding(top = 2.dp))
         }
     }
 

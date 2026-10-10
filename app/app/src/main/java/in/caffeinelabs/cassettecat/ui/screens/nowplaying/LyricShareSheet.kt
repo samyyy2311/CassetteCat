@@ -3,23 +3,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapShader
-import android.graphics.Canvas
-import android.graphics.LinearGradient
-import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
-import android.graphics.Shader
-import android.graphics.Typeface
-import android.text.Layout
-import android.text.StaticLayout
-import android.text.TextPaint
 import android.widget.Toast
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,18 +13,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -53,31 +33,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.scale
-import androidx.core.graphics.toColorInt
-import androidx.core.graphics.withTranslation
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
-import `in`.caffeinelabs.cassettecat.ui.util.loadCanvasTypefaces
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,7 +108,7 @@ fun LyricShareSheet(
                     .aspectRatio(4f / 5f)
                     .clip(RoundedCornerShape(20.dp))
             ) {
-                LyricQuoteCard(
+                LyricSharePreviewCard(
                     song = song,
                     lines = selectedLines,
                     theme = selectedTheme
@@ -173,189 +139,15 @@ fun LyricShareSheet(
                     }
                 )
 
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = stringResource(AppR.string.share_whatsapp),
-                    packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
-                    backgroundColor = Color(0xFF25D366),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
-                                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
-                            } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
+                ShareImageActions { target ->
+                    scope.launch {
+                        val artBitmap = loadSongArtwork(context, song)
+                        val bitmap = withContext(Dispatchers.Default) {
+                            generateSharePoster(context, song, ShareCardMode.LYRICS, selectedLines, selectedTheme, artBitmap)
                         }
+                        shareImage(context, bitmap, trackCredit, target)
                     }
-                )
-
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_instagram,
-                    label = stringResource(AppR.string.share_stories),
-                    packageNames = listOf("com.instagram.android"),
-                    backgroundBrush = Brush.linearGradient(
-                        listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
-                    ),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            shareImageToInstagramStories(context, bitmap, trackCredit)
-                        }
-                    }
-                )
-
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_share_2,
-                    label = stringResource(AppR.string.share_more),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                buildLyricCardPoster(context, song, selectedLines, selectedTheme, artBitmap)
-                            }
-                            shareImageWithApp(context, bitmap, trackCredit, null)
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LyricQuoteCard(
-    song: Song,
-    lines: List<String>,
-    theme: LyricCardTheme,
-    modifier: Modifier = Modifier
-) {
-    val fontSize = if (lines.size <= 2) 21.sp else 17.5.sp
-    val lineHeight = if (lines.size <= 2) 28.sp else 24.sp
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .then(
-                when (theme) {
-                    LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
-                    LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color.Black)
-                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
                 }
-            )
-    ) {
-        if (theme == LyricCardTheme.ATMOSPHERE) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AlbumArt(
-                    song = song,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(50.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.Black.copy(alpha = 0.45f),
-                                    Color.Black.copy(alpha = 0.85f)
-                                )
-                            )
-                        )
-                )
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(22.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                ) {
-                    AlbumArt(song = song, modifier = Modifier.fillMaxSize(), thumbnail = false)
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.70f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_quote),
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.40f),
-                    modifier = Modifier.size(24.dp)
-                )
-                lines.forEach { line ->
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = fontSize,
-                            lineHeight = lineHeight,
-                            fontFamily = SpaceGroteskFontFamily,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color.White
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(AppR.string.app_name),
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
-                    color = Color.White.copy(alpha = 0.45f)
-                )
-                Icon(
-                    painter = painterResource(R.drawable.lucide_ic_cassette_tape),
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.45f),
-                    modifier = Modifier.size(16.dp)
-                )
             }
         }
     }
@@ -400,230 +192,3 @@ internal fun lyricCardThemeLabel(theme: LyricCardTheme): String = stringResource
         LyricCardTheme.OBSIDIAN -> AppR.string.share_theme_obsidian
     }
 )
-
-private fun buildLyricCardPoster(
-    context: Context,
-    song: Song,
-    lines: List<String>,
-    theme: LyricCardTheme,
-    artBitmap: Bitmap?
-): Bitmap {
-    val width = 2160
-    val height = 2700
-    val bitmap = createBitmap(width, height)
-    val canvas = Canvas(bitmap)
-
-    val cardRadius = 96f
-    val cardPath = Path().apply {
-        addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, Path.Direction.CW)
-    }
-    canvas.clipPath(cardPath)
-
-    val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = loadCanvasTypefaces(context)
-    val tapeDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_cassette_tape)?.mutate()
-
-    when (theme) {
-        LyricCardTheme.ATMOSPHERE -> {
-            if (artBitmap != null) {
-                val blurred = createFastBlurredBitmap(artBitmap)
-                val filterPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
-                    isFilterBitmap = true
-                    isDither = true
-                }
-                canvas.drawBitmap(blurred, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), filterPaint)
-
-                val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    shader = LinearGradient(
-                        0f, 0f, 0f, height.toFloat(),
-                        intArrayOf(
-                            android.graphics.Color.argb(110, 0, 0, 0),
-                            android.graphics.Color.argb(225, 10, 9, 8)
-                        ),
-                        floatArrayOf(0f, 1f),
-                        Shader.TileMode.CLAMP
-                    )
-                }
-                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), scrimPaint)
-            } else {
-                val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    shader = LinearGradient(
-                        0f, 0f, 0f, height.toFloat(),
-                        intArrayOf(
-                            "#261E1A".toColorInt(),
-                            "#14110F".toColorInt(),
-                            "#0A0908".toColorInt()
-                        ),
-                        floatArrayOf(0f, 0.5f, 1f),
-                        Shader.TileMode.CLAMP
-                    )
-                }
-                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
-            }
-        }
-        LyricCardTheme.OBSIDIAN -> {
-            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.BLACK
-            }
-            canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), cardRadius, cardRadius, bgPaint)
-
-            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = "#1E1E1E".toColorInt()
-                style = Paint.Style.STROKE
-                strokeWidth = 6f
-            }
-            canvas.drawRoundRect(RectF(3f, 3f, width - 3f, height - 3f), cardRadius, cardRadius, borderPaint)
-        }
-    }
-
-    val thumbSize = 240f
-    val thumbLeft = 180f
-    val thumbTop = 160f
-    val thumbRect = RectF(thumbLeft, thumbTop, thumbLeft + thumbSize, thumbTop + thumbSize)
-
-    if (artBitmap != null) {
-        val shader = BitmapShader(artBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        val matrix = Matrix()
-        val scale = thumbSize / minOf(artBitmap.width, artBitmap.height)
-        val dx = thumbLeft - (artBitmap.width * scale - thumbSize) / 2f
-        val dy = thumbTop - (artBitmap.height * scale - thumbSize) / 2f
-        matrix.setScale(scale, scale)
-        matrix.postTranslate(dx, dy)
-        shader.setLocalMatrix(matrix)
-
-        val thumbPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
-            this.shader = shader
-            isFilterBitmap = true
-            isDither = true
-        }
-        canvas.drawRoundRect(thumbRect, 44f, 44f, thumbPaint)
-    } else {
-        val placeholderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = "#221F1D".toColorInt()
-        }
-        canvas.drawRoundRect(thumbRect, 44f, 44f, placeholderPaint)
-    }
-
-    val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 84f
-        typeface = spaceGroteskBold
-        fontVariationSettings = "'wght' 600"
-    }
-    val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
-    canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
-
-    val headerArtistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-        color = android.graphics.Color.argb(180, 255, 255, 255)
-        textSize = 58f
-        typeface = Typeface.DEFAULT
-    }
-    val safeHeaderArtist = if (song.artist.length > 32) song.artist.take(30) + "…" else song.artist
-    canvas.drawText(safeHeaderArtist, thumbLeft + thumbSize + 48f, thumbTop + 192f, headerArtistPaint)
-
-    val validLines = lines.filter { it.isNotBlank() }
-    val (fontSize, lineSpacingMult, extraSpacing, qSize, spacingBetween) = when {
-        validLines.size <= 2 -> listOf(124f, 1.26f, 20f, 120f, 32f)
-        validLines.size <= 5 -> listOf(104f, 1.22f, 16f, 106f, 28f)
-        else -> listOf(92f, 1.20f, 12f, 96f, 24f)
-    }
-
-    val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = fontSize
-        typeface = spaceGroteskSemiBold
-        fontVariationSettings = "'wght' 500"
-    }
-
-    val textToDraw = validLines.joinToString("\n")
-    val textMargin = 180f
-    val textWidth = (width - (textMargin * 2f)).toInt()
-    val staticLayout = StaticLayout.Builder.obtain(textToDraw, 0, textToDraw.length, lyricPaint, textWidth)
-        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-        .setLineSpacing(extraSpacing, lineSpacingMult)
-        .build()
-
-    val availableTop = thumbTop + thumbSize + 60f
-    val availableBottom = height - 220f
-    val availableHeight = availableBottom - availableTop
-    val totalBlockHeight = qSize + spacingBetween + staticLayout.height
-    val blockStartY = maxOf(availableTop, availableTop + ((availableHeight - totalBlockHeight) / 2f).coerceAtLeast(0f))
-
-    val quoteDrawable = ContextCompat.getDrawable(context, R.drawable.lucide_ic_quote)?.mutate()
-    if (quoteDrawable != null) {
-        quoteDrawable.setTint(android.graphics.Color.argb(102, 255, 255, 255))
-        quoteDrawable.setBounds(textMargin.toInt(), blockStartY.toInt(), (textMargin + qSize).toInt(), (blockStartY + qSize).toInt())
-        quoteDrawable.draw(canvas)
-    }
-
-    val textStartY = blockStartY + qSize + spacingBetween
-    canvas.withTranslation(textMargin, textStartY) {
-        staticLayout.draw(this)
-    }
-
-    val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-        color = android.graphics.Color.argb(128, 255, 255, 255)
-        textSize = 58f
-        typeface = ibmPlexMono
-    }
-    canvas.drawText(context.getString(AppR.string.app_name), 180f, height - 160f, footerPaint)
-
-    val tapeSize = 78
-    if (tapeDrawable != null) {
-        tapeDrawable.setTint(android.graphics.Color.argb(128, 255, 255, 255))
-        tapeDrawable.setBounds(
-            width - 180 - tapeSize,
-            height - 216,
-            width - 180,
-            height - 216 + tapeSize
-        )
-        tapeDrawable.draw(canvas)
-    }
-
-    return bitmap
-}
-
-private fun createFastBlurredBitmap(src: Bitmap): Bitmap {
-    val downW = 128
-    val downH = 160
-    val small = src.scale(downW, downH)
-    val pixels = IntArray(downW * downH)
-    small.getPixels(pixels, 0, downW, 0, 0, downW, downH)
-    fastBoxBlur(pixels, downW, downH, 8)
-    fastBoxBlur(pixels, downW, downH, 8)
-    fastBoxBlur(pixels, downW, downH, 8)
-    small.setPixels(pixels, 0, downW, 0, 0, downW, downH)
-    return small
-}
-
-private fun fastBoxBlur(pixels: IntArray, w: Int, h: Int, radius: Int) {
-    val temp = IntArray(pixels.size)
-    for (y in 0 until h) {
-        val rowOffset = y * w
-        for (x in 0 until w) {
-            var r = 0; var g = 0; var b = 0; var count = 0
-            for (dx in -radius..radius) {
-                val nx = (x + dx).coerceIn(0, w - 1)
-                val c = pixels[rowOffset + nx]
-                r += (c shr 16) and 0xFF
-                g += (c shr 8) and 0xFF
-                b += c and 0xFF
-                count++
-            }
-            temp[rowOffset + x] = (0xFF shl 24) or ((r / count) shl 16) or ((g / count) shl 8) or (b / count)
-        }
-    }
-    for (x in 0 until w) {
-        for (y in 0 until h) {
-            var r = 0; var g = 0; var b = 0; var count = 0
-            for (dy in -radius..radius) {
-                val ny = (y + dy).coerceIn(0, h - 1)
-                val c = temp[ny * w + x]
-                r += (c shr 16) and 0xFF
-                g += (c shr 8) and 0xFF
-                b += c and 0xFF
-                count++
-            }
-            pixels[y * w + x] = (0xFF shl 24) or ((r / count) shl 16) or ((g / count) shl 8) or (b / count)
-        }
-    }
-}

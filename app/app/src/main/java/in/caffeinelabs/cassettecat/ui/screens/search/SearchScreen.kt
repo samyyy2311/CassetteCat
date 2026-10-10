@@ -62,6 +62,7 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.components.SourceTag
 import `in`.caffeinelabs.cassettecat.data.library.SearchHistoryRepository
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.ArtistImage
@@ -810,23 +811,10 @@ private fun SearchArtistRow(artistGroup: ArtistGroup, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 val remoteSource = artistGroup.songs.firstOrNull { it.source != MusicSource.Local }?.source
-                if (remoteSource != null && artistGroup.songs.all { it.source == remoteSource }) {
-                    val (srcLabel, srcColor) = when (remoteSource) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        else -> "" to Color.Unspecified
-                    }
-                    if (srcLabel.isNotEmpty()) {
-                        Text(
-                            text = srcLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
-                            color = srcColor,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(srcColor.copy(alpha = 0.12f))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                    }
+                if ((remoteSource == MusicSource.Subsonic || remoteSource == MusicSource.Jellyfin) &&
+                    artistGroup.songs.all { it.source == remoteSource }
+                ) {
+                    SourceTag(remoteSource)
                 }
             }
         }

@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -43,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.components.color
+import `in`.caffeinelabs.cassettecat.ui.components.label
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.AudioTrackFormat
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
@@ -276,24 +277,7 @@ internal fun TitleRow(
                     AudioQualityBadge(audioFormat = it)
                 }
                 if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
-                    val sourceLabel = stringResource(
-                        when (song.source) {
-                            MusicSource.Subsonic -> AppR.string.source_subsonic
-                            MusicSource.Jellyfin -> AppR.string.source_jellyfin
-                            MusicSource.Radio -> AppR.string.source_radio
-                            MusicSource.ListeningRoomHost -> AppR.string.source_room
-                            MusicSource.Desktop, MusicSource.Computer -> AppR.string.source_desktop
-                            MusicSource.Local -> AppR.string.app_name
-                        }
-                    )
-                    val sourceColor = when (song.source) {
-                        MusicSource.Subsonic -> Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> Color(0xFF00A4DC)
-                        MusicSource.Radio -> MaterialTheme.colorScheme.tertiary
-                        MusicSource.ListeningRoomHost -> MaterialTheme.colorScheme.secondary
-                        MusicSource.Desktop, MusicSource.Computer -> MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local -> Color.Unspecified
-                    }
+                    val sourceColor = song.source.color()
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(3.dp))
@@ -302,7 +286,7 @@ internal fun TitleRow(
                             .padding(horizontal = 5.dp, vertical = 1.5.dp)
                     ) {
                         Text(
-                            text = sourceLabel,
+                            text = song.source.label(),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontFamily = IbmPlexMonoFontFamily,
                                 fontSize = 9.5.sp,

@@ -27,6 +27,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -279,60 +280,15 @@ internal fun ScreenshotShareSheet(
                     }
                 )
 
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_whatsapp,
-                    label = stringResource(AppR.string.share_whatsapp),
-                    packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
-                    backgroundColor = Color(0xFF25D366),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
-                                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
-                            } ?: "com.whatsapp"
-                            shareImageWithApp(context, bitmap, trackCredit, targetPkg)
+                ShareImageActions { target ->
+                    scope.launch {
+                        val artBitmap = loadSongArtwork(context, song)
+                        val bitmap = withContext(Dispatchers.Default) {
+                            generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
                         }
+                        shareImage(context, bitmap, trackCredit, target, selectedTheme)
                     }
-                )
-
-                ShareActionPill(
-                    iconRes = AppR.drawable.ic_logo_instagram,
-                    label = stringResource(AppR.string.share_stories),
-                    packageNames = listOf("com.instagram.android"),
-                    backgroundBrush = Brush.linearGradient(
-                        listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
-                    ),
-                    iconTint = Color.White,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            shareImageToInstagramStories(context, bitmap, trackCredit, selectedTheme)
-                        }
-                    }
-                )
-
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_share_2,
-                    label = stringResource(AppR.string.share_more),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        scope.launch {
-                            val artBitmap = loadSongArtwork(context, song)
-                            val bitmap = withContext(Dispatchers.Default) {
-                                generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                            }
-                            shareImageWithApp(context, bitmap, trackCredit, null)
-                        }
-                    }
-                )
+                }
             }
         }
     }
@@ -346,11 +302,13 @@ private fun shareCardModeLabel(mode: ShareCardMode): String = stringResource(
     }
 )
 
+/** What every share preview sits on: the theme's background, with the cover blurred behind it for Atmosphere. */
 @Composable
-private fun SongSharePreviewCard(
+private fun ShareCardBackground(
     song: Song,
     theme: LyricCardTheme,
-    modifier: Modifier = Modifier
+    modifier: Modifier,
+    content: @Composable BoxScope.() -> Unit
 ) {
     Box(
         modifier = modifier
@@ -384,6 +342,17 @@ private fun SongSharePreviewCard(
             }
         }
 
+        content()
+    }
+}
+
+@Composable
+private fun SongSharePreviewCard(
+    song: Song,
+    theme: LyricCardTheme,
+    modifier: Modifier = Modifier
+) {
+    ShareCardBackground(song, theme, modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -447,44 +416,13 @@ private fun SongSharePreviewCard(
 }
 
 @Composable
-private fun LyricSharePreviewCard(
+internal fun LyricSharePreviewCard(
     song: Song,
     lines: List<String>,
     theme: LyricCardTheme,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .then(
-                when (theme) {
-                    LyricCardTheme.ATMOSPHERE -> Modifier.background(Color(0xFF141210))
-                    LyricCardTheme.OBSIDIAN -> Modifier
-                        .background(Color.Black)
-                        .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(20.dp))
-                }
-            )
-    ) {
-        if (theme == LyricCardTheme.ATMOSPHERE) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AlbumArt(
-                    song = song,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(50.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.85f))
-                            )
-                        )
-                )
-            }
-        }
-
+    ShareCardBackground(song, theme, modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -569,6 +507,57 @@ private fun LyricSharePreviewCard(
     }
 }
 
+internal enum class ShareTarget { WHATSAPP, INSTAGRAM_STORIES, OTHER }
+
+private val whatsAppPackages = listOf("com.whatsapp", "com.whatsapp.w4b")
+
+/** The WhatsApp, Instagram Stories and More buttons that end every share sheet. */
+@Composable
+internal fun ShareImageActions(onShare: (ShareTarget) -> Unit) {
+    ShareActionPill(
+        iconRes = AppR.drawable.ic_logo_whatsapp,
+        label = stringResource(AppR.string.share_whatsapp),
+        packageNames = whatsAppPackages,
+        backgroundColor = Color(0xFF25D366),
+        iconTint = Color.White,
+        onClick = { onShare(ShareTarget.WHATSAPP) }
+    )
+    ShareActionPill(
+        iconRes = AppR.drawable.ic_logo_instagram,
+        label = stringResource(AppR.string.share_stories),
+        packageNames = listOf("com.instagram.android"),
+        backgroundBrush = Brush.linearGradient(listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))),
+        iconTint = Color.White,
+        onClick = { onShare(ShareTarget.INSTAGRAM_STORIES) }
+    )
+    ShareActionPill(
+        iconRes = R.drawable.lucide_ic_share_2,
+        label = stringResource(AppR.string.share_more),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        iconTint = MaterialTheme.colorScheme.onSurface,
+        onClick = { onShare(ShareTarget.OTHER) }
+    )
+}
+
+internal suspend fun shareImage(
+    context: Context,
+    bitmap: Bitmap,
+    title: String,
+    target: ShareTarget,
+    storyTheme: LyricCardTheme = LyricCardTheme.ATMOSPHERE
+) {
+    when (target) {
+        ShareTarget.WHATSAPP -> {
+            val installed = whatsAppPackages.firstOrNull { pkg ->
+                runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
+            }
+            shareImageWithApp(context, bitmap, title, installed ?: whatsAppPackages.first())
+        }
+        ShareTarget.INSTAGRAM_STORIES -> shareImageToInstagramStories(context, bitmap, title, storyTheme)
+        ShareTarget.OTHER -> shareImageWithApp(context, bitmap, title, null)
+    }
+}
+
 @Composable
 internal fun ShareActionPill(
     iconRes: Int,
@@ -645,7 +634,7 @@ internal fun ShareActionPill(
     }
 }
 
-private fun generateSharePoster(
+internal fun generateSharePoster(
     context: Context,
     song: Song,
     mode: ShareCardMode,

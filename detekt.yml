@@ -1,0 +1,14 @@
+# Codacy runs detekt with this file. Only rules that misjudge Jetpack Compose or data files are relaxed;
+# security, exception and potential-bug rules keep their defaults.
+complexity:
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+  StringLiteralDuplication:
+    excludes: ['**/test/**', '**/AutoEqProfiles.kt']
+
+style:
+  # return@launch and similar labels are how Kotlin returns from a lambda.
+  LabeledExpression:
+    active: false

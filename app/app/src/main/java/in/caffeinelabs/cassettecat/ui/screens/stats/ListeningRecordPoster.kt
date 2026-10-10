@@ -74,9 +74,8 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
-import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareActionPill
-import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImageToInstagramStories
-import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImageWithApp
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareImageActions
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImage
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexSansFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
@@ -883,42 +882,9 @@ internal fun ListeningRecordShareSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ShareActionPill(
-                        iconRes = AppR.drawable.ic_logo_whatsapp,
-                        label = stringResource(AppR.string.share_whatsapp),
-                        packageNames = listOf("com.whatsapp", "com.whatsapp.w4b"),
-                        backgroundColor = Color(0xFF25D366),
-                        iconTint = Color.White,
-                        onClick = {
-                            sharePoster { bitmap ->
-                                val targetPkg = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { pkg ->
-                                    runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
-                                } ?: "com.whatsapp"
-                                shareImageWithApp(context, bitmap, periodTitle, targetPkg)
-                            }
-                        }
-                    )
-                    ShareActionPill(
-                        iconRes = AppR.drawable.ic_logo_instagram,
-                        label = stringResource(AppR.string.share_stories),
-                        packageNames = listOf("com.instagram.android"),
-                        backgroundBrush = Brush.linearGradient(
-                            listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737))
-                        ),
-                        iconTint = Color.White,
-                        onClick = {
-                            sharePoster { bitmap -> shareImageToInstagramStories(context, bitmap, periodTitle) }
-                        }
-                    )
-                    ShareActionPill(
-                        iconRes = R.drawable.lucide_ic_share_2,
-                        label = stringResource(AppR.string.share_more),
-                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        iconTint = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            sharePoster { bitmap -> shareImageWithApp(context, bitmap, periodTitle, null) }
-                        }
-                    )
+                    ShareImageActions { target ->
+                        sharePoster { bitmap -> shareImage(context, bitmap, periodTitle, target) }
+                    }
                 }
             }
         }
