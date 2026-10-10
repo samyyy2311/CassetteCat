@@ -1,0 +1,12 @@
+﻿{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "CassetteCat",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": ["introduction"]
+      }
+    ]
+  }
+}
