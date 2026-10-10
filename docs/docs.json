@@ -2,10 +2,57 @@
   "$schema": "https://mintlify.com/docs.json",
   "name": "CassetteCat",
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "pages": ["introduction"]
+        "tab": "User Guide",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "guide/getting-started"
+            ]
+          },
+          {
+            "group": "Features & Audio",
+            "pages": [
+              "guide/playback-and-sound",
+              "guide/library-and-playlists",
+              "guide/listening-room",
+              "guide/streaming-and-radio"
+            ]
+          },
+          {
+            "group": "Platform & Utilities",
+            "pages": [
+              "guide/desktop",
+              "guide/car-widgets-shortcuts",
+              "guide/backup-and-privacy",
+              "guide/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Docs",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "dev/architecture",
+              "dev/building",
+              "dev/how-to"
+            ]
+          },
+          {
+            "group": "Protocols & Customization",
+            "pages": [
+              "dev/desktop-remote-protocol",
+              "dev/theme",
+              "dev/releasing"
+            ]
+          }
+        ]
       }
     ]
   }
