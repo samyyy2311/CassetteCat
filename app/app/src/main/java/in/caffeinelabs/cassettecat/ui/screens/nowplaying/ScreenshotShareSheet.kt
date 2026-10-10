@@ -402,7 +402,7 @@ private fun SongSharePreviewCard(
 }
 
 @Composable
-private fun LyricSharePreviewCard(
+internal fun LyricSharePreviewCard(
     song: Song,
     lines: List<String>,
     theme: LyricCardTheme,
@@ -651,7 +651,7 @@ internal fun ShareActionPill(
     }
 }
 
-private fun generateSharePoster(
+internal fun generateSharePoster(
     context: Context,
     song: Song,
     mode: ShareCardMode,
