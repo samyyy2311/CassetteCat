@@ -218,46 +218,31 @@ coding needed. Pick a language, or add yours, and Weblate sends the changes here
 
 ### Services & Data
 
-- <a href="https://lrclib.net"><img src="https://img.shields.io/badge/LRCLIB-38BDF8?style=flat-square" alt="LRCLIB" /></a>
-  Synchronized and plain lyrics.
-- <a href="https://coverartarchive.org"><img src="https://img.shields.io/badge/Cover%20Art%20Archive-20656C?style=flat-square" alt="Cover Art Archive" /></a>
-  Album artwork from MetaBrainz and the Internet Archive.
-- <a href="https://musicbrainz.org"><img src="https://img.shields.io/badge/MusicBrainz-EB743B?style=flat-square&logo=musicbrainz&logoColor=white" alt="MusicBrainz" /></a>
-  Music metadata and encyclopedia.
-- <a href="https://www.last.fm"><img src="https://img.shields.io/badge/Last.fm-D51007?style=flat-square&logo=lastdotfm&logoColor=white" alt="Last.fm" /></a>
-  Scrobbling.
-- <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a>
-  Open scrobbling.
-- <a href="https://www.radio-browser.info"><img src="https://img.shields.io/badge/Radio%20Browser-1C1917?style=flat-square" alt="Radio Browser" /></a>
-  Internet radio station directory.
-- <a href="https://libre.fm"><img src="https://img.shields.io/badge/Libre.fm-990000?style=flat-square&logo=gnu&logoColor=white" alt="Libre.fm" /></a>
-  Free software scrobbling (GNU FM).
-- <a href="https://wikipedia.org"><img src="https://img.shields.io/badge/Wikipedia-000000?style=flat-square&logo=wikipedia&logoColor=white" alt="Wikipedia" /></a>
-  Artist biographies (CC BY-SA 4.0).
-- <a href="https://deezer.com"><img src="https://img.shields.io/badge/Deezer-FEAA2D?style=flat-square&logo=deezer&logoColor=white" alt="Deezer" /></a>
-  <a href="https://theaudiodb.com"><img src="https://img.shields.io/badge/TheAudioDB-6599CD?style=flat-square" alt="TheAudioDB" /></a>
-  Artist imagery and metadata.
-- <a href="https://github.com"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub" /></a>
-  Release update checks.
+| Project | Used for |
+| :--- | :--- |
+| [LRCLIB](https://lrclib.net) | Synchronized and plain lyrics |
+| [Cover Art Archive](https://coverartarchive.org) | Album artwork from MetaBrainz and the Internet Archive |
+| [MusicBrainz](https://musicbrainz.org) | Music metadata and encyclopedia |
+| [Last.fm](https://www.last.fm) | Scrobbling |
+| [ListenBrainz](https://listenbrainz.org) | Open scrobbling |
+| [Radio Browser](https://www.radio-browser.info) | Internet radio station directory |
+| [Libre.fm](https://libre.fm) | Free software scrobbling (GNU FM) |
+| [Wikipedia](https://wikipedia.org) | Artist biographies (CC BY-SA 4.0) |
+| [Deezer](https://deezer.com) and [TheAudioDB](https://theaudiodb.com) | Artist imagery and metadata |
+| [GitHub](https://github.com) | Release update checks |
 
 ### Libraries & Design
 
-- <a href="https://github.com/jaakkopasanen/AutoEq"><img src="https://img.shields.io/badge/AutoEq-1C1917?style=flat-square" alt="AutoEq" /></a>
-  Headphone EQ profiles by Jaakko Pasanen.
-- <a href="https://developer.android.com/media/media3"><img src="https://img.shields.io/badge/Media3-3DDC84?style=flat-square&logo=android&logoColor=white" alt="AndroidX Media3" /></a>
-  Playback engine and caching.
-- <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose" /></a>
-  UI toolkit.
-- <a href="https://lucide.dev"><img src="https://img.shields.io/badge/Lucide-F56565?style=flat-square&logo=lucide&logoColor=white" alt="Lucide" /></a>
-  App logo and icons (ISC).
-- <a href="https://simpleicons.org"><img src="https://img.shields.io/badge/Simple%20Icons-111111?style=flat-square&logo=simpleicons&logoColor=white" alt="Simple Icons" /></a>
-  Brand icons (CC0 1.0).
-- <a href="https://github.com/square/okhttp"><img src="https://img.shields.io/badge/OkHttp-006AFF?style=flat-square&logo=square&logoColor=white" alt="OkHttp" /></a>
-  HTTP client.
-- <a href="https://github.com/IBM/plex"><img src="https://img.shields.io/badge/IBM%20Plex-0F62FE?style=flat-square&logo=ibm&logoColor=white" alt="IBM Plex" /></a>
-  Typefaces (OFL 1.1).
-- <a href="https://github.com/floriankarsten/space-grotesk"><img src="https://img.shields.io/badge/Space%20Grotesk-242424?style=flat-square" alt="Space Grotesk" /></a>
-  Display font by Florian Karsten (OFL 1.1).
+| Project | Used for |
+| :--- | :--- |
+| [AutoEq](https://github.com/jaakkopasanen/AutoEq) | Headphone EQ profiles by Jaakko Pasanen |
+| [AndroidX Media3](https://developer.android.com/media/media3) | Playback engine and caching |
+| [Jetpack Compose](https://developer.android.com/jetpack/compose) | UI toolkit |
+| [Lucide](https://lucide.dev) | App logo and icons (ISC) |
+| [Simple Icons](https://simpleicons.org) | Brand icons (CC0 1.0) |
+| [OkHttp](https://github.com/square/okhttp) | HTTP client |
+| [IBM Plex](https://github.com/IBM/plex) | Typefaces (OFL 1.1) |
+| [Space Grotesk](https://github.com/floriankarsten/space-grotesk) | Display font by Florian Karsten (OFL 1.1) |
 
 ---
 
@@ -271,9 +256,11 @@ CassetteCat is also available for Windows, macOS, and Linux at
 ## Acknowledgements
 
 <p align="center">
-  <a href="https://coderabbit.ai">
-    <img src="assets/coderabbit_logo.svg" width="60" height="60" alt="CodeRabbit Logo" />
-  </a>
+  <a href="https://coderabbit.ai"><img src="assets/coderabbit_logo.svg" width="56" height="56" alt="CodeRabbit" /></a>
+  <a href="https://www.codacy.com"><img src="assets/codacy_logo.svg" width="56" height="56" alt="Codacy" /></a>
+  <a href="https://www.codefactor.io"><img src="assets/codefactor_logo.svg" width="56" height="56" alt="CodeFactor" /></a>
+  <a href="https://www.mintlify.com"><img src="assets/mintlify_logo.svg" width="56" height="56" alt="Mintlify" /></a>
+  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="assets/weblate_logo.svg" width="56" height="56" alt="Weblate" /></a>
 </p>
 
 <p align="center">
