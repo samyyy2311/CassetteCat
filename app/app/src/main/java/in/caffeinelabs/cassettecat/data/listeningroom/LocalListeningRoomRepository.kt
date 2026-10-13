@@ -269,6 +269,7 @@ class LocalListeningRoomRepository(context: Context) {
     private fun openGuestSocket(host: String, port: Int, roomName: String, roomCode: String) {
         val socket = Socket()
         var writer: BufferedWriter? = null
+        var joined = false
         try {
             socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
             writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
@@ -284,10 +285,12 @@ class LocalListeningRoomRepository(context: Context) {
                 participantCount = 1,
                 notice = appContext.getString(R.string.listening_room_following_notice)
             )
-        } catch (error: Throwable) {
-            writer?.let(::closeQuietly)
-            runCatching { socket.close() }
-            throw error
+            joined = true
+        } finally {
+            if (!joined) {
+                writer?.let(::closeQuietly)
+                runCatching { socket.close() }
+            }
         }
     }
 

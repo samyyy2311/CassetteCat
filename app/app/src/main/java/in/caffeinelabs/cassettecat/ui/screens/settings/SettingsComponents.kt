@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,6 +78,25 @@ fun SettingsDivider(
 }
 
 @Composable
+private fun RowScope.SettingLabel(iconRes: Int, iconTint: Color, title: String, subtitle: String) {
+    Icon(
+        painter = painterResource(iconRes),
+        contentDescription = null,
+        tint = iconTint,
+        modifier = Modifier.size(20.dp)
+    )
+    Spacer(Modifier.width(18.dp))
+    Column(modifier = Modifier.weight(1f)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
 fun NavigationRow(
     title: String,
     subtitle: String,
@@ -91,21 +111,7 @@ fun NavigationRow(
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(Modifier.width(18.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        SettingLabel(iconRes, iconTint, title, subtitle)
         Icon(
             painter = painterResource(R.drawable.lucide_ic_chevron_right),
             contentDescription = null,
@@ -134,21 +140,7 @@ fun ToggleRow(
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(Modifier.width(18.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        SettingLabel(iconRes, iconTint, title, subtitle)
         Spacer(Modifier.width(16.dp))
         Switch(
             checked = checked,
@@ -184,21 +176,7 @@ fun ActionRow(
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(Modifier.width(18.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        SettingLabel(iconRes, iconTint, title, subtitle)
     }
 }
 
@@ -222,21 +200,12 @@ fun ServerRow(
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(20.dp)
+        SettingLabel(
+            iconRes,
+            iconTint,
+            title,
+            if (config.connected) status ?: stringResource(AppR.string.server_connected_as, config.username) else subtitle
         )
-        Spacer(Modifier.width(18.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                if (config.connected) status ?: stringResource(AppR.string.server_connected_as, config.username) else subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         if (config.connected) {
             IconButton(onClick = hapticClick(onRetry), enabled = !isChecking) {
                 Icon(

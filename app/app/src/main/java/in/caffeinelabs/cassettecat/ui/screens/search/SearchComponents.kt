@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.components.color
+import `in`.caffeinelabs.cassettecat.ui.components.label
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.screens.library.AlbumGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.FolderGroup
@@ -266,29 +268,22 @@ internal fun SearchAlbumCard(
         ) {
             if (sampleSong != null) {
                 AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
-                if (sampleSong.source != MusicSource.Local) {
-                    val (srcLabel, srcColor) = when (sampleSong.source) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        else -> "" to Color.Unspecified
-                    }
-                    if (srcLabel.isNotEmpty()) {
-                        Text(
-                            text = srcLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = IbmPlexMonoFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 9.sp
-                            ),
-                            color = Color.White,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(6.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(srcColor.copy(alpha = 0.85f))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
+                if (sampleSong.source == MusicSource.Subsonic || sampleSong.source == MusicSource.Jellyfin) {
+                    Text(
+                        text = sampleSong.source.label(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = IbmPlexMonoFontFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 9.sp
+                        ),
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(sampleSong.source.color().copy(alpha = 0.85f))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    )
                 }
             }
         }

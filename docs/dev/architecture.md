@@ -25,7 +25,7 @@ State flows one way: repositories expose `StateFlow`s, ViewModels combine them i
 ## UI (`ui/`)
 
 | Package | Contents |
-|---|---|
+| --- | --- |
 | `ui/navigation` | `MainActivity`'s content: `CassetteCatNavHost` and `MainShell`, which holds the bottom tabs, the mini-player and every route in `MainRoute`. |
 | `ui/screens/*` | One package per area: `home`, `library`, `nowplaying`, `radio`, `search`, `settings`, `stats`, `onboarding`. |
 | `ui/components` | Shared pieces: `AlbumArt`, `MiniPlayerBar`, `QueueList`, `FastScrollIndexRail`, `TransportButton`, `PressDepthIconButton`, `EmptyState`. |
@@ -55,7 +55,7 @@ The service is the only owner of the player. UI code never talks to ExoPlayer di
 ## Other data packages
 
 | Package | Responsibility |
-|---|---|
+| --- | --- |
 | `data/settings` | `AppPreferencesRepository` (app settings) and `ServiceSettingsRepository` (which online services are on). See [Adding a setting](how-to.md#adding-a-setting). |
 | `data/download` | Offline downloads: `SongDownloadService` (a Media3 download service), `DownloadCache` and download settings. |
 | `data/radio` | `RadioBrowserApiClient`, radio favourites and history. |

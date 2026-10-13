@@ -7,7 +7,7 @@ CassetteCat's interface is dark, with silver for neutral controls and one accent
 Defined in `ui/theme/Color.kt` and applied in `ui/theme/Theme.kt`:
 
 | Token | Value | Material role | Use |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `Background` | `#000000` | `background` | Screen background |
 | `Surface` | `#1C1A18` | `surface` | Panels and sheets |
 | `SurfaceVariant` | `#262320` | | Raised panels |
@@ -24,7 +24,7 @@ Use `MaterialTheme.colorScheme` in screens rather than the raw tokens, so AMOLED
 The user picks the accent in **Customisation > Theme**. The options are defined in `ThemeAccent` in `data/settings/AppPreferencesRepository.kt`:
 
 | Accent | Colour |
-|---|---|
+| --- | --- |
 | Record Red (default) | `#C23B30` |
 | Cassette Amber | `#F59E0B` |
 | Electric Cyan | `#06B6D4` |

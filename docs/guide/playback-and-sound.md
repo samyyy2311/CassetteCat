@@ -24,7 +24,7 @@ Set how Now Playing looks in **Settings > Customisation > Now Playing & Gestures
 In **Settings > Customisation > Now Playing & Gestures**. The two swipe gestures are on by default; the others are off.
 
 | Gesture | What it does |
-|---|---|
+| --- | --- |
 | **Shake to Skip** | Shake the phone to skip. **Shake Sensitivity** goes from Gentle to Strong; pick Firm or Strong if songs skip while you walk. |
 | **Flip to Pause** | Put the phone face-down to pause; pick it up to resume. |
 | **Wave to Skip** | Wave a finger over the proximity sensor at the top of the screen. |

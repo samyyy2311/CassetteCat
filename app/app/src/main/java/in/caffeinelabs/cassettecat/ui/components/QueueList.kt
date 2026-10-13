@@ -72,7 +72,6 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.delay
@@ -430,23 +429,8 @@ private fun QueueRow(song: Song, onClick: () -> Unit, modifier: Modifier = Modif
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
-                    val (tagLabel, tagColor) = when (song.source) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.ListeningRoomHost -> stringResource(AppR.string.source_room) to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
-                    }
                     Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = tagLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
-                        color = tagColor,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(tagColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                    )
+                    SourceTag(song.source)
                 }
             }
         }

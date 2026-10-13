@@ -610,7 +610,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     // the check-in.
     private suspend fun desktopArtwork(song: Song): String? {
         desktopArtworkFor?.takeIf { it.first == song.id }?.let { return it.second }
-        val encoded = try {
+        val encoded = runCatching {
             loadSongArtwork(getApplication(), song, thumbnail = true)?.let { cover ->
                 withContext(Dispatchers.Default) {
                     val bytes = java.io.ByteArrayOutputStream()
@@ -619,8 +619,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     Base64.encodeToString(bytes, Base64.NO_WRAP).takeIf { it.length <= DESKTOP_ARTWORK_MAX_CHARS }
                 }
             }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        }.getOrElse {
+            if (it is CancellationException) throw it
             null
         }
         desktopArtworkFor = song.id to encoded

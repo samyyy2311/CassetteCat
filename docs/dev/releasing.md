@@ -5,7 +5,7 @@
 All workflows are in `.github/workflows/`. Every action is pinned to a commit, with its version in a comment so Dependabot can update it.
 
 | Workflow | Runs | What it does |
-|---|---|---|
+| --- | --- | --- |
 | `android-ci.yml` | Pull requests, and pushes to `main` that change `app/` | Unit tests, a debug build and Android lint. |
 | `codeql.yml` | Changes to `app/`, and weekly | CodeQL security scanning of the Kotlin code. |
 | `dependency-review.yml` | Pull requests | Fails if a pull request adds a dependency with a known vulnerability. |
@@ -34,11 +34,10 @@ The workflow also builds an Android App Bundle (`bundleRelease`) but doesn't upl
 The release workflow reads these secrets from the `release` environment, which only `main` can use:
 
 | Secret | Contents |
-|---|---|
+| --- | --- |
 | `SIGNING_KEYSTORE_BASE64` | The release keystore, base64-encoded: `base64 -w0 release.keystore` |
 | `KEYSTORE_PASSWORD` | The keystore password |
 | `KEY_ALIAS` | The key's alias |
 | `KEY_PASSWORD` | The key's password |
 
 The workflow writes the keystore to a temporary file, signs, verifies the APK with `apksigner`, and deletes the keystore whether or not the build succeeded. Losing the keystore means existing installs can't be updated, so keep a backup of it outside GitHub.
-

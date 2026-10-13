@@ -25,7 +25,10 @@
   <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-0289D5?style=flat-square&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
   <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
   <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://img.shields.io/badge/Translate-Weblate-2ECCAA?style=flat-square&logo=weblate&logoColor=white" alt="Translate on Weblate" /></a>
-  <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?utm_source=oss&utm_medium=github&utm_campaign=samyyy2311%2FCassetteCat&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews" alt="CodeRabbit Pull Request Reviews" /></a>
+  <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?style=flat-square&color=2A2A2A&labelColor=2A2A2A&logoColor=white&logo=coderabbit&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews" /></a>
+  <a href="https://app.codacy.com/gh/samyyy2311/CassetteCat/dashboard"><img src="https://img.shields.io/codacy/grade/a71f402be7e74c80927fe95ec0a931ca?style=flat-square&color=2A2A2A&labelColor=2A2A2A&logoColor=white&logo=codacy&label=Codacy" alt="Codacy code quality" /></a>
+  <a href="https://www.codefactor.io/repository/github/samyyy2311/cassettecat"><img src="https://img.shields.io/codefactor/grade/github/samyyy2311/CassetteCat?style=flat-square&color=2A2A2A&labelColor=2A2A2A&logoColor=white&logo=codefactor&label=CodeFactor" alt="CodeFactor grade" /></a>
+  <a href="https://www.bestpractices.dev/projects/15444"><img src="https://img.shields.io/cii/level/15444?style=flat-square&color=2A2A2A&labelColor=2A2A2A&logoColor=white&logo=linuxfoundation&label=OpenSSF+Best+Practices" alt="OpenSSF Best Practices" /></a>
 </p>
 
 ---

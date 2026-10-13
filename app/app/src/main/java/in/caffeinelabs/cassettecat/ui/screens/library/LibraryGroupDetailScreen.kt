@@ -77,6 +77,9 @@ import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
+import `in`.caffeinelabs.cassettecat.ui.components.color
+import `in`.caffeinelabs.cassettecat.ui.components.label
+import `in`.caffeinelabs.cassettecat.ui.components.SourceTag
 import `in`.caffeinelabs.cassettecat.data.library.ArtistBiography
 import `in`.caffeinelabs.cassettecat.data.library.WikipediaInfoLoader
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
@@ -101,6 +104,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private val taggedSources = setOf(MusicSource.Subsonic, MusicSource.Jellyfin, MusicSource.Radio)
 
 @Composable
 fun ArtistDetailScreen(
@@ -651,16 +656,7 @@ fun FolderDetailScreen(
     val coverPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                val newPath = folderCoverStorage.save(folderPath, uri) ?: return@launch
-                try {
-                    folderCoverRepository.setCover(folderPath, newPath)
-                } catch (e: Throwable) {
-                    folderCoverStorage.delete(newPath)
-                    throw e
-                }
-                if (customCoverPath != null && customCoverPath != newPath) {
-                    folderCoverStorage.delete(customCoverPath)
-                }
+                folderCoverRepository.replaceCover(folderCoverStorage, folderPath, uri)
             }
         }
     }
@@ -1210,25 +1206,8 @@ private fun ArtistSongRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (song.source != MusicSource.Local) {
-                    val (sourceLabel, sourceColor) = when (song.source) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
-                    }
-                    if (sourceLabel.isNotEmpty()) {
-                        Text(
-                            text = sourceLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 9.sp),
-                            color = sourceColor,
-                            modifier = Modifier
-                                .padding(top = 2.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(sourceColor.copy(alpha = 0.12f))
-                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                    }
+                if (song.source in taggedSources) {
+                    SourceTag(song.source, Modifier.padding(top = 2.dp))
                 }
             }
             if (durationText.isNotEmpty()) {
@@ -1372,25 +1351,18 @@ private fun AlbumDetailHeader(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (song.source != MusicSource.Local) {
-                    val (sourceLabel, sourceColor) = when (song.source) {
-                        MusicSource.Subsonic -> "Subsonic" to Color(0xFFFF8500)
-                        MusicSource.Jellyfin -> "Jellyfin" to Color(0xFF00A4DC)
-                        MusicSource.Radio -> stringResource(AppR.string.source_radio) to MaterialTheme.colorScheme.tertiary
-                        MusicSource.Local, MusicSource.ListeningRoomHost, MusicSource.Desktop, MusicSource.Computer -> "" to Color.Unspecified
-                    }
-                    if (sourceLabel.isNotEmpty()) {
-                        Text(
-                            text = sourceLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 10.sp),
-                            color = sourceColor,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(100.dp))
-                                .background(sourceColor.copy(alpha = 0.14f))
-                                .border(1.dp, sourceColor.copy(alpha = 0.3f), RoundedCornerShape(100.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
+                if (song.source in taggedSources) {
+                    val sourceColor = song.source.color()
+                    Text(
+                        text = song.source.label(),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily, fontSize = 10.sp),
+                        color = sourceColor,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(sourceColor.copy(alpha = 0.14f))
+                            .border(1.dp, sourceColor.copy(alpha = 0.3f), RoundedCornerShape(100.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
                 }
                 if (releaseDetails.isNotBlank()) {
                     Row(
