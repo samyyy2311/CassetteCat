@@ -75,7 +75,6 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfile
 import `in`.caffeinelabs.cassettecat.data.playback.AutoEqProfiles
-import `in`.caffeinelabs.cassettecat.data.playback.CustomEqualizerPreset
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
@@ -266,8 +265,8 @@ fun EqualizerScreen(
 
                     items(levels.customPresets, key = { it.id }) { preset ->
                         val isSelected = levels.selectedCustomPresetId == preset.id
-                        CustomPresetChip(
-                            preset = preset,
+                        PresetChip(
+                            name = preset.name,
                             selected = isSelected,
                             enabled = isEnabled,
                             onClick = {
@@ -555,12 +554,14 @@ private fun AutoEqPickerSheet(
 private fun formatFreqLabel(hz: Int): String =
     if (hz >= 1000) String.format(Locale.US, "%.1f kHz", hz / 1000f) else "$hz Hz"
 
+// A saved preset also gets a delete button, so its chip sits a little tighter.
 @Composable
 private fun PresetChip(
     name: String,
     selected: Boolean,
     enabled: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val bg = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
     val borderColor = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
@@ -572,7 +573,12 @@ private fun PresetChip(
             .background(bg)
             .border(if (selected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(
+                start = if (onDelete == null) 16.dp else 14.dp,
+                end = if (onDelete == null) 16.dp else 6.dp,
+                top = if (onDelete == null) 8.dp else 5.dp,
+                bottom = if (onDelete == null) 8.dp else 5.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
@@ -591,60 +597,22 @@ private fun PresetChip(
             ),
             color = fg
         )
-    }
-}
-
-@Composable
-private fun CustomPresetChip(
-    preset: CustomEqualizerPreset,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val bg = if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
-    val borderColor = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-    val fg = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(100.dp))
-            .background(bg)
-            .border(if (selected) 1.dp else 0.5.dp, borderColor, RoundedCornerShape(100.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(start = 14.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (selected) {
+        if (onDelete != null) {
+            Spacer(Modifier.width(4.dp))
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
-                    .background(fg)
-            )
-            Spacer(Modifier.width(8.dp))
-        }
-        Text(
-            preset.name,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-            ),
-            color = fg
-        )
-        Spacer(Modifier.width(4.dp))
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .clickable(enabled = enabled, onClick = onDelete),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.lucide_ic_x),
-                contentDescription = stringResource(AppR.string.equalizer_delete_preset),
-                tint = fg.copy(alpha = 0.6f),
-                modifier = Modifier.size(12.dp)
-            )
+                    .clickable(enabled = enabled, onClick = onDelete),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_x),
+                    contentDescription = stringResource(AppR.string.equalizer_delete_preset),
+                    tint = fg.copy(alpha = 0.6f),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
         }
     }
 }

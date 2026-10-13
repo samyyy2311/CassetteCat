@@ -70,6 +70,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.ArtistGroup
+import `in`.caffeinelabs.cassettecat.ui.screens.library.GenreGroup
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.PlaylistPickerSheet
@@ -371,33 +372,9 @@ fun SearchScreen(
                         item(key = "explore_genres") {
                             SearchSectionHeader(stringResource(AppR.string.search_section_explore_genres))
                             Spacer(Modifier.height(12.dp))
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                popularGenres.chunked(2).forEach { rowGenres ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        rowGenres.forEach { genreGroup ->
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                SearchGenreTile(
-                                                    genreGroup = genreGroup,
-                                                    onClick = {
-                                                        recordQuery()
-                                                        onNavigateToGenre(genreGroup.genre)
-                                                    }
-                                                )
-                                            }
-                                        }
-                                        if (rowGenres.size == 1) {
-                                            Spacer(Modifier.weight(1f))
-                                        }
-                                    }
-                                }
+                            GenreGrid(popularGenres) { genre ->
+                                recordQuery()
+                                onNavigateToGenre(genre)
                             }
                         }
                     }
@@ -603,31 +580,9 @@ fun SearchScreen(
 
                             SearchCategory.GENRES -> {
                                 item {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        matchedGenres.chunked(2).forEach { rowGenres ->
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                rowGenres.forEach { genreGroup ->
-                                                    Box(modifier = Modifier.weight(1f)) {
-                                                        SearchGenreTile(
-                                                            genreGroup = genreGroup,
-                                                            onClick = {
-                                                                recordQuery()
-                                                                onNavigateToGenre(genreGroup.genre)
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                                if (rowGenres.size == 1) {
-                                                    Spacer(Modifier.weight(1f))
-                                                }
-                                            }
-                                        }
+                                    GenreGrid(matchedGenres) { genre ->
+                                        recordQuery()
+                                        onNavigateToGenre(genre)
                                     }
                                 }
                             }
@@ -700,6 +655,30 @@ fun SearchScreen(
                 songForTagEdit = null
             }
         )
+    }
+}
+
+@Composable
+private fun GenreGrid(genres: List<GenreGroup>, onGenreClick: (String) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        genres.chunked(2).forEach { rowGenres ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowGenres.forEach { genreGroup ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        SearchGenreTile(genreGroup = genreGroup, onClick = { onGenreClick(genreGroup.genre) })
+                    }
+                }
+                if (rowGenres.size == 1) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
     }
 }
 
