@@ -486,43 +486,7 @@ internal fun LyricsView(
                             .fillMaxWidth()
                             .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 48.dp)
                     ) {
-                        if (!artist.isNullOrBlank()) {
-                            Text(
-                                text = stringResource(AppR.string.lyrics_written_by, artist),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                            )
-                            Spacer(Modifier.height(4.dp))
-                        }
-                        if (!providerCredit.isNullOrBlank()) {
-                            Text(
-                                text = providerCredit,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                            )
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onSearchLyrics() }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_search),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(AppR.string.lyrics_search_match),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
+                        LyricsCredits(artist, providerCredit, onSearchLyrics)
                     }
                 }
             }
@@ -550,43 +514,7 @@ internal fun LyricsView(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(36.dp))
-                if (!artist.isNullOrBlank()) {
-                    Text(
-                        text = stringResource(AppR.string.lyrics_written_by, artist),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                }
-                if (!providerCredit.isNullOrBlank()) {
-                    Text(
-                        text = providerCredit,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onSearchLyrics() }
-                        .padding(vertical = 4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_search),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(AppR.string.lyrics_search_match),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
+                LyricsCredits(artist, providerCredit, onSearchLyrics)
                 Spacer(Modifier.height(lyricBottomPadDp))
             }
         }
@@ -1054,6 +982,50 @@ internal fun InstrumentalWaveformView(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Who wrote the song, where the lyrics came from, and a way to look for a better match. */
+@Composable
+private fun LyricsCredits(artist: String?, providerCredit: String?, onSearchLyrics: () -> Unit) {
+    Column {
+        if (!artist.isNullOrBlank()) {
+            Text(
+                text = stringResource(AppR.string.lyrics_written_by, artist),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+        if (!providerCredit.isNullOrBlank()) {
+            Text(
+                text = providerCredit,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onSearchLyrics() }
+                .padding(vertical = 4.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.lucide_ic_search),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = stringResource(AppR.string.lyrics_search_match),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary
+            )
         }
     }
 }
