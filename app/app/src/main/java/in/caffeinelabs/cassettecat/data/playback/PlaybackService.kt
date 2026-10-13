@@ -464,10 +464,7 @@ class PlaybackService : MediaLibraryService() {
     private suspend fun savedQueue(): MediaSession.MediaItemsWithStartPosition? {
         val saved = PlaybackStateRepository(this).load() ?: return null
         val found = libraryTree.localSongItems(saved.queueSongIds)
-        val items = saved.queueSongIds.mapNotNull { found[it] }
-        if (items.isEmpty()) return null
-        // Songs deleted since the queue was saved are skipped, keeping the rest of the order.
-        val index = saved.queueSongIds.take(saved.currentIndex).count { it in found }.coerceAtMost(items.lastIndex)
+        val (items, index) = resumableQueue(saved.queueSongIds, saved.currentIndex, found) ?: return null
         return MediaSession.MediaItemsWithStartPosition(items, index, saved.positionMs)
     }
 
@@ -1122,3 +1119,10 @@ private fun MediaItem.toRadioStation() = RadioStation(
     favicon = mediaMetadata.artworkUri?.toString(),
     tags = mediaMetadata.artist?.toString().orEmpty()
 )
+
+/** The saved queue's songs still in [found] and where to start; songs deleted since are skipped, keeping the order. */
+internal fun <T> resumableQueue(ids: List<String>, currentIndex: Int, found: Map<String, T>): Pair<List<T>, Int>? {
+    val items = ids.mapNotNull { found[it] }
+    if (items.isEmpty()) return null
+    return items to ids.take(currentIndex).count { it in found }.coerceAtMost(items.lastIndex)
+}

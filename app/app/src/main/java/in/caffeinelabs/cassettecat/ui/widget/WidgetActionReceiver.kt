@@ -43,11 +43,7 @@ class WidgetActionReceiver : BroadcastReceiver() {
             ACTION_NEXT -> controller.seekToNext()
             ACTION_PREVIOUS -> controller.seekToPrevious()
             ACTION_SHUFFLE -> controller.shuffleModeEnabled = !controller.shuffleModeEnabled
-            ACTION_REPEAT -> controller.repeatMode = when (controller.repeatMode) {
-                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                else -> Player.REPEAT_MODE_OFF
-            }
+            ACTION_REPEAT -> controller.repeatMode = nextRepeatMode(controller.repeatMode)
             ACTION_LIKE -> controller.sendCustomCommand(
                 SessionCommand(PlaybackService.ACTION_CUSTOM_FAVORITE, Bundle.EMPTY),
                 Bundle.EMPTY
@@ -62,4 +58,10 @@ class WidgetActionReceiver : BroadcastReceiver() {
         const val ACTION_REPEAT = "in.caffeinelabs.cassettecat.widget.REPEAT"
         const val ACTION_LIKE = "in.caffeinelabs.cassettecat.widget.LIKE"
     }
+}
+
+internal fun nextRepeatMode(mode: Int): Int = when (mode) {
+    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+    else -> Player.REPEAT_MODE_OFF
 }

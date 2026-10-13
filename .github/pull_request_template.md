@@ -16,6 +16,7 @@ Explain the problem or requirement this pull request addresses.
 
 - [ ] Built the Android project (`./gradlew assembleDebug`)
 - [ ] Executed local unit tests (`./gradlew testDebugUnitTest`)
+- [ ] Added or updated unit tests for the changed behaviour
 - [ ] Manual on-device verification (state device model and Android version below)
 
 **Verification details:**
