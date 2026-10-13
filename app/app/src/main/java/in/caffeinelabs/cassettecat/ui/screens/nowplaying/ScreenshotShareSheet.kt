@@ -22,16 +22,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +53,6 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
@@ -81,7 +76,6 @@ internal fun ScreenshotShareSheet(
     onDismiss: () -> Unit,
     onOpenFullLyricEditor: () -> Unit = {}
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -104,164 +98,133 @@ internal fun ScreenshotShareSheet(
     val copiedMessage = stringResource(AppR.string.share_copied)
     val appName = stringResource(AppR.string.app_name)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    ShareSheet(title = stringResource(AppR.string.share_card_title), onDismiss = onDismiss) {
+
+        Spacer(Modifier.height(12.dp))
+
+        if (hasLyrics) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(AppR.string.share_card_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = SpaceGroteskFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_x,
-                    contentDescription = stringResource(AppR.string.close),
-                    onClick = onDismiss
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            if (hasLyrics) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    ShareCardMode.entries.forEach { entry ->
-                        val isSelected = mode == entry
-                        val bgColor by animateColorAsState(
-                            if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            animationSpec = tween(200),
-                            label = "tabBg"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(bgColor)
-                                .clickable { mode = entry }
-                                .padding(horizontal = 24.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = shareCardModeLabel(entry),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-            } else {
-                Spacer(Modifier.height(4.dp))
-            }
-
-            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .aspectRatio(4f / 5f)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (mode == ShareCardMode.SONG) {
-                    SongSharePreviewCard(
-                        song = song,
-                        theme = selectedTheme,
-                        modifier = Modifier.fillMaxSize()
+                ShareCardMode.entries.forEach { entry ->
+                    val isSelected = mode == entry
+                    val bgColor by animateColorAsState(
+                        if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        animationSpec = tween(200),
+                        label = "tabBg"
                     )
-                } else {
-                    LyricSharePreviewCard(
-                        song = song,
-                        lines = availableLyrics,
-                        theme = selectedTheme,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            if (mode == ShareCardMode.LYRICS) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), CircleShape)
-                        .tapScale {
-                            onDismiss()
-                            onOpenFullLyricEditor()
-                        }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_pencil),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = stringResource(AppR.string.share_select_different_lyrics),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-            } else {
-                Spacer(Modifier.height(20.dp))
-            }
-
-            LyricCardThemePicker(selected = selectedTheme, onSelect = { selectedTheme = it })
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_copy,
-                    label = stringResource(AppR.string.share_copy_text),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        val text = if (mode == ShareCardMode.SONG) {
-                            trackCredit
-                        } else {
-                            "${availableLyrics.joinToString("\n")}\n\n$trackCredit"
-                        }
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText(appName, text))
-                        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(bgColor)
+                            .clickable { mode = entry }
+                            .padding(horizontal = 24.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = shareCardModeLabel(entry),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        } else {
+            Spacer(Modifier.height(4.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .aspectRatio(4f / 5f)
+                .clip(RoundedCornerShape(20.dp))
+        ) {
+            if (mode == ShareCardMode.SONG) {
+                SongSharePreviewCard(
+                    song = song,
+                    theme = selectedTheme,
+                    modifier = Modifier.fillMaxSize()
                 )
+            } else {
+                LyricSharePreviewCard(
+                    song = song,
+                    lines = availableLyrics,
+                    theme = selectedTheme,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
 
-                ShareImageActions { target ->
-                    scope.launch {
-                        val artBitmap = loadSongArtwork(context, song)
-                        val bitmap = withContext(Dispatchers.Default) {
-                            generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
-                        }
-                        shareImage(context, bitmap, trackCredit, target, selectedTheme)
+        if (mode == ShareCardMode.LYRICS) {
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), CircleShape)
+                    .tapScale {
+                        onDismiss()
+                        onOpenFullLyricEditor()
                     }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.lucide_ic_pencil),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = stringResource(AppR.string.share_select_different_lyrics),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        } else {
+            Spacer(Modifier.height(20.dp))
+        }
+
+        LyricCardThemePicker(selected = selectedTheme, onSelect = { selectedTheme = it })
+
+        Spacer(Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ShareActionPill(
+                iconRes = R.drawable.lucide_ic_copy,
+                label = stringResource(AppR.string.share_copy_text),
+                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                iconTint = MaterialTheme.colorScheme.onSurface,
+                onClick = {
+                    val text = if (mode == ShareCardMode.SONG) {
+                        trackCredit
+                    } else {
+                        "${availableLyrics.joinToString("\n")}\n\n$trackCredit"
+                    }
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText(appName, text))
+                    Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+                }
+            )
+
+            ShareImageActions { target ->
+                scope.launch {
+                    val artBitmap = loadSongArtwork(context, song)
+                    val bitmap = withContext(Dispatchers.Default) {
+                        generateSharePoster(context, song, mode, availableLyrics, selectedTheme, artBitmap)
+                    }
+                    shareImage(context, bitmap, trackCredit, target, selectedTheme)
                 }
             }
         }

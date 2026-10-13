@@ -104,14 +104,7 @@ fun NavigationRow(
     onClick: () -> Unit,
     iconTint: Color = MaterialTheme.colorScheme.secondary
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .tapScale(onClick)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        SettingLabel(iconRes, iconTint, title, subtitle)
+    ActionRow(title, subtitle, iconRes, onClick, iconTint) {
         Icon(
             painter = painterResource(R.drawable.lucide_ic_chevron_right),
             contentDescription = null,
@@ -167,7 +160,8 @@ fun ActionRow(
     subtitle: String,
     iconRes: Int,
     onClick: () -> Unit,
-    iconTint: Color = MaterialTheme.colorScheme.secondary
+    iconTint: Color = MaterialTheme.colorScheme.secondary,
+    trailing: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -177,6 +171,7 @@ fun ActionRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         SettingLabel(iconRes, iconTint, title, subtitle)
+        trailing()
     }
 }
 

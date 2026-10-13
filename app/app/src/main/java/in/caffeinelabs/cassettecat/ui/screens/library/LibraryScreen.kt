@@ -70,8 +70,6 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
-import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
-import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
@@ -309,16 +307,11 @@ fun LibraryScreen(
     }
 
     fun playGroup(songs: List<Song>) {
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        playbackViewModel.playQueue(songs, 0)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun playSong(song: Song) {
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        val index = filteredSongs.indexOfFirst { it.id == song.id }
-        playbackViewModel.playQueue(filteredSongs, index)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(filteredSongs, filteredSongs.indexOfFirst { it.id == song.id }, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun moveSortedListToStart(target: LibraryViewMode) {
@@ -437,18 +430,14 @@ fun LibraryScreen(
                                     iconRes = R.drawable.lucide_ic_play,
                                     contentDescription = stringResource(AppR.string.library_play_all),
                                     onClick = {
-                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                        playbackViewModel.playQueue(filteredSongs, 0, shuffle = false)
-                                        if (wasIdle) onNavigateToNowPlaying()
+                                        playbackViewModel.play(filteredSongs, 0, shuffle = false, onFirstPlay = onNavigateToNowPlaying)
                                     }
                                 )
                                 PressDepthIconButton(
                                     iconRes = R.drawable.lucide_ic_shuffle,
                                     contentDescription = stringResource(AppR.string.library_shuffle_all),
                                     onClick = {
-                                        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                        playbackViewModel.shuffleAll(filteredSongs)
-                                        if (wasIdle) onNavigateToNowPlaying()
+                                        playbackViewModel.play(filteredSongs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
                                     }
                                 )
                             }
@@ -864,9 +853,7 @@ fun LibraryScreen(
             folder = folder,
             onPlayAll = { playGroup(folder.songs) },
             onShuffleAll = {
-                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                playbackViewModel.shuffleAll(folder.songs)
-                if (wasIdle) onNavigateToNowPlaying()
+                playbackViewModel.play(folder.songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
             },
             onChangeCover = {
                 folderForCoverPath = folder.folderPath
@@ -904,28 +891,9 @@ fun LibraryScreen(
     if (!showPlaylistPicker) songForMenu?.let { song ->
         SongOptionsSheet(
             song = song,
-            isFavorite = song.isFavorite || song.id in favoriteIds,
-            onPlayNext = {
-                playbackViewModel.addToUpNext(listOf(song))
-                songForMenu = null
-            },
-            onAddToQueue = {
-                playbackViewModel.addToEndOfQueue(listOf(song))
-                songForMenu = null
-            },
+            playbackViewModel = playbackViewModel,
             onAddToPlaylist = {
                 showPlaylistPicker = true
-            },
-            onToggleFavorite = {
-                val isFav = song.isFavorite || song.id in favoriteIds
-                pagerScope.launch {
-                    favoritesRepository.setFavorite(song.id, !isFav)
-                }
-                songForMenu = null
-            },
-            onShare = {
-                shareSongs(context, listOf(song))
-                songForMenu = null
             },
             onSearchCoverOnline = {
                 coverSearchSong = song
@@ -935,12 +903,7 @@ fun LibraryScreen(
                 {
                     val target = song
                     pagerScope.launch {
-                        val path = albumCoverRepo.getCoverPath(target.album, target.artist, target.albumId)
-                        albumCoverRepo.clearCover(target.album, target.artist, target.albumId)
-                        if (path != null) {
-                            AlbumCoverStorage(context).delete(path)
-                        }
-                        invalidateAlbumArtCache(context)
+                        resetAlbumCover(context, target)
                     }
                     songForMenu = null
                 }

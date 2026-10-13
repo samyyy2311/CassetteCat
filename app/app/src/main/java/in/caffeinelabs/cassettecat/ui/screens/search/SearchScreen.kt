@@ -81,7 +81,6 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByAlbum
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByFolder
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByGenre
-import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -235,21 +234,13 @@ fun SearchScreen(
         recordQuery()
         val index = songs.indexOfFirst { it.id == song.id }
         if (index == -1) return
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        playbackViewModel.playQueue(songs, index)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, index, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun playGroup(songs: List<Song>, shuffle: Boolean = false) {
         recordQuery()
         if (songs.isEmpty()) return
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        if (shuffle) {
-            playbackViewModel.shuffleAll(songs)
-        } else {
-            playbackViewModel.playQueue(songs, 0, shuffle = false)
-        }
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 
     Column(modifier = modifier.fillMaxSize().padding(top = 8.dp)) {
@@ -683,30 +674,11 @@ fun SearchScreen(
     }
 
     if (!showPlaylistPicker) songForOptions?.let { song ->
-        val isFav = song.isFavorite || song.id in favoriteIds
         SongOptionsSheet(
             song = song,
-            isFavorite = isFav,
-            onPlayNext = {
-                playbackViewModel.addToUpNext(listOf(song))
-                songForOptions = null
-            },
-            onAddToQueue = {
-                playbackViewModel.addToEndOfQueue(listOf(song))
-                songForOptions = null
-            },
+            playbackViewModel = playbackViewModel,
             onAddToPlaylist = {
                 showPlaylistPicker = true
-            },
-            onToggleFavorite = {
-                coroutineScope.launch {
-                    favoritesRepository.setFavorite(song.id, !isFav)
-                }
-                songForOptions = null
-            },
-            onShare = {
-                shareSongs(context, listOf(song))
-                songForOptions = null
             },
             onEditTags = {
                 val s = song

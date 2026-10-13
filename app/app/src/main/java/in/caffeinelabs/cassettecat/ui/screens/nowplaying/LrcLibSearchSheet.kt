@@ -212,21 +212,7 @@ internal fun LrcLibSearchSheet(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                .clickable(onClick = onDismiss),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_x),
-                                contentDescription = stringResource(AppR.string.action_cancel),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        CloseButton(onDismiss)
                     }
                 }
 
@@ -454,21 +440,7 @@ internal fun LrcLibSearchSheet(
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                .clickable(onClick = onDismiss),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_x),
-                                contentDescription = stringResource(AppR.string.action_cancel),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        CloseButton(onDismiss)
                     }
                 }
 
@@ -715,5 +687,24 @@ internal fun LrcLibSearchSheet(
                 Spacer(Modifier.height(12.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun CloseButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.lucide_ic_x),
+            contentDescription = stringResource(AppR.string.action_cancel),
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(16.dp)
+        )
     }
 }

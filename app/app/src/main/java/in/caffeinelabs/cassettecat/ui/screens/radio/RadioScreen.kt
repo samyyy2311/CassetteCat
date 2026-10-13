@@ -131,11 +131,9 @@ fun RadioScreen(
             playbackViewModel.togglePlayPause()
             return
         }
-        val wasIdle = currentSong == null
         val stationIndex = queue.indexOfFirst { it.uuid == station.uuid }.coerceAtLeast(0)
-        playbackViewModel.playQueue(queue.map { it.toSong() }, stationIndex)
         viewModel.recordPlay(station)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(queue.map { it.toSong() }, stationIndex, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun share(station: RadioStation) {

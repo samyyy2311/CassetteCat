@@ -70,8 +70,6 @@ import androidx.compose.ui.text.font.FontWeight
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
-import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
-import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.FolderCoverStorage
@@ -205,24 +203,18 @@ private fun ArtistCatalogScreen(
 
     fun playAll() {
         if (songs.isNotEmpty()) {
-            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-            playbackViewModel.playQueue(songs, 0)
-            if (wasIdle) onNavigateToNowPlaying()
+            playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
         }
     }
 
     fun shuffleAll() {
         if (songs.isNotEmpty()) {
-            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-            playbackViewModel.shuffleAll(songs)
-            if (wasIdle) onNavigateToNowPlaying()
+            playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
         }
     }
 
     fun play(song: Song) {
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        playbackViewModel.playQueue(songs, songs.indexOfFirst { it.id == song.id }.coerceAtLeast(0))
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, songs.indexOfFirst { it.id == song.id }.coerceAtLeast(0), onFirstPlay = onNavigateToNowPlaying)
     }
 
     PullToRefreshBox(
@@ -807,16 +799,12 @@ private fun LibraryGroupDetailScreen(
         Column(modifier = Modifier.fillMaxSize()) {
         val playAll = {
             if (songs.isNotEmpty()) {
-                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                playbackViewModel.playQueue(songs, 0)
-                if (wasIdle) onNavigateToNowPlaying()
+                playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
             }
         }
         val shuffleAll = {
             if (songs.isNotEmpty()) {
-                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                playbackViewModel.shuffleAll(songs)
-                if (wasIdle) onNavigateToNowPlaying()
+                playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
             }
         }
         val playNext = {
@@ -895,10 +883,7 @@ private fun LibraryGroupDetailScreen(
             }
             items(songs, key = { it.id }, contentType = { "song" }) { song ->
                 val onSongClick = {
-                    val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                    val index = songs.indexOfFirst { it.id == song.id }
-                    playbackViewModel.playQueue(songs, index)
-                    if (wasIdle) onNavigateToNowPlaying()
+                    playbackViewModel.play(songs, songs.indexOfFirst { it.id == song.id }, onFirstPlay = onNavigateToNowPlaying)
                 }
                 SongRow(
                     song = song,
@@ -930,12 +915,7 @@ private fun LibraryGroupDetailScreen(
                         showAlbumActions = false
                         val hero = albumHeroSong
                         coroutineScope.launch {
-                            val path = albumCoverRepo.getCoverPath(hero.album, hero.artist, hero.albumId)
-                            albumCoverRepo.clearCover(hero.album, hero.artist, hero.albumId)
-                            if (path != null) {
-                                AlbumCoverStorage(context).delete(path)
-                            }
-                            invalidateAlbumArtCache(context)
+                            resetAlbumCover(context, hero)
                         }
                     }
                 } else null,
@@ -958,32 +938,13 @@ private fun LibraryGroupDetailScreen(
             )
         }
         if (!showPlaylistPicker) songForOptions?.let { song ->
-            val isFav = song.isFavorite || song.id in favoriteIds
             val hasSongCustomCover = albumCoverRepo.getCoverPath(song.album, song.artist, song.albumId) != null
 
             SongOptionsSheet(
                 song = song,
-                isFavorite = isFav,
-                onPlayNext = {
-                    playbackViewModel.addToUpNext(listOf(song))
-                    songForOptions = null
-                },
-                onAddToQueue = {
-                    playbackViewModel.addToEndOfQueue(listOf(song))
-                    songForOptions = null
-                },
+                playbackViewModel = playbackViewModel,
                 onAddToPlaylist = {
                     showPlaylistPicker = true
-                },
-                onToggleFavorite = {
-                    coroutineScope.launch {
-                        favoritesRepository.setFavorite(song.id, !isFav)
-                    }
-                    songForOptions = null
-                },
-                onShare = {
-                    shareSongs(context, listOf(song))
-                    songForOptions = null
                 },
                 onSearchCoverOnline = {
                     val targetSong = song
@@ -995,12 +956,7 @@ private fun LibraryGroupDetailScreen(
                         val targetSong = song
                         songForOptions = null
                         coroutineScope.launch {
-                            val path = albumCoverRepo.getCoverPath(targetSong.album, targetSong.artist, targetSong.albumId)
-                            albumCoverRepo.clearCover(targetSong.album, targetSong.artist, targetSong.albumId)
-                            if (path != null) {
-                                AlbumCoverStorage(context).delete(path)
-                            }
-                            invalidateAlbumArtCache(context)
+                            resetAlbumCover(context, targetSong)
                         }
                     }
                 } else null,

@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.stats
 
+import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareSheet
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -29,17 +30,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,7 +69,6 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.ShareImageActions
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.shareImage
@@ -731,7 +727,6 @@ internal fun ListeningRecordShareSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var selectedTheme by remember { mutableStateOf(ListeningRecordTheme.ATMOSPHERE) }
     var isGeneratingShare by remember { mutableStateOf(false) }
@@ -777,114 +772,83 @@ internal fun ListeningRecordShareSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
-        Column(
+    ShareSheet(title = stringResource(AppR.string.stats_share_rewind), onDismiss = onDismiss) {
+
+        Spacer(Modifier.height(16.dp))
+
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth(0.90f)
+                .aspectRatio(4f / 5f)
+                .clip(RoundedCornerShape(20.dp))
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(AppR.string.stats_share_rewind),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = SpaceGroteskFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_x,
-                    contentDescription = stringResource(AppR.string.close),
-                    onClick = onDismiss
-                )
-            }
+            ListeningRecordPreviewCard(
+                monthAbbreviation = monthAbbreviation,
+                yearLabel = yearLabel,
+                listeningMinutes = listeningMinutes,
+                totalPlays = totalPlays,
+                uniqueSongs = uniqueSongs,
+                topArtists = topArtists,
+                topSongs = topSongs,
+                topAlbums = topAlbums,
+                topArtistArtwork = topArtistArtwork,
+                topSongArtwork = topSongArtwork,
+                topAlbumArtwork = topAlbumArtwork,
+                theme = selectedTheme,
+                isRewind = isRewind,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.90f)
-                    .aspectRatio(4f / 5f)
-                    .clip(RoundedCornerShape(20.dp))
-            ) {
-                ListeningRecordPreviewCard(
-                    monthAbbreviation = monthAbbreviation,
-                    yearLabel = yearLabel,
-                    listeningMinutes = listeningMinutes,
-                    totalPlays = totalPlays,
-                    uniqueSongs = uniqueSongs,
-                    topArtists = topArtists,
-                    topSongs = topSongs,
-                    topAlbums = topAlbums,
-                    topArtistArtwork = topArtistArtwork,
-                    topSongArtwork = topSongArtwork,
-                    topAlbumArtwork = topAlbumArtwork,
-                    theme = selectedTheme,
-                    isRewind = isRewind,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ListeningRecordTheme.entries.forEach { theme ->
-                    val isSelected = selectedTheme == theme
-                    val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
-                    val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .clip(CircleShape)
-                            .background(bgColor)
-                            .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
-                            .clickable { selectedTheme = theme }
-                            .padding(horizontal = 18.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = when (theme) {
-                                ListeningRecordTheme.ATMOSPHERE -> stringResource(AppR.string.stats_theme_atmosphere)
-                                ListeningRecordTheme.OBSIDIAN -> stringResource(AppR.string.stats_theme_obsidian)
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = textColor
-                        )
-                    }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ListeningRecordTheme.entries.forEach { theme ->
+                val isSelected = selectedTheme == theme
+                val bgColor = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow
+                val borderColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                val textColor = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .clip(CircleShape)
+                        .background(bgColor)
+                        .border(if (isSelected) 1.dp else 0.5.dp, borderColor, CircleShape)
+                        .clickable { selectedTheme = theme }
+                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = when (theme) {
+                            ListeningRecordTheme.ATMOSPHERE -> stringResource(AppR.string.stats_theme_atmosphere)
+                            ListeningRecordTheme.OBSIDIAN -> stringResource(AppR.string.stats_theme_obsidian)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = textColor
+                    )
                 }
             }
+        }
 
-            Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(24.dp))
 
-            if (isGeneratingShare) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(36.dp)
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ShareImageActions { target ->
-                        sharePoster { bitmap -> shareImage(context, bitmap, periodTitle, target) }
-                    }
+        if (isGeneratingShare) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(36.dp)
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ShareImageActions { target ->
+                    sharePoster { bitmap -> shareImage(context, bitmap, periodTitle, target) }
                 }
             }
         }

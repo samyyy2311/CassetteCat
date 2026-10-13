@@ -62,55 +62,33 @@ class ListenBrainzClient {
 
     suspend fun submitNowPlaying(token: String, song: Song): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
-        runCatching {
-            val requestBody = SubmitListenRequest(
-                listenType = "playing_now",
-                payload = listOf(
-                    ListenPayload(
-                        listenedAt = null,
-                        trackMetadata = TrackMetadata(
-                            artistName = song.artist,
-                            trackName = song.title,
-                            releaseName = song.album.ifBlank { null }
-                        )
-                    )
-                )
-            )
-
-            val request = Request.Builder()
-                .url("$API_BASE/submit-listens")
-                .header("Authorization", "Token ${token.trim()}")
-                .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-
-            sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
-        }.getOrDefault(false)
+        submit(token, song, listenType = "playing_now", listenedAt = null)
     }
 
     suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
-        runCatching {
-            val requestBody = SubmitListenRequest(
-                listenType = "single",
-                payload = listOf(
-                    ListenPayload(
-                        listenedAt = listenedAtUnixSec,
-                        trackMetadata = TrackMetadata(
-                            artistName = song.artist,
-                            trackName = song.title,
-                            releaseName = song.album.ifBlank { null }
-                        )
+        submit(token, song, listenType = "single", listenedAt = listenedAtUnixSec)
+    }
+
+    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): Boolean = runCatching {
+        val requestBody = SubmitListenRequest(
+            listenType = listenType,
+            payload = listOf(
+                ListenPayload(
+                    listenedAt = listenedAt,
+                    trackMetadata = TrackMetadata(
+                        artistName = song.artist,
+                        trackName = song.title,
+                        releaseName = song.album.ifBlank { null }
                     )
                 )
             )
-
-            val request = Request.Builder()
-                .url("$API_BASE/submit-listens")
-                .header("Authorization", "Token ${token.trim()}")
-                .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-
-            sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
-        }.getOrDefault(false)
-    }
+        )
+        val request = Request.Builder()
+            .url("$API_BASE/submit-listens")
+            .header("Authorization", "Token ${token.trim()}")
+            .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
+    }.getOrDefault(false)
 }

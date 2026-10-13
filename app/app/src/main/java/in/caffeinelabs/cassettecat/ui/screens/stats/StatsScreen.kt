@@ -146,9 +146,7 @@ fun StatsScreen(
     val tabLabels = StatsTab.entries.associateWith { stringResource(it.labelRes) }
 
     fun playSongs(songs: List<Song>, index: Int) {
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        playbackViewModel.playQueue(songs, index)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, index, onFirstPlay = onNavigateToNowPlaying)
     }
     fun playStat(songs: List<SongStat>, stat: SongStat) = playSongs(songs.map { it.song }, songs.indexOf(stat))
     fun playListen(listen: Listen) {

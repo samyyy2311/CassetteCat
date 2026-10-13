@@ -136,20 +136,12 @@ fun HomeScreen(
     fun play(songs: List<Song>, song: Song) {
         val index = songs.indexOfFirst { it.id == song.id }
         if (index == -1) return
-        val wasIdle = playbackState.currentSong == null
-        playbackViewModel.playQueue(songs, index)
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, index, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun playAll(songs: List<Song>, shuffle: Boolean) {
         if (songs.isEmpty()) return
-        val wasIdle = playbackState.currentSong == null
-        if (shuffle) {
-            playbackViewModel.shuffleAll(songs)
-        } else {
-            playbackViewModel.playQueue(songs, 0, shuffle = false)
-        }
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 
     val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()

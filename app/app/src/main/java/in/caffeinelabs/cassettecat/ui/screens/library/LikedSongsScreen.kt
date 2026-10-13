@@ -3,42 +3,28 @@ package `in`.caffeinelabs.cassettecat.ui.screens.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
-import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
-import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
-import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 
 @Composable
 fun LikedSongsScreen(
@@ -58,26 +44,9 @@ fun LikedSongsScreen(
         allSongs.filter { it.isFavorite || it.id in favoriteIds }
     }
 
-    val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
-    val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
-
-    val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
-    val durationText = collectionDurationText(totalDurationMs)
-
-    val subtitleDetails = listOfNotNull(
-        pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
-        durationText.takeIf { it.isNotBlank() }
-    ).joinToString(" · ")
-
     fun playAll(shuffle: Boolean) {
         if (songs.isEmpty()) return
-        val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-        if (shuffle) {
-            playbackViewModel.shuffleAll(songs)
-        } else {
-            playbackViewModel.playQueue(songs, 0, shuffle = false)
-        }
-        if (wasIdle) onNavigateToNowPlaying()
+        playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 
     val isRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -88,43 +57,13 @@ fun LikedSongsScreen(
         modifier = modifier.fillMaxSize()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-                Spacer(Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(AppR.string.library_liked_songs_title), style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        subtitleDetails,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (downloadableSongs.isNotEmpty()) {
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_download,
-                        contentDescription = stringResource(AppR.string.desc_download_liked_songs),
-                        onClick = { downloadableSongs.forEach(downloadRepository::download) }
-                    )
-                    Spacer(Modifier.width(4.dp))
-                }
-                TransportButton(
-                    iconRes = R.drawable.lucide_ic_play,
-                    size = 42.dp,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    accented = true,
-                    onClick = { playAll(shuffle = false) }
-                )
-                Spacer(Modifier.width(8.dp))
-                TransportButton(
-                    iconRes = R.drawable.lucide_ic_shuffle,
-                    size = 42.dp,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    onClick = { playAll(shuffle = true) }
-                )
-            }
+            SongCollectionHeader(
+                title = stringResource(AppR.string.library_liked_songs_title),
+                songs = songs,
+                downloadDescription = stringResource(AppR.string.desc_download_liked_songs),
+                onBack = onBack,
+                onPlay = ::playAll
+            )
 
             if (songs.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
@@ -144,10 +83,7 @@ fun LikedSongsScreen(
                         LibrarySongRow(
                             song = song,
                             onClick = {
-                                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                val index = songs.indexOfFirst { it.id == song.id }
-                                playbackViewModel.playQueue(songs, index)
-                                if (wasIdle) onNavigateToNowPlaying()
+                                playbackViewModel.play(songs, songs.indexOfFirst { it.id == song.id }, onFirstPlay = onNavigateToNowPlaying)
                             }
                         )
                     }
