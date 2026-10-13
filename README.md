@@ -17,18 +17,19 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.8.0-E55B3C?style=flat-square&logo=git&logoColor=white" alt="v1.8.0" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-A42E2B?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
-  <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android%208.0+-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" /></a>
-  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" /></a>
-  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose" /></a>
-  <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-0289D5?style=flat-square&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
-  <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
-  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://img.shields.io/badge/Translate-Weblate-2ECCAA?style=flat-square&logo=weblate&logoColor=white" alt="Translate on Weblate" /></a>
-  <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?style=flat-square&color=FF570A&labelColor=FF570A&logoColor=white&logo=coderabbit&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews" /></a>
-  <a href="https://app.codacy.com/gh/samyyy2311/CassetteCat/dashboard"><img src="https://img.shields.io/codacy/grade/a71f402be7e74c80927fe95ec0a931ca?style=flat-square&color=222F29&labelColor=222F29&logoColor=white&logo=codacy&label=Codacy" alt="Codacy code quality" /></a>
-  <a href="https://www.codefactor.io/repository/github/samyyy2311/cassettecat"><img src="https://img.shields.io/codefactor/grade/github/samyyy2311/CassetteCat?style=flat-square&color=F44A6A&labelColor=F44A6A&logoColor=white&logo=codefactor&label=CodeFactor" alt="CodeFactor grade" /></a>
-  <a href="https://www.bestpractices.dev/projects/15444"><img src="https://img.shields.io/cii/level/15444?style=flat-square&color=003778&labelColor=003778&logoColor=white&logo=linuxfoundation&label=OpenSSF+Best+Practices" alt="OpenSSF Best Practices" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.8.0-E55B3C?style=flat-square&labelColor=2A2A2A&logo=git&logoColor=E55B3C" alt="Version 1.8.0" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-A42E2B?style=flat-square&labelColor=2A2A2A&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
+  <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android-8.0+-3DDC84?style=flat-square&labelColor=2A2A2A&logo=android&logoColor=3DDC84" alt="Android 8.0+" /></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/built_with-Kotlin-7F52FF?style=flat-square&labelColor=2A2A2A&logo=kotlin&logoColor=7F52FF" alt="Kotlin" /></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Compose-4285F4?style=flat-square&labelColor=2A2A2A&logo=jetpackcompose&logoColor=4285F4" alt="Jetpack Compose" /></a>
+  <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&labelColor=2A2A2A&color=2F81F7&label=downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
+  <br />
+  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://img.shields.io/badge/translate-Weblate-2ECCAA?style=flat-square&labelColor=2A2A2A&logo=weblate&logoColor=2ECCAA" alt="Translate on Weblate" /></a>
+  <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/listed-AlternativeTo-0289D5?style=flat-square&labelColor=2A2A2A&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
+  <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?style=flat-square&labelColor=2A2A2A&color=FF570A&logo=coderabbit&logoColor=FF570A&label=CodeRabbit" alt="CodeRabbit pull request reviews" /></a>
+  <a href="https://app.codacy.com/gh/samyyy2311/CassetteCat/dashboard"><img src="https://img.shields.io/codacy/grade/a71f402be7e74c80927fe95ec0a931ca?style=flat-square&labelColor=2A2A2A&logo=codacy&logoColor=white&label=Codacy" alt="Codacy code quality" /></a>
+  <a href="https://www.codefactor.io/repository/github/samyyy2311/cassettecat"><img src="https://img.shields.io/codefactor/grade/github/samyyy2311/CassetteCat?style=flat-square&labelColor=2A2A2A&logo=codefactor&logoColor=F44A6A&label=CodeFactor" alt="CodeFactor grade" /></a>
+  <a href="https://www.bestpractices.dev/projects/15444"><img src="https://img.shields.io/cii/level/15444?style=flat-square&labelColor=2A2A2A&logo=linuxfoundation&logoColor=white&label=OpenSSF" alt="OpenSSF Best Practices" /></a>
 </p>
 
 ---
