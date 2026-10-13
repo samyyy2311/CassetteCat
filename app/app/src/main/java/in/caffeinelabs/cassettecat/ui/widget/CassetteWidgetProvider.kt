@@ -22,7 +22,6 @@ import com.composables.icons.lucide.R as LucideR
 import java.io.File
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
-import `in`.caffeinelabs.cassettecat.data.playback.PlaybackService
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.accentColor
 import kotlinx.coroutines.CoroutineScope
@@ -204,8 +203,8 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             }
             views.setOnClickPendingIntent(android.R.id.background, openAppIntent(context))
             views.setOnClickPendingIntent(R.id.widget_btn_play_pause, mediaButtonIntent(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
-            views.setOnClickPendingIntent(R.id.widget_btn_next, mediaButtonIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
-            views.setOnClickPendingIntent(R.id.widget_btn_prev, mediaButtonIntent(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            views.setOnClickPendingIntent(R.id.widget_btn_next, actionIntent(context, WidgetActionReceiver.ACTION_NEXT))
+            views.setOnClickPendingIntent(R.id.widget_btn_prev, actionIntent(context, WidgetActionReceiver.ACTION_PREVIOUS))
 
             if (layout == R.layout.widget_cassette_tall) {
                 val activeColor = accent ?: IDLE_ICON_COLOR
@@ -236,9 +235,9 @@ class CassetteWidgetProvider : AppWidgetProvider() {
                     R.id.widget_btn_like,
                     context.getString(if (state.isFavorite) R.string.notification_unfavorite else R.string.notification_favorite)
                 )
-                views.setOnClickPendingIntent(R.id.widget_btn_shuffle, playerIntent(context, 4, PlaybackService.ACTION_WIDGET_SHUFFLE))
-                views.setOnClickPendingIntent(R.id.widget_btn_repeat, playerIntent(context, 5, PlaybackService.ACTION_WIDGET_REPEAT))
-                views.setOnClickPendingIntent(R.id.widget_btn_like, playerIntent(context, 6, PlaybackService.ACTION_WIDGET_FAVORITE))
+                views.setOnClickPendingIntent(R.id.widget_btn_shuffle, actionIntent(context, WidgetActionReceiver.ACTION_SHUFFLE))
+                views.setOnClickPendingIntent(R.id.widget_btn_repeat, actionIntent(context, WidgetActionReceiver.ACTION_REPEAT))
+                views.setOnClickPendingIntent(R.id.widget_btn_like, actionIntent(context, WidgetActionReceiver.ACTION_LIKE))
             }
             return views
         }
@@ -252,8 +251,8 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // A media button starts the player the way Android allows from the background, and resumes the saved queue
-        // when the app has been closed.
+        // Play is a media button: Android lets it start the player from the background, and the player then resumes
+        // the queue the app saved. Media3 only accepts play this way, so the other buttons go through the receiver.
         private fun mediaButtonIntent(context: Context, keyCode: Int): PendingIntent = PendingIntent.getBroadcast(
             context,
             keyCode,
@@ -263,10 +262,10 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        private fun playerIntent(context: Context, requestCode: Int, action: String): PendingIntent = PendingIntent.getService(
+        private fun actionIntent(context: Context, action: String): PendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode,
-            Intent(context, PlaybackService::class.java).apply { this.action = action },
+            action.hashCode(),
+            Intent(context, WidgetActionReceiver::class.java).setAction(action),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

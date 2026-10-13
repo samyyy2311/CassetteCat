@@ -265,16 +265,16 @@ class PlaybackService : MediaLibraryService() {
         navigationPlayer.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                 updateNotificationLayout(navigationPlayer)
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
                 updateNotificationLayout(navigationPlayer)
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
                 updateNotificationLayout(navigationPlayer)
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
                     serviceScope.launch(Dispatchers.Main) {
@@ -288,7 +288,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
                 val shouldListen = isPlaying || player.playWhenReady
                 if (shouldListen) {
                     wasPausedByFlip = false
@@ -303,7 +303,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
             }
         })
 
@@ -466,15 +466,6 @@ class PlaybackService : MediaLibraryService() {
         if (action != null) {
             val player = mediaSession?.player
             when (action) {
-                ACTION_WIDGET_SHUFFLE -> player?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
-                ACTION_WIDGET_REPEAT -> player?.let {
-                    it.repeatMode = when (it.repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                }
-                ACTION_WIDGET_FAVORITE -> player?.let(::toggleFavorite)
             }
         }
         return super.onStartCommand(intent, flags, startId)
@@ -839,9 +830,6 @@ class PlaybackService : MediaLibraryService() {
         private const val DESKTOP_SESSION_ID = "desktop"
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
         const val ACTION_CUSTOM_SHUFFLE = "in.caffeinelabs.cassettecat.action.CUSTOM_SHUFFLE"
-        const val ACTION_WIDGET_SHUFFLE = "in.caffeinelabs.cassettecat.action.WIDGET_SHUFFLE"
-        const val ACTION_WIDGET_REPEAT = "in.caffeinelabs.cassettecat.action.WIDGET_REPEAT"
-        const val ACTION_WIDGET_FAVORITE = "in.caffeinelabs.cassettecat.action.WIDGET_FAVORITE"
     }
 }
 
