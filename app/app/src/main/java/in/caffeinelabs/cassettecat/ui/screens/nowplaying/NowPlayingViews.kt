@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -128,19 +129,8 @@ internal fun NowPlayingPlayerView(
         Spacer(Modifier.height(20.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
             .coerceIn(0f, 1f)
-        PlaybackControlsRow(
-            positionMs = positionMs,
-            durationMs = state.durationMs,
-            onSeek = { playbackViewModel.seekTo(it) },
-            isShuffleEnabled = state.isShuffleEnabled,
-            onToggleShuffle = { playbackViewModel.toggleShuffle() },
-            onSkipPrevious = onSkipPrevious,
-            isPlaying = state.isPlaying,
-            playWhenReady = state.playWhenReady,
-            onTogglePlayPause = { playbackViewModel.togglePlayPause() },
-            onSkipNext = onSkipNext,
-            repeatMode = state.repeatMode,
-            onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
+        PlaybackControls(
+            state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious,
             modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
         )
     }
@@ -236,7 +226,6 @@ internal fun NowPlayingQueueView(
     onQueueInteraction: () -> Unit,
     onQueueScrollDelta: (Float) -> Unit
 ) {
-    val density = LocalDensity.current
     LaunchedEffect(Unit) {
         val upNextHeaderIndex = if (state.history.isNotEmpty()) state.history.size + 1 else 0
         queueListState.scrollToItem(upNextHeaderIndex)
@@ -274,58 +263,95 @@ internal fun NowPlayingQueueView(
                 state = queueListState,
                 modifier = Modifier.fillMaxSize()
             )
-            val queueControlsAlpha by animateFloatAsState(
-                targetValue = if (chromeVisible) 1f else 0f,
-                animationSpec = tween(220, easing = SmoothEasing),
-                label = "queueControlsAlpha"
+            NowPlayingBottomControls(
+                state = state,
+                positionMs = positionMs,
+                chromeVisible = chromeVisible,
+                activeView = activeView,
+                playbackViewModel = playbackViewModel,
+                onActiveViewChange = onActiveViewChange,
+                onSkipNext = onSkipNext,
+                onSkipPrevious = onSkipPrevious
             )
-            val queueControlsSlideY by animateFloatAsState(
-                targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
-                animationSpec = tween(220, easing = SmoothEasing),
-                label = "queueControlsSlide"
-            )
-            if (chromeVisible || queueControlsAlpha > 0.001f) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .graphicsLayer {
-                            alpha = queueControlsAlpha
-                            translationY = queueControlsSlideY
-                        }
-                        .then(
-                            if (chromeVisible) {
-                                Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = { }
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                ) {
-                    Column(Modifier.fillMaxWidth()) {
-                        PlaybackControlsRow(
-                            positionMs = positionMs,
-                            durationMs = state.durationMs,
-                            onSeek = { playbackViewModel.seekTo(it) },
-                            isShuffleEnabled = state.isShuffleEnabled,
-                            onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                            onSkipPrevious = onSkipPrevious,
-                            isPlaying = state.isPlaying,
-                            playWhenReady = state.playWhenReady,
-                            onTogglePlayPause = { playbackViewModel.togglePlayPause() },
-                            onSkipNext = onSkipNext,
-                            repeatMode = state.repeatMode,
-                            onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
-                        )
-                        Spacer(Modifier.height(64.dp))
-                        LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
-                    }
-                }
+        }
+    }
+}
+
+@Composable
+private fun PlaybackControls(
+    state: PlaybackUiState,
+    positionMs: Long,
+    playbackViewModel: PlaybackViewModel,
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    PlaybackControlsRow(
+        positionMs = positionMs,
+        durationMs = state.durationMs,
+        onSeek = { playbackViewModel.seekTo(it) },
+        isShuffleEnabled = state.isShuffleEnabled,
+        onToggleShuffle = { playbackViewModel.toggleShuffle() },
+        onSkipPrevious = onSkipPrevious,
+        isPlaying = state.isPlaying,
+        playWhenReady = state.playWhenReady,
+        onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+        onSkipNext = onSkipNext,
+        repeatMode = state.repeatMode,
+        onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
+        modifier = modifier
+    )
+}
+
+// Fades and slides with the rest of the chrome; while shown it takes taps so they don't fall through to the list.
+@Composable
+private fun BoxScope.NowPlayingBottomControls(
+    state: PlaybackUiState,
+    positionMs: Long,
+    chromeVisible: Boolean,
+    activeView: NowPlayingView,
+    playbackViewModel: PlaybackViewModel,
+    onActiveViewChange: (NowPlayingView) -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit
+) {
+    val density = LocalDensity.current
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (chromeVisible) 1f else 0f,
+        animationSpec = tween(220, easing = SmoothEasing),
+        label = "controlsAlpha"
+    )
+    val controlsSlideY by animateFloatAsState(
+        targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
+        animationSpec = tween(220, easing = SmoothEasing),
+        label = "controlsSlide"
+    )
+    if (!chromeVisible && controlsAlpha <= 0.001f) return
+    Box(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .graphicsLayer {
+                alpha = controlsAlpha
+                translationY = controlsSlideY
             }
+            .then(
+                if (chromeVisible) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { }
+                    )
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            PlaybackControls(state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious)
+            Spacer(Modifier.height(64.dp))
+            LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
         }
     }
 }
@@ -357,7 +383,6 @@ internal fun NowPlayingLyricsView(
     onUserSeekOrInteraction: (Boolean) -> Unit,
     onScrollDelta: (Float) -> Unit
 ) {
-    val density = LocalDensity.current
     var syncOffsetMs by remember(song.id, syncedLyrics) { mutableLongStateOf(0L) }
     var showSyncTuner by remember(song.id) { mutableStateOf(false) }
     var selectionMode by remember(song.id) { mutableStateOf(false) }
@@ -505,58 +530,16 @@ internal fun NowPlayingLyricsView(
                         .padding(horizontal = 20.dp, vertical = 24.dp)
                 )
             } else {
-                val lyricsControlsAlpha by animateFloatAsState(
-                    targetValue = if (chromeVisible) 1f else 0f,
-                    animationSpec = tween(220, easing = SmoothEasing),
-                    label = "lyricsControlsAlpha"
+                NowPlayingBottomControls(
+                    state = state,
+                    positionMs = positionMs,
+                    chromeVisible = chromeVisible,
+                    activeView = activeView,
+                    playbackViewModel = playbackViewModel,
+                    onActiveViewChange = onActiveViewChange,
+                    onSkipNext = onSkipNext,
+                    onSkipPrevious = onSkipPrevious
                 )
-                val lyricsControlsSlideY by animateFloatAsState(
-                    targetValue = if (chromeVisible) 0f else with(density) { 16.dp.toPx() },
-                    animationSpec = tween(220, easing = SmoothEasing),
-                    label = "lyricsControlsSlide"
-                )
-                if (chromeVisible || lyricsControlsAlpha > 0.001f) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .graphicsLayer {
-                                alpha = lyricsControlsAlpha
-                                translationY = lyricsControlsSlideY
-                            }
-                            .then(
-                                if (chromeVisible) {
-                                    Modifier.clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = { }
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            )
-                    ) {
-                        Column(Modifier.fillMaxWidth()) {
-                            PlaybackControlsRow(
-                                positionMs = positionMs,
-                                durationMs = state.durationMs,
-                                onSeek = { playbackViewModel.seekTo(it) },
-                                isShuffleEnabled = state.isShuffleEnabled,
-                                onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                                onSkipPrevious = onSkipPrevious,
-                                isPlaying = state.isPlaying,
-                                playWhenReady = state.playWhenReady,
-                                onTogglePlayPause = { playbackViewModel.togglePlayPause() },
-                                onSkipNext = onSkipNext,
-                                repeatMode = state.repeatMode,
-                                onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
-                            )
-                            Spacer(Modifier.height(64.dp))
-                            LyricsQueueToggleRow(activeView = activeView, onActiveViewChange = onActiveViewChange)
-                        }
-                    }
-                }
             }
         }
     }

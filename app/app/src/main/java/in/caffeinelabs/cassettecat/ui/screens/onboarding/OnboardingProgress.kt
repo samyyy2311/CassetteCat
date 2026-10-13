@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,29 +50,7 @@ fun OnboardingHeroImage(
     blobSize: Dp = 200.dp,
     imageSize: Dp = 112.dp
 ) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(TRANSITION_MS * 2, easing = SmoothEasing), label = "heroAlpha")
-    val scale by animateFloatAsState(if (visible) 1f else 0.92f, tween(TRANSITION_MS * 2, easing = SmoothEasing), label = "heroScale")
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer { this.alpha = alpha; scaleX = scale; scaleY = scale },
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(blobSize)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.24f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0f)
-                        )
-                    )
-                )
-        )
+    OnboardingHero(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.24f), blobSize, modifier) {
         Image(
             painter = painterResource(imageRes),
             contentDescription = null,
@@ -84,6 +63,19 @@ fun OnboardingHeroImage(
 
 @Composable
 fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp = 180.dp, iconSize: Dp = 84.dp) {
+    OnboardingHero(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f), blobSize, modifier) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(iconSize),
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+// Fades and grows in over a soft glow of [glow] when the step first shows.
+@Composable
+private fun OnboardingHero(glow: Color, blobSize: Dp, modifier: Modifier, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
     val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(TRANSITION_MS * 2, easing = SmoothEasing), label = "heroAlpha")
@@ -98,21 +90,9 @@ fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp
         Box(
             modifier = Modifier
                 .size(blobSize)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                        )
-                    )
-                )
+                .background(Brush.radialGradient(colors = listOf(glow, glow.copy(alpha = 0f))))
         )
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(iconSize),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        content()
     }
 }
 

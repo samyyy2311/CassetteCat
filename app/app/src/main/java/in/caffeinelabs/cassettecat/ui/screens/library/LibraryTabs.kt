@@ -229,7 +229,6 @@ internal fun ArtistsTabContent(
     onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
@@ -249,66 +248,35 @@ internal fun ArtistsTabContent(
             modifier = modifier.fillMaxSize()
         )
     } else {
-        val firstVisibleIndex by remember(collectionLayout) {
-            derivedStateOf {
-                if (collectionLayout == CollectionLayout.GRID) gridState.firstVisibleItemIndex else listState.firstVisibleItemIndex
+        GroupCollection(
+            groups = artists,
+            key = { it.artist },
+            label = { it.artist },
+            itemNoun = "artist",
+            collectionLayout = collectionLayout,
+            gridColumns = gridColumns,
+            gridState = gridState,
+            listState = listState,
+            listBottomPadding = listBottomPadding,
+            modifier = modifier,
+            card = { group ->
+                ArtistCard(
+                    group = group,
+                    selected = group.artist in selectedIds,
+                    onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
+                    onLongClick = { onToggleSelect(group.artist) }
+                )
+            },
+            row = { group ->
+                ArtistListRow(
+                    group = group,
+                    selected = group.artist in selectedIds,
+                    selectionMode = selectionMode,
+                    onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
+                    onLongClick = { onToggleSelect(group.artist) }
+                )
             }
-        }
-        Box(modifier = modifier.fillMaxSize()) {
-            if (collectionLayout == CollectionLayout.GRID) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    state = gridState,
-                    contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(artists, key = { it.artist }) { group ->
-                        ArtistCard(
-                            group = group,
-                            selected = group.artist in selectedIds,
-                            onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
-                            onLongClick = { onToggleSelect(group.artist) }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
-                ) {
-                    items(artists, key = { it.artist }) { group ->
-                        ArtistListRow(
-                            group = group,
-                            selected = group.artist in selectedIds,
-                            selectionMode = selectionMode,
-                            onClick = { if (selectionMode) onToggleSelect(group.artist) else onNavigateToArtist(group.artist) },
-                            onLongClick = { onToggleSelect(group.artist) }
-                        )
-                    }
-                }
-            }
-
-            FastScrollIndexRail(
-                items = artists,
-                labelExtractor = { it.artist },
-                itemNoun = "artist",
-                bottomPadding = listBottomPadding,
-                firstVisibleIndex = firstVisibleIndex,
-                onScrollToIndex = { index ->
-                    coroutineScope.launch {
-                        if (collectionLayout == CollectionLayout.GRID) {
-                            gridState.scrollToItem(index)
-                        } else {
-                            listState.scrollToItem(index)
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
+        )
     }
 }
 
@@ -327,7 +295,6 @@ internal fun AlbumsTabContent(
     onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
@@ -347,66 +314,35 @@ internal fun AlbumsTabContent(
             modifier = modifier.fillMaxSize()
         )
     } else {
-        val firstVisibleIndex by remember(collectionLayout) {
-            derivedStateOf {
-                if (collectionLayout == CollectionLayout.GRID) gridState.firstVisibleItemIndex else listState.firstVisibleItemIndex
+        GroupCollection(
+            groups = albums,
+            key = { it.albumId },
+            label = { it.album },
+            itemNoun = "album",
+            collectionLayout = collectionLayout,
+            gridColumns = gridColumns,
+            gridState = gridState,
+            listState = listState,
+            listBottomPadding = listBottomPadding,
+            modifier = modifier,
+            card = { group ->
+                AlbumCard(
+                    group = group,
+                    selected = group.albumId in selectedIds,
+                    onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
+                    onLongClick = { onToggleSelect(group.albumId) }
+                )
+            },
+            row = { group ->
+                AlbumListRow(
+                    group = group,
+                    selected = group.albumId in selectedIds,
+                    selectionMode = selectionMode,
+                    onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
+                    onLongClick = { onToggleSelect(group.albumId) }
+                )
             }
-        }
-        Box(modifier = modifier.fillMaxSize()) {
-            if (collectionLayout == CollectionLayout.GRID) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    state = gridState,
-                    contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(albums, key = { it.albumId }) { group ->
-                        AlbumCard(
-                            group = group,
-                            selected = group.albumId in selectedIds,
-                            onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
-                            onLongClick = { onToggleSelect(group.albumId) }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
-                ) {
-                    items(albums, key = { it.albumId }) { group ->
-                        AlbumListRow(
-                            group = group,
-                            selected = group.albumId in selectedIds,
-                            selectionMode = selectionMode,
-                            onClick = { if (selectionMode) onToggleSelect(group.albumId) else onNavigateToAlbum(group.albumId) },
-                            onLongClick = { onToggleSelect(group.albumId) }
-                        )
-                    }
-                }
-            }
-
-            FastScrollIndexRail(
-                items = albums,
-                labelExtractor = { it.album },
-                itemNoun = "album",
-                bottomPadding = listBottomPadding,
-                firstVisibleIndex = firstVisibleIndex,
-                onScrollToIndex = { index ->
-                    coroutineScope.launch {
-                        if (collectionLayout == CollectionLayout.GRID) {
-                            gridState.scrollToItem(index)
-                        } else {
-                            listState.scrollToItem(index)
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
+        )
     }
 }
 
@@ -426,7 +362,6 @@ internal fun GenresTabContent(
     onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
@@ -446,70 +381,104 @@ internal fun GenresTabContent(
             modifier = modifier.fillMaxSize()
         )
     } else {
-        val firstVisibleIndex by remember(collectionLayout) {
-            derivedStateOf {
-                if (collectionLayout == CollectionLayout.GRID) gridState.firstVisibleItemIndex else listState.firstVisibleItemIndex
+        GroupCollection(
+            groups = genres,
+            key = { it.genre },
+            label = { it.genre },
+            itemNoun = "genre",
+            collectionLayout = collectionLayout,
+            gridColumns = gridColumns,
+            gridState = gridState,
+            listState = listState,
+            listBottomPadding = listBottomPadding,
+            modifier = modifier,
+            card = { group ->
+                GenreCard(
+                    group = group,
+                    selected = group.genre in selectedIds,
+                    onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
+                    onLongClick = { onToggleSelect(group.genre) },
+                    onPlay = { onPlayGroup(group.songs) }
+                )
+            },
+            row = { group ->
+                GenreListRow(
+                    group = group,
+                    selected = group.genre in selectedIds,
+                    selectionMode = selectionMode,
+                    onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
+                    onLongClick = { onToggleSelect(group.genre) },
+                    onPlay = { onPlayGroup(group.songs) }
+                )
             }
-        }
-        Box(modifier = modifier.fillMaxSize()) {
-            if (collectionLayout == CollectionLayout.GRID) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    state = gridState,
-                    contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(genres, key = { it.genre }) { group ->
-                        GenreCard(
-                            group = group,
-                            selected = group.genre in selectedIds,
-                            onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
-                            onLongClick = { onToggleSelect(group.genre) },
-                            onPlay = { onPlayGroup(group.songs) }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
-                ) {
-                    items(genres, key = { it.genre }) { group ->
-                        GenreListRow(
-                            group = group,
-                            selected = group.genre in selectedIds,
-                            selectionMode = selectionMode,
-                            onClick = { if (selectionMode) onToggleSelect(group.genre) else onNavigateToGenre(group.genre) },
-                            onLongClick = { onToggleSelect(group.genre) },
-                            onPlay = { onPlayGroup(group.songs) }
-                        )
-                    }
-                }
-            }
-
-            FastScrollIndexRail(
-                items = genres,
-                labelExtractor = { it.genre },
-                itemNoun = "genre",
-                bottomPadding = listBottomPadding,
-                firstVisibleIndex = firstVisibleIndex,
-                onScrollToIndex = { index ->
-                    coroutineScope.launch {
-                        if (collectionLayout == CollectionLayout.GRID) {
-                            gridState.scrollToItem(index)
-                        } else {
-                            listState.scrollToItem(index)
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
+        )
     }
 }
+
+// A library group tab's grid or list with the A-Z rail; [card] and [row] draw one group in each layout.
+@Composable
+private fun <T> GroupCollection(
+    groups: List<T>,
+    key: (T) -> Any,
+    label: (T) -> String,
+    itemNoun: String,
+    collectionLayout: CollectionLayout,
+    gridColumns: Int,
+    gridState: LazyGridState,
+    listState: LazyListState,
+    listBottomPadding: Dp,
+    modifier: Modifier,
+    card: @Composable (T) -> Unit,
+    row: @Composable (T) -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val firstVisibleIndex by remember(collectionLayout) {
+        derivedStateOf {
+            if (collectionLayout == CollectionLayout.GRID) gridState.firstVisibleItemIndex else listState.firstVisibleItemIndex
+        }
+    }
+    Box(modifier = modifier.fillMaxSize()) {
+        if (collectionLayout == CollectionLayout.GRID) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                modifier = Modifier.fillMaxSize(),
+                state = gridState,
+                contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(groups, key = key) { card(it) }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
+            ) {
+                items(groups, key = key) { row(it) }
+            }
+        }
+
+        FastScrollIndexRail(
+            items = groups,
+            labelExtractor = label,
+            itemNoun = itemNoun,
+            bottomPadding = listBottomPadding,
+            firstVisibleIndex = firstVisibleIndex,
+            onScrollToIndex = { index ->
+                coroutineScope.launch {
+                    if (collectionLayout == CollectionLayout.GRID) {
+                        gridState.scrollToItem(index)
+                    } else {
+                        listState.scrollToItem(index)
+                    }
+                }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
+    }
+}
+
 
 @Composable
 internal fun FoldersTab(
@@ -527,7 +496,6 @@ internal fun FoldersTab(
     onToggleSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = rememberCoroutineScope()
     if (folders.isEmpty()) {
         EmptyState(
             catRes = AppR.drawable.cat_calico_player,
@@ -536,74 +504,39 @@ internal fun FoldersTab(
             modifier = modifier.fillMaxSize()
         )
     } else {
-        val firstVisibleIndex by remember {
-            derivedStateOf {
-                if (collectionLayout == CollectionLayout.GRID) {
-                    gridState.firstVisibleItemIndex
-                } else {
-                    listState.firstVisibleItemIndex
-                }
+        GroupCollection(
+            groups = folders,
+            key = { it.folderPath },
+            label = { it.folderName },
+            itemNoun = "folder",
+            collectionLayout = collectionLayout,
+            gridColumns = gridColumns,
+            gridState = gridState,
+            listState = listState,
+            listBottomPadding = listBottomPadding,
+            modifier = modifier,
+            card = { group ->
+                FolderCard(
+                    group = group,
+                    selected = group.folderPath in selectedIds,
+                    selectionMode = selectionMode,
+                    onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
+                    onLongClick = { onToggleSelect(group.folderPath) },
+                    onChangeCover = { onChangeCover(group) },
+                    onPlay = { onPlayGroup(group.songs) }
+                )
+            },
+            row = { group ->
+                FolderListRow(
+                    group = group,
+                    selected = group.folderPath in selectedIds,
+                    selectionMode = selectionMode,
+                    onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
+                    onLongClick = { onToggleSelect(group.folderPath) },
+                    onChangeCover = { onChangeCover(group) },
+                    onPlay = { onPlayGroup(group.songs) }
+                )
             }
-        }
-        Box(modifier = modifier.fillMaxSize()) {
-            if (collectionLayout == CollectionLayout.GRID) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    state = gridState,
-                    contentPadding = PaddingValues(start = 24.dp, end = 28.dp, top = 4.dp, bottom = listBottomPadding + 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(folders, key = { it.folderPath }) { group ->
-                        FolderCard(
-                            group = group,
-                            selected = group.folderPath in selectedIds,
-                            selectionMode = selectionMode,
-                            onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                            onLongClick = { onToggleSelect(group.folderPath) },
-                            onChangeCover = { onChangeCover(group) },
-                            onPlay = { onPlayGroup(group.songs) }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(start = 0.dp, end = 24.dp, top = 4.dp, bottom = listBottomPadding)
-                ) {
-                    items(folders, key = { it.folderPath }) { group ->
-                        FolderListRow(
-                            group = group,
-                            selected = group.folderPath in selectedIds,
-                            selectionMode = selectionMode,
-                            onClick = { if (selectionMode) onToggleSelect(group.folderPath) else onNavigateToFolder(group.folderPath) },
-                            onLongClick = { onToggleSelect(group.folderPath) },
-                            onChangeCover = { onChangeCover(group) },
-                            onPlay = { onPlayGroup(group.songs) }
-                        )
-                    }
-                }
-            }
-
-            FastScrollIndexRail(
-                items = folders,
-                labelExtractor = { it.folderName },
-                itemNoun = "folder",
-                bottomPadding = listBottomPadding,
-                firstVisibleIndex = firstVisibleIndex,
-                onScrollToIndex = { index ->
-                    coroutineScope.launch {
-                        if (collectionLayout == CollectionLayout.GRID) {
-                            gridState.scrollToItem(index)
-                        } else {
-                            listState.scrollToItem(index)
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
-        }
+        )
     }
 }

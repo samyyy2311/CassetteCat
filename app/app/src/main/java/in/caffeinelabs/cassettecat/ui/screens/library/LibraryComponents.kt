@@ -1,5 +1,10 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
+import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
+import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
+import android.content.Context
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -44,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +89,72 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
+
+/** Removes the custom cover on [song]'s album and its file, then redraws artwork showing it. */
+internal suspend fun resetAlbumCover(context: Context, song: Song) {
+    val repository = AlbumCoverRepository.getInstance(context)
+    val path = repository.getCoverPath(song.album, song.artist, song.albumId)
+    repository.clearCover(song.album, song.artist, song.albumId)
+    if (path != null) AlbumCoverStorage(context).delete(path)
+    invalidateAlbumArtCache(context)
+}
+
+/** Back button, title, song count and length, then download, play and shuffle for a list of songs. */
+@Composable
+internal fun SongCollectionHeader(
+    title: String,
+    songs: List<Song>,
+    downloadDescription: String,
+    onBack: () -> Unit,
+    onPlay: (shuffle: Boolean) -> Unit
+) {
+    val context = LocalContext.current
+    val downloadRepository = remember { SongDownloadRepository.getInstance(context) }
+    val downloadableSongs = remember(songs) { songs.filter { it.source != MusicSource.Local } }
+    val totalDurationMs = remember(songs) { songs.sumOf { it.durationMs } }
+    val subtitle = listOfNotNull(
+        pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
+        collectionDurationText(totalDurationMs).takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (downloadableSongs.isNotEmpty()) {
+            PressDepthIconButton(
+                iconRes = R.drawable.lucide_ic_download,
+                contentDescription = downloadDescription,
+                onClick = { downloadableSongs.forEach(downloadRepository::download) }
+            )
+            Spacer(Modifier.width(4.dp))
+        }
+        TransportButton(
+            iconRes = R.drawable.lucide_ic_play,
+            size = 42.dp,
+            tint = MaterialTheme.colorScheme.tertiary,
+            accented = true,
+            onClick = { onPlay(false) }
+        )
+        Spacer(Modifier.width(8.dp))
+        TransportButton(
+            iconRes = R.drawable.lucide_ic_shuffle,
+            size = 42.dp,
+            tint = MaterialTheme.colorScheme.onSurface,
+            onClick = { onPlay(true) }
+        )
+    }
+}
 
 // A collection's total length, such as "1h 5m" or "42 min"; empty when unknown.
 @Composable

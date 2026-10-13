@@ -66,7 +66,6 @@ import `in`.caffeinelabs.cassettecat.data.library.SmartRuleType
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.buildM3u
 import `in`.caffeinelabs.cassettecat.data.library.filterSongsForSmartCriteria
-import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
@@ -209,9 +208,7 @@ fun PlaylistDetailScreen(
                         tint = MaterialTheme.colorScheme.tertiary,
                         accented = true,
                         onClick = {
-                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                            playbackViewModel.playQueue(sortedSongs, 0, shuffle = false)
-                            if (wasIdle) onNavigateToNowPlaying()
+                            playbackViewModel.play(sortedSongs, 0, shuffle = false, onFirstPlay = onNavigateToNowPlaying)
                         }
                     )
                     Spacer(Modifier.width(6.dp))
@@ -220,9 +217,7 @@ fun PlaylistDetailScreen(
                         size = 40.dp,
                         tint = MaterialTheme.colorScheme.onSurface,
                         onClick = {
-                            val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                            playbackViewModel.shuffleAll(sortedSongs)
-                            if (wasIdle) onNavigateToNowPlaying()
+                            playbackViewModel.play(sortedSongs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
                         }
                     )
                     Spacer(Modifier.width(2.dp))
@@ -276,10 +271,7 @@ fun PlaylistDetailScreen(
                             song = song,
                             onMoreClick = { songForOptions = song },
                             onClick = {
-                                val wasIdle = playbackViewModel.playbackState.value.currentSong == null
-                                val index = sortedSongs.indexOfFirst { it.id == song.id }
-                                playbackViewModel.playQueue(sortedSongs, index)
-                                if (wasIdle) onNavigateToNowPlaying()
+                                playbackViewModel.play(sortedSongs, sortedSongs.indexOfFirst { it.id == song.id }, onFirstPlay = onNavigateToNowPlaying)
                             }
                         )
                     }
@@ -419,30 +411,11 @@ fun PlaylistDetailScreen(
     }
 
     if (!showPlaylistPickerSheet) songForOptions?.let { song ->
-        val isFav = song.isFavorite || song.id in favoriteIds
         SongOptionsSheet(
             song = song,
-            isFavorite = isFav,
-            onPlayNext = {
-                playbackViewModel.addToUpNext(listOf(song))
-                songForOptions = null
-            },
-            onAddToQueue = {
-                playbackViewModel.addToEndOfQueue(listOf(song))
-                songForOptions = null
-            },
+            playbackViewModel = playbackViewModel,
             onAddToPlaylist = {
                 showPlaylistPickerSheet = true
-            },
-            onToggleFavorite = {
-                scope.launch {
-                    favoritesRepository.setFavorite(song.id, !isFav)
-                }
-                songForOptions = null
-            },
-            onShare = {
-                shareSongs(context, listOf(song))
-                songForOptions = null
             },
             onEditTags = {
                 val s = song

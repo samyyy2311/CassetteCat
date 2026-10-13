@@ -9,22 +9,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,9 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
-import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -60,7 +53,6 @@ fun LyricShareSheet(
     selectedLines: List<String>,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectedTheme by remember { mutableStateOf(LyricCardTheme.ATMOSPHERE) }
@@ -68,85 +60,54 @@ fun LyricShareSheet(
     val lyricsClipboardLabel = stringResource(AppR.string.share_mode_lyrics)
     val lyricsCopiedMessage = stringResource(AppR.string.share_lyrics_copied)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    ) {
-        Column(
+    ShareSheet(title = stringResource(AppR.string.share_lyric_quote_title), onDismiss = onDismiss) {
+
+        Spacer(Modifier.height(16.dp))
+
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth(0.92f)
+                .aspectRatio(4f / 5f)
+                .clip(RoundedCornerShape(20.dp))
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(AppR.string.share_lyric_quote_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = SpaceGroteskFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_x,
-                    contentDescription = stringResource(AppR.string.close),
-                    onClick = onDismiss
-                )
-            }
+            LyricSharePreviewCard(
+                song = song,
+                lines = selectedLines,
+                theme = selectedTheme
+            )
+        }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .aspectRatio(4f / 5f)
-                    .clip(RoundedCornerShape(20.dp))
-            ) {
-                LyricSharePreviewCard(
-                    song = song,
-                    lines = selectedLines,
-                    theme = selectedTheme
-                )
-            }
+        LyricCardThemePicker(selected = selectedTheme, onSelect = { selectedTheme = it })
 
-            Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
 
-            LyricCardThemePicker(selected = selectedTheme, onSelect = { selectedTheme = it })
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ShareActionPill(
+                iconRes = R.drawable.lucide_ic_copy,
+                label = stringResource(AppR.string.share_copy_text),
+                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                iconTint = MaterialTheme.colorScheme.onSurface,
+                onClick = {
+                    val fullText = selectedLines.joinToString("\n") + "\n\n$trackCredit"
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText(lyricsClipboardLabel, fullText))
+                    Toast.makeText(context, lyricsCopiedMessage, Toast.LENGTH_SHORT).show()
+                }
+            )
 
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ShareActionPill(
-                    iconRes = R.drawable.lucide_ic_copy,
-                    label = stringResource(AppR.string.share_copy_text),
-                    backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        val fullText = selectedLines.joinToString("\n") + "\n\n$trackCredit"
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText(lyricsClipboardLabel, fullText))
-                        Toast.makeText(context, lyricsCopiedMessage, Toast.LENGTH_SHORT).show()
+            ShareImageActions { target ->
+                scope.launch {
+                    val artBitmap = loadSongArtwork(context, song)
+                    val bitmap = withContext(Dispatchers.Default) {
+                        generateSharePoster(context, song, ShareCardMode.LYRICS, selectedLines, selectedTheme, artBitmap)
                     }
-                )
-
-                ShareImageActions { target ->
-                    scope.launch {
-                        val artBitmap = loadSongArtwork(context, song)
-                        val bitmap = withContext(Dispatchers.Default) {
-                            generateSharePoster(context, song, ShareCardMode.LYRICS, selectedLines, selectedTheme, artBitmap)
-                        }
-                        shareImage(context, bitmap, trackCredit, target, selectedTheme)
-                    }
+                    shareImage(context, bitmap, trackCredit, target, selectedTheme)
                 }
             }
         }

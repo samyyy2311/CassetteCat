@@ -1,13 +1,18 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
+import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
+import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.shareSongs
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -425,23 +430,23 @@ internal fun <T> NamedPlaylistPickerSheet(
 @Composable
 internal fun SongOptionsSheet(
     song: Song,
-    isFavorite: Boolean = false,
-    onPlayNext: () -> Unit,
-    onAddToQueue: () -> Unit,
+    playbackViewModel: PlaybackViewModel,
     onAddToPlaylist: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onShare: () -> Unit,
     onSearchCoverOnline: (() -> Unit)? = null,
     onRemoveCustomCover: (() -> Unit)? = null,
     onEditTags: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current.applicationContext
+    // Share opens a chooser, which needs the screen's context; the rest only needs the app.
+    val activityContext = LocalContext.current
+    val context = activityContext.applicationContext
     val desktop = remember { DesktopRemoteRepository.getInstance(context) }
     val desktopState by desktop.state.collectAsStateWithLifecycle()
     val canSendToDesktop = desktopState.address != null && !desktopState.offlineBlackout &&
         song.source != MusicSource.Radio && song.source != MusicSource.Desktop
+    val favoriteIds by remember { FavoritesRepository(context) }.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
+    val isFavorite = song.isFavorite || song.id in favoriteIds
     FullOpenBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -450,40 +455,8 @@ internal fun SongOptionsSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 24.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                ) {
-                    AlbumArt(
-                        song = song,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        song.title,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        song.artist,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+            OptionsSheetHeader(title = song.title, subtitle = song.artist) {
+                AlbumArt(song = song, modifier = Modifier.fillMaxSize())
             }
 
             Row(
@@ -492,83 +465,19 @@ internal fun SongOptionsSheet(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val likeBg = if (isFavorite) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh
-                val likeBorder = if (isFavorite) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-                val likeTint = if (isFavorite) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
-
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(likeBg)
-                        .border(1.dp, likeBorder, RoundedCornerShape(12.dp))
-                        .tapScale(onToggleFavorite)
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_heart),
-                        contentDescription = null,
-                        tint = likeTint,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (isFavorite) stringResource(AppR.string.library_liked) else stringResource(AppR.string.library_favorite),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = if (isFavorite) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
-                    )
+                SongActionPill(
+                    iconRes = R.drawable.lucide_ic_heart,
+                    label = stringResource(if (isFavorite) AppR.string.library_liked else AppR.string.library_favorite),
+                    highlighted = isFavorite,
+                    onClick = { playbackViewModel.setFavorite(song.id, !isFavorite); onDismiss() }
+                )
+                SongActionPill(R.drawable.lucide_ic_play, stringResource(AppR.string.library_play_next)) {
+                    playbackViewModel.addToUpNext(listOf(song))
+                    onDismiss()
                 }
-
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                        .tapScale { onPlayNext(); onDismiss() }
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_play),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(AppR.string.library_play_next),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                        .tapScale { onShare(); onDismiss() }
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lucide_ic_share_2),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(AppR.string.library_share),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                SongActionPill(R.drawable.lucide_ic_share_2, stringResource(AppR.string.library_share)) {
+                    shareSongs(activityContext, listOf(song))
+                    onDismiss()
                 }
             }
 
@@ -598,7 +507,7 @@ internal fun SongOptionsSheet(
                     iconRes = R.drawable.lucide_ic_list_plus,
                     title = stringResource(AppR.string.library_add_to_queue),
                     subtitle = stringResource(AppR.string.library_add_to_queue_description),
-                    onClick = { onAddToQueue(); onDismiss() }
+                    onClick = { playbackViewModel.addToEndOfQueue(listOf(song)); onDismiss() }
                 )
                 SongOptionCardRow(
                     iconRes = R.drawable.lucide_ic_list_music,
@@ -643,6 +552,77 @@ internal fun SongOptionsSheet(
         }
     }
 }
+
+@Composable
+private fun OptionsSheetHeader(title: String, subtitle: String, art: @Composable BoxScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+            content = art
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SongActionPill(iconRes: Int, label: String, highlighted: Boolean = false, onClick: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.tertiary
+    Row(
+        modifier = Modifier
+            .weight(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (highlighted) accent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(
+                1.dp,
+                if (highlighted) accent.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                RoundedCornerShape(12.dp)
+            )
+            .tapScale(onClick)
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = if (highlighted) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = if (highlighted) accent else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
 
 @Composable
 private fun SongOptionCardRow(
@@ -710,56 +690,28 @@ internal fun FolderOptionsSheet(
                 .navigationBarsPadding()
                 .padding(bottom = 24.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            OptionsSheetHeader(
+                title = folder.folderName,
+                subtitle = pluralStringResource(AppR.plurals.library_songs, folder.songs.size, folder.songs.size) +
+                    (folder.parentName?.let { " · in $it" } ?: "")
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val customCover = rememberLocalFileCoverBitmap(folder.customCoverPath)
-                    val sampleSong = folder.songs.firstOrNull()
-                    if (customCover != null) {
-                        Image(
-                            bitmap = customCover.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else if (sampleSong != null) {
-                        AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
-                    } else {
-                        Icon(
-                            painter = painterResource(R.drawable.lucide_ic_folder),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        folder.folderName,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                val customCover = rememberLocalFileCoverBitmap(folder.customCoverPath)
+                val sampleSong = folder.songs.firstOrNull()
+                if (customCover != null) {
+                    Image(
+                        bitmap = customCover.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        pluralStringResource(AppR.plurals.library_songs, folder.songs.size, folder.songs.size) +
-                            (folder.parentName?.let { " · in $it" } ?: ""),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                } else if (sampleSong != null) {
+                    AlbumArt(song = sampleSong, modifier = Modifier.fillMaxSize())
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.lucide_ic_folder),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }

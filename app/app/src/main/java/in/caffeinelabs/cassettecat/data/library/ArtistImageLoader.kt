@@ -1,21 +1,16 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
-import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 import android.graphics.Bitmap
-import android.util.LruCache
+import `in`.caffeinelabs.cassettecat.data.streaming.ArtworkCache
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import java.net.URLEncoder
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import okhttp3.Request
 
 private const val THUMBNAIL_CACHE_BYTES = 12 * 1024 * 1024
 private const val FULL_CACHE_BYTES = 16 * 1024 * 1024
-private const val THUMBNAIL_DIMENSION = 300
-private const val FULL_DIMENSION = 1440
 
 @Serializable
 private data class DeezerSearchResponse(val data: List<DeezerArtist> = emptyList())
@@ -40,39 +35,16 @@ private data class AudioDbArtist(
 
 // Remote artist image fetching with Deezer and TheAudioDB backends.
 class ArtistImageLoader {
-    private val thumbnailCache = object : LruCache<String, Bitmap>(THUMBNAIL_CACHE_BYTES) {
-        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
-    }
-    private val fullCache = object : LruCache<String, Bitmap>(FULL_CACHE_BYTES) {
-        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
-    }
+    private val cache = ArtworkCache(THUMBNAIL_CACHE_BYTES, FULL_CACHE_BYTES)
 
-    fun clearCache() {
-        thumbnailCache.evictAll()
-        fullCache.evictAll()
-    }
+    fun clearCache() = cache.clear()
 
-    @Suppress("DEPRECATION")
-    fun trimCaches(level: Int) {
-        if (shouldClearArtworkThumbnails(level)) {
-            clearCache()
-        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            fullCache.evictAll()
-        }
-    }
+    fun trimCaches(level: Int) = cache.trim(level)
 
-    fun peek(artist: String, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(artist)
+    fun peek(artist: String, thumbnail: Boolean = true): Bitmap? = cache.get(artist, thumbnail)
 
-    suspend fun load(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, thumbnail: Boolean = true): Bitmap? {
-        val cache = cacheFor(thumbnail)
-        cache.get(artist)?.let { return it }
-        val maxDimension = if (thumbnail) THUMBNAIL_DIMENSION else FULL_DIMENSION
-        val bitmap = withContext(Dispatchers.IO) { fetch(artist, deezerEnabled, audioDbEnabled, maxDimension) } ?: return null
-        cache.put(artist, bitmap)
-        return bitmap
-    }
-
-    private fun cacheFor(thumbnail: Boolean) = if (thumbnail) thumbnailCache else fullCache
+    suspend fun load(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, thumbnail: Boolean = true): Bitmap? =
+        cache.getOrLoad(artist, thumbnail) { fetch(artist, deezerEnabled, audioDbEnabled, it) }
 
     private fun fetch(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, maxDimension: Int): Bitmap? {
         if (deezerEnabled) fetchFromDeezer(artist, maxDimension)?.let { return it }
