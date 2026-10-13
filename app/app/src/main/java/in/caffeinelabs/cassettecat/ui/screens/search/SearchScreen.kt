@@ -119,6 +119,7 @@ private fun scoreSongMatch(song: Song, query: String, tokens: List<String>): Int
     return score
 }
 
+/** Search across the library, with recent queries, category filters and genre browsing. */
 @Composable
 fun SearchScreen(
     playbackViewModel: PlaybackViewModel,
@@ -658,6 +659,7 @@ fun SearchScreen(
     }
 }
 
+/** Two-column grid of genre tiles; tapping one calls [onGenreClick] with its genre. */
 @Composable
 private fun GenreGrid(genres: List<GenreGroup>, onGenreClick: (String) -> Unit) {
     Column(

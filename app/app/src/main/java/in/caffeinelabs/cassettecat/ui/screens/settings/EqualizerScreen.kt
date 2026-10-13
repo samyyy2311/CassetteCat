@@ -82,6 +82,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+/** Band sliders, bass boost and AutoEq/custom presets for shaping playback sound. */
 @Composable
 fun EqualizerScreen(
     onBack: () -> Unit,
@@ -554,7 +555,7 @@ private fun AutoEqPickerSheet(
 private fun formatFreqLabel(hz: Int): String =
     if (hz >= 1000) String.format(Locale.US, "%.1f kHz", hz / 1000f) else "$hz Hz"
 
-// A saved preset also gets a delete button, so its chip sits a little tighter.
+/** A selectable preset pill; a saved preset also gets a delete button via [onDelete], so its chip sits a little tighter. */
 @Composable
 private fun PresetChip(
     name: String,

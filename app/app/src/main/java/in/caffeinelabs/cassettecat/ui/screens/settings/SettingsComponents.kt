@@ -114,6 +114,7 @@ fun NavigationRow(
     }
 }
 
+/** Row for Offline Blackout Mode, which disables all network calls, streaming and lookups; shared by Settings and External Services. */
 @Composable
 fun OfflineBlackoutRow(enabled: Boolean, onEnabledChange: (Boolean) -> Unit) {
     ToggleRow(

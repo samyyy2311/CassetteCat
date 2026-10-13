@@ -277,6 +277,7 @@ internal fun NowPlayingQueueView(
     }
 }
 
+/** The seek bar, shuffle, skip and repeat row for [state]; shared by Now Playing and Drive Mode. */
 @Composable
 internal fun PlaybackControls(
     state: PlaybackUiState,

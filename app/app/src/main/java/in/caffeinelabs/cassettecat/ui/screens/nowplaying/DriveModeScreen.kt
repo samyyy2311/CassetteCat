@@ -48,6 +48,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.EmptyState
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 
+/** Large-print, high-contrast now-playing view for use while driving, in portrait or landscape. */
 @Composable
 fun DriveModeScreen(
     playbackViewModel: PlaybackViewModel,

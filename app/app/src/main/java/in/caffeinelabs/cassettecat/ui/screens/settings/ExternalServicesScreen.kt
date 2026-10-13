@@ -21,6 +21,7 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 
+/** Offline Blackout Mode and the toggles for each connected streaming/lookup service. */
 @Composable
 fun ExternalServicesScreen(
     onBack: () -> Unit,
