@@ -50,11 +50,15 @@ Translations are made on [Weblate](https://hosted.weblate.org/engage/cassettecat
 ## Pull Request Guidelines
 
 1. Create a feature branch from `main`:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
+
 2. Keep commits atomic, clean, and focused on the problem at hand.
 3. Verify that the app builds without errors or warnings.
+   New features and bug fixes should come with unit tests in `app/app/src/test` where the logic can be tested
+   without a device.
 4. Submit your pull request with a concise explanation of what was changed and how it was verified.
 5. Review [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for expectations regarding AI-assisted contributions.
 

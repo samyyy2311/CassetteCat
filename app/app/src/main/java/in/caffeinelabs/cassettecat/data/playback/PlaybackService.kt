@@ -265,14 +265,16 @@ class PlaybackService : MediaLibraryService() {
         navigationPlayer.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                 updateNotificationLayout(navigationPlayer)
+                syncWidgetState(navigationPlayer)
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
                 updateNotificationLayout(navigationPlayer)
+                syncWidgetState(navigationPlayer)
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
                 updateNotificationLayout(navigationPlayer)
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
                     serviceScope.launch(Dispatchers.Main) {
@@ -286,7 +288,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
                 val shouldListen = isPlaying || player.playWhenReady
                 if (shouldListen) {
                     wasPausedByFlip = false
@@ -301,7 +303,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                syncWidgetState(player)
+                syncWidgetState(navigationPlayer)
             }
         })
 
@@ -312,7 +314,10 @@ class PlaybackService : MediaLibraryService() {
                 ids.filterNot { it.startsWith("radio:") }.toSet() + stations.map { "radio:${it.uuid}" }
             }.collect { ids ->
                 currentFavoriteIds = ids
-                mediaSession?.player?.let { p -> updateNotificationLayout(p) }
+                mediaSession?.player?.let { p ->
+                    updateNotificationLayout(p)
+                    syncWidgetState(p)
+                }
             }
         }
 
@@ -456,40 +461,30 @@ class PlaybackService : MediaLibraryService() {
         stopSelf()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val action = intent?.action
-        if (action != null) {
-            val player = mediaSession?.player
-            when (action) {
-                ACTION_WIDGET_PLAY_PAUSE -> {
-                    if (player != null) {
-                        if (player.isPlaying) player.pause() else player.play()
-                    }
-                }
-                ACTION_WIDGET_NEXT -> {
-                    player?.let { p ->
-                        p.seekToNextMediaItem()
-                        p.play()
-                    }
-                }
-                ACTION_WIDGET_PREV -> {
-                    player?.let { p ->
-                        if (p.currentPosition > 3000L) {
-                            p.seekTo(0L)
-                        } else {
-                            val curr = p.currentMediaItemIndex
-                            if (curr != C.INDEX_UNSET && curr > 0) {
-                                p.seekTo(curr - 1, 0L)
-                            } else {
-                                p.seekTo(0, 0L)
-                            }
-                        }
-                        p.play()
-                    }
-                }
+    private suspend fun savedQueue(): MediaSession.MediaItemsWithStartPosition? {
+        val saved = PlaybackStateRepository(this).load() ?: return null
+        val found = libraryTree.localSongItems(saved.queueSongIds)
+        val (items, index) = resumableQueue(saved.queueSongIds, saved.currentIndex, found) ?: return null
+        return MediaSession.MediaItemsWithStartPosition(items, index, saved.positionMs)
+    }
+
+    private fun toggleFavorite(player: Player) {
+        val currentItem = player.currentMediaItem ?: return
+        val currentMediaId = currentItem.mediaId
+        val favorite = currentMediaId !in currentFavoriteIds
+        if (currentMediaId.startsWith("radio:")) {
+            serviceScope.launch {
+                if (favorite) radioFavoritesRepository.add(currentItem.toRadioStation())
+                else radioFavoritesRepository.remove(currentMediaId.removePrefix("radio:"))
+            }
+        } else {
+            val streamingLibrary = streamingLibraries.entries.firstOrNull { currentMediaId.startsWith(it.key) }?.value
+            serviceScope.launch {
+                runCatching { streamingLibrary?.setFavorite(currentMediaId, favorite) }
+                    .onSuccess { favoritesRepository.setFavorite(currentMediaId, favorite) }
+                    .onFailure { Log.w("PlaybackService", "Couldn't update the like on the server", it) }
             }
         }
-        return super.onStartCommand(intent, flags, startId)
     }
 
     private fun updateNotificationLayout(player: Player) {
@@ -574,23 +569,7 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle
         ): ListenableFuture<SessionResult> {
             if (customCommand.customAction == ACTION_CUSTOM_FAVORITE) {
-                val currentItem = session.player.currentMediaItem
-                val currentMediaId = currentItem?.mediaId
-                if (currentMediaId != null && currentMediaId.startsWith("radio:")) {
-                    val favorite = currentMediaId !in currentFavoriteIds
-                    serviceScope.launch {
-                        if (favorite) radioFavoritesRepository.add(currentItem.toRadioStation())
-                        else radioFavoritesRepository.remove(currentMediaId.removePrefix("radio:"))
-                    }
-                } else if (currentMediaId != null) {
-                    val favorite = currentMediaId !in currentFavoriteIds
-                    val streamingLibrary = streamingLibraries.entries.firstOrNull { currentMediaId.startsWith(it.key) }?.value
-                    serviceScope.launch {
-                        runCatching { streamingLibrary?.setFavorite(currentMediaId, favorite) }
-                            .onSuccess { favoritesRepository.setFavorite(currentMediaId, favorite) }
-                            .onFailure { Log.w("PlaybackService", "Couldn't update the like on the server", it) }
-                    }
-                }
+                toggleFavorite(session.player)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             if (customCommand.customAction == ACTION_CUSTOM_SHUFFLE) {
@@ -607,17 +586,27 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val player = mediaSession.player
             val currentItem = player.currentMediaItem
-            return if (currentItem != null) {
-                Futures.immediateFuture(
+            if (currentItem != null) {
+                return Futures.immediateFuture(
                     MediaSession.MediaItemsWithStartPosition(
                         listOf(currentItem),
                         player.currentMediaItemIndex,
                         player.currentPosition
                     )
                 )
-            } else {
-                super.onPlaybackResumption(mediaSession, controller)
             }
+            // Nothing is loaded when play is pressed on the widget, headphones or the system's media controls after
+            // the app was closed, so pick up the queue the app saved.
+            val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+            serviceScope.launch {
+                runCatching { savedQueue() }
+                    .onSuccess { queue ->
+                        if (queue != null) future.set(queue)
+                        else future.setException(IllegalStateException("No saved queue to resume"))
+                    }
+                    .onFailure { future.setException(it) }
+            }
+            return future
         }
 
         override fun onAddMediaItems(
@@ -743,6 +732,9 @@ class PlaybackService : MediaLibraryService() {
         val artist = metadata.artist?.toString()
         val album = metadata.albumTitle?.toString()
         val isPlaying = player.isPlaying
+        val isShuffle = player.shuffleModeEnabled
+        val repeatMode = player.repeatMode
+        val isFavorite = player.currentMediaItem?.mediaId?.let { it in currentFavoriteIds } == true
         val artworkData = metadata.artworkData
         val artworkUri = metadata.artworkUri
 
@@ -753,20 +745,27 @@ class PlaybackService : MediaLibraryService() {
             val artBitmap = if (hasWidgets) {
                 artworkData?.let { data ->
                     runCatching {
-                        decodeSampledBitmap(data, maxDimension = 120)?.scale(120, 120)
+                        decodeSampledBitmap(data, maxDimension = CassetteWidgetProvider.COVER_SIZE)
+                            ?.scale(CassetteWidgetProvider.COVER_SIZE, CassetteWidgetProvider.COVER_SIZE)
                     }.getOrNull()
-                } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)?.scale(120, 120)
+                } ?: resolveArtworkBitmap(this@PlaybackService, artworkUri, artist, album)
+                    ?.scale(CassetteWidgetProvider.COVER_SIZE, CassetteWidgetProvider.COVER_SIZE)
             } else null
 
             if (hasWidgets) {
                 runCatching {
                     CassetteWidgetProvider.updateAllWidgets(
-                        context = this@PlaybackService,
-                        generation = generation,
-                        title = title,
-                        artist = artist,
-                        isPlaying = isPlaying,
-                        artBitmap = artBitmap
+                        this@PlaybackService,
+                        generation,
+                        CassetteWidgetProvider.WidgetState(
+                            title = title,
+                            artist = artist,
+                            isPlaying = isPlaying,
+                            art = artBitmap,
+                            isShuffle = isShuffle,
+                            repeatMode = repeatMode,
+                            isFavorite = isFavorite
+                        )
                     )
                 }
             }
@@ -818,9 +817,6 @@ class PlaybackService : MediaLibraryService() {
         private const val DESKTOP_SESSION_ID = "desktop"
         const val ACTION_CUSTOM_FAVORITE = "in.caffeinelabs.cassettecat.action.CUSTOM_FAVORITE"
         const val ACTION_CUSTOM_SHUFFLE = "in.caffeinelabs.cassettecat.action.CUSTOM_SHUFFLE"
-        const val ACTION_WIDGET_PLAY_PAUSE = "in.caffeinelabs.cassettecat.action.WIDGET_PLAY_PAUSE"
-        const val ACTION_WIDGET_NEXT = "in.caffeinelabs.cassettecat.action.WIDGET_NEXT"
-        const val ACTION_WIDGET_PREV = "in.caffeinelabs.cassettecat.action.WIDGET_PREV"
     }
 }
 
@@ -1123,3 +1119,10 @@ private fun MediaItem.toRadioStation() = RadioStation(
     favicon = mediaMetadata.artworkUri?.toString(),
     tags = mediaMetadata.artist?.toString().orEmpty()
 )
+
+/** The saved queue's songs still in [found] and where to start; songs deleted since are skipped, keeping the order. */
+internal fun <T> resumableQueue(ids: List<String>, currentIndex: Int, found: Map<String, T>): Pair<List<T>, Int>? {
+    val items = ids.mapNotNull { found[it] }
+    if (items.isEmpty()) return null
+    return items to ids.take(currentIndex).count { it in found }.coerceAtMost(items.lastIndex)
+}

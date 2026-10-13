@@ -10,10 +10,13 @@ import `in`.caffeinelabs.cassettecat.data.device.parseDiscoveryReply
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
 import `in`.caffeinelabs.cassettecat.data.radio.radioBrowserMirrors
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
+import `in`.caffeinelabs.cassettecat.data.playback.resumableQueue
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
 import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.data.settings.accentColor
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.orderedEnumValues
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
@@ -40,6 +43,8 @@ import `in`.caffeinelabs.cassettecat.data.stats.monthKey
 import `in`.caffeinelabs.cassettecat.data.stats.monthlyStatsOf
 import `in`.caffeinelabs.cassettecat.data.device.parseDesktopAddress
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.findDuplicateGroups
+import `in`.caffeinelabs.cassettecat.ui.widget.nextRepeatMode
+import androidx.media3.common.Player
 import android.net.Uri
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -54,6 +59,31 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CoreLogicTest {
+    @Test
+    fun resumesSavedQueueWithoutDeletedSongs() {
+        val found = mapOf("a" to 1, "c" to 3, "d" to 4)
+
+        assertEquals(listOf(1, 3, 4) to 1, resumableQueue(listOf("a", "b", "c", "d"), 2, found))
+        assertEquals(listOf(1, 3, 4) to 2, resumableQueue(listOf("a", "b", "c", "d", "e"), 4, found))
+        assertNull(resumableQueue(listOf("x"), 0, found))
+    }
+
+    @Test
+    fun widgetRepeatCyclesOffAllOne() {
+        assertEquals(Player.REPEAT_MODE_ALL, nextRepeatMode(Player.REPEAT_MODE_OFF))
+        assertEquals(Player.REPEAT_MODE_ONE, nextRepeatMode(Player.REPEAT_MODE_ALL))
+        assertEquals(Player.REPEAT_MODE_OFF, nextRepeatMode(Player.REPEAT_MODE_ONE))
+    }
+
+    @Test
+    fun widgetAccentFollowsCustomColour() {
+        assertEquals(ThemeAccent.RECORD_RED.colorValue, AppPreferences().accentColor)
+        assertEquals(
+            0xFF123456,
+            AppPreferences(themeAccent = ThemeAccent.CUSTOM, customAccentColor = 0xFF123456).accentColor
+        )
+    }
+
     @Test
     fun parsesAndAdjustsLyrics() {
         val lines = parseLrc("[00:01.2]First\n[01:02.345]Second")

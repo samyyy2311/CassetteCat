@@ -219,6 +219,9 @@ data class AppPreferences(
     val radioDefaultCountryApplied: Boolean = false
 )
 
+val AppPreferences.accentColor: Long
+    get() = if (themeAccent == ThemeAccent.CUSTOM) customAccentColor else themeAccent.colorValue
+
 class AppPreferencesRepository(private val context: Context) {
     val preferences: Flow<AppPreferences> = context.appPreferencesDataStore.data.map { prefs ->
         AppPreferences(

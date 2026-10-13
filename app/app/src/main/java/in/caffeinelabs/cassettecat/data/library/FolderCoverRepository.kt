@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
 import android.content.Context
+import android.net.Uri
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -31,13 +32,31 @@ class FolderCoverRepository private constructor(private val context: Context) {
 
     fun getCoverPath(folderPath: String): String? = folderCovers.value[folderPath]
 
-    suspend fun setCover(folderPath: String, coverPath: String) {
+    /** Stores [sourceUri] as the folder's cover and deletes the one it replaced; a file that couldn't be stored is removed. */
+    suspend fun replaceCover(storage: FolderCoverStorage, folderPath: String, sourceUri: Uri) {
+        val newPath = storage.save(folderPath, sourceUri) ?: return
+        var replaced: String? = null
+        var stored = false
+        try {
+            replaced = setCover(folderPath, newPath)
+            stored = true
+        } finally {
+            if (!stored) storage.delete(newPath)
+        }
+        if (replaced != null && replaced != newPath) storage.delete(replaced)
+    }
+
+    // Returns the cover it replaced, read in the same edit so a quick second pick deletes the right file.
+    private suspend fun setCover(folderPath: String, coverPath: String): String? {
+        var previous: String? = null
         context.folderCoverDataStore.edit { prefs ->
             val current = prefs[FOLDER_COVERS]?.let {
                 runCatching { sharedJson.decodeFromString<Map<String, String>>(it) }.getOrNull()
             }.orEmpty()
+            previous = current[folderPath]
             prefs[FOLDER_COVERS] = sharedJson.encodeToString(current + (folderPath to coverPath))
         }
+        return previous
     }
 
     suspend fun clearCover(folderPath: String) {

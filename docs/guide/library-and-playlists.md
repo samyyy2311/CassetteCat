@@ -32,7 +32,7 @@ Tap the refine button at the top of the Library to filter by source (phone, Subs
 Tap the three dots beside a song for:
 
 | Option | What it does |
-|---|---|
+| --- | --- |
 | **Play Next** | Puts the song right after the current one. |
 | **Add to Queue** | Adds it to the end of the queue. |
 | **Add to Playlist** | Saves it to one of your playlists. |

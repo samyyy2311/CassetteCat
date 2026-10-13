@@ -495,11 +495,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     suspend fun syncLikes() = likesSync.withLock {
-        try {
-            syncLikesNow()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.w("DesktopRemote", "Couldn't sync likes", e)
+        runCatching { syncLikesNow() }.onFailure {
+            if (it is CancellationException) throw it
+            Log.w("DesktopRemote", "Couldn't sync likes", it)
         }
     }
 
@@ -573,11 +571,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     suspend fun syncListens(): Boolean = listensSync.withLock {
-        try {
-            syncListensNow()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.w("DesktopRemote", "Couldn't sync listens", e)
+        runCatching { syncListensNow() }.getOrElse {
+            if (it is CancellationException) throw it
+            Log.w("DesktopRemote", "Couldn't sync listens", it)
             false
         }
     }

@@ -59,7 +59,7 @@ Radio favourites are also available in Android Auto and from the app's home scre
 **Settings > Streaming & Services > External Services** lists every online service CassetteCat can use. Each can be turned off on its own:
 
 | Service | Used for |
-|---|---|
+| --- | --- |
 | **Deezer** | Artist images and album artwork |
 | **TheAudioDB** | Artist images when Deezer has none |
 | **LrcLib** | Synced lyrics when a song has none |

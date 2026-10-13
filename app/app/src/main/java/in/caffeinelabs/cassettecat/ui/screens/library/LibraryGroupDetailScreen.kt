@@ -656,16 +656,7 @@ fun FolderDetailScreen(
     val coverPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                val newPath = folderCoverStorage.save(folderPath, uri) ?: return@launch
-                try {
-                    folderCoverRepository.setCover(folderPath, newPath)
-                } catch (e: Throwable) {
-                    folderCoverStorage.delete(newPath)
-                    throw e
-                }
-                if (customCoverPath != null && customCoverPath != newPath) {
-                    folderCoverStorage.delete(customCoverPath)
-                }
+                folderCoverRepository.replaceCover(folderCoverStorage, folderPath, uri)
             }
         }
     }

@@ -2,6 +2,7 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -105,7 +106,7 @@ internal fun ShareActionPill(
             try {
                 val drawable = context.packageManager.getApplicationIcon(pkg)
                 drawable.toBitmap(width = 128, height = 128).asImageBitmap()
-            } catch (e: Exception) {
+            } catch (e: PackageManager.NameNotFoundException) {
                 null
             }
         }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Previous, play and next, shared by both widget sizes. Each button is a 48dp touch target or larger. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageButton
+        android:id="@+id/widget_btn_prev"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_widget_button"
+        android:contentDescription="@string/widget_previous"
+        android:padding="15dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_widget_prev"
+        android:tint="#F5F0EC" />
+
+    <FrameLayout
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp">
+
+        <ImageView
+            android:id="@+id/widget_play_ring"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:src="@drawable/bg_widget_play_ring"
+            android:tint="#C23B30" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_play_pause"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_widget_play_pill"
+            android:contentDescription="@string/widget_play_pause"
+            android:padding="15dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_play"
+            android:tint="#C23B30" />
+    </FrameLayout>
+
+    <ImageButton
+        android:id="@+id/widget_btn_next"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_widget_button"
+        android:contentDescription="@string/widget_next"
+        android:padding="15dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_widget_next"
+        android:tint="#F5F0EC" />
+</LinearLayout>
