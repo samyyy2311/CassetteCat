@@ -93,10 +93,10 @@
 
 - **Local Audio Scanning**: Scans device audio with configurable folder
   whitelists, blacklists, and short audio clip filtering.
-- **Tape Index Rail**: Industrial tactile A–Z fast scroller with an interactive
-  HUD letter badge and haptic clock ticks for lightning-fast library browsing.
-- **Smart Relevance Search**: Real-time multi-token relevance search matching
-  across song titles, artists, and albums.
+- **A–Z Rail**: Jump through long lists with a letter badge and a light tick as
+  you pass each letter.
+- **Search**: Finds songs, artists, and albums as you type, matching several
+  words at once.
 - **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token
   authentication.
 - **Jellyfin**: Direct streaming and music library browsing from your Jellyfin
@@ -105,10 +105,10 @@
   [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with
   favorites and Android Auto support.
 - **Offline Cache**: Download and cache streaming tracks for offline playback.
-- **Scrobbling**: Track your listening on
-  [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
-- **Listening Log**: Local playback statistics tracking your top tracks,
-  artists, and albums.
+- **Scrobbling**: Track your listening on [Last.fm](https://www.last.fm),
+  [ListenBrainz](https://listenbrainz.org), and [Libre.fm](https://libre.fm).
+- **Listening Record**: Your top songs, artists, and albums by month or year,
+  your listening history, and a Rewind poster to share.
 - **Listening Room**: Sync playback with nearby devices over your local Wi-Fi.
 
 ### Planned Companion Hardware
@@ -132,7 +132,8 @@
   the app.
 - **Desktop Remote**: Pick your computer from the devices button to control
   [CassetteCat Desktop](https://github.com/samyyy2311/CassetteCat-Desktop) on
-  the same Wi-Fi, and move your song, queue and position between the two.
+  the same Wi-Fi, move your song, queue and position between the two, and
+  browse the computer's music from your phone.
 
 ### Design & Customization
 
@@ -146,11 +147,11 @@
   toggle (`-02:45`).
 - **Navigation & Startup Preferences**: Configurable default landing screen
   (_Home_, _Library_, or _Last active tab_) and default Library section.
-- **Ultra-HD Share Cards**: Export 2160×2700 poster cards for tracks and
-  synchronized lyric excerpts.
-- **Rewind**: Export your monthly listening stats as a shareable poster.
-- **Home Screen Widget**: Control playback and view current song artwork
-  directly from your home screen.
+- **Share Cards**: Share a song or a few lines of its lyrics as a 2160×2700
+  image.
+- **Home Screen Widget**: Resizable, with the current song and artwork, play
+  controls, shuffle, repeat, and like, in your accent colour. Play works even
+  after the app is closed.
 
 ### Privacy
 
@@ -223,6 +224,8 @@ coding needed. Pick a language, or add yours, and Weblate sends the changes here
   Album artwork from MetaBrainz and the Internet Archive.
 - <a href="https://musicbrainz.org"><img src="https://img.shields.io/badge/MusicBrainz-EB743B?style=flat-square&logo=musicbrainz&logoColor=white" alt="MusicBrainz" /></a>
   Music metadata and encyclopedia.
+- <a href="https://www.last.fm"><img src="https://img.shields.io/badge/Last.fm-D51007?style=flat-square&logo=lastdotfm&logoColor=white" alt="Last.fm" /></a>
+  Scrobbling.
 - <a href="https://listenbrainz.org"><img src="https://img.shields.io/badge/ListenBrainz-EB743B?style=flat-square&logo=listenbrainz&logoColor=white" alt="ListenBrainz" /></a>
   Open scrobbling.
 - <a href="https://www.radio-browser.info"><img src="https://img.shields.io/badge/Radio%20Browser-1C1917?style=flat-square" alt="Radio Browser" /></a>
@@ -260,7 +263,7 @@ coding needed. Pick a language, or add yours, and Weblate sends the changes here
 
 ## Desktop
 
-CassetteCat is also available for Windows and Linux at
+CassetteCat is also available for Windows, macOS, and Linux at
 [CassetteCat-Desktop](https://github.com/samyyy2311/CassetteCat-Desktop).
 
 ---
@@ -274,7 +277,7 @@ CassetteCat is also available for Windows and Linux at
 </p>
 
 <p align="center">
-  Special thanks to <a href="https://coderabbit.ai">CodeRabbit</a> for supporting open-source development with automated AI code reviews.
+  Thanks to <a href="https://coderabbit.ai">CodeRabbit</a> for free code reviews on open-source projects like this one, to <a href="https://hosted.weblate.org/engage/cassettecat/">Weblate</a> for hosting translations, and to <a href="https://www.codacy.com">Codacy</a>, <a href="https://www.codefactor.io">CodeFactor</a> and <a href="https://www.mintlify.com">Mintlify</a> for their free plans for open source.
 </p>
 
 ---
