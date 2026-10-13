@@ -210,7 +210,7 @@ fun LibraryScreen(
         folderForCoverPath = null
         if (uri != null && path != null) {
             pagerScope.launch {
-                folderCoverRepository.replaceCover(folderCoverStorage, path, uri, folderCovers[path])
+                folderCoverRepository.replaceCover(folderCoverStorage, path, uri)
             }
         }
     }

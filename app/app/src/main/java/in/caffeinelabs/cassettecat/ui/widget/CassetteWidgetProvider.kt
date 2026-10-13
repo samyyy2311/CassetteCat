@@ -119,7 +119,8 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             if (prefs.contains(KEY_ACCENT) && prefs.getInt(KEY_ACCENT, 0) == color) return
             prefs.edit { putInt(KEY_ACCENT, color) }
-            show(context, current ?: savedState(context))
+            // Shares the lock with player updates, so a song that arrives meanwhile isn't drawn over with the last one.
+            synchronized(this) { show(context, current ?: savedState(context)) }
         }
 
         fun hasActiveWidgets(context: Context): Boolean = runCatching {

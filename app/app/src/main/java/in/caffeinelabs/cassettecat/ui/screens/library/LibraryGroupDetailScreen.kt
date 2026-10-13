@@ -656,7 +656,7 @@ fun FolderDetailScreen(
     val coverPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                folderCoverRepository.replaceCover(folderCoverStorage, folderPath, uri, customCoverPath)
+                folderCoverRepository.replaceCover(folderCoverStorage, folderPath, uri)
             }
         }
     }

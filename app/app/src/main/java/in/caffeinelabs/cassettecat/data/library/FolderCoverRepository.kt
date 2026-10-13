@@ -32,26 +32,31 @@ class FolderCoverRepository private constructor(private val context: Context) {
 
     fun getCoverPath(folderPath: String): String? = folderCovers.value[folderPath]
 
-    /** Stores [sourceUri] as the folder's cover and deletes [previousPath]; a file that couldn't be stored is removed. */
-    suspend fun replaceCover(storage: FolderCoverStorage, folderPath: String, sourceUri: Uri, previousPath: String?) {
+    /** Stores [sourceUri] as the folder's cover and deletes the one it replaced; a file that couldn't be stored is removed. */
+    suspend fun replaceCover(storage: FolderCoverStorage, folderPath: String, sourceUri: Uri) {
         val newPath = storage.save(folderPath, sourceUri) ?: return
+        var replaced: String? = null
         var stored = false
         try {
-            setCover(folderPath, newPath)
+            replaced = setCover(folderPath, newPath)
             stored = true
         } finally {
             if (!stored) storage.delete(newPath)
         }
-        if (previousPath != null && previousPath != newPath) storage.delete(previousPath)
+        if (replaced != null && replaced != newPath) storage.delete(replaced)
     }
 
-    suspend fun setCover(folderPath: String, coverPath: String) {
+    // Returns the cover it replaced, read in the same edit so a quick second pick deletes the right file.
+    private suspend fun setCover(folderPath: String, coverPath: String): String? {
+        var previous: String? = null
         context.folderCoverDataStore.edit { prefs ->
             val current = prefs[FOLDER_COVERS]?.let {
                 runCatching { sharedJson.decodeFromString<Map<String, String>>(it) }.getOrNull()
             }.orEmpty()
+            previous = current[folderPath]
             prefs[FOLDER_COVERS] = sharedJson.encodeToString(current + (folderPath to coverPath))
         }
+        return previous
     }
 
     suspend fun clearCover(folderPath: String) {

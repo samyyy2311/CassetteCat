@@ -461,16 +461,6 @@ class PlaybackService : MediaLibraryService() {
         stopSelf()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val action = intent?.action
-        if (action != null) {
-            val player = mediaSession?.player
-            when (action) {
-            }
-        }
-        return super.onStartCommand(intent, flags, startId)
-    }
-
     private suspend fun savedQueue(): MediaSession.MediaItemsWithStartPosition? {
         val saved = PlaybackStateRepository(this).load() ?: return null
         val found = libraryTree.localSongItems(saved.queueSongIds)
