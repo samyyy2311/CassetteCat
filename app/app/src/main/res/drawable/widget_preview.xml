@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget as it looks with nothing playing, for widget pickers before Android 12, which can't show previewLayout.
+     Positions follow layout/widget_cassette.xml at its 250 x 110dp minimum size. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="250dp"
+        android:height="110dp"
+        android:drawable="@drawable/bg_cassette_widget" />
+    <item
+        android:width="76dp"
+        android:height="76dp"
+        android:left="12dp"
+        android:top="17dp"
+        android:drawable="@drawable/bg_cassette_window" />
+    <item
+        android:width="76dp"
+        android:height="76dp"
+        android:left="12dp"
+        android:top="17dp"
+        android:drawable="@drawable/cat_black_cassette" />
+    <item
+        android:width="32dp"
+        android:height="32dp"
+        android:left="102dp"
+        android:top="63dp"
+        android:drawable="@drawable/bg_widget_button" />
+    <item
+        android:width="14dp"
+        android:height="14dp"
+        android:left="111dp"
+        android:top="72dp"
+        android:drawable="@drawable/ic_widget_prev" />
+    <item
+        android:width="38dp"
+        android:height="38dp"
+        android:left="144dp"
+        android:top="60dp"
+        android:drawable="@drawable/bg_widget_play_pill" />
+    <item
+        android:width="38dp"
+        android:height="38dp"
+        android:left="144dp"
+        android:top="60dp">
+        <shape android:shape="oval">
+            <stroke
+                android:width="1.5dp"
+                android:color="#C23B30" />
+        </shape>
+    </item>
+    <item
+        android:width="16dp"
+        android:height="16dp"
+        android:left="155dp"
+        android:top="71dp"
+        android:drawable="@drawable/ic_widget_play" />
+    <item
+        android:width="32dp"
+        android:height="32dp"
+        android:left="192dp"
+        android:top="63dp"
+        android:drawable="@drawable/bg_widget_button" />
+    <item
+        android:width="14dp"
+        android:height="14dp"
+        android:left="201dp"
+        android:top="72dp"
+        android:drawable="@drawable/ic_widget_next" />
+</layer-list>

@@ -6,7 +6,7 @@
     android:initialLayout="@layout/widget_cassette"
     android:minWidth="250dp"
     android:minHeight="110dp"
-    android:previewImage="@drawable/bg_cassette_widget"
+    android:previewImage="@drawable/widget_preview"
     android:previewLayout="@layout/widget_cassette"
     android:resizeMode="horizontal"
     android:targetCellHeight="2"
