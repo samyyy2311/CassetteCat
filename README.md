@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  Desktop app: <a href="https://github.com/samyyy2311/CassetteCat-Desktop">CassetteCat Desktop</a> (Windows, Linux)
+  Desktop app: <a href="https://github.com/samyyy2311/CassetteCat-Desktop">CassetteCat Desktop</a> (Windows, macOS, Linux)
 </p>
 
 <p align="center">
-  Website: <a href="https://cassettecat.caffeinelabs.in">cassettecat.caffeinelabs.in</a>
+  Website: <a href="https://cassettecat.caffeinelabs.in">cassettecat.caffeinelabs.in</a> · User guide: <a href="https://cassettecat.caffeinelabs.in/docs">cassettecat.caffeinelabs.in/docs</a>
 </p>
 
 <p align="center">
