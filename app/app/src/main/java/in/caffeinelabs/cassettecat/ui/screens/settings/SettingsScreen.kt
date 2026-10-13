@@ -58,7 +58,6 @@ import java.util.Date
 
 val externalServices = ExternalService.entries.filter { it != ExternalService.GITHUB_UPDATES }
 
-/** The app's settings home: streaming services, library, playback and app-level preferences. */
 @Composable
 fun SettingsScreen(
     playbackViewModel: PlaybackViewModel,
