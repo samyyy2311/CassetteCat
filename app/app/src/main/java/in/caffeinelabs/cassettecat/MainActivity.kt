@@ -23,10 +23,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.accentColor
+import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.navigation.CassetteCatNavHost
 import `in`.caffeinelabs.cassettecat.ui.theme.CassetteCatTheme
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import `in`.caffeinelabs.cassettecat.ui.util.ScreenshotCaptureEvents
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 object AppShortcutAction {
     const val SHUFFLE_ALL = "in.caffeinelabs.cassettecat.action.SHUFFLE_ALL"
@@ -58,6 +64,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         handleShortcutIntent(intent)
         requestHighestRefreshRate()
+        lifecycleScope.launch {
+            AppPreferencesRepository(applicationContext).preferences
+                .map { it.accentColor.toInt() }
+                .distinctUntilChanged()
+                .collect { CassetteWidgetProvider.setAccent(applicationContext, it) }
+        }
         setContent {
             val context = LocalContext.current
             val appPreferencesRepository = remember { AppPreferencesRepository(context) }

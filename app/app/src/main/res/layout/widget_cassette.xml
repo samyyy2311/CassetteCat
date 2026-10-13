@@ -63,18 +63,31 @@
                 android:src="@drawable/ic_widget_prev"
                 android:tint="#F5F0EC" />
 
-            <ImageButton
-                android:id="@+id/widget_btn_play_pause"
+            <FrameLayout
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:layout_marginStart="10dp"
-                android:layout_marginEnd="10dp"
-                android:background="@drawable/bg_widget_play_pill"
-                android:contentDescription="@string/widget_play_pause"
-                android:padding="11dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_widget_play"
-                android:tint="#C23B30" />
+                android:layout_marginEnd="10dp">
+
+                <ImageView
+                    android:id="@+id/widget_play_ring"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/bg_widget_play_ring"
+                    android:tint="#C23B30" />
+
+                <ImageButton
+                    android:id="@+id/widget_btn_play_pause"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_widget_play_pill"
+                    android:contentDescription="@string/widget_play_pause"
+                    android:padding="11dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_widget_play"
+                    android:tint="#C23B30" />
+            </FrameLayout>
 
             <ImageButton
                 android:id="@+id/widget_btn_next"

@@ -45,6 +45,7 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         private const val PREFS = "cassette_widget"
         private const val KEY_TITLE = "title"
         private const val KEY_ARTIST = "artist"
+        private const val KEY_ACCENT = "accent"
 
         private fun artFile(context: Context) = File(context.noBackupFilesDir, "widget_art.png")
 
@@ -65,6 +66,15 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             } else {
                 file.delete()
             }
+        }
+
+        /** Called by the app whenever its accent changes; the widget keeps it for after a reboot. */
+        fun setAccent(context: Context, color: Int) {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (prefs.contains(KEY_ACCENT) && prefs.getInt(KEY_ACCENT, 0) == color) return
+            prefs.edit { putInt(KEY_ACCENT, color) }
+            val state = current ?: savedState(context)
+            show(context, state.title, state.artist, state.isPlaying, state.art)
         }
 
         fun hasActiveWidgets(context: Context): Boolean = runCatching {
@@ -135,6 +145,13 @@ class CassetteWidgetProvider : AppWidgetProvider() {
                     R.id.widget_btn_play_pause,
                     if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
                 )
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .takeIf { it.contains(KEY_ACCENT) }
+                    ?.getInt(KEY_ACCENT, 0)
+                    ?.let { accent ->
+                        views.setInt(R.id.widget_btn_play_pause, "setColorFilter", accent)
+                        views.setInt(R.id.widget_play_ring, "setColorFilter", accent)
+                    }
 
                 val openAppIntent = PendingIntent.getActivity(
                     context,
