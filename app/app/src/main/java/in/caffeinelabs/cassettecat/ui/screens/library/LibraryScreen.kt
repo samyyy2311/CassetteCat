@@ -210,17 +210,7 @@ fun LibraryScreen(
         folderForCoverPath = null
         if (uri != null && path != null) {
             pagerScope.launch {
-                val previousPath = folderCovers[path]
-                val newPath = folderCoverStorage.save(path, uri) ?: return@launch
-                try {
-                    folderCoverRepository.setCover(path, newPath)
-                } catch (e: Throwable) {
-                    folderCoverStorage.delete(newPath)
-                    throw e
-                }
-                if (previousPath != null && previousPath != newPath) {
-                    folderCoverStorage.delete(previousPath)
-                }
+                folderCoverRepository.replaceCover(folderCoverStorage, path, uri, folderCovers[path])
             }
         }
     }

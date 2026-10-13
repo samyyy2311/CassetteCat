@@ -895,17 +895,13 @@ private fun extractAuroraColors(bitmap: Bitmap?): Triple<Int, Int, Int> {
     if (bitmap == null) {
         return Triple("#FF9F43".toColorInt(), "#00C9A7".toColorInt(), "#FF5252".toColorInt())
     }
-    return try {
-        val w = bitmap.width
-        val h = bitmap.height
-        val p1 = bitmap.getPixel((w * 0.25f).toInt().coerceIn(0, w - 1), (h * 0.25f).toInt().coerceIn(0, h - 1))
-        val p2 = bitmap.getPixel((w * 0.75f).toInt().coerceIn(0, w - 1), (h * 0.35f).toInt().coerceIn(0, h - 1))
-        val p3 = bitmap.getPixel((w * 0.50f).toInt().coerceIn(0, w - 1), (h * 0.80f).toInt().coerceIn(0, h - 1))
-
-        Triple(boostSaturation(p1, "#FF9F43"), boostSaturation(p2, "#00C9A7"), boostSaturation(p3, "#FF5252"))
-    } catch (e: Exception) {
-        Triple("#FF9F43".toColorInt(), "#00C9A7".toColorInt(), "#FF5252".toColorInt())
-    }
+    if (bitmap.isRecycled) return Triple("#FF9F43".toColorInt(), "#00C9A7".toColorInt(), "#FF5252".toColorInt())
+    val w = bitmap.width
+    val h = bitmap.height
+    val p1 = bitmap.getPixel((w * 0.25f).toInt().coerceIn(0, w - 1), (h * 0.25f).toInt().coerceIn(0, h - 1))
+    val p2 = bitmap.getPixel((w * 0.75f).toInt().coerceIn(0, w - 1), (h * 0.35f).toInt().coerceIn(0, h - 1))
+    val p3 = bitmap.getPixel((w * 0.50f).toInt().coerceIn(0, w - 1), (h * 0.80f).toInt().coerceIn(0, h - 1))
+    return Triple(boostSaturation(p1, "#FF9F43"), boostSaturation(p2, "#00C9A7"), boostSaturation(p3, "#FF5252"))
 }
 
 private fun boostSaturation(argb: Int, fallbackHex: String): Int {

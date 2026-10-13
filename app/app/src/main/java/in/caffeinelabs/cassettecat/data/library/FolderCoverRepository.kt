@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.library
 
 import android.content.Context
+import android.net.Uri
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -30,6 +31,19 @@ class FolderCoverRepository private constructor(private val context: Context) {
         .stateIn(scope, SharingStarted.Eagerly, emptyMap())
 
     fun getCoverPath(folderPath: String): String? = folderCovers.value[folderPath]
+
+    /** Stores [sourceUri] as the folder's cover and deletes [previousPath]; a file that couldn't be stored is removed. */
+    suspend fun replaceCover(storage: FolderCoverStorage, folderPath: String, sourceUri: Uri, previousPath: String?) {
+        val newPath = storage.save(folderPath, sourceUri) ?: return
+        var stored = false
+        try {
+            setCover(folderPath, newPath)
+            stored = true
+        } finally {
+            if (!stored) storage.delete(newPath)
+        }
+        if (previousPath != null && previousPath != newPath) storage.delete(previousPath)
+    }
 
     suspend fun setCover(folderPath: String, coverPath: String) {
         context.folderCoverDataStore.edit { prefs ->
