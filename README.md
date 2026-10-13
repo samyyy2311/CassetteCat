@@ -181,7 +181,7 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 ## Documentation
 
-- [User guide](docs/README.md#using-the-app): setup, every feature, and troubleshooting
+- [User guide](https://cassettecat.caffeinelabs.in/docs): setup, every feature, and troubleshooting
 - [Developer guide](docs/README.md#working-on-the-code): building, architecture, how-tos and releasing
 - [Privacy Policy](PRIVACY_POLICY.md)
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md)

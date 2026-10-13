@@ -8,7 +8,7 @@ Thank you for using CassetteCat. Here is how to get help, report problems, and p
 
 Before opening an issue, check whether your question is already covered:
 
-* **[User guide](../docs/README.md#using-the-app)**: Step-by-step help for every feature, and a [troubleshooting page](../docs/guide/troubleshooting.md).
+* **[User guide](https://cassettecat.caffeinelabs.in/docs)**: Step-by-step help for every feature, and a [troubleshooting page](https://cassettecat.caffeinelabs.in/docs/android/troubleshooting).
 
 * **[README.md](../README.md)**: Details installation options (Google Play, GitHub Releases, Obtainium), streaming setup (Subsonic/Navidrome, Jellyfin), and companion features.
 * **[Search Existing Issues](https://github.com/samyyy2311/CassetteCat/issues?q=is%3Aissue)**: Check open and closed issues to see if a question or problem has already been addressed.
