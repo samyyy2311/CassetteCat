@@ -21,6 +21,7 @@ import androidx.media3.session.SessionToken
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUpSpeed
 import com.google.common.util.concurrent.ListenableFuture
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -220,8 +221,12 @@ class PlaybackRepository(private val context: Context) {
             c.setMediaItems(mediaItems, 0, positionMs.coerceAtLeast(0L))
             c.prepare()
             if (isPlaying) correctPositionOnceReady(c, positionMs, prepareStartedAtMs)
-        } else if (kotlin.math.abs(c.currentPosition - positionMs) > 400L) {
-            c.seekTo(positionMs.coerceAtLeast(0L))
+        } else {
+            // Small gaps close with a slight speed change, since a seek is audible and puts the guest behind again.
+            val catchUp = if (isPlaying) roomCatchUpSpeed(c.currentPosition - positionMs) else 1f
+            if (catchUp == null) c.seekTo(positionMs.coerceAtLeast(0L))
+            c.playbackParameters =
+                androidx.media3.common.PlaybackParameters(currentSpeed * (catchUp ?: 1f), currentPitch)
         }
         if (isPlaying) c.play() else c.pause()
         updateState()
@@ -330,6 +335,8 @@ class PlaybackRepository(private val context: Context) {
         currentSpeed = speed.coerceIn(0.5f, 2f)
         controller?.playbackParameters = androidx.media3.common.PlaybackParameters(currentSpeed, currentPitch)
     }
+
+    fun endRoomCatchUp() = setPlaybackSpeed(currentSpeed)
 
     fun setPlaybackPitch(pitch: Float) {
         currentPitch = pitch.coerceIn(0.7f, 1.3f)

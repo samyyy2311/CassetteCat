@@ -267,6 +267,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 if (listeningRoom.value.role == ListeningRoomRole.GUEST) applyRoomSnapshot(snapshot)
             }
         }
+        viewModelScope.launch {
+            listeningRoom.map { it.role == ListeningRoomRole.GUEST }.distinctUntilChanged().collect { guest ->
+                if (!guest) repository.endRoomCatchUp()
+            }
+        }
         // Refresh position immediately on song transition when ticker is idle.
         viewModelScope.launch {
             localState.map { it.currentSong?.id }.distinctUntilChanged().collect {
@@ -807,7 +812,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             RoomSnapshot(
                 tracks = queue.map { it.toRoomTrack() },
                 positionMs = repository.currentPositionMs(),
-                isPlaying = localState.value.isPlaying
+                isPlaying = localState.value.isPlaying,
+                capturedAtMs = SystemClock.elapsedRealtime()
             )
         )
     }
@@ -898,10 +904,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     snapshot.roomToken?.let { token -> hostIp?.let { ip -> track.toRelaySong(ip, port, token) } }
                 }
         }
-        val positionMs = if (snapshot.isPlaying) {
-            snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
-        } else {
-            snapshot.positionMs
+        val hostNowMs = listeningRoomRepository.hostElapsedRealtimeMs()
+        val positionMs = when {
+            !snapshot.isPlaying -> snapshot.positionMs
+            // With the host's clock known, the time on the network counts too, not just the time spent here.
+            hostNowMs != null && snapshot.capturedAtMs != null ->
+                snapshot.positionMs + (hostNowMs - snapshot.capturedAtMs)
+            else -> snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
         }
         if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying)
     }
