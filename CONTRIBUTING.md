@@ -50,9 +50,11 @@ Translations are made on [Weblate](https://hosted.weblate.org/engage/cassettecat
 ## Pull Request Guidelines
 
 1. Create a feature branch from `main`:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
+
 2. Keep commits atomic, clean, and focused on the problem at hand.
 3. Verify that the app builds without errors or warnings.
 4. Submit your pull request with a concise explanation of what was changed and how it was verified.

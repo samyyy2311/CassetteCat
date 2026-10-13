@@ -27,7 +27,7 @@ The phone broadcasts the UDP datagram `CASSETTECAT_DISCOVER` to port 47800. Each
 ## Pairing
 
 | Request | Body | Response |
-|---|---|---|
+| --- | --- | --- |
 | `POST /api/pair-request` | `{"name": "Pixel 8"}` | `{"id": "..."}`. The desktop shows an Allow / Deny prompt. `409` if another request is already waiting. |
 | `GET /api/pair-request?id=...` | | `{"status":"waiting"}`, `{"status":"denied"}`, or `{"status":"allowed","code":"ABC234"}`. `404` once the request has expired. |
 
@@ -36,7 +36,7 @@ An unanswered request expires after 60 seconds.
 ## Playback
 
 | Request | Body | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `GET /api/playback` | | Current state, below. |
 | `POST /api/playback` | `{"action": "..."}` | `play`, `pause`, `next`, `previous`, `toggle_shuffle` or `cycle_repeat`. |
 | `POST /api/seek` | `{"positionMs": 61000}` | |
@@ -66,7 +66,7 @@ An unanswered request expires after 60 seconds.
 ## Queue
 
 | Request | Body | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `GET /api/queue` | | `{"tracks": [{"index", "title", "artist", "durationMs", "artworkKey"}]}`: the next tracks in the desktop's queue. |
 | `POST /api/queue` | `{"index": 4}` | Play the queued track at `index`. |
 | `POST /api/queue/move` | `{"from": 5, "to": 3}` | |
@@ -77,7 +77,7 @@ An unanswered request expires after 60 seconds.
 ## The computer's library
 
 | Request | Body | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `GET /api/library?q=...&offset=0&limit=100` | | `{"total": 1064, "tracks": [{"id", "title", "artist", "album", "durationMs"}]}`. `q` matches title, artist or album. `limit` is 1 to 500. |
 | `POST /api/library/play` | `{"ids": ["..."], "index": 0}` | Plays these library songs on the computer, starting at `index`. `400` if none of the ids is in the library. |
 | `GET /api/stream?id=...` | | The song's audio file. Honours a single `Range: bytes=start-end`, answering `206` with `Content-Range`, so the phone can seek. `404` for an id that isn't in the library. |
@@ -102,7 +102,7 @@ While the phone plays music itself, it reports what is playing so the desktop ca
 The two libraries are matched by title and artist, ignoring case. A match key is the lowercase title, the character U+001F, then the lowercase artist.
 
 | Request | Body | Response |
-|---|---|---|
+| --- | --- | --- |
 | `GET /api/likes` | | `{"library": [keys], "liked": [keys], "revision": 3}` |
 | `POST /api/likes` | `{"like": [keys], "unlike": [keys]}` | |
 | `GET /api/playlists` | | `{"playlists": [{"name", "tracks": [{"title", "artist"}]}]}` |

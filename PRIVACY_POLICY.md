@@ -9,17 +9,22 @@ CassetteCat ("we", "our", or "the app") is a free and open-source audio player d
 ## 1. Information We Collect
 
 ### A. Personal Information
-**We do not collect, store, transmit, or sell any personally identifiable information (PII).** 
+
+**We do not collect, store, transmit, or sell any personally identifiable information (PII).**
 
 There are no account registrations with CassetteCat, no user tracking, no profiling, and no advertising networks.
 
 ### B. Device & Audio Files Access
-CassetteCat requests permission to access your device's audio files (`READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE`) strictly to scan, organize, and play your local music files on your device. 
+
+CassetteCat requests permission to access your device's audio files (`READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE`) strictly to scan, organize, and play your local music files on your device.
+
 * Audio file indexing and metadata parsing happen 100% locally on your device.
 * Your files are never uploaded to any external server.
 
 ### C. Self-Hosted Server Credentials
+
 If you connect CassetteCat to a self-hosted media server (such as Subsonic, Navidrome, Gonic, Airsonic, or Jellyfin):
+
 * Your server URLs, usernames, and authentication tokens/passwords are stored **locally on your device**.
 * Sensitive credentials are encrypted using hardware-backed encryption (`AndroidKeyStore` with AES-256-GCM).
 * Credentials are sent exclusively to your specified server endpoint to facilitate direct media streaming.
@@ -54,6 +59,7 @@ CassetteCat only makes network requests to external services when directly neces
 All data generated within the app (playlists, playback history, local listening stats, and server logins) is stored locally in your device's app storage.
 
 You can delete your data at any time by:
+
 * Using the **"Clear Credentials"** or **"Reset Listening Record"** options in App Settings.
 * Clearing the app data from Android System Settings (*Settings > Apps > CassetteCat > Storage > Clear Data*).
 * Uninstalling the application.
@@ -82,4 +88,5 @@ Any updates to this Privacy Policy will be reflected on this page with a revised
 ## 8. Contact Us
 
 If you have any questions or feedback regarding this Privacy Policy, please open an issue on GitHub:
+
 * GitHub: [https://github.com/samyyy2311/CassetteCat/issues](https://github.com/samyyy2311/CassetteCat/issues)
