@@ -1,46 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The widget as it looks with nothing playing, for widget pickers before Android 12, which can't show previewLayout.
-     Positions follow layout/widget_cassette.xml at its 250 x 110dp minimum size. -->
+     Positions follow layout/widget_cassette.xml at its 264 x 120dp minimum size. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:width="250dp"
-        android:height="110dp"
+        android:width="264dp"
+        android:height="120dp"
         android:drawable="@drawable/bg_cassette_widget" />
     <item
-        android:width="76dp"
-        android:height="76dp"
+        android:width="72dp"
+        android:height="72dp"
         android:left="12dp"
-        android:top="17dp"
+        android:top="24dp"
         android:drawable="@drawable/bg_cassette_window" />
     <item
-        android:width="76dp"
-        android:height="76dp"
+        android:width="72dp"
+        android:height="72dp"
         android:left="12dp"
-        android:top="17dp"
+        android:top="24dp"
         android:drawable="@drawable/cat_black_cassette" />
     <item
-        android:width="32dp"
-        android:height="32dp"
-        android:left="102dp"
-        android:top="63dp"
+        android:width="48dp"
+        android:height="48dp"
+        android:left="96dp"
+        android:top="58dp"
         android:drawable="@drawable/bg_widget_button" />
     <item
-        android:width="14dp"
-        android:height="14dp"
+        android:width="18dp"
+        android:height="18dp"
         android:left="111dp"
-        android:top="72dp"
+        android:top="73dp"
         android:drawable="@drawable/ic_widget_prev" />
     <item
-        android:width="38dp"
-        android:height="38dp"
-        android:left="144dp"
-        android:top="60dp"
+        android:width="52dp"
+        android:height="52dp"
+        android:left="148dp"
+        android:top="56dp"
         android:drawable="@drawable/bg_widget_play_pill" />
     <item
-        android:width="38dp"
-        android:height="38dp"
-        android:left="144dp"
-        android:top="60dp">
+        android:width="48dp"
+        android:height="48dp"
+        android:left="150dp"
+        android:top="58dp">
         <shape android:shape="oval">
             <stroke
                 android:width="1.5dp"
@@ -48,21 +48,21 @@
         </shape>
     </item>
     <item
-        android:width="16dp"
-        android:height="16dp"
-        android:left="155dp"
+        android:width="22dp"
+        android:height="22dp"
+        android:left="163dp"
         android:top="71dp"
         android:drawable="@drawable/ic_widget_play" />
     <item
-        android:width="32dp"
-        android:height="32dp"
-        android:left="192dp"
-        android:top="63dp"
+        android:width="48dp"
+        android:height="48dp"
+        android:left="204dp"
+        android:top="58dp"
         android:drawable="@drawable/bg_widget_button" />
     <item
-        android:width="14dp"
-        android:height="14dp"
-        android:left="201dp"
-        android:top="72dp"
+        android:width="18dp"
+        android:height="18dp"
+        android:left="219dp"
+        android:top="73dp"
         android:drawable="@drawable/ic_widget_next" />
 </layer-list>

@@ -74,6 +74,12 @@ class MediaLibraryTree(private val context: Context) {
         else -> localLibrary.getSongs().firstOrNull { it.id == mediaId }?.toMediaItem(context)
     }
 
+    /** The local songs among [ids], read from the library once, keyed by id. */
+    suspend fun localSongItems(ids: Collection<String>): Map<String, MediaItem> {
+        val wanted = ids.toSet()
+        return localLibrary.getSongs().filter { it.id in wanted }.associate { it.id to it.toMediaItem(context) }
+    }
+
     suspend fun children(parentId: String): List<MediaItem>? {
         val songs = localLibrary.getSongs()
         return when {
