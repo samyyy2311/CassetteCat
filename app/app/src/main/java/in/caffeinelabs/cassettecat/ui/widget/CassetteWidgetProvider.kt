@@ -207,40 +207,42 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_btn_next, actionIntent(context, WidgetActionReceiver.ACTION_NEXT))
             views.setOnClickPendingIntent(R.id.widget_btn_prev, actionIntent(context, WidgetActionReceiver.ACTION_PREVIOUS))
 
-            if (layout == R.layout.widget_cassette_tall) {
-                val activeColor = accent ?: IDLE_ICON_COLOR
-                views.setImageViewResource(
-                    R.id.widget_btn_shuffle,
-                    if (state.isShuffle) R.drawable.ic_notification_shuffle_on else R.drawable.ic_notification_shuffle_off
-                )
-                views.setInt(R.id.widget_btn_shuffle, "setColorFilter", if (state.isShuffle) activeColor else IDLE_ICON_COLOR)
-                views.setImageViewResource(
-                    R.id.widget_btn_repeat,
-                    if (state.repeatMode == Player.REPEAT_MODE_ONE) LucideR.drawable.lucide_ic_repeat_1 else LucideR.drawable.lucide_ic_repeat
-                )
-                views.setInt(
-                    R.id.widget_btn_repeat,
-                    "setColorFilter",
-                    if (state.repeatMode == Player.REPEAT_MODE_OFF) IDLE_ICON_COLOR else activeColor
-                )
-                views.setImageViewResource(
-                    R.id.widget_btn_like,
-                    if (state.isFavorite) R.drawable.ic_notification_heart_filled else R.drawable.ic_notification_heart_outline
-                )
-                views.setInt(R.id.widget_btn_like, "setColorFilter", if (state.isFavorite) activeColor else IDLE_ICON_COLOR)
-                views.setContentDescription(
-                    R.id.widget_btn_shuffle,
-                    context.getString(if (state.isShuffle) R.string.notification_shuffle_on else R.string.notification_shuffle_off)
-                )
-                views.setContentDescription(
-                    R.id.widget_btn_like,
-                    context.getString(if (state.isFavorite) R.string.notification_unfavorite else R.string.notification_favorite)
-                )
-                views.setOnClickPendingIntent(R.id.widget_btn_shuffle, actionIntent(context, WidgetActionReceiver.ACTION_SHUFFLE))
-                views.setOnClickPendingIntent(R.id.widget_btn_repeat, actionIntent(context, WidgetActionReceiver.ACTION_REPEAT))
-                views.setOnClickPendingIntent(R.id.widget_btn_like, actionIntent(context, WidgetActionReceiver.ACTION_LIKE))
-            }
+            if (layout == R.layout.widget_cassette_tall) bindTallControls(context, views, state, accent ?: IDLE_ICON_COLOR)
             return views
+        }
+
+        // Shuffle, repeat and like only fit in the tall layout.
+        private fun bindTallControls(context: Context, views: RemoteViews, state: WidgetState, activeColor: Int) {
+            views.setImageViewResource(
+                R.id.widget_btn_shuffle,
+                if (state.isShuffle) R.drawable.ic_notification_shuffle_on else R.drawable.ic_notification_shuffle_off
+            )
+            views.setInt(R.id.widget_btn_shuffle, "setColorFilter", if (state.isShuffle) activeColor else IDLE_ICON_COLOR)
+            views.setImageViewResource(
+                R.id.widget_btn_repeat,
+                if (state.repeatMode == Player.REPEAT_MODE_ONE) LucideR.drawable.lucide_ic_repeat_1 else LucideR.drawable.lucide_ic_repeat
+            )
+            views.setInt(
+                R.id.widget_btn_repeat,
+                "setColorFilter",
+                if (state.repeatMode == Player.REPEAT_MODE_OFF) IDLE_ICON_COLOR else activeColor
+            )
+            views.setImageViewResource(
+                R.id.widget_btn_like,
+                if (state.isFavorite) R.drawable.ic_notification_heart_filled else R.drawable.ic_notification_heart_outline
+            )
+            views.setInt(R.id.widget_btn_like, "setColorFilter", if (state.isFavorite) activeColor else IDLE_ICON_COLOR)
+            views.setContentDescription(
+                R.id.widget_btn_shuffle,
+                context.getString(if (state.isShuffle) R.string.notification_shuffle_on else R.string.notification_shuffle_off)
+            )
+            views.setContentDescription(
+                R.id.widget_btn_like,
+                context.getString(if (state.isFavorite) R.string.notification_unfavorite else R.string.notification_favorite)
+            )
+            views.setOnClickPendingIntent(R.id.widget_btn_shuffle, actionIntent(context, WidgetActionReceiver.ACTION_SHUFFLE))
+            views.setOnClickPendingIntent(R.id.widget_btn_repeat, actionIntent(context, WidgetActionReceiver.ACTION_REPEAT))
+            views.setOnClickPendingIntent(R.id.widget_btn_like, actionIntent(context, WidgetActionReceiver.ACTION_LIKE))
         }
 
         private fun openAppIntent(context: Context): PendingIntent = PendingIntent.getActivity(
