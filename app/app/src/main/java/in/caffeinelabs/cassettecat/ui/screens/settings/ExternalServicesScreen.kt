@@ -42,20 +42,7 @@ fun ExternalServicesScreen(
             Text(stringResource(AppR.string.settings_external_services), style = MaterialTheme.typography.headlineSmall)
         }
 
-        ToggleRow(
-            title = stringResource(AppR.string.settings_offline_blackout),
-            subtitle = stringResource(
-                if (uiState.services.offlineBlackoutMode) {
-                    AppR.string.settings_offline_blackout_enabled
-                } else {
-                    AppR.string.settings_offline_blackout_disabled
-                }
-            ),
-            checked = uiState.services.offlineBlackoutMode,
-            onCheckedChange = { viewModel.setOfflineBlackoutMode(it) },
-            iconRes = R.drawable.lucide_ic_radio,
-            iconTint = if (uiState.services.offlineBlackoutMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary
-        )
+        OfflineBlackoutRow(uiState.services.offlineBlackoutMode, viewModel::setOfflineBlackoutMode)
 
         SettingsDivider()
 

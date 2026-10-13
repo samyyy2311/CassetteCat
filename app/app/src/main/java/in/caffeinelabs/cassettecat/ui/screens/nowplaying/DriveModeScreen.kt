@@ -178,19 +178,10 @@ fun DriveModeScreen(
                             onArtistClick = {}
                         )
                         Spacer(Modifier.height(28.dp))
-                        PlaybackControlsRow(
-                            positionMs = positionMs,
-                            durationMs = playbackState.durationMs,
-                            onSeek = { playbackViewModel.seekTo(it) },
-                            isShuffleEnabled = playbackState.isShuffleEnabled,
-                            onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                            onSkipPrevious = { playbackViewModel.skipPrevious() },
-                            isPlaying = playbackState.isPlaying,
-                            playWhenReady = playbackState.playWhenReady,
-                            onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                        PlaybackControls(
+                            playbackState, positionMs, playbackViewModel,
                             onSkipNext = { playbackViewModel.skipNext() },
-                            repeatMode = playbackState.repeatMode,
-                            onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
+                            onSkipPrevious = { playbackViewModel.skipPrevious() }
                         )
                     }
                 }
@@ -225,19 +216,10 @@ fun DriveModeScreen(
                         onArtistClick = {}
                     )
                     Spacer(Modifier.height(24.dp))
-                    PlaybackControlsRow(
-                        positionMs = positionMs,
-                        durationMs = playbackState.durationMs,
-                        onSeek = { playbackViewModel.seekTo(it) },
-                        isShuffleEnabled = playbackState.isShuffleEnabled,
-                        onToggleShuffle = { playbackViewModel.toggleShuffle() },
-                        onSkipPrevious = { playbackViewModel.skipPrevious() },
-                        isPlaying = playbackState.isPlaying,
-                        playWhenReady = playbackState.playWhenReady,
-                        onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                    PlaybackControls(
+                        playbackState, positionMs, playbackViewModel,
                         onSkipNext = { playbackViewModel.skipNext() },
-                        repeatMode = playbackState.repeatMode,
-                        onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() }
+                        onSkipPrevious = { playbackViewModel.skipPrevious() }
                     )
                     Spacer(Modifier.weight(1.5f))
                 }

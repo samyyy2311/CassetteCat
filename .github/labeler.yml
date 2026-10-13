@@ -1,0 +1,27 @@
+ui:
+  - changed-files:
+      - any-glob-to-any-file: ['app/app/src/main/java/**/ui/**', 'app/app/src/main/res/**']
+playback:
+  - changed-files:
+      - any-glob-to-any-file: ['app/app/src/main/java/**/data/playback/**']
+translations:
+  - changed-files:
+      - any-glob-to-any-file: ['app/app/src/main/res/values-*/**', 'TRANSLATING.md']
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/workflows/**', '.github/dependabot.yml', '.github/labeler.yml']
+build:
+  - changed-files:
+      - any-glob-to-any-file: ['app/**/*.gradle.kts', 'app/gradle/**']
+store-listing:
+  - changed-files:
+      - any-glob-to-any-file: ['fastlane/**', 'metadata/**']
+hardware:
+  - changed-files:
+      - any-glob-to-any-file: ['hardware/**', 'firmware/**']
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ['app/app/src/test/**']

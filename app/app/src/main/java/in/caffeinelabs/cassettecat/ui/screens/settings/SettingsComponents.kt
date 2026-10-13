@@ -115,6 +115,20 @@ fun NavigationRow(
 }
 
 @Composable
+fun OfflineBlackoutRow(enabled: Boolean, onEnabledChange: (Boolean) -> Unit) {
+    ToggleRow(
+        title = stringResource(AppR.string.settings_offline_blackout),
+        subtitle = stringResource(
+            if (enabled) AppR.string.settings_offline_blackout_enabled else AppR.string.settings_offline_blackout_disabled
+        ),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        iconRes = R.drawable.lucide_ic_radio,
+        iconTint = if (enabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary
+    )
+}
+
+@Composable
 fun ToggleRow(
     title: String,
     subtitle: String,

@@ -278,7 +278,7 @@ internal fun NowPlayingQueueView(
 }
 
 @Composable
-private fun PlaybackControls(
+internal fun PlaybackControls(
     state: PlaybackUiState,
     positionMs: Long,
     playbackViewModel: PlaybackViewModel,

@@ -8,7 +8,7 @@ All source paths below are relative to `app/app/src/main/java/in/caffeinelabs/ca
 
 ## Layers
 
-```
+```text
 Compose screens (ui/screens)
       │  read StateFlow, call functions
 ViewModels (LibraryViewModel, PlaybackViewModel, SettingsViewModel, …)
