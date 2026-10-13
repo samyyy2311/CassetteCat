@@ -18,6 +18,12 @@ import java.io.File
 import `in`.caffeinelabs.cassettecat.MainActivity
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackService
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.accentColor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class CassetteWidgetProvider : AppWidgetProvider() {
 
@@ -30,6 +36,15 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         }
         // A running player redraws with the current cover, which is only looked up while widgets exist.
         onWidgetsAdded?.invoke()
+        // The app also passes the accent on whenever it changes, but a widget can be added before the app is opened.
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                setAccent(context, AppPreferencesRepository(context).preferences.first().accentColor.toInt())
+            } finally {
+                pending.finish()
+            }
+        }
     }
 
     companion object {
