@@ -202,15 +202,11 @@ private fun ArtistCatalogScreen(
     }
 
     fun playAll() {
-        if (songs.isNotEmpty()) {
-            playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
-        }
+        playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun shuffleAll() {
-        if (songs.isNotEmpty()) {
-            playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
-        }
+        playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun play(song: Song) {
@@ -798,14 +794,10 @@ private fun LibraryGroupDetailScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
         val playAll = {
-            if (songs.isNotEmpty()) {
-                playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
-            }
+            playbackViewModel.play(songs, 0, onFirstPlay = onNavigateToNowPlaying)
         }
         val shuffleAll = {
-            if (songs.isNotEmpty()) {
-                playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
-            }
+            playbackViewModel.play(songs, shuffle = true, onFirstPlay = onNavigateToNowPlaying)
         }
         val playNext = {
             if (songs.isNotEmpty()) {

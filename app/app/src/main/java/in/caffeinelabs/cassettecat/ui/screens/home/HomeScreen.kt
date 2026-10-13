@@ -140,7 +140,6 @@ fun HomeScreen(
     }
 
     fun playAll(songs: List<Song>, shuffle: Boolean) {
-        if (songs.isEmpty()) return
         playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 

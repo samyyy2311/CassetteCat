@@ -160,7 +160,6 @@ fun SmartPlaylistScreen(
     }
 
     fun playAll(shuffle: Boolean) {
-        if (songs.isEmpty()) return
         playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 

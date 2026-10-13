@@ -239,7 +239,6 @@ fun SearchScreen(
 
     fun playGroup(songs: List<Song>, shuffle: Boolean = false) {
         recordQuery()
-        if (songs.isEmpty()) return
         playbackViewModel.play(songs, shuffle = shuffle, onFirstPlay = onNavigateToNowPlaying)
     }
 

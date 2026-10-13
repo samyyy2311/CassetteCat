@@ -401,6 +401,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Starts [songs], shuffled or from [startIndex]; [onFirstPlay] runs when nothing was playing, to open Now Playing. */
     fun play(songs: List<Song>, startIndex: Int = 0, shuffle: Boolean = false, onFirstPlay: () -> Unit) {
+        if (songs.isEmpty()) return
         val wasIdle = playbackState.value.currentSong == null
         if (shuffle) shuffleAll(songs) else playQueue(songs, startIndex)
         if (wasIdle) onFirstPlay()

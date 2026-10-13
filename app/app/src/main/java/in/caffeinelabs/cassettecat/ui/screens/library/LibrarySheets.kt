@@ -438,7 +438,9 @@ internal fun SongOptionsSheet(
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current.applicationContext
+    // Share opens a chooser, which needs the screen's context; the rest only needs the app.
+    val activityContext = LocalContext.current
+    val context = activityContext.applicationContext
     val desktop = remember { DesktopRemoteRepository.getInstance(context) }
     val desktopState by desktop.state.collectAsStateWithLifecycle()
     val canSendToDesktop = desktopState.address != null && !desktopState.offlineBlackout &&
@@ -474,7 +476,7 @@ internal fun SongOptionsSheet(
                     onDismiss()
                 }
                 SongActionPill(R.drawable.lucide_ic_share_2, stringResource(AppR.string.library_share)) {
-                    shareSongs(context, listOf(song))
+                    shareSongs(activityContext, listOf(song))
                     onDismiss()
                 }
             }
