@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-GB
+tone_instructions: Be brief and specific. Point out real bugs, regressions and simpler ways to do the same thing. Skip praise, style opinions and anything Android lint or detekt already reports.
+knowledge_base:
+  code_guidelines:
+    filePatterns: ["docs/dev/*.md", "CONTRIBUTING.md"]
+reviews:
+  profile: chill
+  # Pull request descriptions are written by hand, so the summary stays in CodeRabbit's own comment.
+  high_level_summary_in_walkthrough: true
+  estimate_code_review_effort: false
+  in_progress_fortune: false
+  suggested_reviewers: false
+  pre_merge_checks:
+    # Comments are only written where the reason isn't obvious, so docstring coverage isn't a goal.
+    docstrings:
+      mode: "off"
+    description:
+      mode: "off"
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  path_instructions:
+    - path: "**/*"
+      instructions: >-
+        The smallest correct change wins: flag duplicated logic, unused code, new abstractions with one use, new
+        dependencies and speculative fallbacks. Don't ask for comments or KDoc that restate the code; a comment
+        should explain a reason that isn't obvious. Flag comments that narrate the code or mention AI tools.
+    - path: "app/app/src/main/java/**/ui/**"
+      instructions: >-
+        Jetpack Compose with Material 3. Reuse the shared pieces in ui/components and the settings rows in
+        ui/screens/settings/SettingsComponents.kt instead of new near-copies. Colours, type and shapes come from
+        ui/theme, not literals. No glows, gradients or tinted fills for emphasis. Screens take a ViewModel and
+        callbacks; they don't navigate or reach into repositories. Interactive elements need a content
+        description or label and a 48dp touch target.
+    - path: "app/app/src/main/java/**"
+      instructions: >-
+        No dependency-injection framework: ViewModels, the application and the playback service create what they
+        need. State flows one way, from repository StateFlows through ViewModels to screens. Secrets go through
+        CredentialStore and the Android Keystore and are never logged. Known false positives: Subsonic's token
+        login requires MD5 by protocol, SSLContext.getInstance("TLS") negotiates TLS 1.2 or 1.3, and Listening
+        Room sockets connect to a host the user picked on their own network.
+    - path: "app/app/src/main/res/values/strings.xml"
+      instructions: >-
+        Every visible string lives here. Labels use Title Case where the rest of the app does.
+    - path: "app/app/src/main/res/values-*/**"
+      instructions: >-
+        Translations come from native speakers through Weblate. Don't suggest wording changes or machine
+        translations; only flag broken placeholders or markup.
+    - path: "app/app/src/test/**"
+      instructions: >-
+        Tests should check behaviour a person would notice, using real logic rather than mocks.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Actions are pinned to a full commit SHA with the version in a comment. Keep permissions to the least each
+        job needs, set persist-credentials: false on checkout, and pass untrusted values through env rather than
+        inline ${{ }} in run steps. `id-token: write` is a permission, not a hard-coded token.
+    - path: "**/*.md"
+      instructions: >-
+        Plain, direct language for people using or contributing to the app. No marketing tone, emoji headings or
+        badges beyond the existing ones.

@@ -1,0 +1,19 @@
+name: Pull request labels
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    # Reads the labeler config and labels the pull request; no pull request code is checked out.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          sync-labels: true
