@@ -7,8 +7,6 @@ complexity:
     ignoreAnnotated: ['Composable']
   StringLiteralDuplication:
     excludes: ['**/test/**', '**/AutoEqProfiles.kt']
-
-style:
   # return@launch and similar labels are how Kotlin returns from a lambda.
   LabeledExpression:
     active: false

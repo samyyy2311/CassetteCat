@@ -145,7 +145,7 @@ fun LyricShareSheet(
                         val bitmap = withContext(Dispatchers.Default) {
                             generateSharePoster(context, song, ShareCardMode.LYRICS, selectedLines, selectedTheme, artBitmap)
                         }
-                        shareImage(context, bitmap, trackCredit, target)
+                        shareImage(context, bitmap, trackCredit, target, selectedTheme)
                     }
                 }
             }
