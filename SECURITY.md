@@ -5,7 +5,7 @@
 Only the latest release and the current `main` branch receive active security updates.
 
 | Version | Supported          |
-| --- | --- |
+| ------- | ------------------ |
 | 1.8.x   | Yes                |
 | < 1.8.0 | No                 |
 
