@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import android.util.Log
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
@@ -29,7 +30,14 @@ private data class ErrorResponse(val error: String = "")
 private data class TrackMetadata(
     @SerialName("artist_name") val artistName: String,
     @SerialName("track_name") val trackName: String,
-    @SerialName("release_name") val releaseName: String? = null
+    @SerialName("release_name") val releaseName: String? = null,
+    @SerialName("additional_info") val additionalInfo: AdditionalInfo
+)
+
+@Serializable
+private data class AdditionalInfo(
+    @SerialName("submission_client") val submissionClient: String,
+    @SerialName("submission_client_version") val submissionClientVersion: String
 )
 
 @Serializable
@@ -87,7 +95,8 @@ class ListenBrainzClient {
                     trackMetadata = TrackMetadata(
                         artistName = song.artist,
                         trackName = song.title,
-                        releaseName = song.album.ifBlank { null }
+                        releaseName = song.album.ifBlank { null },
+                        additionalInfo = AdditionalInfo("CassetteCat Android", BuildConfig.VERSION_NAME)
                     )
                 )
             )
