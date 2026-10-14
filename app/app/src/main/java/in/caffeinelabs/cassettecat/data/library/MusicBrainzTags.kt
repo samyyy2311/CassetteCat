@@ -55,12 +55,14 @@ private val Release.isStudioAlbum: Boolean
  * recordings, so every one that fits is searched for its album: the one the file already names, or else the earliest
  * studio album, where the song first came out.
  */
-internal fun musicBrainzTagsFrom(json: String, durationMs: Long, album: String): MusicBrainzTags? {
-    val fitting = sharedJson.decodeFromString<RecordingSearch>(json).recordings.filter { recording ->
+internal fun musicBrainzTagsFrom(json: String, title: String, durationMs: Long, album: String): MusicBrainzTags? {
+    val confident = sharedJson.decodeFromString<RecordingSearch>(json).recordings.filter { recording ->
         val length = recording.length ?: 0L
         recording.score >= MINIMUM_SCORE &&
             (durationMs <= 0 || length <= 0 || abs(length - durationMs) <= LENGTH_TOLERANCE_MS)
     }
+    // A recording with the song's own title wins over versions of it, such as a remix of the same length.
+    val fitting = confident.filter { comparable(it.title) == comparable(title) }.ifEmpty { confident }
     if (fitting.isEmpty()) return null
     val candidates = fitting.flatMap { recording -> recording.releases.map { recording to it } }
     fun earliest(matching: (Release) -> Boolean) = candidates
@@ -90,7 +92,7 @@ suspend fun findMusicBrainzTags(title: String, artist: String, album: String, du
             if (!response.isSuccessful) throw IOException("MusicBrainz answered ${response.code}")
             response.body.string()
         }
-        musicBrainzTagsFrom(body, durationMs, album)
+        musicBrainzTagsFrom(body, title, durationMs, album)
     }
 
 /** A song detail a MusicBrainz match would change. */
@@ -116,7 +118,8 @@ internal fun tagChanges(title: String, artist: String, album: String, year: Int?
     fun change(field: TagField, from: String, to: String?): TagChange? =
         to?.takeIf { comparable(from) != comparable(it) }?.let { TagChange(field, from, it) }
     return listOfNotNull(
-        change(TagField.TITLE, title, tags.title),
+        // A title that only gains words, such as " - Remix" or " (Live)", belongs to another version of the song.
+        change(TagField.TITLE, title, tags.title)?.takeUnless { title.isNotBlank() && comparable(it.to).startsWith(comparable(title)) },
         change(TagField.ARTIST, artist, tags.artist),
         change(TagField.ALBUM, album, tags.album)?.takeUnless { comparable(album).startsWith(comparable(it.to)) },
         if (year == null) change(TagField.YEAR, "", tags.year?.toString()) else null

@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,9 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +34,7 @@ import `in`.caffeinelabs.cassettecat.data.library.TagFixRepository
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
+import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import kotlinx.coroutines.launch
 
 @Composable
@@ -88,50 +88,53 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
                         iconRes = R.drawable.lucide_ic_search,
                         onClick = {}
                     ) {
-                        when {
-                            state.running -> OutlinedButton(onClick = repository::stop) {
-                                Text(stringResource(AppR.string.fix_tags_stop))
-                            }
-                            state.paused -> OutlinedButton(onClick = repository::resume) {
-                                Text(stringResource(AppR.string.fix_tags_continue))
-                            }
-                            state.checkedBefore.isEmpty() -> OutlinedButton(onClick = { repository.checkLibrary(songs) }) {
-                                Text(stringResource(AppR.string.fix_tags_start))
-                            }
+                        val action: Pair<Int, () -> Unit>? = when {
+                            state.running -> AppR.string.fix_tags_stop to repository::stop
+                            state.paused -> AppR.string.fix_tags_continue to repository::resume
+                            state.checkedBefore.isEmpty() -> AppR.string.fix_tags_start to { repository.checkLibrary(songs) }
                             // Starting over drops unapplied fixes, so it's only offered once there are none.
-                            state.fixes.isEmpty() -> OutlinedButton(onClick = { repository.checkAllAgain(songs) }) {
-                                Text(stringResource(AppR.string.fix_tags_check_again))
+                            state.fixes.isEmpty() -> AppR.string.fix_tags_check_again to { repository.checkAllAgain(songs) }
+                            else -> null
+                        }
+                        action?.let { (label, onClick) ->
+                            TextButton(onClick = hapticClick(onClick)) {
+                                Text(stringResource(label), color = MaterialTheme.colorScheme.tertiary)
                             }
                         }
+                    }
+                    if (state.running || state.paused) {
+                        LinearProgressIndicator(
+                            progress = { state.checked.toFloat() / state.queue.size.coerceAtLeast(1) },
+                            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
                     }
                 }
             }
 
             if (state.fixes.isNotEmpty()) {
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Button(
+                        onClick = hapticClick {
+                            coroutineScope.launch {
+                                repository.apply(songs, overrides)
+                                libraryViewModel.refresh()
+                            }
+                        },
+                        enabled = accepted > 0,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
                     ) {
-                        OutlinedButton(onClick = { repository.setAllSkipped(accepted > 0) }, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(if (accepted > 0) AppR.string.fix_tags_turn_all_off else AppR.string.fix_tags_turn_all_on))
-                        }
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    repository.apply(songs, overrides)
-                                    libraryViewModel.refresh()
-                                }
-                            },
-                            enabled = !state.running && accepted > 0,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiary,
-                                contentColor = MaterialTheme.colorScheme.onTertiary
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(pluralStringResource(AppR.plurals.fix_tags_apply, accepted, accepted))
-                        }
+                        Text(pluralStringResource(AppR.plurals.fix_tags_apply, accepted, accepted))
+                    }
+                    TextButton(
+                        onClick = hapticClick { repository.setAllSkipped(accepted > 0) },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    ) {
+                        Text(
+                            stringResource(if (accepted > 0) AppR.string.fix_tags_turn_all_off else AppR.string.fix_tags_turn_all_on),
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
                     }
                 }
 
@@ -141,8 +144,8 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
                             state.fixes.forEachIndexed { index, fix ->
                                 if (index > 0) SettingsDivider()
                                 ToggleRow(
-                                    title = "${fix.song.title} · ${fix.song.artist}",
-                                    subtitle = fix.changes.joinToString("\n") { changeText(it) },
+                                    title = fix.song.title,
+                                    subtitle = (listOf(fix.song.artist) + fix.changes.map { changeText(it) }).joinToString("\n"),
                                     checked = fix.song.id !in state.skipped,
                                     onCheckedChange = { apply -> repository.setSkipped(fix.song.id, !apply) },
                                     iconRes = R.drawable.lucide_ic_music

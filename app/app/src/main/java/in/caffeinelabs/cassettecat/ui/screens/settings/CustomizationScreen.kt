@@ -172,13 +172,6 @@ fun CustomizationScreen(
             )
             SettingsDivider()
             NavigationRow(
-                title = stringResource(AppR.string.customization_storage),
-                subtitle = stringResource(AppR.string.customization_storage_summary),
-                iconRes = R.drawable.lucide_ic_download,
-                onClick = { onNavigate(CustomizationRoute.STORAGE) },
-            )
-            SettingsDivider()
-            NavigationRow(
                 title = stringResource(AppR.string.customization_home_feed),
                 subtitle = stringResource(AppR.string.customization_home_summary, homeFeedCount),
                 iconRes = R.drawable.lucide_ic_history,

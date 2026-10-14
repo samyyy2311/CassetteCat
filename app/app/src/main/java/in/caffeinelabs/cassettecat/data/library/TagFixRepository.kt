@@ -102,6 +102,8 @@ class TagFixRepository private constructor(context: Context) {
     /** Saves the accepted fixes as tag edits, the way the tag editor does, and returns the songs as they now read. */
     suspend fun apply(songs: List<Song>, overrides: SongMetadataOverridesRepository): List<Song> {
         val byId = songs.associateBy { it.id }
+        // A check can still be running, so only the fixes reviewed here leave the list; new ones stay.
+        val reviewed = _state.value.fixes.map { it.song.id }.toSet()
         val results = _state.value.accepted.mapNotNull { fix ->
             val song = byId[fix.song.id] ?: return@mapNotNull null
             fun to(field: TagField) = fix.changes.firstOrNull { it.field == field }?.to
@@ -114,7 +116,7 @@ class TagFixRepository private constructor(context: Context) {
             )
         }
         overrides.saveOverrides(results.map { it.first })
-        update { it.copy(fixes = emptyList(), skipped = emptySet()) }
+        update { state -> state.copy(fixes = state.fixes.filterNot { it.song.id in reviewed }, skipped = state.skipped - reviewed) }
         return results.map { it.second }
     }
 

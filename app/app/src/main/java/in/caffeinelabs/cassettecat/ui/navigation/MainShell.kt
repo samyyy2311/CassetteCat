@@ -727,6 +727,7 @@ fun MainShell(
                             onNavigateToEqualizer = { navController.navigate(MainRoute.EQUALIZER) },
                             onNavigateToBackupRestore = { navController.navigate(MainRoute.BACKUP_RESTORE) },
                             onNavigateToDownloads = { navController.navigate(MainRoute.DOWNLOADS) },
+                            onNavigateToStorage = { navController.navigate(CustomizationRoute.STORAGE) },
                             onNavigateToSleepTimer = { navController.navigate(MainRoute.SLEEP_TIMER) },
                             onNavigateToPrivacy = { navController.navigate(MainRoute.PRIVACY) },
                             onNavigateToCustomization = { navController.navigate(MainRoute.CUSTOMIZATION) },

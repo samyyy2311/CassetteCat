@@ -260,14 +260,14 @@ class CoreLogicTest {
                  "release-group": {"primary-type": "Album"}}]}]}"""
         assertEquals(
             MusicBrainzTags("Song", "Band feat. Singer", "First Album", 1999),
-            musicBrainzTagsFrom(search, durationMs = 200_000, album = "")
+            musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "")
         )
-        assertEquals("Greatest Hits", musicBrainzTagsFrom(search, durationMs = 200_000, album = "greatest hits")?.album)
-        assertNull(musicBrainzTagsFrom(search, durationMs = 150_000, album = ""))
+        assertEquals("Greatest Hits", musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "greatest hits")?.album)
+        assertNull(musicBrainzTagsFrom(search, title = "Song", durationMs = 150_000, album = ""))
         // A song already naming the album still gets the original's year, not a reissue's.
-        assertEquals(1999, musicBrainzTagsFrom(search, durationMs = 200_000, album = "first album")?.year)
+        assertEquals(1999, musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "first album")?.year)
         // With only a live release to go on, the album is left alone.
-        assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, durationMs = 240_000, album = ""))
+        assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, title = "Song", durationMs = 240_000, album = ""))
     }
 
     @Test
@@ -279,6 +279,8 @@ class CoreLogicTest {
             listOf(TagChange(TagField.TITLE, "A-Team", "The A Team"), TagChange(TagField.YEAR, "", "2011")),
             tagChanges("A-Team", "Ed Sheeran", "+", null, MusicBrainzTags("The A Team", "Ed Sheeran", "+", 2011))
         )
+        // A remix of the same song isn't a correction of its title.
+        assertEquals(emptyList<TagChange>(), tagChanges("Aa Jao", "Javed Ali", "", 2010, MusicBrainzTags("Aa Jao - Jhankar", "Javed Ali")))
     }
 
     @Test

@@ -69,6 +69,7 @@ fun SettingsScreen(
     onNavigateToEqualizer: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToDownloads: () -> Unit,
+    onNavigateToStorage: () -> Unit,
     onNavigateToSleepTimer: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     modifier: Modifier = Modifier,
@@ -168,6 +169,14 @@ fun SettingsScreen(
                 iconRes = R.drawable.lucide_ic_download,
                 iconTint = Color(0xFF38BDF8),
                 onClick = onNavigateToDownloads
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.customization_storage),
+                subtitle = stringResource(AppR.string.customization_storage_summary),
+                iconRes = R.drawable.lucide_ic_hard_drive,
+                iconTint = Color(0xFFC4C4C0),
+                onClick = onNavigateToStorage
             )
             SettingsDivider()
             NavigationRow(

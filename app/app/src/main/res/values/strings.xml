@@ -59,7 +59,7 @@
     <string name="fix_tags_paused">Paused at %1$d of %2$d songs</string>
     <string name="fix_tags_finished">Check finished</string>
     <string name="fix_tags_start_hint">Checks every song you haven\'t checked before, about a song a second.</string>
-    <string name="fix_tags_running_hint">You can leave this screen. The check keeps going, about a song a second.</string>
+    <string name="fix_tags_running_hint">Keeps going if you leave this screen.</string>
     <string name="fix_tags_review_hint">Turn off anything that looks wrong, then apply.</string>
     <string name="fix_tags_nothing_hint">MusicBrainz agrees with these songs, or has no confident match for them.</string>
     <string name="fix_tags_all_checked_hint">Every song in your library has been checked already.</string>
