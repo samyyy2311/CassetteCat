@@ -396,4 +396,6 @@
         <item>CassetteCat 🎵</item>
         <item>Hi friend! 🐾</item>
     </string-array>
+    <string name="nav_home">Home</string>
+    <string name="fast_scroll_none">none</string>
 </resources>

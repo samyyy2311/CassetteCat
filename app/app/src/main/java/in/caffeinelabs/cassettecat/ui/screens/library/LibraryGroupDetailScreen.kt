@@ -529,7 +529,7 @@ private fun ArtistAlbumShelf(title: String, albums: List<ArtistAlbum>, onAlbumCl
                         modifier = Modifier.padding(top = 8.dp)
                     )
                     Text(
-                        "${album.tracks.size} ${if (album.tracks.size == 1) "track" else "tracks"}",
+                        pluralStringResource(AppR.plurals.library_tracks, album.tracks.size, album.tracks.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

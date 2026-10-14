@@ -18,19 +18,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
+import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
 
-private data class NavItem(val route: String, val iconRes: Int, val label: String)
+private data class NavItem(val route: String, val iconRes: Int, val labelRes: Int)
 
 private val items = listOf(
-    NavItem(MainRoute.HOME, R.drawable.lucide_ic_house, "Home"),
-    NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, "Library"),
-    NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, "Radio"),
-    NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, "Search"),
-    NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, "Settings")
+    NavItem(MainRoute.HOME, R.drawable.lucide_ic_house, AppR.string.nav_home),
+    NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, AppR.string.library_title),
+    NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, AppR.string.radio_title),
+    NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, AppR.string.search_title),
+    NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, AppR.string.settings_title)
 )
 
 fun parentTabRoute(currentRoute: String?): String? = when {
@@ -60,6 +62,7 @@ fun BottomNavBar(
         items.forEach { item ->
             val selected = activeTabRoute == item.route
             val tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+            val label = stringResource(item.labelRes)
             val onClick = { onNavigate(item.route) }
             val interactionModifier = if (contentAlpha > 0.5f) {
                 if (item.route == MainRoute.SEARCH) Modifier.tapScaleSelectable(onClick = onClick, onLongClick = onSearchLongPress)
@@ -76,13 +79,13 @@ fun BottomNavBar(
             ) {
                 Icon(
                     painter = painterResource(item.iconRes),
-                    contentDescription = item.label,
+                    contentDescription = label,
                     tint = tint,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    item.label,
+                    label,
                     style = MaterialTheme.typography.labelMedium,
                     color = tint,
                     maxLines = 1
