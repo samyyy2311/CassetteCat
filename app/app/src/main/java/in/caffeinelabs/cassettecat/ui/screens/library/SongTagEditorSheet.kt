@@ -49,9 +49,13 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverride
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
+import `in`.caffeinelabs.cassettecat.data.library.findMusicBrainzTags
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Changed fields from the editor; null (or yearEdited = false) leaves that field as it was. */
@@ -124,6 +128,8 @@ fun SongTagEditorSheet(
         genreText != (initialGenres ?: "") ||
         yearText != (initialYear ?: "")
     val overriddenSongs = songs.filter { repository.hasOverride(it.id) }
+    var lookingUp by remember(songIds) { mutableStateOf(false) }
+    var musicBrainzNote by remember(songIds) { mutableStateOf<Int?>(null) }
     val mixed = stringResource(AppR.string.tag_editor_mixed)
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -229,7 +235,68 @@ fun SongTagEditorSheet(
                     keyboardType = KeyboardType.Number
                 )
 
+                musicBrainzNote?.let { note ->
+                    Text(
+                        text = stringResource(note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+
                 Spacer(Modifier.height(24.dp))
+
+                if (!batch) {
+                    OutlinedButton(
+                        onClick = {
+                            lookingUp = true
+                            musicBrainzNote = null
+                            coroutineScope.launch {
+                                val services = ServiceSettingsRepository(context).settings.first()
+                                // The fields as they are now, so a corrected title or artist finds the right song.
+                                val found = if (services.isEnabled(ExternalService.COVER_ART_ARCHIVE)) {
+                                    runCatching { findMusicBrainzTags(title, artist, album, songs.first().durationMs) }
+                                } else {
+                                    null
+                                }
+                                lookingUp = false
+                                val tags = found?.getOrNull()
+                                musicBrainzNote = when {
+                                    found == null || found.isFailure -> AppR.string.tag_editor_musicbrainz_unreachable
+                                    tags == null -> AppR.string.tag_editor_musicbrainz_no_match
+                                    else -> {
+                                        val before = listOf(title, artist, album, yearText)
+                                        title = tags.title
+                                        artist = tags.artist
+                                        tags.album?.let { album = it }
+                                        tags.year?.let { yearText = it.toString() }
+                                        if (listOf(title, artist, album, yearText) == before) {
+                                            AppR.string.tag_editor_musicbrainz_agrees
+                                        } else {
+                                            AppR.string.tag_editor_musicbrainz_filled
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !lookingUp,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.lucide_ic_search),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(
+                                if (lookingUp) AppR.string.tag_editor_looking_up else AppR.string.tag_editor_fill_musicbrainz
+                            )
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
 
                 if (overriddenSongs.isNotEmpty()) {
                     OutlinedButton(

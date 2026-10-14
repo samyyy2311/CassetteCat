@@ -2,6 +2,8 @@ package `in`.caffeinelabs.cassettecat
 
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
+import `in`.caffeinelabs.cassettecat.data.library.MusicBrainzTags
+import `in`.caffeinelabs.cassettecat.data.library.musicBrainzTagsFrom
 import `in`.caffeinelabs.cassettecat.data.listeningroom.HostClock
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUp
@@ -237,6 +239,29 @@ class CoreLogicTest {
         assertTrue(isNewer("1.4.0", "1.3.9"))
         assertFalse(isNewer("1.3.1", "1.3.1"))
         assertFalse(isNewer("1.3.0", "1.3.1"))
+    }
+
+    @Test
+    fun musicBrainzMatchesTheLengthAndPrefersTheOriginalAlbum() {
+        // A 3:20 song: the 4:00 live recording is skipped, and the original 1999 album beats a later compilation.
+        val search = """{"recordings": [
+            {"score": 100, "title": "Song (Live)", "length": 240000, "artist-credit": [{"name": "Band"}],
+             "releases": [{"title": "Live", "status": "Official"}]},
+            {"score": 98, "title": "Song", "length": 201000,
+             "artist-credit": [{"name": "Band", "joinphrase": " feat. "}, {"name": "Singer"}],
+             "releases": [
+                {"title": "Greatest Hits", "status": "Official", "date": "2005",
+                 "release-group": {"primary-type": "Album", "secondary-types": ["Compilation"]}},
+                {"title": "First Album", "status": "Official", "date": "1999-03-01",
+                 "release-group": {"primary-type": "Album"}}]}]}"""
+        assertEquals(
+            MusicBrainzTags("Song", "Band feat. Singer", "First Album", 1999),
+            musicBrainzTagsFrom(search, durationMs = 200_000, album = "")
+        )
+        assertEquals("Greatest Hits", musicBrainzTagsFrom(search, durationMs = 200_000, album = "greatest hits")?.album)
+        assertNull(musicBrainzTagsFrom(search, durationMs = 150_000, album = ""))
+        // With only a live release to go on, the album is left alone.
+        assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, durationMs = 240_000, album = ""))
     }
 
     @Test
