@@ -199,6 +199,8 @@ request, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used 
 [![Translation status](https://img.shields.io/weblate/progress/cassettecat?server=https%3A%2F%2Fhosted.weblate.org&style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Translated&logo=weblate&logoColor=2ECCAA)](https://hosted.weblate.org/engage/cassettecat/)
 [![Translate on Weblate](https://img.shields.io/badge/Translate_on_Weblate-2A2A2A?style=flat-square&logo=weblate&logoColor=2ECCAA)](https://hosted.weblate.org/engage/cassettecat/)
 
+<a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/multi-auto.svg" alt="Translation status" /></a>
+
 Translate the app in your browser on Weblate, with no coding needed. Weblate sends your work here as a pull request,
 and anything not translated yet shows in English. See [TRANSLATING.md](TRANSLATING.md) for a few guidelines. The
 desktop app is English only for now ([CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56)).
