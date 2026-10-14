@@ -23,6 +23,9 @@ private data class ValidateTokenResponse(
 )
 
 @Serializable
+private data class ErrorResponse(val error: String = "")
+
+@Serializable
 private data class TrackMetadata(
     @SerialName("artist_name") val artistName: String,
     @SerialName("track_name") val trackName: String,
@@ -61,18 +64,21 @@ class ListenBrainzClient {
         }.getOrNull()
     }
 
-    suspend fun submitNowPlaying(token: String, song: Song): Int? = withContext(Dispatchers.IO) {
+    suspend fun submitNowPlaying(token: String, song: Song): String? = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "playing_now", listenedAt = null)
     }
 
-    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): Int? = withContext(Dispatchers.IO) {
+    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): String? = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "single", listenedAt = listenedAtUnixSec)
     }
 
-    /** The HTTP status ListenBrainz answered with, or null when it couldn't be reached. */
-    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): Int? = runCatching {
+    /**
+     * Empty when ListenBrainz took the listen, the first sentence of its reason when it refused, or null when it
+     * couldn't be reached or gave no reason.
+     */
+    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): String? = runCatching {
         val requestBody = SubmitListenRequest(
             listenType = listenType,
             payload = listOf(
@@ -92,10 +98,11 @@ class ListenBrainzClient {
             .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
             .build()
         sharedHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.w("ListenBrainz", "Refused $listenType: ${response.code} ${response.body.string().take(300)}")
-            }
-            response.code
+            if (response.isSuccessful) return@use ""
+            val reason = runCatching { sharedJson.decodeFromString<ErrorResponse>(response.body.string()).error }
+                .getOrDefault("")
+            Log.w("ListenBrainz", "Refused $listenType: ${response.code} $reason")
+            reason.substringBefore(". ").takeIf { it.isNotBlank() }?.let { if (it.endsWith(".")) it else "$it." }
         }
     }.onFailure { Log.w("ListenBrainz", "Couldn't submit $listenType", it) }.getOrNull()
 }

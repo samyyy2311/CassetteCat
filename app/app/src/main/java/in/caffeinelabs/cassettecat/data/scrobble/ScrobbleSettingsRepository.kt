@@ -18,6 +18,7 @@ private val Context.scrobbleDataStore by preferencesDataStore(name = "scrobble_s
 private val LISTENBRAINZ_ENABLED = booleanPreferencesKey("listenbrainz_enabled")
 private val LISTENBRAINZ_TOKEN = stringPreferencesKey("listenbrainz_token")
 private val LISTENBRAINZ_USER = stringPreferencesKey("listenbrainz_user")
+private val LISTENBRAINZ_PROBLEM = stringPreferencesKey("listenbrainz_problem")
 
 private val ScrobbleAccount.enabledKey get() = booleanPreferencesKey("${id}_enabled")
 private val ScrobbleAccount.usernameKey get() = stringPreferencesKey("${id}_username")
@@ -36,7 +37,8 @@ class ScrobbleSettingsRepository(private val context: Context) {
                 listenBrainz = ListenBrainzConfig(
                     enabled = prefs[LISTENBRAINZ_ENABLED] ?: false,
                     userToken = credentialStore.getListenBrainzToken().orEmpty(),
-                    userName = prefs[LISTENBRAINZ_USER] ?: ""
+                    userName = prefs[LISTENBRAINZ_USER] ?: "",
+                    problem = prefs[LISTENBRAINZ_PROBLEM] ?: ""
                 ),
                 libreFm = accountConfig(prefs, ScrobbleAccount.LIBRE_FM),
                 lastFm = accountConfig(prefs, ScrobbleAccount.LAST_FM)
@@ -56,7 +58,12 @@ class ScrobbleSettingsRepository(private val context: Context) {
             prefs.remove(LISTENBRAINZ_TOKEN)
             prefs[LISTENBRAINZ_USER] = userName
             prefs[LISTENBRAINZ_ENABLED] = enabled
+            prefs.remove(LISTENBRAINZ_PROBLEM)
         }
+    }
+
+    suspend fun setListenBrainzProblem(problem: String) {
+        context.scrobbleDataStore.edit { prefs -> prefs[LISTENBRAINZ_PROBLEM] = problem }
     }
 
     suspend fun setListenBrainzEnabled(enabled: Boolean) {
@@ -71,6 +78,7 @@ class ScrobbleSettingsRepository(private val context: Context) {
             prefs.remove(LISTENBRAINZ_TOKEN)
             prefs[LISTENBRAINZ_USER] = ""
             prefs[LISTENBRAINZ_ENABLED] = false
+            prefs.remove(LISTENBRAINZ_PROBLEM)
         }
     }
 
