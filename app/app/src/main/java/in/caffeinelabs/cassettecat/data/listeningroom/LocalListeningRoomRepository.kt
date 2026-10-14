@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.listeningroom
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.SystemClock
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import java.io.BufferedReader
@@ -47,6 +48,15 @@ private const val NO_JOIN_TIMEOUT_MS = 120_000L
 private const val CONNECT_TIMEOUT_MS = 6_000
 private const val MAX_RECONNECT_ATTEMPTS = 3
 private const val RECONNECT_DELAY_MS = 2_000L
+private const val CLOCK_PING_INTERVAL_MS = 2_000L
+// Clocks drift a little, so only recent pings count.
+private const val CLOCK_SAMPLES = 8
+// Within this the guest plays at normal speed; beyond it a gentle speed change closes the gap.
+private const val IN_SYNC_MS = 20L
+// The fastest catch-up closes this within ten seconds; anything further out seeks.
+private const val SEEK_DRIFT_MS = 400L
+private const val MAX_CATCH_UP = 0.04f
+private const val CATCH_UP_WINDOW_MS = 5_000f
 internal const val MAX_LISTENING_ROOM_GUESTS = 8
 
 private class HostGuest(val socket: Socket) {
@@ -67,7 +77,10 @@ data class RoomSnapshot(
     val positionMs: Long,
     val isPlaying: Boolean,
     val audioPort: Int? = null,
-    val roomToken: String? = null
+    val roomToken: String? = null,
+    // The host's elapsedRealtime when positionMs was read, and its playback speed; absent from older hosts.
+    val capturedAtMs: Long? = null,
+    val speed: Float? = null
 )
 
 data class NearbyListeningRoom(
@@ -93,8 +106,38 @@ data class ListeningRoomState(
 @Serializable
 private data class WireMessage(
     val type: String,
-    val snapshot: RoomSnapshot? = null
+    val snapshot: RoomSnapshot? = null,
+    val sentAtMs: Long? = null,
+    val hostAtMs: Long? = null
 )
+
+/** Estimates how far the host's elapsedRealtime is ahead of this phone's, from timed pings, the way NTP does. */
+internal class HostClock {
+    private val samples = ArrayDeque<Pair<Long, Long>>()
+
+    /** The offset from the quickest recent ping, since a quick round trip leaves the least room for error. */
+    @Synchronized
+    fun offsetMs(): Long? = samples.minByOrNull { it.first }?.second
+
+    @Synchronized
+    fun addSample(sentAtMs: Long, hostAtMs: Long, receivedAtMs: Long) {
+        val roundTripMs = receivedAtMs - sentAtMs
+        if (roundTripMs < 0) return
+        samples.addLast(roundTripMs to hostAtMs - (sentAtMs + roundTripMs / 2))
+        if (samples.size > CLOCK_SAMPLES) samples.removeFirst()
+    }
+}
+
+/**
+ * What a guest [driftMs] ahead of the host (behind when negative) adds to the host's speed to get back in step
+ * within ten seconds, or null when it should seek instead. It is added rather than multiplied so the gap closes
+ * as quickly at any host speed. A paused guest has nothing to catch up with, so it seeks.
+ */
+internal fun roomCatchUp(driftMs: Long, playing: Boolean): Float? = when {
+    kotlin.math.abs(driftMs) <= IN_SYNC_MS -> 0f
+    !playing || kotlin.math.abs(driftMs) > SEEK_DRIFT_MS -> null
+    else -> (-driftMs / CATCH_UP_WINDOW_MS).coerceIn(-MAX_CATCH_UP, MAX_CATCH_UP)
+}
 
 class LocalListeningRoomRepository(context: Context) {
     private val appContext = context.applicationContext
@@ -117,10 +160,14 @@ class LocalListeningRoomRepository(context: Context) {
     private var discoveryJob: Job? = null
     private var guestSocket: Socket? = null
     private var guestWriter: BufferedWriter? = null
+    @Volatile private var hostClock = HostClock()
     private var audioServer: RoomAudioServer? = null
     private var audioPort: Int? = null
 
     val guestHostAddress: String? get() = guestSocket?.inetAddress?.hostAddress
+
+    /** The host's elapsedRealtime now, once a ping has measured the offset. */
+    fun hostElapsedRealtimeMs(): Long? = hostClock.offsetMs()?.let { SystemClock.elapsedRealtime() + it }
 
     init {
         scope.launch {
@@ -278,6 +325,8 @@ class LocalListeningRoomRepository(context: Context) {
             writer.flush()
             guestSocket = socket
             guestWriter = writer
+            hostClock = HostClock()
+            pingHost(socket, writer)
             _state.value = ListeningRoomState(
                 role = ListeningRoomRole.GUEST,
                 roomName = roomName,
@@ -316,6 +365,17 @@ class LocalListeningRoomRepository(context: Context) {
         }
     }
 
+    private fun pingHost(socket: Socket, writer: BufferedWriter) {
+        scope.launch {
+            while (guestSocket === socket) {
+                val line = json.encodeToString(WireMessage(type = "ping", sentAtMs = SystemClock.elapsedRealtime()))
+                val sent = runCatching { synchronized(writer) { writer.write(line); writer.newLine(); writer.flush() } }
+                if (sent.isFailure) return@launch
+                delay(CLOCK_PING_INTERVAL_MS)
+            }
+        }
+    }
+
     fun publish(snapshot: RoomSnapshot) {
         if (_state.value.role != ListeningRoomRole.HOST) return
         val line = json.encodeToString(
@@ -324,7 +384,7 @@ class LocalListeningRoomRepository(context: Context) {
         scope.launch {
             hostGuests.toList().forEach { guest ->
                 val writer = guest.writer ?: return@forEach
-                runCatching { writer.write(line); writer.flush() }
+                runCatching { synchronized(writer) { writer.write(line); writer.flush() } }
                     .onFailure { removeHostGuest(guest) }
             }
             updateParticipantCount()
@@ -367,11 +427,23 @@ class LocalListeningRoomRepository(context: Context) {
                         val suppliedCode = reader.readLineBounded(64)
                         if (suppliedCode != roomCode) throw IOException("Invalid room code")
                         socket.soTimeout = 0
-                        guest.writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+                        val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+                        guest.writer = writer
                         updateParticipantCount()
-                        // Blocks until socket close so disconnects are noticed immediately.
-                        // Otherwise a closed socket may look connected for too long.
-                        while (reader.readLineBounded(MAX_WIRE_LINE_LENGTH) != null) { /* discard */ }
+                        // Reading until the socket closes also notices a guest that left at once.
+                        while (true) {
+                            val line = reader.readLineBounded(MAX_WIRE_LINE_LENGTH) ?: break
+                            val ping = runCatching { json.decodeFromString<WireMessage>(line) }.getOrNull()
+                                ?.takeIf { it.type == "ping" } ?: continue
+                            val pong = json.encodeToString(
+                                WireMessage(
+                                    type = "pong",
+                                    sentAtMs = ping.sentAtMs,
+                                    hostAtMs = SystemClock.elapsedRealtime()
+                                )
+                            )
+                            synchronized(writer) { writer.write(pong); writer.newLine(); writer.flush() }
+                        }
                     }
                     removeHostGuest(guest)
                 }
@@ -384,7 +456,14 @@ class LocalListeningRoomRepository(context: Context) {
             while (true) {
                 val line = reader.readLineBounded(MAX_WIRE_LINE_LENGTH) ?: return
                 val message = runCatching { json.decodeFromString<WireMessage>(line) }.getOrNull() ?: continue
-                if (message.type == "snapshot") message.snapshot?.let(_snapshots::tryEmit)
+                when (message.type) {
+                    "snapshot" -> message.snapshot?.let(_snapshots::tryEmit)
+                    "pong" -> {
+                        val sentAtMs = message.sentAtMs ?: continue
+                        val hostAtMs = message.hostAtMs ?: continue
+                        hostClock.addSample(sentAtMs, hostAtMs, SystemClock.elapsedRealtime())
+                    }
+                }
             }
         }
     }

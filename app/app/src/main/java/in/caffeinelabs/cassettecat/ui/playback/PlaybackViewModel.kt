@@ -267,6 +267,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 if (listeningRoom.value.role == ListeningRoomRole.GUEST) applyRoomSnapshot(snapshot)
             }
         }
+        viewModelScope.launch {
+            listeningRoom.map { it.role == ListeningRoomRole.GUEST }.distinctUntilChanged().collect { guest ->
+                if (!guest) repository.endRoomCatchUp()
+            }
+        }
         // Refresh position immediately on song transition when ticker is idle.
         viewModelScope.launch {
             localState.map { it.currentSong?.id }.distinctUntilChanged().collect {
@@ -807,7 +812,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             RoomSnapshot(
                 tracks = queue.map { it.toRoomTrack() },
                 positionMs = repository.currentPositionMs(),
-                isPlaying = localState.value.isPlaying
+                isPlaying = localState.value.isPlaying,
+                capturedAtMs = SystemClock.elapsedRealtime(),
+                speed = repository.playbackSpeed()
             )
         )
     }
@@ -898,12 +905,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     snapshot.roomToken?.let { token -> hostIp?.let { ip -> track.toRelaySong(ip, port, token) } }
                 }
         }
-        val positionMs = if (snapshot.isPlaying) {
-            snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
-        } else {
-            snapshot.positionMs
+        val hostNowMs = listeningRoomRepository.hostElapsedRealtimeMs()
+        // The host's position moves at its speed; older hosts don't send one, so 1× is assumed as before.
+        val hostSpeed = snapshot.speed ?: 1f
+        val elapsedMs = when {
+            !snapshot.isPlaying -> 0L
+            // With the host's clock known, the time on the network counts too, not just the time spent here.
+            hostNowMs != null && snapshot.capturedAtMs != null -> hostNowMs - snapshot.capturedAtMs
+            else -> SystemClock.elapsedRealtime() - receivedAtElapsedMs
         }
-        if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying)
+        val positionMs = snapshot.positionMs + (elapsedMs * hostSpeed).toLong()
+        if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying, snapshot.speed)
     }
 
     private fun isFollowingRoomHost(): Boolean = listeningRoom.value.role == ListeningRoomRole.GUEST

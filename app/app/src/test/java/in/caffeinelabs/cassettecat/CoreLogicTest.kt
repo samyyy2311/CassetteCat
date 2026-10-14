@@ -2,7 +2,9 @@ package `in`.caffeinelabs.cassettecat
 
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
+import `in`.caffeinelabs.cassettecat.data.listeningroom.HostClock
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
+import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUp
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
 import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
@@ -235,6 +237,31 @@ class CoreLogicTest {
         assertTrue(isNewer("1.4.0", "1.3.9"))
         assertFalse(isNewer("1.3.1", "1.3.1"))
         assertFalse(isNewer("1.3.0", "1.3.1"))
+    }
+
+    @Test
+    fun guestsTrustTheQuickestRecentPingForTheHostClock() {
+        val clock = HostClock()
+        assertNull(clock.offsetMs())
+        // Host 5000 ms ahead: a 40 ms round trip, then a slow 300 ms one sent while the network was busy.
+        clock.addSample(sentAtMs = 1_000, hostAtMs = 6_020, receivedAtMs = 1_040)
+        clock.addSample(sentAtMs = 2_000, hostAtMs = 7_250, receivedAtMs = 2_300)
+        assertEquals(5_000L, clock.offsetMs())
+        // The quick ping ages out once enough newer ones arrive.
+        repeat(8) { clock.addSample(sentAtMs = 10_000L + it, hostAtMs = 15_100L + it, receivedAtMs = 10_100L + it) }
+        assertEquals(5_050L, clock.offsetMs())
+    }
+
+    @Test
+    fun guestsCatchUpGentlyAndSeekOnlyWhenFarOutOrPaused() {
+        assertEquals(0f, roomCatchUp(15, playing = true)!!, 0f)
+        assertEquals(0.02f, roomCatchUp(-100, playing = true)!!, 1e-4f)
+        assertEquals(-0.02f, roomCatchUp(100, playing = true)!!, 1e-4f)
+        // The fastest catch-up still closes the largest gap it handles within ten seconds.
+        assertEquals(0.04f, roomCatchUp(-400, playing = true)!!, 1e-4f)
+        assertNull(roomCatchUp(-450, playing = true))
+        assertNull(roomCatchUp(100, playing = false))
+        assertEquals(0f, roomCatchUp(10, playing = false)!!, 0f)
     }
 
     @Test
