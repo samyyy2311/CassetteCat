@@ -959,7 +959,7 @@ private fun roomKey(value: String): String = value.trim().lowercase()
 
 private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int, roomToken: String): Song {
     val id = "listeningroom:${roomKey(title)}_${roomKey(artist)}_$durationMs"
-    val uri = "http://$hostIp:$audioPort/stream".toUri().buildUpon()
+    val uri = "https://$hostIp:$audioPort/stream".toUri().buildUpon()
         .appendQueryParameter("title", title)
         .appendQueryParameter("artist", artist)
         .appendQueryParameter("duration", durationMs.toString())
