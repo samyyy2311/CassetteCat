@@ -196,16 +196,12 @@ request, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used 
 
 ### Translations
 
-<p align="center">
-  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/android-app/multi-auto.svg" alt="How much of the Android app each language has translated" /></a>
-</p>
+[![Translation status](https://img.shields.io/weblate/progress/cassettecat?server=https%3A%2F%2Fhosted.weblate.org&style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Translated&logo=weblate&logoColor=2ECCAA)](https://hosted.weblate.org/engage/cassettecat/)
+[![Translate on Weblate](https://img.shields.io/badge/Translate_on_Weblate-2A2A2A?style=flat-square&logo=weblate&logoColor=2ECCAA)](https://hosted.weblate.org/engage/cassettecat/)
 
-Translate CassetteCat in your browser on [Weblate](https://hosted.weblate.org/engage/cassettecat/), with no coding
-needed: pick a language, or add yours, and Weblate sends your work here as a pull request. Anything not translated yet
-shows in English. See [TRANSLATING.md](TRANSLATING.md) for a few guidelines.
-
-The desktop app is English only for now; making it translatable is tracked in
-[CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56).
+Translate the app in your browser on Weblate, with no coding needed. Weblate sends your work here as a pull request,
+and anything not translated yet shows in English. See [TRANSLATING.md](TRANSLATING.md) for a few guidelines. The
+desktop app is English only for now ([CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56)).
 
 ---
 
@@ -213,12 +209,8 @@ The desktop app is English only for now; making it translatable is tracked in
 
 CassetteCat is free, with no ads and no tracking. If it's useful to you, you can support its development:
 
-<p align="center">
-  <a href="https://ko-fi.com/samyyy2311"><img src="https://img.shields.io/badge/Ko--fi-2A2A2A?style=flat-square&logo=kofi&logoColor=FF5E5B" alt="Support on Ko-fi" /></a>
-  <a href="https://buymeacoffee.com/samyyy2311"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-2A2A2A?style=flat-square&logo=buymeacoffee&logoColor=FFDD00" alt="Buy Me a Coffee" /></a>
-</p>
-
-Starring the repository, reporting bugs and translating help too.
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-2A2A2A?style=flat-square&logo=kofi&logoColor=FF5E5B)](https://ko-fi.com/samyyy2311)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-2A2A2A?style=flat-square&logo=buymeacoffee&logoColor=FFDD00)](https://buymeacoffee.com/samyyy2311)
 
 ---
 
