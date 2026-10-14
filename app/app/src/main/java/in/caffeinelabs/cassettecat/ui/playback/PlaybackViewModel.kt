@@ -813,7 +813,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 tracks = queue.map { it.toRoomTrack() },
                 positionMs = repository.currentPositionMs(),
                 isPlaying = localState.value.isPlaying,
-                capturedAtMs = SystemClock.elapsedRealtime()
+                capturedAtMs = SystemClock.elapsedRealtime(),
+                speed = repository.playbackSpeed()
             )
         )
     }
@@ -912,7 +913,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 snapshot.positionMs + (hostNowMs - snapshot.capturedAtMs)
             else -> snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
         }
-        if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying)
+        if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying, snapshot.speed)
     }
 
     private fun isFollowingRoomHost(): Boolean = listeningRoom.value.role == ListeningRoomRole.GUEST

@@ -208,10 +208,11 @@ class PlaybackRepository(private val context: Context) {
         }
     }
 
-    suspend fun applyRoomQueue(songs: List<Song>, positionMs: Long, isPlaying: Boolean) {
+    suspend fun applyRoomQueue(songs: List<Song>, positionMs: Long, isPlaying: Boolean, hostSpeed: Float?) {
         if (songs.isEmpty()) return
         val c = controller ?: return
         val sameQueue = currentQueue.map { it.id } == songs.map { it.id }
+        var catchUp = 1f
         if (!sameQueue) {
             currentQueue = songs
             originalQueue = songs
@@ -223,11 +224,12 @@ class PlaybackRepository(private val context: Context) {
             if (isPlaying) correctPositionOnceReady(c, positionMs, prepareStartedAtMs)
         } else {
             // Small gaps close with a slight speed change, since a seek is audible and puts the guest behind again.
-            val catchUp = if (isPlaying) roomCatchUpSpeed(c.currentPosition - positionMs) else 1f
-            if (catchUp == null) c.seekTo(positionMs.coerceAtLeast(0L))
-            c.playbackParameters =
-                androidx.media3.common.PlaybackParameters(currentSpeed * (catchUp ?: 1f), currentPitch)
+            val speed = roomCatchUpSpeed(c.currentPosition - positionMs, isPlaying)
+            if (speed == null) c.seekTo(positionMs.coerceAtLeast(0L)) else catchUp = speed
         }
+        // The host sets the pace, so the guest's own speed setting can't pull it out of step.
+        c.playbackParameters =
+            androidx.media3.common.PlaybackParameters((hostSpeed ?: currentSpeed) * catchUp, currentPitch)
         if (isPlaying) c.play() else c.pause()
         updateState()
     }
@@ -337,6 +339,8 @@ class PlaybackRepository(private val context: Context) {
     }
 
     fun endRoomCatchUp() = setPlaybackSpeed(currentSpeed)
+
+    fun playbackSpeed(): Float = currentSpeed
 
     fun setPlaybackPitch(pitch: Float) {
         currentPitch = pitch.coerceIn(0.7f, 1.3f)

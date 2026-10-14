@@ -53,9 +53,9 @@ private const val CLOCK_PING_INTERVAL_MS = 2_000L
 private const val CLOCK_SAMPLES = 8
 // Within this the guest plays at normal speed; beyond it a gentle speed change closes the gap.
 private const val IN_SYNC_MS = 20L
-// Further out than this a seek is quicker than catching up.
-private const val SEEK_DRIFT_MS = 1_000L
-private const val MAX_CATCH_UP = 0.03f
+// The fastest catch-up closes this within ten seconds; anything further out seeks.
+private const val SEEK_DRIFT_MS = 400L
+private const val MAX_CATCH_UP = 0.04f
 private const val CATCH_UP_WINDOW_MS = 5_000f
 internal const val MAX_LISTENING_ROOM_GUESTS = 8
 
@@ -78,8 +78,9 @@ data class RoomSnapshot(
     val isPlaying: Boolean,
     val audioPort: Int? = null,
     val roomToken: String? = null,
-    // The host's elapsedRealtime when positionMs was read; absent from older hosts.
-    val capturedAtMs: Long? = null
+    // The host's elapsedRealtime when positionMs was read, and its playback speed; absent from older hosts.
+    val capturedAtMs: Long? = null,
+    val speed: Float? = null
 )
 
 data class NearbyListeningRoom(
@@ -128,12 +129,13 @@ internal class HostClock {
 }
 
 /**
- * The speed that brings a guest [driftMs] ahead of the host (behind when negative) back in step over a few
- * seconds, or null when it is far enough out that it should seek instead.
+ * How much faster or slower than the host a guest [driftMs] ahead of it (behind when negative) plays to get back
+ * in step within ten seconds, or null when it should seek instead. A paused guest has nothing to catch up with,
+ * so it seeks.
  */
-internal fun roomCatchUpSpeed(driftMs: Long): Float? = when {
-    kotlin.math.abs(driftMs) > SEEK_DRIFT_MS -> null
+internal fun roomCatchUpSpeed(driftMs: Long, playing: Boolean): Float? = when {
     kotlin.math.abs(driftMs) <= IN_SYNC_MS -> 1f
+    !playing || kotlin.math.abs(driftMs) > SEEK_DRIFT_MS -> null
     else -> (1f - driftMs / CATCH_UP_WINDOW_MS).coerceIn(1f - MAX_CATCH_UP, 1f + MAX_CATCH_UP)
 }
 

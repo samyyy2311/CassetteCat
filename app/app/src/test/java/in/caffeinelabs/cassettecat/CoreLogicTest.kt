@@ -253,12 +253,15 @@ class CoreLogicTest {
     }
 
     @Test
-    fun guestsCatchUpGentlyAndSeekOnlyWhenFarOut() {
-        assertEquals(1f, roomCatchUpSpeed(15)!!, 0f)
-        assertEquals(1.02f, roomCatchUpSpeed(-100)!!, 1e-4f)
-        assertEquals(0.98f, roomCatchUpSpeed(100)!!, 1e-4f)
-        assertEquals(1.03f, roomCatchUpSpeed(-600)!!, 1e-4f)
-        assertNull(roomCatchUpSpeed(-1_500))
+    fun guestsCatchUpGentlyAndSeekOnlyWhenFarOutOrPaused() {
+        assertEquals(1f, roomCatchUpSpeed(15, playing = true)!!, 0f)
+        assertEquals(1.02f, roomCatchUpSpeed(-100, playing = true)!!, 1e-4f)
+        assertEquals(0.98f, roomCatchUpSpeed(100, playing = true)!!, 1e-4f)
+        // The fastest catch-up still closes the largest gap it handles within ten seconds.
+        assertEquals(1.04f, roomCatchUpSpeed(-400, playing = true)!!, 1e-4f)
+        assertNull(roomCatchUpSpeed(-450, playing = true))
+        assertNull(roomCatchUpSpeed(100, playing = false))
+        assertEquals(1f, roomCatchUpSpeed(10, playing = false)!!, 0f)
     }
 
     @Test
