@@ -109,6 +109,12 @@ private fun comparable(value: String): String = value.lowercase()
     .replace(Regex("\\s+"), " ")
     .trim()
 
+// "Currents (Deluxe)" extends "Currents" with more words, but "Lovely" doesn't extend "Love".
+private fun extends(longer: String, shorter: String): Boolean {
+    val (whole, start) = comparable(longer) to comparable(shorter)
+    return whole.startsWith(start) && whole.getOrNull(start.length)?.isLetterOrDigit() == false
+}
+
 /**
  * What [tags] would change in a song with these details. The year is only filled in when missing, since editions of
  * an album share a name but not their year, and an album named as MusicBrainz's plus an edition, such as "(Deluxe)",
@@ -119,9 +125,9 @@ internal fun tagChanges(title: String, artist: String, album: String, year: Int?
         to?.takeIf { comparable(from) != comparable(it) }?.let { TagChange(field, from, it) }
     return listOfNotNull(
         // A title that only gains words, such as " - Remix" or " (Live)", belongs to another version of the song.
-        change(TagField.TITLE, title, tags.title)?.takeUnless { title.isNotBlank() && comparable(it.to).startsWith(comparable(title)) },
+        change(TagField.TITLE, title, tags.title)?.takeUnless { title.isNotBlank() && extends(it.to, title) },
         change(TagField.ARTIST, artist, tags.artist),
-        change(TagField.ALBUM, album, tags.album)?.takeUnless { comparable(album).startsWith(comparable(it.to)) },
+        change(TagField.ALBUM, album, tags.album)?.takeUnless { extends(album, it.to) },
         if (year == null) change(TagField.YEAR, "", tags.year?.toString()) else null
     )
 }

@@ -45,7 +45,8 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
     val coroutineScope = rememberCoroutineScope()
     val state by repository.state.collectAsStateWithLifecycle()
     val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
-    val songs = (uiState as? LibraryUiState.Loaded)?.songs.orEmpty()
+    // Null until the library loads, so a check can't start on no songs and Apply can't drop fixes it can't find.
+    val songs = (uiState as? LibraryUiState.Loaded)?.songs
     val accepted = state.accepted.size
     val labels = mapOf(
         TagField.TITLE to stringResource(AppR.string.tag_editor_title),
@@ -91,9 +92,9 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
                         val action: Pair<Int, () -> Unit>? = when {
                             state.running -> AppR.string.fix_tags_stop to repository::stop
                             state.paused -> AppR.string.fix_tags_continue to repository::resume
-                            state.checkedBefore.isEmpty() -> AppR.string.fix_tags_start to { repository.checkLibrary(songs) }
+                            state.checkedBefore.isEmpty() -> songs?.let { loaded -> AppR.string.fix_tags_start to { repository.checkLibrary(loaded) } }
                             // Starting over drops unapplied fixes, so it's only offered once there are none.
-                            state.fixes.isEmpty() -> AppR.string.fix_tags_check_again to { repository.checkAllAgain(songs) }
+                            state.fixes.isEmpty() -> songs?.let { loaded -> AppR.string.fix_tags_check_again to { repository.checkAllAgain(loaded) } }
                             else -> null
                         }
                         action?.let { (label, onClick) ->
@@ -117,12 +118,14 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
                 item {
                     Button(
                         onClick = hapticClick {
-                            coroutineScope.launch {
-                                repository.apply(songs, overrides)
-                                libraryViewModel.refresh()
+                            songs?.let { loaded ->
+                                coroutineScope.launch {
+                                    repository.apply(loaded, overrides)
+                                    libraryViewModel.refresh()
+                                }
                             }
                         },
-                        enabled = accepted > 0,
+                        enabled = accepted > 0 && songs != null,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
                     ) {
                         Text(pluralStringResource(AppR.plurals.fix_tags_apply, accepted, accepted))

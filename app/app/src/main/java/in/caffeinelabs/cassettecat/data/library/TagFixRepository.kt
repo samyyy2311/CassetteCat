@@ -140,7 +140,8 @@ class TagFixRepository private constructor(context: Context) {
             if (answer == null) {
                 busyInARow += 1
                 if (busyInARow >= BUSY_LIMIT) {
-                    update { it.copy(running = false, problem = TagFixProblem.BUSY) }
+                    // Continue starts again from the first song refused in this run, so none of them is missed.
+                    update { it.copy(checked = it.checked - (busyInARow - 1), running = false, problem = TagFixProblem.BUSY) }
                     return
                 }
                 update { it.copy(checked = it.checked + 1) }

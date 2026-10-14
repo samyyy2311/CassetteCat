@@ -281,6 +281,11 @@ class CoreLogicTest {
         )
         // A remix of the same song isn't a correction of its title.
         assertEquals(emptyList<TagChange>(), tagChanges("Aa Jao", "Javed Ali", "", 2010, MusicBrainzTags("Aa Jao - Jhankar", "Javed Ali")))
+        // A longer word isn't a version suffix, so it's still a correction.
+        assertEquals(
+            listOf(TagChange(TagField.TITLE, "Love", "Lovely")),
+            tagChanges("Love", "Billie Eilish", "", 2018, MusicBrainzTags("Lovely", "Billie Eilish"))
+        )
     }
 
     @Test
