@@ -16,8 +16,12 @@ class ScrobbleManager(
     private val serviceSettingsRepository = ServiceSettingsRepository(context)
     private val listenBrainzClient = ListenBrainzClient()
 
-    private suspend fun recordAnswer(settings: ScrobbleSettings, problem: String?) {
-        if (problem != null && problem != settings.listenBrainz.problem) repository.setListenBrainzProblem(problem)
+    private suspend fun recordAnswer(token: String, savedListen: Boolean, problem: String?) {
+        val current = repository.settings.first().listenBrainz
+        // An answer about a token that has since been replaced says nothing about the current one, and playing-now
+        // is only kept for a moment, so only a saved listen shows the problem is gone.
+        if (problem == null || current.userToken != token || (problem.isEmpty() && !savedListen)) return
+        if (problem != current.problem) repository.setListenBrainzProblem(problem)
     }
 
     fun onTrackStarted(song: Song) {
@@ -27,7 +31,8 @@ class ScrobbleManager(
 
             val settings = repository.settings.first()
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
-                recordAnswer(settings, listenBrainzClient.submitNowPlaying(settings.listenBrainz.userToken, song))
+                val token = settings.listenBrainz.userToken
+                recordAnswer(token, savedListen = false, listenBrainzClient.submitNowPlaying(token, song))
             }
             ScrobbleAccount.entries.forEach { account ->
                 val config = settings.account(account)
@@ -46,7 +51,8 @@ class ScrobbleManager(
             val settings = repository.settings.first()
             val nowSec = System.currentTimeMillis() / 1000L
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
-                recordAnswer(settings, listenBrainzClient.submitListen(settings.listenBrainz.userToken, song, nowSec))
+                val token = settings.listenBrainz.userToken
+                recordAnswer(token, savedListen = true, listenBrainzClient.submitListen(token, song, nowSec))
             }
             ScrobbleAccount.entries.forEach { account ->
                 val config = settings.account(account)
