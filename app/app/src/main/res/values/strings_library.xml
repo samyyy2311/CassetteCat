@@ -139,7 +139,8 @@
     <string name="tag_editor_musicbrainz_filled">MusicBrainz filled in new details. Check them, then save.</string>
     <string name="tag_editor_musicbrainz_agrees">MusicBrainz agrees with these details.</string>
     <string name="tag_editor_musicbrainz_no_match">MusicBrainz has no confident match for this song.</string>
-    <string name="tag_editor_musicbrainz_unreachable">Couldn\'t reach MusicBrainz. Check that it\'s on in External Services.</string>
+    <string name="tag_editor_musicbrainz_unreachable">Couldn\'t reach MusicBrainz. Check your connection and try again.</string>
+    <string name="tag_editor_musicbrainz_off">MusicBrainz is turned off. Turn it on in External Services to use this.</string>
     <string name="tag_editor_heading">Edit Song Details</string>
     <string name="tag_editor_description">Custom overrides are saved locally for this track</string>
     <string name="tag_editor_description_batch">Only the fields you change are saved to each song</string>

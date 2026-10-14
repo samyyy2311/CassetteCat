@@ -216,6 +216,7 @@ fun SongTagEditorSheet(
                         onClick = {
                             lookingUp = true
                             musicBrainzNote = null
+                            val asked = listOf(title, artist, album, yearText)
                             coroutineScope.launch {
                                 val services = ServiceSettingsRepository(context).settings.first()
                                 // The fields as they are now, so a corrected title or artist finds the right song.
@@ -227,10 +228,13 @@ fun SongTagEditorSheet(
                                 lookingUp = false
                                 val tags = found?.getOrNull()
                                 musicBrainzNote = when {
-                                    found == null || found.isFailure -> AppR.string.tag_editor_musicbrainz_unreachable
+                                    found == null -> AppR.string.tag_editor_musicbrainz_off
+                                    found.isFailure -> AppR.string.tag_editor_musicbrainz_unreachable
                                     tags == null -> AppR.string.tag_editor_musicbrainz_no_match
+                                    // Edits made while MusicBrainz answered are newer than its answer, so they stay.
+                                    listOf(title, artist, album, yearText) != asked -> null
                                     else -> {
-                                        val before = listOf(title, artist, album, yearText)
+                                        val before = asked
                                         title = tags.title
                                         artist = tags.artist
                                         tags.album?.let { album = it }
