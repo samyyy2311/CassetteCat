@@ -10,6 +10,7 @@ All workflows are in `.github/workflows/`. Every action is pinned to a commit, w
 | `codeql.yml` | Changes to `app/`, and weekly | CodeQL security scanning of the Kotlin code. |
 | `dependency-review.yml` | Pull requests | Fails if a pull request adds a dependency with a known vulnerability. |
 | `workflow-lint.yml` | When workflow files change | Checks workflows with actionlint. |
+| `labeler.yml` | Pull requests | Labels pull requests by the files they change, using `.github/labeler.yml`. |
 | `scorecard.yml` | Weekly | OpenSSF Scorecard check of the repository's security practices. |
 | `nightly.yml` | Daily | Builds an APK from `main` and publishes it as the `nightly` pre-release. Skipped when `main` hasn't changed. |
 | `release.yml` | By hand | Builds, signs and publishes a release. See below. |

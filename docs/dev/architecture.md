@@ -51,6 +51,7 @@ The service is the only owner of the player. UI code never talks to ExoPlayer di
 - **`LibraryViewModel`** queries every enabled source at once and merges the results into one list of `Song`s. `MusicSource` on each `Song` says where it came from: `Local`, `Subsonic`, `Jellyfin`, `Radio`, `ListeningRoomHost` or `Desktop`.
 - **`PlaylistRepository`**, **`FavoritesRepository`** and **`SongMetadataOverridesRepository`** store playlists, likes and user edits to song details. Edits are overrides kept in the app; audio files are never rewritten.
 - **`M3uPlaylistFile`** parses and writes `.m3u`/`.m3u8` playlists.
+- **`MusicBrainzTags`** looks a song up on MusicBrainz and works out which of its details would change. **`TagFixRepository`** runs Fix Tags: it checks a list of songs one at a time, as fast as MusicBrainz's rate limit allows, keeps its progress and results in `tag_fixes.json`, and saves accepted fixes as the same overrides the tag editor makes.
 
 ## Other data packages
 
@@ -60,7 +61,7 @@ The service is the only owner of the player. UI code never talks to ExoPlayer di
 | `data/download` | Offline downloads: `SongDownloadService` (a Media3 download service), `DownloadCache` and download settings. |
 | `data/radio` | `RadioBrowserApiClient`, radio favourites and history. |
 | `data/stats` | `ListeningStatsRepository`: listens, Listening Record and milestones. |
-| `data/scrobble` | ListenBrainz and Libre.fm clients and `ScrobbleManager`. |
+| `data/scrobble` | ListenBrainz, Last.fm and Libre.fm clients (`ListenBrainzClient`, `AudioscrobblerClient`) and `ScrobbleManager`. Last.fm is only in builds made with its API key and secret (`LASTFM_API_KEY` and `LASTFM_API_SECRET`), which release builds get from CI. |
 | `data/backup` | `BackupBundle` (the backup file format) and `BackupRepository`. |
 | `data/listeningroom` | Listening Room hosting and joining (`LocalListeningRoomRepository`) and the host's audio relay (`RoomAudioServer`). |
 | `data/device` | CassetteCat Desktop: `DesktopDiscovery`, `DesktopRemoteRepository`, `DeviceControlApiClient`, `DesktopRouteProvider` and `DesktopSessionPlayer`. Also the shake, flip and wave gesture detectors, and the client code for the planned hardware player. |
@@ -75,10 +76,10 @@ The service is the only owner of the player. UI code never talks to ExoPlayer di
 
 ## CassetteCat Desktop
 
-The desktop runs an HTTP server and the phone is the client. [desktop-remote-protocol.md](desktop-remote-protocol.md) lists every request.
+The desktop runs an HTTPS server and the phone is the client. The [Desktop Remote protocol](desktop-remote-protocol.md) lists every request.
 
 - `DesktopDiscovery` finds computers with a UDP broadcast.
-- `DesktopRemoteRepository` handles pairing, polling, likes and playlist sync, listening history and the daily backup.
+- `DesktopRemoteRepository` handles pairing, polling, likes and playlist sync, listening history and the daily backup. Disconnect keeps the pairing but stops the phone controlling the computer or reporting to it, until the computer is picked again.
 - `DesktopSessionPlayer` is a Media3 `SimpleBasePlayer` that represents the computer. While the phone controls the desktop, the media session, notification and lock screen drive this player instead of ExoPlayer.
 - `DesktopRouteProvider` publishes the computer as a route in Android's output switcher.
 
