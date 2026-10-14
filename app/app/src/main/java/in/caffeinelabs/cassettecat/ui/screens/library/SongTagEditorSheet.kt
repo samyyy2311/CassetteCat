@@ -49,6 +49,8 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverride
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
+import `in`.caffeinelabs.cassettecat.data.library.TagEdits
+import `in`.caffeinelabs.cassettecat.data.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.data.library.findMusicBrainzTags
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
@@ -57,43 +59,6 @@ import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
-/** Changed fields from the editor; null (or yearEdited = false) leaves that field as it was. */
-internal data class TagEdits(
-    val title: String? = null,
-    val artist: String? = null,
-    val album: String? = null,
-    val genres: List<String>? = null,
-    val yearEdited: Boolean = false,
-    val year: Int? = null
-)
-
-internal fun applyTagEdits(song: Song, existing: SongMetadataOverride?, edits: TagEdits): Pair<SongMetadataOverride, Song> {
-    val updated = song.copy(
-        title = edits.title?.trim()?.ifBlank { null } ?: song.title,
-        artist = edits.artist?.trim()?.ifBlank { null } ?: song.artist,
-        album = edits.album?.trim()?.ifBlank { null } ?: song.album,
-        genres = edits.genres ?: song.genres,
-        releaseYear = if (edits.yearEdited) edits.year else song.releaseYear
-    )
-    // Only edited fields are overridden, so a later rescan still shows changes to the rest of the file's tags.
-    val override = SongMetadataOverride(
-        songId = song.id,
-        title = edits.title?.let { updated.title } ?: existing?.title,
-        artist = edits.artist?.let { updated.artist } ?: existing?.artist,
-        album = edits.album?.let { updated.album } ?: existing?.album,
-        releaseYear = if (edits.yearEdited) updated.releaseYear else existing?.releaseYear,
-        releaseYearSet = edits.yearEdited || existing?.releaseYearSet == true,
-        genres = edits.genres ?: existing?.genres,
-        originalTitle = existing?.originalTitle ?: song.title,
-        originalArtist = existing?.originalArtist ?: song.artist,
-        originalAlbum = existing?.originalAlbum ?: song.album,
-        // A song with no year keeps "no year" as its original.
-        originalReleaseYear = if (existing != null) existing.originalReleaseYear else song.releaseYear,
-        originalGenres = existing?.originalGenres ?: song.genres
-    )
-    return override to updated
-}
 
 @Composable
 fun SongTagEditorSheet(

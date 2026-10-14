@@ -3,7 +3,12 @@ package `in`.caffeinelabs.cassettecat
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
 import `in`.caffeinelabs.cassettecat.data.library.MusicBrainzTags
+import `in`.caffeinelabs.cassettecat.data.library.TagChange
+import `in`.caffeinelabs.cassettecat.data.library.TagEdits
+import `in`.caffeinelabs.cassettecat.data.library.TagField
+import `in`.caffeinelabs.cassettecat.data.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.data.library.musicBrainzTagsFrom
+import `in`.caffeinelabs.cassettecat.data.library.tagChanges
 import `in`.caffeinelabs.cassettecat.data.listeningroom.HostClock
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUp
@@ -32,8 +37,6 @@ import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.countsAsPlay
 import `in`.caffeinelabs.cassettecat.ui.playback.countsAsScrobble
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
-import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
-import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
@@ -265,6 +268,17 @@ class CoreLogicTest {
         assertEquals(1999, musicBrainzTagsFrom(search, durationMs = 200_000, album = "first album")?.year)
         // With only a live release to go on, the album is left alone.
         assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, durationMs = 240_000, album = ""))
+    }
+
+    @Test
+    fun fixTagsListsOnlyChangesThatMatter() {
+        // Curly quotes, case and an edition suffix aren't changes, and a year that's already there is left alone.
+        val tags = MusicBrainzTags("\u2019Cause I\u2019m a Man", "tame impala", "Currents", 2015)
+        assertEquals(emptyList<TagChange>(), tagChanges("'Cause I'm a Man", "Tame Impala", "Currents (Deluxe)", 2020, tags))
+        assertEquals(
+            listOf(TagChange(TagField.TITLE, "A-Team", "The A Team"), TagChange(TagField.YEAR, "", "2011")),
+            tagChanges("A-Team", "Ed Sheeran", "+", null, MusicBrainzTags("The A Team", "Ed Sheeran", "+", 2011))
+        )
     }
 
     @Test

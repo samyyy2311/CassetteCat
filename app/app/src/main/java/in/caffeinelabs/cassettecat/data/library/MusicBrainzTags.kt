@@ -92,3 +92,33 @@ suspend fun findMusicBrainzTags(title: String, artist: String, album: String, du
         }
         musicBrainzTagsFrom(body, durationMs, album)
     }
+
+/** A song detail a MusicBrainz match would change. */
+@Serializable
+data class TagChange(val field: TagField, val from: String, val to: String)
+
+enum class TagField { TITLE, ARTIST, ALBUM, YEAR }
+
+// Spelling that differs only in case, quote or dash style, or spacing reads the same, so it isn't a change.
+private fun comparable(value: String): String = value.lowercase()
+    .replace(Regex("[\u2018\u2019\u02bc`\u00b4]"), "'")
+    .replace(Regex("[\u201c\u201d]"), "\"")
+    .replace(Regex("[\u2010-\u2015]"), "-")
+    .replace(Regex("\\s+"), " ")
+    .trim()
+
+/**
+ * What [tags] would change in a song with these details. The year is only filled in when missing, since editions of
+ * an album share a name but not their year, and an album named as MusicBrainz's plus an edition, such as "(Deluxe)",
+ * is kept.
+ */
+internal fun tagChanges(title: String, artist: String, album: String, year: Int?, tags: MusicBrainzTags): List<TagChange> {
+    fun change(field: TagField, from: String, to: String?): TagChange? =
+        to?.takeIf { comparable(from) != comparable(it) }?.let { TagChange(field, from, it) }
+    return listOfNotNull(
+        change(TagField.TITLE, title, tags.title),
+        change(TagField.ARTIST, artist, tags.artist),
+        change(TagField.ALBUM, album, tags.album)?.takeUnless { comparable(album).startsWith(comparable(it.to)) },
+        if (year == null) change(TagField.YEAR, "", tags.year?.toString()) else null
+    )
+}
