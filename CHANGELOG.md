@@ -2,6 +2,16 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.9.0]
+
+* Fix Tags checks your whole library with MusicBrainz in the background and lists the titles, artists, albums and years it would correct. Nothing changes until you review the list and tap Apply, and Revert to Original Tags still undoes it.
+* Fill from MusicBrainz in the tag editor looks up one song and fills in its details for you to check before saving.
+* Disconnect from the computer, so the phone and the computer each play their own music. They stay paired, and picking the computer again connects them.
+* Listening Room guests stay in step with the host, even when the host changes playback speed.
+* Scrobbling settings say why ListenBrainz refused your listens, such as an email address that isn't verified yet.
+* Storage has moved out of Customization into the main Settings list.
+* In External Services, Cover Art Archive is now called MusicBrainz, since it also looks up song details.
+
 ## [1.8.0]
 
 * Browse your computer's music from the phone and play it there or stream it here.
