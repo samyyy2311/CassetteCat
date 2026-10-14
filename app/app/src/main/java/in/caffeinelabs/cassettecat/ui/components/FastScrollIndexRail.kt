@@ -33,10 +33,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.RecordRed
 import `in`.caffeinelabs.cassettecat.ui.theme.Silver
@@ -88,7 +91,7 @@ fun <T> FastScrollIndexRail(
     onScrollToIndex: (Int) -> Unit,
     modifier: Modifier = Modifier,
     bottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
-    itemNoun: String = "item",
+    countLabel: Int,
     firstVisibleIndex: Int = -1
 ) {
     if (items.size < 15) return
@@ -222,7 +225,7 @@ fun <T> FastScrollIndexRail(
                             color = if (count > 0) RecordRed else TextSecondary
                         )
                         Text(
-                            text = if (count > 0) "$count ${if (count == 1) itemNoun else "${itemNoun}s"}" else "none",
+                            text = if (count > 0) pluralStringResource(countLabel, count, count) else stringResource(R.string.fast_scroll_none),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = IbmPlexMonoFontFamily,
                                 fontSize = 10.sp

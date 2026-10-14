@@ -297,7 +297,7 @@ fun PlaylistDetailScreen(
                     showActionsSheet = false
                     val appContext = context.applicationContext
                     desktop.sendPlaylist(playlist.name, sortedSongs) { result ->
-                        val message = result?.let { appContext.getString(AppR.string.toast_playlist_sent, it.matched, it.total) }
+                        val message = result?.let { appContext.resources.getQuantityString(AppR.plurals.toast_playlist_sent, it.total, it.matched, it.total) }
                             ?: appContext.getString(AppR.string.toast_computer_unreachable)
                         Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
                     }
@@ -316,8 +316,7 @@ fun PlaylistDetailScreen(
             title = { Text(stringResource(AppR.string.playlist_export_skipped_title)) },
             text = {
                 Text(
-                    if (skipped == 1) stringResource(AppR.string.playlist_export_skipped_one)
-                    else stringResource(AppR.string.playlist_export_skipped_many, skipped)
+                    pluralStringResource(AppR.plurals.playlist_export_skipped, skipped, skipped)
                 )
             },
             confirmButton = {
