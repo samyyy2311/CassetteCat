@@ -16,7 +16,8 @@ import okhttp3.Request
 
 private const val MAX_CACHE_BYTES = 36 * 1024 * 1024
 
-private object MusicBrainzRateLimiter {
+// Shared by every MusicBrainz lookup, since MusicBrainz allows about one request a second.
+internal object MusicBrainzRateLimiter {
     private const val MIN_INTERVAL_MS = 1100L
     private val mutex = Mutex()
     private var lastRequestAtMs = 0L

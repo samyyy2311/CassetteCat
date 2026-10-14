@@ -62,6 +62,7 @@ private val DESKTOP_ADDRESS = stringPreferencesKey("address")
 private val DESKTOP_NAME = stringPreferencesKey("name")
 // Whether this phone is controlling the desktop, as when a device is picked in Spotify Connect.
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
+private val DESKTOP_DISCONNECTED = booleanPreferencesKey("disconnected")
 private val DESKTOP_CERTIFICATE = stringPreferencesKey("certificate")
 private val DESKTOP_LAST_BACKUP = longPreferencesKey("last_backup_at")
 private val DESKTOP_AGREED_LIKES = stringSetPreferencesKey("agreed_likes")
@@ -133,6 +134,8 @@ data class DesktopRemoteState(
     val address: DesktopAddress? = null,
     val name: String? = null,
     val active: Boolean = false,
+    // Still paired, but neither device sees or controls the other, so each plays its own music.
+    val disconnected: Boolean = false,
     val offlineBlackout: Boolean = false,
     val lastBackupAtMs: Long? = null
 ) {
@@ -171,6 +174,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
             address = prefs[DESKTOP_ADDRESS]?.let(::parseDesktopAddress),
             name = prefs[DESKTOP_NAME],
             active = prefs[DESKTOP_ACTIVE] ?: false,
+            disconnected = prefs[DESKTOP_DISCONNECTED] ?: false,
             offlineBlackout = services.offlineBlackoutMode,
             lastBackupAtMs = prefs[DESKTOP_LAST_BACKUP]
         )
@@ -262,6 +266,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
         scope.launch {
             status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) requestTransfer(toDesktop = false) }
+        }
+        scope.launch {
+            status.filterNotNull().collect { if (it.disconnectRequested && !state.value.disconnected) disconnect() }
         }
         // The computer's Sync button reaches a phone that is controlling it through its status.
         scope.launch {
@@ -444,7 +451,24 @@ class DesktopRemoteRepository private constructor(context: Context) {
     }
 
     fun setControlling(controlling: Boolean) {
-        scope.launch { dataStore.edit { it[DESKTOP_ACTIVE] = controlling } }
+        scope.launch {
+            dataStore.edit {
+                it[DESKTOP_ACTIVE] = controlling
+                it.remove(DESKTOP_DISCONNECTED)
+            }
+        }
+    }
+
+    fun disconnect() {
+        val desktop = connectedDesktop()
+        scope.launch {
+            dataStore.edit {
+                it[DESKTOP_ACTIVE] = false
+                it[DESKTOP_DISCONNECTED] = true
+            }
+            // A check-in without a song takes this phone off the computer at once, instead of after its timeout.
+            if (desktop != null) apiClient.checkIn(desktop.host, desktop.port, desktop.code, PhoneCheckIn("", "", isPlaying = false))
+        }
     }
 
     fun forget() {

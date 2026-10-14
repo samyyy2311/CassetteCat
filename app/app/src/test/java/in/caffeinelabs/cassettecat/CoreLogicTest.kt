@@ -2,6 +2,13 @@ package `in`.caffeinelabs.cassettecat
 
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
+import `in`.caffeinelabs.cassettecat.data.library.MusicBrainzTags
+import `in`.caffeinelabs.cassettecat.data.library.TagChange
+import `in`.caffeinelabs.cassettecat.data.library.TagEdits
+import `in`.caffeinelabs.cassettecat.data.library.TagField
+import `in`.caffeinelabs.cassettecat.data.library.applyTagEdits
+import `in`.caffeinelabs.cassettecat.data.library.musicBrainzTagsFrom
+import `in`.caffeinelabs.cassettecat.data.library.tagChanges
 import `in`.caffeinelabs.cassettecat.data.listeningroom.HostClock
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
 import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUp
@@ -30,8 +37,6 @@ import `in`.caffeinelabs.cassettecat.ui.theme.normalizeArtworkAccent
 import `in`.caffeinelabs.cassettecat.ui.playback.countsAsPlay
 import `in`.caffeinelabs.cassettecat.ui.playback.countsAsScrobble
 import `in`.caffeinelabs.cassettecat.ui.playback.instantMixAffinity
-import `in`.caffeinelabs.cassettecat.ui.screens.library.TagEdits
-import `in`.caffeinelabs.cassettecat.ui.screens.library.applyTagEdits
 import `in`.caffeinelabs.cassettecat.ui.screens.library.isExtendedCut
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.isSeekablePlayback
 import `in`.caffeinelabs.cassettecat.data.device.DesktopAddress
@@ -240,6 +245,50 @@ class CoreLogicTest {
     }
 
     @Test
+    fun musicBrainzMatchesTheLengthAndPrefersTheOriginalAlbum() {
+        // A 3:20 song: the 4:00 live recording is skipped, and the original 1999 album beats a later compilation.
+        val search = """{"recordings": [
+            {"score": 100, "title": "Song (Live)", "length": 240000, "artist-credit": [{"name": "Band"}],
+             "releases": [{"title": "Live", "status": "Official"}]},
+            {"score": 98, "title": "Song", "length": 201000,
+             "artist-credit": [{"name": "Band", "joinphrase": " feat. "}, {"name": "Singer"}],
+             "releases": [
+                {"title": "Greatest Hits", "status": "Official", "date": "2005",
+                 "release-group": {"primary-type": "Album", "secondary-types": ["Compilation"]}},
+                {"title": "First Album", "status": "Official", "date": "2020", "release-group": {"primary-type": "Album"}},
+                {"title": "First Album", "status": "Official", "date": "1999-03-01",
+                 "release-group": {"primary-type": "Album"}}]}]}"""
+        assertEquals(
+            MusicBrainzTags("Song", "Band feat. Singer", "First Album", 1999),
+            musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "")
+        )
+        assertEquals("Greatest Hits", musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "greatest hits")?.album)
+        assertNull(musicBrainzTagsFrom(search, title = "Song", durationMs = 150_000, album = ""))
+        // A song already naming the album still gets the original's year, not a reissue's.
+        assertEquals(1999, musicBrainzTagsFrom(search, title = "Song", durationMs = 200_000, album = "first album")?.year)
+        // With only a live release to go on, the album is left alone.
+        assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, title = "Song", durationMs = 240_000, album = ""))
+    }
+
+    @Test
+    fun fixTagsListsOnlyChangesThatMatter() {
+        // Curly quotes, case and an edition suffix aren't changes, and a year that's already there is left alone.
+        val tags = MusicBrainzTags("\u2019Cause I\u2019m a Man", "tame impala", "Currents", 2015)
+        assertEquals(emptyList<TagChange>(), tagChanges("'Cause I'm a Man", "Tame Impala", "Currents (Deluxe)", 2020, tags))
+        assertEquals(
+            listOf(TagChange(TagField.TITLE, "A-Team", "The A Team"), TagChange(TagField.YEAR, "", "2011")),
+            tagChanges("A-Team", "Ed Sheeran", "+", null, MusicBrainzTags("The A Team", "Ed Sheeran", "+", 2011))
+        )
+        // A remix of the same song isn't a correction of its title.
+        assertEquals(emptyList<TagChange>(), tagChanges("Aa Jao", "Javed Ali", "", 2010, MusicBrainzTags("Aa Jao - Jhankar", "Javed Ali")))
+        // A longer word isn't a version suffix, so it's still a correction.
+        assertEquals(
+            listOf(TagChange(TagField.TITLE, "Love", "Lovely")),
+            tagChanges("Love", "Billie Eilish", "", 2018, MusicBrainzTags("Lovely", "Billie Eilish"))
+        )
+    }
+
+    @Test
     fun guestsTrustTheQuickestRecentPingForTheHostClock() {
         val clock = HostClock()
         assertNull(clock.offsetMs())
@@ -328,24 +377,16 @@ class CoreLogicTest {
     }
 
     @Test
-    fun tracksSessionSkipsWithCooldownAndCompletion() {
+    fun tracksSessionSkipsWithCooldown() {
         var simulatedTime = 10_000L
         val tracker = SessionSkipTracker(clock = { simulatedTime }, cooldownMs = 30_000L)
 
         tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
-        assertTrue(tracker.isSkipped("song-skip"))
+        tracker.recordSkip("song-normal", elapsedMs = 60_000L, durationMs = 180_000L)
         assertEquals(setOf("song-skip"), tracker.skippedSongIds())
 
-        tracker.recordSkip("song-normal", elapsedMs = 60_000L, durationMs = 180_000L)
-        assertFalse(tracker.isSkipped("song-normal"))
-
-        tracker.recordCompletion("song-skip")
-        assertFalse(tracker.isSkipped("song-skip"))
-
-        tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
-        assertTrue(tracker.isSkipped("song-skip"))
         simulatedTime += 35_000L
-        assertFalse(tracker.isSkipped("song-skip"))
+        assertEquals(emptySet<String>(), tracker.skippedSongIds())
     }
 
     @Test

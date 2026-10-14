@@ -119,6 +119,7 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceStorageScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DeviceSyncScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DownloadsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.DuplicatesScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.FixTagsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.EqualizerScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ExternalServicesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.ManageScanFoldersScreen
@@ -187,6 +188,7 @@ object MainRoute {
     const val BACKUP_RESTORE = "main/settings/backup_restore"
     const val DOWNLOADS = "main/settings/downloads"
     const val DUPLICATES = "main/settings/duplicates"
+    const val FIX_TAGS = "main/settings/fix_tags"
     const val SLEEP_TIMER = "main/settings/sleep_timer"
     const val PRIVACY = "main/settings/privacy"
     const val COMPANION_DEVICE = "main/settings/companion"
@@ -725,6 +727,7 @@ fun MainShell(
                             onNavigateToEqualizer = { navController.navigate(MainRoute.EQUALIZER) },
                             onNavigateToBackupRestore = { navController.navigate(MainRoute.BACKUP_RESTORE) },
                             onNavigateToDownloads = { navController.navigate(MainRoute.DOWNLOADS) },
+                            onNavigateToStorage = { navController.navigate(CustomizationRoute.STORAGE) },
                             onNavigateToSleepTimer = { navController.navigate(MainRoute.SLEEP_TIMER) },
                             onNavigateToPrivacy = { navController.navigate(MainRoute.PRIVACY) },
                             onNavigateToCustomization = { navController.navigate(MainRoute.CUSTOMIZATION) },
@@ -792,6 +795,7 @@ fun MainShell(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             onOpenDuplicates = { navController.navigate(MainRoute.DUPLICATES) },
+                            onOpenFixTags = { navController.navigate(MainRoute.FIX_TAGS) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -897,6 +901,13 @@ fun MainShell(
                     }
                     composable(MainRoute.BACKUP_RESTORE) {
                         BackupRestoreScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(MainRoute.FIX_TAGS) {
+                        FixTagsScreen(
+                            libraryViewModel = libraryViewModel,
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
                     }
                     composable(MainRoute.DUPLICATES) {
                         DuplicatesScreen(

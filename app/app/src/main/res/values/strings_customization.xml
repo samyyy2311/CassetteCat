@@ -11,7 +11,7 @@
     <string name="customization_lyrics">Lyrics</string>
     <string name="customization_lyrics_summary">%1$s size · %2$s</string>
     <string name="customization_storage">Storage &amp; Cache</string>
-    <string name="customization_storage_summary">Manage offline downloads and local library filtering</string>
+    <string name="customization_storage_summary">Downloads, library filtering, fixing tags and duplicates</string>
     <string name="customization_home_feed">Home Feed</string>
     <string name="customization_home_summary">%1$d of 4 sections shown</string>
     <string name="customization_on">on</string>

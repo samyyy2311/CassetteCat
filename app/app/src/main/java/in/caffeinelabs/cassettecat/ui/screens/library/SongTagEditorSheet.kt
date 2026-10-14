@@ -49,47 +49,16 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverride
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
+import `in`.caffeinelabs.cassettecat.data.library.TagEdits
+import `in`.caffeinelabs.cassettecat.data.library.applyTagEdits
+import `in`.caffeinelabs.cassettecat.data.library.findMusicBrainzTags
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
+import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
-/** Changed fields from the editor; null (or yearEdited = false) leaves that field as it was. */
-internal data class TagEdits(
-    val title: String? = null,
-    val artist: String? = null,
-    val album: String? = null,
-    val genres: List<String>? = null,
-    val yearEdited: Boolean = false,
-    val year: Int? = null
-)
-
-internal fun applyTagEdits(song: Song, existing: SongMetadataOverride?, edits: TagEdits): Pair<SongMetadataOverride, Song> {
-    val updated = song.copy(
-        title = edits.title?.trim()?.ifBlank { null } ?: song.title,
-        artist = edits.artist?.trim()?.ifBlank { null } ?: song.artist,
-        album = edits.album?.trim()?.ifBlank { null } ?: song.album,
-        genres = edits.genres ?: song.genres,
-        releaseYear = if (edits.yearEdited) edits.year else song.releaseYear
-    )
-    // Only edited fields are overridden, so a later rescan still shows changes to the rest of the file's tags.
-    val override = SongMetadataOverride(
-        songId = song.id,
-        title = edits.title?.let { updated.title } ?: existing?.title,
-        artist = edits.artist?.let { updated.artist } ?: existing?.artist,
-        album = edits.album?.let { updated.album } ?: existing?.album,
-        releaseYear = if (edits.yearEdited) updated.releaseYear else existing?.releaseYear,
-        releaseYearSet = edits.yearEdited || existing?.releaseYearSet == true,
-        genres = edits.genres ?: existing?.genres,
-        originalTitle = existing?.originalTitle ?: song.title,
-        originalArtist = existing?.originalArtist ?: song.artist,
-        originalAlbum = existing?.originalAlbum ?: song.album,
-        // A song with no year keeps "no year" as its original.
-        originalReleaseYear = if (existing != null) existing.originalReleaseYear else song.releaseYear,
-        originalGenres = existing?.originalGenres ?: song.genres
-    )
-    return override to updated
-}
 
 @Composable
 fun SongTagEditorSheet(
@@ -124,6 +93,8 @@ fun SongTagEditorSheet(
         genreText != (initialGenres ?: "") ||
         yearText != (initialYear ?: "")
     val overriddenSongs = songs.filter { repository.hasOverride(it.id) }
+    var lookingUp by remember(songIds) { mutableStateOf(false) }
+    var musicBrainzNote by remember(songIds) { mutableStateOf<Int?>(null) }
     val mixed = stringResource(AppR.string.tag_editor_mixed)
 
     FullOpenBottomSheet(onDismiss = onDismiss) {
@@ -229,7 +200,72 @@ fun SongTagEditorSheet(
                     keyboardType = KeyboardType.Number
                 )
 
+                musicBrainzNote?.let { note ->
+                    Text(
+                        text = stringResource(note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+
                 Spacer(Modifier.height(24.dp))
+
+                if (!batch) {
+                    OutlinedButton(
+                        onClick = {
+                            lookingUp = true
+                            musicBrainzNote = null
+                            val asked = listOf(title, artist, album, yearText)
+                            coroutineScope.launch {
+                                val services = ServiceSettingsRepository(context).settings.first()
+                                // The fields as they are now, so a corrected title or artist finds the right song.
+                                val found = if (services.isEnabled(ExternalService.COVER_ART_ARCHIVE)) {
+                                    runCatching { findMusicBrainzTags(title, artist, album, songs.first().durationMs) }
+                                } else {
+                                    null
+                                }
+                                lookingUp = false
+                                val tags = found?.getOrNull()
+                                musicBrainzNote = when {
+                                    found == null -> AppR.string.tag_editor_musicbrainz_off
+                                    found.isFailure -> AppR.string.tag_editor_musicbrainz_unreachable
+                                    tags == null -> AppR.string.tag_editor_musicbrainz_no_match
+                                    // Edits made while MusicBrainz answered are newer than its answer, so they stay.
+                                    listOf(title, artist, album, yearText) != asked -> null
+                                    else -> {
+                                        val before = asked
+                                        title = tags.title
+                                        artist = tags.artist
+                                        tags.album?.let { album = it }
+                                        tags.year?.let { yearText = it.toString() }
+                                        if (listOf(title, artist, album, yearText) == before) {
+                                            AppR.string.tag_editor_musicbrainz_agrees
+                                        } else {
+                                            AppR.string.tag_editor_musicbrainz_filled
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !lookingUp,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.lucide_ic_search),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(
+                                if (lookingUp) AppR.string.tag_editor_looking_up else AppR.string.tag_editor_fill_musicbrainz
+                            )
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
 
                 if (overriddenSongs.isNotEmpty()) {
                     OutlinedButton(

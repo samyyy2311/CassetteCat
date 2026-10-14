@@ -29,11 +29,6 @@ class AlbumArtLoader(private val context: Context) {
 
     fun peek(song: Song, thumbnail: Boolean = true): Bitmap? = cacheFor(thumbnail).get(song.id)
 
-    fun invalidate(songId: String) {
-        thumbnailCache.remove(songId)
-        fullCache.remove(songId)
-    }
-
     fun clearCache() {
         thumbnailCache.evictAll()
         fullCache.evictAll()

@@ -69,14 +69,14 @@
     <string name="settings_service_deezer" translatable="false">Deezer</string>
     <string name="settings_service_audiodb" translatable="false">TheAudioDB</string>
     <string name="settings_service_lrclib" translatable="false">LrcLib</string>
-    <string name="settings_service_cover_art_archive" translatable="false">Cover Art Archive</string>
+    <string name="settings_service_cover_art_archive" translatable="false">MusicBrainz</string>
     <string name="settings_service_wikipedia" translatable="false">Wikipedia</string>
     <string name="settings_service_github" translatable="false">GitHub</string>
     <string name="settings_service_radio_browser" translatable="false">Radio Browser</string>
     <string name="settings_service_deezer_description">Artist images and album artwork</string>
     <string name="settings_service_audiodb_description">Fallback for artist images</string>
     <string name="settings_service_lrclib_description">Synced lyrics when a track has none embedded</string>
-    <string name="settings_service_cover_art_archive_description">Archival CD and vinyl artwork from MusicBrainz</string>
+    <string name="settings_service_cover_art_archive_description">Song details and album covers from MusicBrainz and the Cover Art Archive</string>
     <string name="settings_service_wikipedia_description">About descriptions for artists and albums</string>
     <string name="settings_service_github_description">Check for newer app releases</string>
     <string name="settings_service_radio_browser_description">Search and browse internet radio stations</string>

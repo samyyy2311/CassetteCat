@@ -238,7 +238,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         // While this phone plays and a computer is paired, the computer sees it and can send it commands.
         viewModelScope.launch {
             combine(desktop.state, localState) { state, local ->
-                local.currentSong?.takeIf { state.address != null && !state.controlling && !state.offlineBlackout && !it.isFromAnotherDevice }
+                local.currentSong?.takeIf { state.address != null && !state.controlling && !state.disconnected && !state.offlineBlackout && !it.isFromAnotherDevice }
                     ?.let { it to local.isPlaying }
             }.distinctUntilChanged().collectLatest { playing ->
                 val (song, isPlaying) = playing ?: return@collectLatest
@@ -600,6 +600,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             "next" -> repository.skipNext()
             "previous" -> repository.skipPrevious()
             "handoff" -> desktop.requestTransfer(toDesktop = true)
+            "disconnect" -> desktop.disconnect()
             "sync" -> viewModelScope.launch { desktop.syncWithDesktop() }
             else -> when {
                 command.startsWith("seek:") -> command.removePrefix("seek:").toLongOrNull()?.let(repository::seekTo)

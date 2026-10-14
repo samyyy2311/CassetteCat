@@ -172,13 +172,6 @@ fun CustomizationScreen(
             )
             SettingsDivider()
             NavigationRow(
-                title = stringResource(AppR.string.customization_storage),
-                subtitle = stringResource(AppR.string.customization_storage_summary),
-                iconRes = R.drawable.lucide_ic_download,
-                onClick = { onNavigate(CustomizationRoute.STORAGE) },
-            )
-            SettingsDivider()
-            NavigationRow(
                 title = stringResource(AppR.string.customization_home_feed),
                 subtitle = stringResource(AppR.string.customization_home_summary, homeFeedCount),
                 iconRes = R.drawable.lucide_ic_history,
@@ -813,7 +806,14 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
 }
 
 @Composable
-fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit, onOpenDuplicates: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+fun CustomizationStorageScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    onOpenDuplicates: () -> Unit,
+    onOpenFixTags: () -> Unit,
+    modifier: Modifier = Modifier,
+    listBottomPadding: Dp = 0.dp
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     val maxCacheBytes by viewModel.maxCacheBytes.collectAsStateWithLifecycle(initialValue = DEFAULT_MAX_CACHE_BYTES)
@@ -857,6 +857,13 @@ fun CustomizationStorageScreen(viewModel: SettingsViewModel, onBack: () -> Unit,
                 checked = prefs.ignoreShortAudioClips,
                 onCheckedChange = viewModel::setIgnoreShortAudioClips,
                 iconRes = R.drawable.lucide_ic_clock,
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.fix_tags_title),
+                subtitle = stringResource(AppR.string.fix_tags_description),
+                iconRes = R.drawable.lucide_ic_search,
+                onClick = onOpenFixTags,
             )
             SettingsDivider()
             NavigationRow(
