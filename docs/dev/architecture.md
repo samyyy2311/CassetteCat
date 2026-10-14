@@ -61,7 +61,7 @@ The service is the only owner of the player. UI code never talks to ExoPlayer di
 | `data/download` | Offline downloads: `SongDownloadService` (a Media3 download service), `DownloadCache` and download settings. |
 | `data/radio` | `RadioBrowserApiClient`, radio favourites and history. |
 | `data/stats` | `ListeningStatsRepository`: listens, Listening Record and milestones. |
-| `data/scrobble` | ListenBrainz, Last.fm and Libre.fm clients (`ListenBrainzClient`, `AudioscrobblerClient`) and `ScrobbleManager`. |
+| `data/scrobble` | ListenBrainz, Last.fm and Libre.fm clients (`ListenBrainzClient`, `AudioscrobblerClient`) and `ScrobbleManager`. Last.fm is only in builds made with its API key and secret (`LASTFM_API_KEY` and `LASTFM_API_SECRET`), which release builds get from CI. |
 | `data/backup` | `BackupBundle` (the backup file format) and `BackupRepository`. |
 | `data/listeningroom` | Listening Room hosting and joining (`LocalListeningRoomRepository`) and the host's audio relay (`RoomAudioServer`). |
 | `data/device` | CassetteCat Desktop: `DesktopDiscovery`, `DesktopRemoteRepository`, `DeviceControlApiClient`, `DesktopRouteProvider` and `DesktopSessionPlayer`. Also the shake, flip and wave gesture detectors, and the client code for the planned hardware player. |
