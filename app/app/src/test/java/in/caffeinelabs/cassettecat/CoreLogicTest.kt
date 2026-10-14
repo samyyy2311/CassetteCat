@@ -252,6 +252,7 @@ class CoreLogicTest {
              "releases": [
                 {"title": "Greatest Hits", "status": "Official", "date": "2005",
                  "release-group": {"primary-type": "Album", "secondary-types": ["Compilation"]}},
+                {"title": "First Album", "status": "Official", "date": "2020", "release-group": {"primary-type": "Album"}},
                 {"title": "First Album", "status": "Official", "date": "1999-03-01",
                  "release-group": {"primary-type": "Album"}}]}]}"""
         assertEquals(
@@ -260,6 +261,8 @@ class CoreLogicTest {
         )
         assertEquals("Greatest Hits", musicBrainzTagsFrom(search, durationMs = 200_000, album = "greatest hits")?.album)
         assertNull(musicBrainzTagsFrom(search, durationMs = 150_000, album = ""))
+        // A song already naming the album still gets the original's year, not a reissue's.
+        assertEquals(1999, musicBrainzTagsFrom(search, durationMs = 200_000, album = "first album")?.year)
         // With only a live release to go on, the album is left alone.
         assertEquals(MusicBrainzTags("Song (Live)", "Band"), musicBrainzTagsFrom(search, durationMs = 240_000, album = ""))
     }

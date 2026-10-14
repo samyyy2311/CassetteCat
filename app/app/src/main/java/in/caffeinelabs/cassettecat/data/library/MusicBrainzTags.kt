@@ -63,10 +63,12 @@ internal fun musicBrainzTagsFrom(json: String, durationMs: Long, album: String):
     }
     if (fitting.isEmpty()) return null
     val candidates = fitting.flatMap { recording -> recording.releases.map { recording to it } }
-    val (recording, release) = candidates.firstOrNull { (_, release) ->
-        album.isNotBlank() && release.title.equals(album.trim(), ignoreCase = true)
-    } ?: candidates.filter { (_, release) -> release.isStudioAlbum }
+    fun earliest(matching: (Release) -> Boolean) = candidates
+        .filter { (_, release) -> matching(release) }
         .minByOrNull { (_, release) -> release.date?.ifBlank { null } ?: "9999" }
+    // Of the releases with the song's album name, the earliest is the original rather than a reissue.
+    val (recording, release) = earliest { album.isNotBlank() && it.title.equals(album.trim(), ignoreCase = true) }
+        ?: earliest { it.isStudioAlbum }
         ?: (fitting.first() to null)
     return MusicBrainzTags(
         title = recording.title,
