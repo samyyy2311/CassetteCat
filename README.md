@@ -24,7 +24,7 @@
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-2A2A2A?style=flat-square&logo=jetpackcompose&logoColor=4285F4" alt="Jetpack Compose" /></a>
   <a href="https://github.com/samyyy2311/CassetteCat/releases"><img src="https://img.shields.io/github/downloads/samyyy2311/CassetteCat/total?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=downloads&logo=github&logoColor=white" alt="GitHub downloads" /></a>
   <br />
-  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://img.shields.io/badge/Translate-2A2A2A?style=flat-square&logo=weblate&logoColor=2ECCAA" alt="Translate on Weblate" /></a>
+  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://img.shields.io/weblate/progress/cassettecat?server=https%3A%2F%2Fhosted.weblate.org&amp;style=flat-square&amp;color=2A2A2A&amp;labelColor=2A2A2A&amp;label=Translated&amp;logo=weblate&amp;logoColor=2ECCAA" alt="Translation status on Weblate" /></a>
   <a href="https://alternativeto.net/software/cassettecat/about/"><img src="https://img.shields.io/badge/AlternativeTo-2A2A2A?style=flat-square&logo=alternativeto&logoColor=white" alt="AlternativeTo" /></a>
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/samyyy2311/CassetteCat?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=CodeRabbit&logo=coderabbit&logoColor=FF570A" alt="CodeRabbit pull request reviews" /></a>
   <a href="https://app.codacy.com/gh/samyyy2311/CassetteCat/dashboard"><img src="https://img.shields.io/codacy/grade/a71f402be7e74c80927fe95ec0a931ca?style=flat-square&color=2A2A2A&labelColor=2A2A2A&label=Codacy&logo=codacy&logoColor=white" alt="Codacy code quality" /></a>
