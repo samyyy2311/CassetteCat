@@ -16,6 +16,11 @@ class ScrobbleManager(
     private val serviceSettingsRepository = ServiceSettingsRepository(context)
     private val listenBrainzClient = ListenBrainzClient()
 
+    // A rejected token never starts working again, so Settings goes back to asking for one.
+    private suspend fun dropRejectedToken(status: Int?) {
+        if (status == 401) repository.disconnectListenBrainz()
+    }
+
     fun onTrackStarted(song: Song) {
         scope.launch {
             val serviceSettings = serviceSettingsRepository.settings.first()
@@ -23,7 +28,7 @@ class ScrobbleManager(
 
             val settings = repository.settings.first()
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
-                listenBrainzClient.submitNowPlaying(settings.listenBrainz.userToken, song)
+                dropRejectedToken(listenBrainzClient.submitNowPlaying(settings.listenBrainz.userToken, song))
             }
             ScrobbleAccount.entries.forEach { account ->
                 val config = settings.account(account)
@@ -42,7 +47,7 @@ class ScrobbleManager(
             val settings = repository.settings.first()
             val nowSec = System.currentTimeMillis() / 1000L
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) {
-                listenBrainzClient.submitListen(settings.listenBrainz.userToken, song, nowSec)
+                dropRejectedToken(listenBrainzClient.submitListen(settings.listenBrainz.userToken, song, nowSec))
             }
             ScrobbleAccount.entries.forEach { account ->
                 val config = settings.account(account)

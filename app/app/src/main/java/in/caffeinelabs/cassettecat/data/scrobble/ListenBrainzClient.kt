@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.scrobble
 
+import android.util.Log
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
@@ -60,17 +61,18 @@ class ListenBrainzClient {
         }.getOrNull()
     }
 
-    suspend fun submitNowPlaying(token: String, song: Song): Boolean = withContext(Dispatchers.IO) {
-        if (token.isBlank()) return@withContext false
+    suspend fun submitNowPlaying(token: String, song: Song): Int? = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "playing_now", listenedAt = null)
     }
 
-    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): Boolean = withContext(Dispatchers.IO) {
-        if (token.isBlank()) return@withContext false
+    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): Int? = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "single", listenedAt = listenedAtUnixSec)
     }
 
-    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): Boolean = runCatching {
+    /** The HTTP status ListenBrainz answered with, or null when it couldn't be reached. */
+    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): Int? = runCatching {
         val requestBody = SubmitListenRequest(
             listenType = listenType,
             payload = listOf(
@@ -89,6 +91,11 @@ class ListenBrainzClient {
             .header("Authorization", "Token ${token.trim()}")
             .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
             .build()
-        sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
-    }.getOrDefault(false)
+        sharedHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Log.w("ListenBrainz", "Refused $listenType: ${response.code} ${response.body.string().take(300)}")
+            }
+            response.code
+        }
+    }.onFailure { Log.w("ListenBrainz", "Couldn't submit $listenType", it) }.getOrNull()
 }
