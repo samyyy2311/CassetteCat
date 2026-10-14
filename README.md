@@ -203,6 +203,11 @@ Translations are done on [Weblate](https://hosted.weblate.org/engage/cassettecat
 coding needed. Pick a language, or add yours, and Weblate sends the changes here as a pull request. See
 [TRANSLATING.md](TRANSLATING.md) for a few guidelines.
 
+<a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/android-app/multi-auto.svg" alt="How much of the Android app each language has translated" /></a>
+
+Anything not translated yet shows in English. The desktop app is English only for now; making it translatable is
+tracked in [CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56).
+
 ---
 
 ## Support
