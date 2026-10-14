@@ -260,6 +260,9 @@
     <string name="desktop_remote_your_computer">Your computer</string>
     <string name="desktop_remote_paired">Paired. Tap to control it from this phone.</string>
     <string name="desktop_remote_controlling">Controlling from this phone. Tap to stop.</string>
+    <string name="desktop_remote_disconnected">Disconnected. Tap to control it from this phone.</string>
+    <string name="desktop_remote_disconnect">Disconnect</string>
+    <string name="desktop_remote_disconnect_description">The computer and this phone each play their own music</string>
     <string name="desktop_remote_set_up">Set up a computer</string>
     <string name="desktop_remote_found">Computers on this Wi-Fi</string>
     <string name="desktop_remote_search_again">Search again</string>

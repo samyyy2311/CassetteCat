@@ -83,7 +83,11 @@ fun DesktopRemoteScreen(
                 ActionRow(
                     title = state.name ?: stringResource(AppR.string.desktop_remote_your_computer),
                     subtitle = stringResource(
-                        if (state.controlling) AppR.string.desktop_remote_controlling else AppR.string.desktop_remote_paired
+                        when {
+                            state.controlling -> AppR.string.desktop_remote_controlling
+                            state.disconnected -> AppR.string.desktop_remote_disconnected
+                            else -> AppR.string.desktop_remote_paired
+                        }
                     ),
                     iconRes = R.drawable.lucide_ic_monitor,
                     iconTint = if (state.controlling) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
@@ -101,6 +105,15 @@ fun DesktopRemoteScreen(
             }
             Spacer(Modifier.height(20.dp))
             SettingsSection {
+                if (!state.disconnected) {
+                    ActionRow(
+                        title = stringResource(AppR.string.desktop_remote_disconnect),
+                        subtitle = stringResource(AppR.string.desktop_remote_disconnect_description),
+                        iconRes = R.drawable.lucide_ic_unplug,
+                        onClick = desktop::disconnect
+                    )
+                    SettingsDivider()
+                }
                 ActionRow(
                     title = stringResource(AppR.string.desktop_remote_forget),
                     subtitle = stringResource(AppR.string.desktop_remote_forget_description),
@@ -311,11 +324,24 @@ fun DeviceConnectSheet(
             if (state.address != null) {
                 ActionRow(
                     title = state.name ?: stringResource(AppR.string.desktop_remote_your_computer),
-                    subtitle = status?.takeIf { it.trackTitle.isNotEmpty() }?.let { "${it.trackTitle} · ${it.trackArtist}" } ?: notPlaying,
+                    subtitle = if (state.disconnected) stringResource(AppR.string.desktop_remote_tap_to_connect)
+                    else status?.takeIf { it.trackTitle.isNotEmpty() }?.let { "${it.trackTitle} · ${it.trackArtist}" } ?: notPlaying,
                     iconRes = R.drawable.lucide_ic_monitor,
                     iconTint = if (state.controlling) selectedTint else idleTint,
                     onClick = onSelectDesktop
                 )
+                if (!state.disconnected) {
+                    SettingsDivider()
+                    ActionRow(
+                        title = stringResource(AppR.string.desktop_remote_disconnect),
+                        subtitle = stringResource(AppR.string.desktop_remote_disconnect_description),
+                        iconRes = R.drawable.lucide_ic_unplug,
+                        onClick = {
+                            desktop.disconnect()
+                            onDismiss()
+                        }
+                    )
+                }
             } else {
                 nearby.forEach { computer ->
                     ActionRow(
