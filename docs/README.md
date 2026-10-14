@@ -15,4 +15,6 @@ Read **Building and testing** first.
 - [Desktop Remote protocol](dev/desktop-remote-protocol.md): the HTTP API between the app and CassetteCat Desktop.
 - [CI and releasing](dev/releasing.md): the workflows, and how to publish a release.
 
+The developer guides are also on the website, under [Developers](https://cassettecat.caffeinelabs.in/docs/developers).
+
 See also [CONTRIBUTING.md](../CONTRIBUTING.md), [TRANSLATING.md](../TRANSLATING.md) and [SECURITY.md](../SECURITY.md).

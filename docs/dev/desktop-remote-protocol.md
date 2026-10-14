@@ -57,11 +57,17 @@ An unanswered request expires after 60 seconds.
   "repeatMode": 0,
   "artworkKey": "...",
   "deviceName": "DESKTOP-1234",
-  "handoffRequested": false
+  "handoffRequested": false,
+  "disconnectRequested": false,
+  "syncRequested": false
 }
 ```
 
-`repeatMode` is 0 for off, 1 for repeat all and 2 for repeat one. `handoffRequested` is `true` once after the desktop asks the phone to take over playback.
+`repeatMode` is 0 for off, 1 for repeat all and 2 for repeat one. Each of the last three is `true` once, then `false` again:
+
+* `handoffRequested`: the desktop asked the phone to take over playback.
+* `disconnectRequested`: the desktop clicked Disconnect for this phone. The phone stops controlling and reporting to the computer and stays paired. Only the phone that was disconnected, by `X-Device-Name`, sees it, and only for 75 seconds.
+* `syncRequested`: the desktop asked the phone to sync likes and listens.
 
 ## Queue
 
@@ -89,13 +95,19 @@ An unanswered request expires after 60 seconds.
 
 While the phone plays music itself, it reports what is playing so the desktop can show it and send commands back:
 
-`POST /api/phone-state` with `{"title": "...", "artist": "...", "isPlaying": true}`. An empty `title` means the phone stopped. The response carries commands for the phone:
+`POST /api/phone-state` with:
 
 ```json
-{"ok": true, "commands": ["pause"], "playNext": [{"title": "...", "artist": "..."}], "likesRevision": 3}
+{"title": "...", "artist": "...", "isPlaying": true, "positionMs": 15000, "durationMs": 209000, "volumePercent": 60, "artwork": "<base64 JPEG>"}
 ```
 
-`commands` can contain `play`, `pause`, `next`, `previous` and `handoff`.
+Only `title` and `artist` are required. An empty `title` means the phone stopped, or disconnected, and takes it off the computer at once. `artwork` is sent only after the desktop asks for it. The response carries commands for the phone:
+
+```json
+{"ok": true, "commands": ["pause"], "playNext": [{"title": "...", "artist": "..."}], "likesRevision": 3, "needsArtwork": false}
+```
+
+`commands` can contain `play`, `pause`, `next`, `previous`, `handoff`, `sync`, `disconnect`, `seek:<ms>` and `volume:<percent>`. `needsArtwork` asks the phone to send the current song's cover with its next check-in.
 
 ## Sync
 
