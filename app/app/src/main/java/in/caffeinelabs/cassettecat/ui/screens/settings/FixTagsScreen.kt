@@ -72,8 +72,8 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
                 SettingsSection {
                     ActionRow(
                         title = when {
-                            state.running -> stringResource(AppR.string.fix_tags_checking, state.checked, state.queue.size)
-                            state.paused -> stringResource(AppR.string.fix_tags_paused, state.checked, state.queue.size)
+                            state.running -> pluralStringResource(AppR.plurals.fix_tags_checking, state.queue.size, state.checked, state.queue.size)
+                            state.paused -> pluralStringResource(AppR.plurals.fix_tags_paused, state.queue.size, state.checked, state.queue.size)
                             state.queue.isEmpty() && state.fixes.isEmpty() -> stringResource(AppR.string.fix_tags_not_started)
                             else -> stringResource(AppR.string.fix_tags_finished)
                         },

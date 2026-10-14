@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -231,7 +232,7 @@ internal fun SearchGenreTile(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (genreGroup.songs.size == 1) stringResource(AppR.string.search_one_song) else stringResource(AppR.string.search_songs_count, genreGroup.songs.size),
+                text = pluralStringResource(AppR.plurals.library_songs, genreGroup.songs.size, genreGroup.songs.size),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
                 color = Color.White.copy(alpha = 0.85f)
             )
@@ -351,7 +352,7 @@ internal fun SearchFolderRow(
             )
         }
         Text(
-            text = if (folderGroup.songs.size == 1) stringResource(AppR.string.search_one_song) else stringResource(AppR.string.search_songs_count, folderGroup.songs.size),
+            text = pluralStringResource(AppR.plurals.library_songs, folderGroup.songs.size, folderGroup.songs.size),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = IbmPlexMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)

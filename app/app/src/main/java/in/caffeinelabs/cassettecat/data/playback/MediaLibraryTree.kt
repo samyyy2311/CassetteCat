@@ -57,7 +57,7 @@ class MediaLibraryTree(private val context: Context) {
         mediaId == EMPTY_RADIO_MESSAGE_ID -> messageItem(EMPTY_RADIO_MESSAGE_ID, context.getString(R.string.auto_no_radio_favorites))
 
         mediaId.startsWith(RADIO_STATION_PREFIX) -> {
-            val favoriteSong = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }.firstOrNull { it.id == mediaId }
+            val favoriteSong = radioFavoritesRepository.favoriteStations.first().map { it.toSong(context.getString(R.string.source_radio)) }.firstOrNull { it.id == mediaId }
             (favoriteSong ?: cachedRadioResults[mediaId])?.toMediaItem(context)
         }
 
@@ -102,13 +102,13 @@ class MediaLibraryTree(private val context: Context) {
             )
 
             parentId == RADIO_FAVORITES_ID -> {
-                val favorites = radioFavoritesRepository.favoriteStations.first().map { it.toSong() }
+                val favorites = radioFavoritesRepository.favoriteStations.first().map { it.toSong(context.getString(R.string.source_radio)) }
                 if (favorites.isEmpty()) listOf(messageItem(EMPTY_RADIO_MESSAGE_ID, context.getString(R.string.auto_no_radio_favorites)))
                 else favorites.map { it.toMediaItem(context) }
             }
 
             parentId == RADIO_TOP_ID -> {
-                val top = (runCatching { radioBrowserApiClient.topStations() }.getOrNull() ?: emptyList()).map { it.toSong() }
+                val top = (runCatching { radioBrowserApiClient.topStations() }.getOrNull() ?: emptyList()).map { it.toSong(context.getString(R.string.source_radio)) }
                 cacheRadioResults(top)
                 top.map { it.toMediaItem(context) }
             }
@@ -154,7 +154,7 @@ class MediaLibraryTree(private val context: Context) {
             .filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
             .take(SEARCH_LIBRARY_LIMIT)
         val radioSongs = (runCatching { radioBrowserApiClient.search(query, limit = SEARCH_RADIO_LIMIT) }.getOrNull() ?: emptyList())
-            .map { it.toSong() }
+            .map { it.toSong(context.getString(R.string.source_radio)) }
         cacheRadioResults(radioSongs)
         return (librarySongs + radioSongs).map { it.toMediaItem(context) }
     }

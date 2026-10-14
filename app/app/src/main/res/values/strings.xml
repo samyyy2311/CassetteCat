@@ -56,8 +56,14 @@
     <string name="fix_tags_title">Fix Tags</string>
     <string name="fix_tags_description">Check song details against MusicBrainz and review what would change</string>
     <string name="fix_tags_not_started">Not checked yet</string>
-    <string name="fix_tags_checking">Checking %1$d of %2$d songs</string>
-    <string name="fix_tags_paused">Paused at %1$d of %2$d songs</string>
+    <plurals name="fix_tags_checking">
+        <item quantity="one">Checking %1$d of %2$d song</item>
+        <item quantity="other">Checking %1$d of %2$d songs</item>
+    </plurals>
+    <plurals name="fix_tags_paused">
+        <item quantity="one">Paused at %1$d of %2$d song</item>
+        <item quantity="other">Paused at %1$d of %2$d songs</item>
+    </plurals>
     <string name="fix_tags_finished">Check finished</string>
     <string name="fix_tags_start_hint">Checks every song you haven\'t checked before, about a song a second.</string>
     <string name="fix_tags_running_hint">Keeps going if you leave this screen.</string>
@@ -140,7 +146,6 @@
     <string name="onboarding_flip_pause_subtitle">Place your phone face-down to pause music, pick up to resume</string>
     <string name="onboarding_wave_skip_title">Wave to Skip</string>
     <string name="onboarding_wave_skip_subtitle">Wave your finger over the top proximity sensor to skip to the next track</string>
-
 
     <string name="pairing_player_title">CassetteCat Player</string>
     <string name="pairing_companion_label">Companion Hardware Sync</string>
@@ -321,8 +326,10 @@
     <string name="home_empty_action">Scan Library</string>
     <string name="home_empty_secondary_action">Manage Scan Folders</string>
     <string name="home_start_somewhere_new">Start somewhere new</string>
-    <string name="home_shuffle_one_song">Shuffle 1 song</string>
-    <string name="home_shuffle_all_songs">Shuffle all %1$d songs</string>
+    <plurals name="home_shuffle_songs">
+        <item quantity="one">Shuffle %1$d song</item>
+        <item quantity="other">Shuffle all %1$d songs</item>
+    </plurals>
     <string name="home_shuffle_library">Shuffle library</string>
     <string name="home_for_right_now">For right now</string>
     <string name="home_for_right_now_desc">A few picks from your library</string>
@@ -332,7 +339,7 @@
     <string name="home_section_forgotten_favorites_desc">Rediscover what you loved</string>
     <string name="home_favorites">Favorites</string>
     <string name="home_favorites_desc">Songs you’ve loved</string>
-    <string name="home_library_snapshot">%1$d songs · %2$d artists · %3$d albums</string>
+
     <string name="greeting_good_morning">Good morning</string>
     <string name="greeting_early_rise">Early rise soundtrack</string>
     <string name="greeting_morning_coffee">Morning coffee &amp; tape</string>
@@ -438,7 +445,10 @@
     <string name="settings_jellyfin_name" translatable="false">Jellyfin</string>
     <string name="settings_jellyfin_description">Connect to a Jellyfin media server</string>
     <string name="settings_external_services">External Services</string>
-    <string name="settings_external_services_count">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</string>
+    <plurals name="settings_external_services_count">
+        <item quantity="one">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</item>
+        <item quantity="other">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</item>
+    </plurals>
     <string name="settings_scrobbling_description">ListenBrainz, Libre.fm and Last.fm listening sync</string>
     <string name="settings_listening_room">Listening Room</string>
     <plurals name="settings_listening_room_hosting">
@@ -556,10 +566,16 @@
     <string name="customization_default_library_tab">Default Library Tab</string>
     <string name="customization_default_library_tab_description">Choose the section shown when you open the Library</string>
     <string name="customization_library_tabs">Library Tabs</string>
-    <string name="customization_library_tabs_summary">%1$d of %2$d shown · Reorder and visibility</string>
+    <plurals name="customization_library_tabs_summary">
+        <item quantity="one">%1$d of %2$d shown · Reorder and visibility</item>
+        <item quantity="other">%1$d of %2$d shown · Reorder and visibility</item>
+    </plurals>
     <string name="customization_grid_columns">Grid Columns</string>
     <string name="customization_grid_columns_description">Card sizing for albums and artists</string>
-    <string name="customization_columns">%1$d Columns</string>
+    <plurals name="customization_columns">
+        <item quantity="one">%1$d Column</item>
+        <item quantity="other">%1$d Columns</item>
+    </plurals>
     <string name="customization_song_density">Song Row Density</string>
     <string name="customization_song_density_description">Detailed shows album and quality badges. Compact fits more tracks.</string>
     <string name="customization_default_sort">Default Sort Order</string>
@@ -820,7 +836,10 @@
     <string name="library_change_cover">Change cover</string>
     <string name="library_remove_custom_cover">Remove custom cover</string>
     <string name="library_playlist_imported">Playlist imported</string>
-    <string name="library_playlist_imported_message">Imported “%1$s”: %2$d of %3$d songs matched.</string>
+    <plurals name="library_playlist_imported_message">
+        <item quantity="one">Imported “%1$s”: %2$d of %3$d song matched.</item>
+        <item quantity="other">Imported “%1$s”: %2$d of %3$d songs matched.</item>
+    </plurals>
     <string name="library_refine_and_sort">Refine &amp; Sort</string>
     <string name="library_reset">Reset</string>
     <string name="library_section_source">SOURCE</string>
@@ -855,7 +874,10 @@
     <string name="library_computer_playlists_empty">Your computer has no playlists yet.</string>
     <string name="playlist_action_send_to_computer">Send to Computer</string>
     <string name="playlist_action_send_to_computer_desc">Copy it to your computer, replacing one with the same name</string>
-    <string name="toast_playlist_sent">Sent to your computer: %1$d of %2$d songs</string>
+    <plurals name="toast_playlist_sent">
+        <item quantity="one">Sent to your computer: %1$d of %2$d song</item>
+        <item quantity="other">Sent to your computer: %1$d of %2$d songs</item>
+    </plurals>
     <string name="library_share">Share</string>
     <string name="library_select_all">Select All</string>
     <string name="library_queue">Queue</string>
@@ -906,8 +928,10 @@
     <string name="tag_editor_save_changes">Save Changes</string>
     <string name="playlist_add_songs">Add Songs</string>
     <string name="playlist_export_skipped_title">Some songs weren’t included</string>
-    <string name="playlist_export_skipped_one">1 streamed song was not included, only local files can be exported.</string>
-    <string name="playlist_export_skipped_many">%1$d streamed songs were not included, only local files can be exported.</string>
+    <plurals name="playlist_export_skipped">
+        <item quantity="one">%1$d streamed song was not included, only local files can be exported.</item>
+        <item quantity="other">%1$d streamed songs were not included, only local files can be exported.</item>
+    </plurals>
     <string name="playlist_delete_confirm_title">Delete “%1$s”?</string>
     <string name="playlist_delete_confirm_message">This can’t be undone.</string>
     <string name="playlist_action_change_cover">Change Cover</string>
@@ -948,8 +972,7 @@
     <string name="search_section_folders">Folders</string>
     <string name="search_category_all">All</string>
     <string name="search_recent_searches">Recent Searches</string>
-    <string name="search_one_song">1 song</string>
-    <string name="search_songs_count">%1$d songs</string>
+
     <string name="search_album_placeholder">Album</string>
     <string name="search_artist_placeholder">Artist</string>
     <string name="queue_section_history">History</string>
@@ -973,7 +996,10 @@
     <string name="cover_unknown_album">Unknown Album</string>
     <string name="cover_unknown_artist">Unknown Artist</string>
     <string name="cover_searching_catalogs">Searching catalogs…</string>
-    <string name="cover_artworks_found">%1$d artworks found</string>
+    <plurals name="cover_artworks_found">
+        <item quantity="one">%1$d artwork found</item>
+        <item quantity="other">%1$d artworks found</item>
+    </plurals>
     <string name="cover_select_prompt">Select a cover to apply</string>
     <string name="cover_choose_from_device">Choose from device</string>
     <string name="cover_revert_to_original">Revert to original</string>
@@ -1565,7 +1591,10 @@
 
     <!-- Device sync -->
     <string name="device_sync_title">Library Sync</string>
-    <string name="device_sync_summary">%1$d of %2$d songs on device</string>
+    <plurals name="device_sync_summary">
+        <item quantity="one">%1$d of %2$d song on device</item>
+        <item quantity="other">%1$d of %2$d songs on device</item>
+    </plurals>
     <string name="device_sync_empty_title">No local songs</string>
     <string name="device_sync_empty_message">Only songs stored on this phone can be synced to the player.</string>
     <string name="device_sync_all_missing">Sync All Missing (%1$d)</string>

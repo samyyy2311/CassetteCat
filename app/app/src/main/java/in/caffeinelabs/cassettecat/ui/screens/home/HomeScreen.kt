@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableStateOf
@@ -334,7 +335,11 @@ private fun LibrarySnapshot(songs: List<Song>, onClick: () -> Unit) {
     val artistCount = remember(songs) { songs.groupedByArtist().size }
     val albumCount = remember(songs) { songs.groupedByAlbum().size }
     Text(
-        stringResource(AppR.string.home_library_snapshot, songs.size, artistCount, albumCount),
+        listOf(
+            pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
+            pluralStringResource(AppR.plurals.library_artists, artistCount, artistCount),
+            pluralStringResource(AppR.plurals.library_albums, albumCount, albumCount)
+        ).joinToString(" · "),
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = IbmPlexMonoFontFamily),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 24.dp).tapScale(onClick)
@@ -375,7 +380,7 @@ private fun ShuffleAllHero(heroSong: Song?, songCount: Int, onClick: () -> Unit)
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(AppR.string.home_start_somewhere_new), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    if (songCount == 1) stringResource(AppR.string.home_shuffle_one_song) else stringResource(AppR.string.home_shuffle_all_songs, songCount),
+                    pluralStringResource(AppR.plurals.home_shuffle_songs, songCount, songCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
