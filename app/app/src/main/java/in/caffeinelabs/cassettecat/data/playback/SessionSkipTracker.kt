@@ -22,19 +22,6 @@ class SessionSkipTracker(
         return false
     }
 
-    fun recordCompletion(songId: String) {
-        skippedAtMs.remove(songId)
-    }
-
-    fun isSkipped(songId: String): Boolean {
-        val timestamp = skippedAtMs[songId] ?: return false
-        if (clock() - timestamp > cooldownMs) {
-            skippedAtMs.remove(songId)
-            return false
-        }
-        return true
-    }
-
     fun skippedSongIds(): Set<String> {
         val now = clock()
         skippedAtMs.entries.removeIf { now - it.value > cooldownMs }

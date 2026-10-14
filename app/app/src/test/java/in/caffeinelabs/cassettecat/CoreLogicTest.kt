@@ -356,24 +356,16 @@ class CoreLogicTest {
     }
 
     @Test
-    fun tracksSessionSkipsWithCooldownAndCompletion() {
+    fun tracksSessionSkipsWithCooldown() {
         var simulatedTime = 10_000L
         val tracker = SessionSkipTracker(clock = { simulatedTime }, cooldownMs = 30_000L)
 
         tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
-        assertTrue(tracker.isSkipped("song-skip"))
+        tracker.recordSkip("song-normal", elapsedMs = 60_000L, durationMs = 180_000L)
         assertEquals(setOf("song-skip"), tracker.skippedSongIds())
 
-        tracker.recordSkip("song-normal", elapsedMs = 60_000L, durationMs = 180_000L)
-        assertFalse(tracker.isSkipped("song-normal"))
-
-        tracker.recordCompletion("song-skip")
-        assertFalse(tracker.isSkipped("song-skip"))
-
-        tracker.recordSkip("song-skip", elapsedMs = 5_000L, durationMs = 180_000L)
-        assertTrue(tracker.isSkipped("song-skip"))
         simulatedTime += 35_000L
-        assertFalse(tracker.isSkipped("song-skip"))
+        assertEquals(emptySet<String>(), tracker.skippedSongIds())
     }
 
     @Test
