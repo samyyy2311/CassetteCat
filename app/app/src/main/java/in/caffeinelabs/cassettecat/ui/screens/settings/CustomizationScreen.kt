@@ -458,8 +458,9 @@ fun CustomizationStartupLibraryScreen(
             SettingsDivider()
             NavigationRow(
                 title = stringResource(AppR.string.customization_library_tabs),
-                subtitle = stringResource(
-                    AppR.string.customization_library_tabs_summary,
+                subtitle = pluralStringResource(
+                    AppR.plurals.customization_library_tabs_summary,
+                    visibleTabs.size,
                     visibleTabs.size,
                     prefs.libraryTabOrder.size
                 ),
@@ -473,7 +474,7 @@ fun CustomizationStartupLibraryScreen(
                 iconRes = R.drawable.lucide_ic_grid_2x2,
                 options = listOf(2, 3, 4),
                 selected = prefs.gridColumnCount,
-                label = { stringResource(AppR.string.customization_columns, it) },
+                label = { pluralStringResource(AppR.plurals.customization_columns, it, it) },
                 onSelect = viewModel::setGridColumnCount
             )
             SettingsDivider()

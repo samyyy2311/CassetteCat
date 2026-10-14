@@ -984,7 +984,7 @@ fun LibraryScreen(
         AlertDialog(
             onDismissRequest = { importSummary = null },
             title = { Text(stringResource(AppR.string.library_playlist_imported)) },
-            text = { Text(stringResource(AppR.string.library_playlist_imported_message, summary.name, summary.matched, summary.total)) },
+            text = { Text(pluralStringResource(AppR.plurals.library_playlist_imported_message, summary.total, summary.name, summary.matched, summary.total)) },
             confirmButton = {
                 TextButton(onClick = { importSummary = null }) { Text(stringResource(AppR.string.action_ok)) }
             }

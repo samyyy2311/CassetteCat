@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">CassetteCat</string>
     <string name="download_channel_name">Downloads</string>
@@ -55,8 +56,14 @@
     <string name="fix_tags_title">Fix Tags</string>
     <string name="fix_tags_description">Check song details against MusicBrainz and review what would change</string>
     <string name="fix_tags_not_started">Not checked yet</string>
-    <string name="fix_tags_checking">Checking %1$d of %2$d songs</string>
-    <string name="fix_tags_paused">Paused at %1$d of %2$d songs</string>
+    <plurals name="fix_tags_checking">
+        <item quantity="one">Checking %1$d of %2$d song</item>
+        <item quantity="other">Checking %1$d of %2$d songs</item>
+    </plurals>
+    <plurals name="fix_tags_paused">
+        <item quantity="one">Paused at %1$d of %2$d song</item>
+        <item quantity="other">Paused at %1$d of %2$d songs</item>
+    </plurals>
     <string name="fix_tags_finished">Check finished</string>
     <string name="fix_tags_start_hint">Checks every song you haven\'t checked before, about a song a second.</string>
     <string name="fix_tags_running_hint">Keeps going if you leave this screen.</string>
@@ -139,7 +146,6 @@
     <string name="onboarding_flip_pause_subtitle">Place your phone face-down to pause music, pick up to resume</string>
     <string name="onboarding_wave_skip_title">Wave to Skip</string>
     <string name="onboarding_wave_skip_subtitle">Wave your finger over the top proximity sensor to skip to the next track</string>
-
 
     <string name="pairing_player_title">CassetteCat Player</string>
     <string name="pairing_companion_label">Companion Hardware Sync</string>
@@ -320,8 +326,10 @@
     <string name="home_empty_action">Scan Library</string>
     <string name="home_empty_secondary_action">Manage Scan Folders</string>
     <string name="home_start_somewhere_new">Start somewhere new</string>
-    <string name="home_shuffle_one_song">Shuffle 1 song</string>
-    <string name="home_shuffle_all_songs">Shuffle all %1$d songs</string>
+    <plurals name="home_shuffle_songs">
+        <item quantity="one">Shuffle %1$d song</item>
+        <item quantity="other">Shuffle all %1$d songs</item>
+    </plurals>
     <string name="home_shuffle_library">Shuffle library</string>
     <string name="home_for_right_now">For right now</string>
     <string name="home_for_right_now_desc">A few picks from your library</string>
@@ -331,7 +339,7 @@
     <string name="home_section_forgotten_favorites_desc">Rediscover what you loved</string>
     <string name="home_favorites">Favorites</string>
     <string name="home_favorites_desc">Songs you’ve loved</string>
-    <string name="home_library_snapshot">%1$d songs · %2$d artists · %3$d albums</string>
+
     <string name="greeting_good_morning">Good morning</string>
     <string name="greeting_early_rise">Early rise soundtrack</string>
     <string name="greeting_morning_coffee">Morning coffee &amp; tape</string>
@@ -396,4 +404,1344 @@
         <item>CassetteCat 🎵</item>
         <item>Hi friend! 🐾</item>
     </string-array>
+    <string name="nav_home">Home</string>
+    <string name="fast_scroll_none">none</string>
+
+    <!-- Settings home -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Manage playback, library, hardware, services, and data</string>
+
+    <string name="settings_audio_playback_section">Audio &amp; Playback</string>
+    <string name="settings_customisation">Customisation</string>
+    <string name="settings_customisation_description">Startup tab, home feed, audio, and display</string>
+    <string name="settings_sleep_timer">Sleep timer</string>
+    <string name="settings_sleep_timer_description">Stop playback after a set time</string>
+    <string name="settings_equalizer">Equalizer</string>
+    <string name="settings_equalizer_description">Tune the current audio output</string>
+
+    <string name="settings_library_hardware_section">Library &amp; Hardware</string>
+    <string name="settings_listening_record">Listening Record</string>
+    <string name="settings_listening_record_description">Monthly stats, artists, and repeats</string>
+    <string name="settings_scan_folders">Scan Folders</string>
+    <string name="settings_scan_all_music">All music</string>
+    <plurals name="settings_scan_folders_included">
+        <item quantity="one">%d folder included</item>
+        <item quantity="other">%d folders included</item>
+    </plurals>
+    <plurals name="settings_scan_folders_excluded">
+        <item quantity="one">%d folder excluded</item>
+        <item quantity="other">%d folders excluded</item>
+    </plurals>
+    <string name="settings_downloads_description">Manage songs saved for offline playback</string>
+    <string name="settings_player_name" translatable="false">CassetteCat Player</string>
+    <string name="settings_player_description">Pair, sync music, and hardware telemetry</string>
+
+    <string name="settings_streaming_services_section">Streaming &amp; Services</string>
+    <string name="settings_offline_blackout">Offline Blackout Mode</string>
+    <string name="settings_offline_blackout_enabled">All network services and streaming disabled</string>
+    <string name="settings_offline_blackout_disabled">Disable all network calls, streaming, and lookups</string>
+    <string name="settings_subsonic_name" translatable="false">Subsonic</string>
+    <string name="settings_subsonic_description">Navidrome, gonic, and other Subsonic servers</string>
+    <string name="settings_jellyfin_name" translatable="false">Jellyfin</string>
+    <string name="settings_jellyfin_description">Connect to a Jellyfin media server</string>
+    <string name="settings_external_services">External Services</string>
+    <plurals name="settings_external_services_count">
+        <item quantity="one">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</item>
+        <item quantity="other">%1$d of %2$d enabled (Lyrics, Metadata, Radio)</item>
+    </plurals>
+    <string name="settings_scrobbling_description">ListenBrainz, Libre.fm and Last.fm listening sync</string>
+    <string name="settings_listening_room">Listening Room</string>
+    <plurals name="settings_listening_room_hosting">
+        <item quantity="one">Hosting · %d connected</item>
+        <item quantity="other">Hosting · %d connected</item>
+    </plurals>
+    <string name="settings_listening_room_following">Following %1$s</string>
+    <string name="settings_listening_room_following_room">Following a room</string>
+    <string name="settings_listening_room_inactive">Share playback with people on this Wi-Fi</string>
+
+    <string name="settings_data_updates_section">Data &amp; Updates</string>
+    <string name="settings_privacy_security">Privacy &amp; Security</string>
+    <string name="settings_privacy_security_description">Listening data and saved server credentials</string>
+    <string name="settings_backup_restore">Backup &amp; Restore</string>
+    <string name="settings_backup_restore_description">Keep library, playlists, and settings safe</string>
+
+    <string name="settings_support_about_section">Support &amp; About</string>
+    <string name="settings_about_legal">About &amp; Legal</string>
+    <string name="settings_about_legal_description">Audio DSP, data sources, privacy &amp; permissions</string>
+    <string name="settings_credits">Credits &amp; Attribution</string>
+    <string name="settings_credits_description">Contributors, open source libraries, and fonts</string>
+    <string name="settings_github_sponsors" translatable="false">GitHub Sponsors</string>
+    <string name="settings_github_sponsors_description">Support development on GitHub Sponsors</string>
+    <string name="settings_kofi" translatable="false">Ko-fi</string>
+    <string name="settings_kofi_description">Support development on Ko-fi</string>
+    <string name="settings_buy_me_a_coffee" translatable="false">Buy Me a Coffee</string>
+    <string name="settings_buy_me_a_coffee_description">Support development on Buy Me a Coffee</string>
+    <string name="settings_sponsor_note">20% of sponsorship proceeds fund free lyrics infrastructure on LRCLIB.</string>
+
+    <string name="settings_service_deezer" translatable="false">Deezer</string>
+    <string name="settings_service_audiodb" translatable="false">TheAudioDB</string>
+    <string name="settings_service_lrclib" translatable="false">LrcLib</string>
+    <string name="settings_service_cover_art_archive" translatable="false">MusicBrainz</string>
+    <string name="settings_service_wikipedia" translatable="false">Wikipedia</string>
+    <string name="settings_service_github" translatable="false">GitHub</string>
+    <string name="settings_service_radio_browser" translatable="false">Radio Browser</string>
+    <string name="settings_service_deezer_description">Artist images and album artwork</string>
+    <string name="settings_service_audiodb_description">Fallback for artist images</string>
+    <string name="settings_service_lrclib_description">Synced lyrics when a track has none embedded</string>
+    <string name="settings_service_cover_art_archive_description">Song details and album covers from MusicBrainz and the Cover Art Archive</string>
+    <string name="settings_service_wikipedia_description">About descriptions for artists and albums</string>
+    <string name="settings_service_github_description">Check for newer app releases</string>
+    <string name="settings_service_radio_browser_description">Search and browse internet radio stations</string>
+    <string name="settings_service_paused">%1$s · Paused by Offline Blackout Mode</string>
+
+    <string name="settings_server_paused">Paused by Offline Blackout Mode</string>
+    <string name="settings_server_checking">Checking connection…</string>
+    <string name="settings_server_unavailable">Unavailable · %1$s</string>
+    <string name="settings_server_unavailable_checked">Unavailable · %1$s · checked %2$s</string>
+    <plurals name="settings_server_songs">
+        <item quantity="one">%1$s · %2$d song</item>
+        <item quantity="other">%1$s · %2$d songs</item>
+    </plurals>
+    <plurals name="settings_server_songs_refreshed">
+        <item quantity="one">%1$s · %2$d song · refreshed %3$s</item>
+        <item quantity="other">%1$s · %2$d songs · refreshed %3$s</item>
+    </plurals>
+    <string name="settings_server_retry">Retry %1$s</string>
+
+    <string name="settings_check_updates">Check for Updates</string>
+    <string name="settings_updates_disabled">Disabled above</string>
+    <string name="settings_updates_tap">Tap to check</string>
+    <string name="settings_updates_current">You’re up to date</string>
+    <string name="settings_updates_available">Version %1$s available, tap to view</string>
+    <string name="update_prompt_title">Update available</string>
+    <string name="update_prompt_message">CassetteCat %1$s is ready to download. Your library, playlists and settings stay as they are.</string>
+    <string name="settings_updates_failed">Couldn’t check, tap to retry</string>
+    <string name="connect_error_unknown_host">Couldn\'t find that server. Check the URL.</string>
+    <string name="connect_error_unreachable">Couldn\'t reach the server. Check the URL and that it\'s running.</string>
+    <string name="connect_error_timeout">The server took too long to respond. Check the URL and your connection.</string>
+    <string name="connect_error_generic">Couldn\'t connect</string>
+    <string name="connect_error_quick_connect_expired">The Quick Connect code expired. Try again.</string>
+
+    <!-- Customisation -->
+    <string name="customization_title">Customisation</string>
+    <string name="customization_theme">Theme</string>
+    <string name="customization_theme_summary">%1$s · AMOLED %2$s</string>
+    <string name="customization_startup_library">Startup &amp; Library</string>
+    <string name="customization_startup_summary">%1$s · %2$s tab</string>
+    <string name="customization_now_playing">Now Playing &amp; Gestures</string>
+    <string name="customization_corner_summary">%1$s corners</string>
+    <string name="customization_audio_engine">Audio Engine</string>
+    <string name="customization_audio_summary">%1$s · ReplayGain %2$s</string>
+    <string name="customization_lyrics">Lyrics</string>
+    <string name="customization_lyrics_summary">%1$s size · %2$s</string>
+    <string name="customization_storage">Storage &amp; Cache</string>
+    <string name="customization_storage_summary">Downloads, library filtering, fixing tags and duplicates</string>
+    <string name="customization_home_feed">Home Feed</string>
+    <string name="customization_home_summary">%1$d of 4 sections shown</string>
+    <string name="customization_on">on</string>
+    <string name="customization_off">off</string>
+    <string name="customization_crossfade_off">Crossfade off</string>
+    <string name="customization_crossfade_summary">%1$ds crossfade</string>
+
+    <string name="customization_accent_palette">Accent Palette</string>
+    <string name="customization_accent_palette_description">Controls highlights, active sliders, and indicators</string>
+    <string name="customization_custom_accent">Custom</string>
+    <string name="customization_amoled_title">Pure Black (AMOLED Mode)</string>
+    <string name="customization_amoled_description">Use a true #000000 background on OLED displays</string>
+    <string name="customization_artwork_accent">Artwork Accent</string>
+    <string name="customization_artwork_accent_description">Use the current album artwork colour while music is playing</string>
+    <string name="customization_mini_progress">Mini-Player Progress</string>
+    <string name="customization_mini_progress_description">Show a thin progress line on the mini-player</string>
+    <string name="customization_mini_action">Mini-Player Action</string>
+    <string name="customization_mini_action_description">Choose the button beside play and pause</string>
+    <string name="customization_app_typography">App Typography</string>
+    <string name="customization_app_typography_description">Choose the font family used throughout the app</string>
+    <string name="customization_custom_colour_title">Custom Accent Colour</string>
+    <string name="customization_hex_colour">Hex colour</string>
+    <string name="customization_hex_placeholder" translatable="false">C23B30</string>
+    <string name="customization_apply">Apply</string>
+
+    <string name="customization_start_screen">Start Screen</string>
+    <string name="customization_start_screen_description">Choose where CassetteCat opens</string>
+    <string name="customization_default_library_tab">Default Library Tab</string>
+    <string name="customization_default_library_tab_description">Choose the section shown when you open the Library</string>
+    <string name="customization_library_tabs">Library Tabs</string>
+    <plurals name="customization_library_tabs_summary">
+        <item quantity="one">%1$d of %2$d shown · Reorder and visibility</item>
+        <item quantity="other">%1$d of %2$d shown · Reorder and visibility</item>
+    </plurals>
+    <string name="customization_grid_columns">Grid Columns</string>
+    <string name="customization_grid_columns_description">Card sizing for albums and artists</string>
+    <plurals name="customization_columns">
+        <item quantity="one">%1$d Column</item>
+        <item quantity="other">%1$d Columns</item>
+    </plurals>
+    <string name="customization_song_density">Song Row Density</string>
+    <string name="customization_song_density_description">Detailed shows album and quality badges. Compact fits more tracks.</string>
+    <string name="customization_default_sort">Default Sort Order</string>
+    <string name="customization_default_sort_description">How the song list is sorted when you first open it</string>
+    <string name="customization_format_badges">Show Audio Format Badges</string>
+    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows</string>
+
+    <string name="customization_album_corner">Album Art Corner Style</string>
+    <string name="customization_album_corner_description">Choose rounded or square album art</string>
+    <string name="customization_corner_curved_description">Modern 16dp rounded corners</string>
+    <string name="customization_corner_soft_description">Subtle 8dp rounded corners</string>
+    <string name="customization_corner_square_description">Classic square album art</string>
+    <string name="customization_backdrop">Backdrop Style</string>
+    <string name="customization_backdrop_description">Choose the background style for Now Playing</string>
+    <string name="customization_blurred_background">Blurred Background</string>
+    <string name="customization_blurred_background_description">Show blurred album art behind Now Playing</string>
+    <string name="customization_remaining_time">Show Remaining Time</string>
+    <string name="customization_remaining_time_description">Show a countdown such as -02:45 instead of the full track length</string>
+    <string name="customization_mini_swipe">Mini-Player Swipe to Skip</string>
+    <string name="customization_mini_swipe_description">Swipe across the mini-player to change tracks</string>
+    <string name="customization_swipe_lyrics">Swipe Up on Art for Lyrics</string>
+    <string name="customization_swipe_lyrics_description">Swipe up on the artwork to open synced lyrics</string>
+    <string name="customization_flip_pause">Flip to Pause</string>
+    <string name="customization_flip_pause_description">Place your phone face-down to pause, then pick it up to resume</string>
+    <string name="customization_wave_skip">Wave to Skip</string>
+    <string name="customization_wave_skip_description">Wave over the proximity sensor to skip to the next track</string>
+    <string name="customization_shake_skip">Shake to Skip</string>
+    <string name="customization_shake_skip_description">Shake your phone to skip to the next track</string>
+    <string name="customization_shake_sensitivity">Shake Sensitivity</string>
+    <string name="customization_shake_sensitivity_description">Choose how firmly you need to shake the device</string>
+    <string name="customization_shake_gentle">Gentle</string>
+    <string name="customization_shake_light">Light</string>
+    <string name="customization_shake_medium">Medium</string>
+    <string name="customization_shake_firm">Firm</string>
+    <string name="customization_shake_strong">Strong</string>
+
+    <string name="customization_crossfade_duration">Crossfade Duration</string>
+    <string name="customization_crossfade_duration_description">Fade between track transitions</string>
+    <string name="customization_seconds_short">%1$ds</string>
+    <string name="customization_gapless">Gapless Playback</string>
+    <string name="customization_gapless_description">Remove gaps between continuous tracks</string>
+    <string name="customization_skip_silence">Skip Silence</string>
+    <string name="customization_skip_silence_description">Skip quiet stretches, such as long pauses in live recordings and podcasts</string>
+    <string name="customization_replaygain">Volume Normalisation (ReplayGain)</string>
+    <string name="customization_replaygain_description">Keep loudness more consistent between tracks</string>
+    <string name="customization_replaygain_preamp">ReplayGain Pre-Amp Gain</string>
+    <string name="customization_replaygain_preamp_description">Adjust tracks that do not include loudness tags</string>
+    <string name="customization_mono_audio">Mono Audio Downmix</string>
+    <string name="customization_mono_audio_description">Combine left and right channels for single-earbud listening</string>
+    <string name="customization_volume_limit">Volume Limit (Ear Protection)</string>
+    <string name="customization_volume_limit_description">Cap the maximum playback level</string>
+    <string name="customization_max_volume">Maximum Volume</string>
+    <string name="customization_max_volume_description">Set the loudest level CassetteCat can play</string>
+    <string name="customization_percent">%1$d%%</string>
+    <string name="customization_resume_queue">Resume Queue on Launch</string>
+    <string name="customization_resume_queue_description">Restore the active track and queue on startup</string>
+    <string name="customization_autoplay">Autoplay</string>
+    <string name="customization_autoplay_description">Keep playing similar songs when the queue ends</string>
+    <string name="customization_pause_disconnect">Pause on Disconnect</string>
+    <string name="customization_pause_disconnect_description">Pause when headphones or Bluetooth audio disconnect</string>
+    <string name="customization_drive_mode">Auto Drive Mode</string>
+    <string name="customization_drive_mode_description">Open Drive Mode when car Bluetooth audio connects</string>
+    <string name="customization_haptics">Tactile Haptic Feedback</string>
+    <string name="customization_haptics_description">Use vibration ticks when scrubbing, scrolling, and tapping</string>
+
+    <string name="customization_lyrics_font_size">Lyrics Font Size</string>
+    <string name="customization_lyrics_font_size_description">Text size for synced lyrics</string>
+    <string name="customization_lyrics_font_family">Lyrics Font Family</string>
+    <string name="customization_lyrics_font_family_description">Choose the typeface used for lyrics</string>
+    <string name="customization_lyrics_alignment">Lyrics Text Alignment</string>
+    <string name="customization_lyrics_alignment_description">Choose centred or left-aligned lyrics</string>
+    <string name="customization_lyrics_active_style">Active Line Focus Style</string>
+    <string name="customization_lyrics_active_style_description">Choose how the current lyric line is highlighted</string>
+    <string name="customization_keep_awake">Keep Screen Awake for Lyrics</string>
+    <string name="customization_keep_awake_description">Prevent the display from sleeping while lyrics are open</string>
+    <string name="customization_local_lrc">Prioritize Local .lrc Sidecars</string>
+    <string name="customization_local_lrc_description">Use local .lrc files before looking online</string>
+
+    <string name="customization_streaming_cache">Streaming Cache Quota</string>
+    <string name="customization_streaming_cache_description">Maximum storage used for cached streamed audio</string>
+    <string name="customization_mb">%1$d MB</string>
+    <string name="customization_gb">%1$d GB</string>
+    <string name="customization_auto_cache">Auto-Cache Favourite Tracks</string>
+    <string name="customization_auto_cache_description">Cache tracks automatically when you mark them as favourite</string>
+    <string name="customization_ignore_short">Ignore Short Audio Clips</string>
+    <string name="customization_ignore_short_description">Hide audio shorter than 30 seconds, such as ringtones and voice notes</string>
+    <string name="customization_custom_covers">Custom Album Covers</string>
+    <string name="customization_no_custom_covers">No custom covers applied</string>
+    <plurals name="customization_custom_cover_summary">
+        <item quantity="one">%1$d cover (%2$s) · Tap to reset</item>
+        <item quantity="other">%1$d covers (%2$s) · Tap to reset all</item>
+    </plurals>
+    <string name="customization_reset_covers_title">Reset all custom covers?</string>
+    <plurals name="customization_reset_covers_message">
+        <item quantity="one">This will delete the custom cover and return to the artwork in the media file.</item>
+        <item quantity="other">This will delete all %1$d custom covers and return to the artwork in the media files.</item>
+    </plurals>
+    <string name="customization_reset_all">Reset All</string>
+
+    <string name="customization_reorder">Reorder %1$s</string>
+    <string name="customization_move_up">Move up</string>
+    <string name="customization_move_down">Move down</string>
+
+    <string name="customization_theme_record_red">Record Red</string>
+    <string name="customization_theme_cassette_amber">Cassette Amber</string>
+    <string name="customization_theme_electric_cyan">Electric Cyan</string>
+    <string name="customization_theme_neon_emerald">Neon Emerald</string>
+    <string name="customization_theme_tape_magenta">Tape Magenta</string>
+    <string name="customization_theme_monochrome">Monochrome</string>
+
+    <string name="customization_library_songs">Songs</string>
+    <string name="customization_library_artists">Artists</string>
+    <string name="customization_library_albums">Albums</string>
+    <string name="customization_library_genres">Genres</string>
+    <string name="customization_library_playlists">Playlists</string>
+    <string name="customization_library_folders">Folders</string>
+
+    <string name="customization_home_heavy_rotation">Heavy Rotation</string>
+    <string name="customization_home_recently_played">Recently Played</string>
+    <string name="customization_home_recently_added">Recently Added</string>
+    <string name="customization_home_forgotten_favorites">Forgotten Favorites</string>
+
+    <string name="customization_mini_next">Next track</string>
+    <string name="customization_mini_previous">Previous track</string>
+    <string name="customization_mini_favorite">Favorite</string>
+    <string name="customization_mini_queue">Queue</string>
+    <string name="customization_mini_repeat">Repeat mode</string>
+
+    <string name="customization_corner_curved">Curved</string>
+    <string name="customization_corner_curved_full">Curved (16dp)</string>
+    <string name="customization_corner_soft">Soft</string>
+    <string name="customization_corner_soft_full">Soft (8dp)</string>
+    <string name="customization_corner_square">Square</string>
+    <string name="customization_corner_square_full">Vinyl / Square (0dp)</string>
+
+    <string name="customization_start_home">Home</string>
+    <string name="customization_start_library">Library</string>
+    <string name="customization_start_last">Last active tab</string>
+
+    <string name="customization_size_small">Small</string>
+    <string name="customization_size_standard">Standard</string>
+    <string name="customization_size_large">Large</string>
+    <string name="customization_density_detailed">Detailed</string>
+    <string name="customization_density_compact">Compact</string>
+    <string name="customization_sort_title">Title</string>
+    <string name="customization_sort_artist">Artist</string>
+    <string name="customization_sort_album">Album</string>
+    <string name="customization_alignment_center">Centre (Karaoke)</string>
+    <string name="customization_alignment_left">Left (Editorial)</string>
+    <string name="customization_active_accent">Accent Glow</string>
+    <string name="customization_active_white">Pure White</string>
+
+    <string name="customization_font_space_grotesk" translatable="false">Space Grotesk</string>
+    <string name="customization_font_space_grotesk_full">Space Grotesk (Default)</string>
+    <string name="customization_font_ibm_sans" translatable="false">IBM Plex Sans</string>
+    <string name="customization_font_ibm_sans_full">IBM Plex Sans (Clean UI)</string>
+    <string name="customization_font_ibm_mono" translatable="false">IBM Plex Mono</string>
+    <string name="customization_font_ibm_mono_full">IBM Plex Mono (Retro Tech)</string>
+    <string name="customization_font_silkscreen" translatable="false">Silkscreen</string>
+    <string name="customization_font_silkscreen_full">Silkscreen (8-bit Arcade)</string>
+    <string name="customization_font_vt323" translatable="false">VT323</string>
+    <string name="customization_font_vt323_full">VT323 (Retro CRT Terminal)</string>
+    <string name="customization_font_monocraft" translatable="false">Monocraft</string>
+    <string name="customization_font_monocraft_full">Monocraft (Pixel Monospace)</string>
+    <string name="customization_font_system_sans">System Sans</string>
+    <string name="customization_font_system_sans_full">System Default (Sans-serif)</string>
+    <string name="customization_font_system_serif">System Serif</string>
+    <string name="customization_font_system_serif_full">System Serif (Editorial)</string>
+    <string name="customization_font_system_mono">System Mono</string>
+    <string name="customization_font_system_mono_full">System Monospace</string>
+
+    <string name="customization_lyrics_font_silkscreen">Silkscreen (8-bit)</string>
+    <string name="customization_lyrics_font_vt323">VT323 (CRT)</string>
+    <string name="customization_lyrics_font_monocraft">Monocraft (Pixel)</string>
+    <string name="customization_lyrics_font_system_sans">System Sans-serif</string>
+    <string name="customization_lyrics_font_system_serif">System Serif</string>
+    <string name="customization_lyrics_font_system_mono">System Monospace</string>
+
+    <string name="customization_backdrop_atmosphere">Atmosphere Blur</string>
+    <string name="customization_backdrop_atmosphere_description">Blurred album art with a dark scrim</string>
+    <string name="customization_backdrop_liquid">Liquid Gradient</string>
+    <string name="customization_backdrop_liquid_description">A moving colour gradient based on the artwork</string>
+    <string name="customization_backdrop_glow">Ambient Glow</string>
+    <string name="customization_backdrop_glow_description">A soft glow behind the album artwork</string>
+    <string name="customization_backdrop_oled">Obsidian</string>
+    <string name="customization_backdrop_oled_description">A true black background with subtle contrast</string>
+
+    <!-- Accent colours -->
+    <string name="customization_theme_record_red_short">Record</string>
+    <string name="customization_theme_cassette_amber_short">Cassette</string>
+    <string name="customization_theme_electric_cyan_short">Electric</string>
+    <string name="customization_theme_neon_emerald_short">Neon</string>
+    <string name="customization_theme_tape_magenta_short">Tape</string>
+    <string name="customization_theme_monochrome_short">Monochrome</string>
+
+    <!-- Library -->
+    <string name="library_title">Library</string>
+    <string name="library_cancel_selection">Cancel selection</string>
+    <string name="library_import_playlist">Import playlist</string>
+    <string name="library_new_playlist">New playlist</string>
+    <string name="library_play_all">Play all</string>
+    <string name="library_shuffle_all">Shuffle all</string>
+    <string name="library_refine">Refine library</string>
+    <string name="library_empty_message">Try switching sources or clearing filters.</string>
+    <string name="library_no_songs">No songs found</string>
+    <string name="library_no_favorite_songs">No favorite songs found</string>
+    <string name="library_no_downloaded_songs">No downloaded songs found</string>
+    <string name="library_no_recent_songs">No recently added songs found</string>
+    <string name="library_no_artists">No artists found</string>
+    <string name="library_no_albums">No albums found</string>
+    <string name="library_no_genres">No genres found</string>
+    <string name="library_no_folders">No folders found</string>
+    <string name="library_song_options">Song options</string>
+    <string name="library_play">Play</string>
+    <string name="library_add_to_queue">Add to Queue</string>
+    <string name="library_add_to_queue_description">Append to the end of your current queue</string>
+    <string name="library_add_to_playlist">Add to Playlist</string>
+    <string name="library_add_to_playlist_description">Save track to a custom playlist</string>
+    <string name="library_edit_details">Edit Details</string>
+    <string name="library_edit_details_description">Title, artist, album, genre &amp; year</string>
+    <string name="library_search_cover">Search Album Cover Online</string>
+    <string name="library_search_cover_description">Find and apply high-resolution artwork</string>
+    <string name="library_reset_cover">Reset to Original Cover</string>
+    <string name="library_reset_cover_description">Restore default embedded artwork</string>
+    <string name="library_delete_from_device">Delete from Device</string>
+    <string name="library_delete_from_device_description">Permanently remove this file</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="library_songs">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="library_artists">
+        <item quantity="one">%1$d artist</item>
+        <item quantity="other">%1$d artists</item>
+    </plurals>
+    <plurals name="library_albums">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+    <plurals name="library_genres">
+        <item quantity="one">%1$d genre</item>
+        <item quantity="other">%1$d genres</item>
+    </plurals>
+    <plurals name="library_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <plurals name="library_collections">
+        <item quantity="one">%1$d collection</item>
+        <item quantity="other">%1$d collections</item>
+    </plurals>
+    <string name="library_offline">Offline</string>
+    <string name="library_use_list_layout">Use list layout</string>
+    <string name="library_use_artwork_layout">Use artwork layout</string>
+    <string name="library_change_cover">Change cover</string>
+    <string name="library_remove_custom_cover">Remove custom cover</string>
+    <string name="library_playlist_imported">Playlist imported</string>
+    <plurals name="library_playlist_imported_message">
+        <item quantity="one">Imported “%1$s”: %2$d of %3$d song matched.</item>
+        <item quantity="other">Imported “%1$s”: %2$d of %3$d songs matched.</item>
+    </plurals>
+    <string name="library_refine_and_sort">Refine &amp; Sort</string>
+    <string name="library_reset">Reset</string>
+    <string name="library_section_source">SOURCE</string>
+    <string name="library_section_filter_by">FILTER BY</string>
+    <string name="library_section_sort_by">SORT BY</string>
+    <string name="library_sort_by">Sort By</string>
+    <string name="library_no_playlists">No playlists yet.</string>
+    <string name="library_liked">Liked</string>
+    <string name="library_favorite">Favorite</string>
+    <string name="library_play_next">Play Next</string>
+    <string name="library_play_next_on_computer">Play Next on Computer</string>
+    <string name="library_play_next_on_computer_description">Queue it after the computer’s current song, if its library has it</string>
+    <string name="toast_playing_next_on_computer">Sent to your computer</string>
+    <string name="toast_computer_unreachable">Couldn’t reach your computer</string>
+    <string name="library_get_from_computer">Get a playlist from your computer</string>
+    <string name="library_browse_computer">Browse your computer’s music</string>
+    <string name="computer_library_title">Music on %1$s</string>
+    <string name="computer_library_title_fallback">Music on Your Computer</string>
+    <string name="computer_library_plays_on_computer">Tap a song to play it on your computer.</string>
+    <string name="computer_library_plays_here">Tap a song to stream it to this phone over Wi-Fi.</string>
+    <string name="computer_library_search">Search songs, artists, albums</string>
+    <string name="computer_library_empty">Your computer’s library is empty.</string>
+    <string name="computer_library_no_match">No songs match your search.</string>
+    <string name="computer_library_needs_update">Update CassetteCat on your computer to browse its music from here.</string>
+    <string name="computer_library_play_here">Play on This Phone</string>
+    <string name="computer_library_play_here_description">Stream it from your computer over Wi-Fi</string>
+    <string name="computer_library_play_on_computer">Play on Computer</string>
+    <string name="computer_library_play_on_computer_description">Play it on your computer’s speakers</string>
+    <string name="toast_playing_on_computer">Playing on your computer</string>
+    <string name="library_computer_playlists">Playlists on Your Computer</string>
+    <string name="library_computer_playlists_loading">Looking on your computer…</string>
+    <string name="library_computer_playlists_empty">Your computer has no playlists yet.</string>
+    <string name="playlist_action_send_to_computer">Send to Computer</string>
+    <string name="playlist_action_send_to_computer_desc">Copy it to your computer, replacing one with the same name</string>
+    <plurals name="toast_playlist_sent">
+        <item quantity="one">Sent to your computer: %1$d of %2$d song</item>
+        <item quantity="other">Sent to your computer: %1$d of %2$d songs</item>
+    </plurals>
+    <string name="library_share">Share</string>
+    <string name="library_select_all">Select All</string>
+    <string name="library_queue">Queue</string>
+    <string name="library_playlist">Playlist</string>
+    <string name="library_download">Download</string>
+    <string name="library_cover">Cover</string>
+    <string name="library_liked_songs_title">Liked Songs</string>
+    <string name="library_about_artist">About the Artist</string>
+    <string name="library_delete_song_title">Delete “%1$s”?</string>
+    <string name="library_delete_song_message">This permanently removes the file from your device. This can’t be undone.</string>
+    <string name="library_action_download_album">Download Album</string>
+    <string name="library_action_download_album_desc">Save album for offline playback</string>
+    <string name="library_action_download_folder">Download folder</string>
+    <string name="library_action_download_all_songs">Download all songs</string>
+    <string name="library_album_play_next_desc">Add album tracks next in queue</string>
+    <string name="library_album_add_to_playlist_desc">Add all tracks to a playlist</string>
+    <string name="library_share_album">Share Album</string>
+    <string name="library_share_album_desc">Share album link or info</string>
+    <string name="library_section_details">DETAILS</string>
+    <string name="library_section_about">ABOUT</string>
+    <string name="library_show_less">Show less</string>
+    <string name="library_read_more">Read more</string>
+    <string name="library_wikipedia_source">Wikipedia</string>
+    <string name="library_wikipedia_license">Description source / CC BY-SA</string>
+    <string name="tag_editor_title">Title</string>
+    <string name="tag_editor_title_placeholder">Song title</string>
+    <string name="tag_editor_artist">Artist</string>
+    <string name="tag_editor_artist_placeholder">Artist name</string>
+    <string name="tag_editor_album">Album</string>
+    <string name="tag_editor_album_placeholder">Album title</string>
+    <string name="tag_editor_genre">Genre</string>
+    <string name="tag_editor_genre_placeholder">e.g. Rock, Pop, Electronic</string>
+    <string name="tag_editor_year">Release Year</string>
+    <string name="tag_editor_year_placeholder">e.g. 2024</string>
+    <string name="tag_editor_revert">Revert to Original Tags</string>
+    <string name="tag_editor_fill_musicbrainz">Fill from MusicBrainz</string>
+    <string name="tag_editor_looking_up">Looking Up…</string>
+    <string name="tag_editor_musicbrainz_filled">MusicBrainz filled in new details. Check them, then save.</string>
+    <string name="tag_editor_musicbrainz_agrees">MusicBrainz agrees with these details.</string>
+    <string name="tag_editor_musicbrainz_no_match">MusicBrainz has no confident match for this song.</string>
+    <string name="tag_editor_musicbrainz_unreachable">Couldn\'t reach MusicBrainz. Check your connection and try again.</string>
+    <string name="tag_editor_musicbrainz_off">MusicBrainz is turned off. Turn it on in External Services to use this.</string>
+    <string name="tag_editor_heading">Edit Song Details</string>
+    <string name="tag_editor_description">Custom overrides are saved locally for this track</string>
+    <string name="tag_editor_description_batch">Only the fields you change are saved to each song</string>
+    <string name="tag_editor_mixed">Mixed</string>
+    <string name="library_edit_tags">Edit Tags</string>
+    <string name="tag_editor_save_changes">Save Changes</string>
+    <string name="playlist_add_songs">Add Songs</string>
+    <string name="playlist_export_skipped_title">Some songs weren’t included</string>
+    <plurals name="playlist_export_skipped">
+        <item quantity="one">%1$d streamed song was not included, only local files can be exported.</item>
+        <item quantity="other">%1$d streamed songs were not included, only local files can be exported.</item>
+    </plurals>
+    <string name="playlist_delete_confirm_title">Delete “%1$s”?</string>
+    <string name="playlist_delete_confirm_message">This can’t be undone.</string>
+    <string name="playlist_action_change_cover">Change Cover</string>
+    <string name="playlist_action_change_cover_desc">Customize playlist artwork or emoji</string>
+    <string name="playlist_action_download_all">Download All</string>
+    <string name="playlist_action_download_all_desc">Save all playlist tracks for offline listening</string>
+    <string name="playlist_action_export">Export as M3U8</string>
+    <string name="playlist_action_export_desc">Export playlist playlist file to storage</string>
+    <string name="playlist_action_rename">Rename Playlist</string>
+    <string name="playlist_action_rename_desc">Update playlist title and rules</string>
+    <string name="playlist_action_delete">Delete Playlist</string>
+    <string name="playlist_action_delete_desc">Permanently remove this playlist</string>
+    <string name="playlist_search_placeholder">Search songs</string>
+    <string name="playlist_create_smart">Create Smart Playlist</string>
+    <string name="playlist_cover_remove">Remove Cover</string>
+    <string name="cover_tab_photo">Photo</string>
+    <string name="cover_tab_icon">Icon</string>
+    <string name="cover_tab_emoji">Emoji</string>
+    <string name="cover_saving">Saving…</string>
+    <string name="cover_choose_from_photos">Choose from Photos</string>
+    <string name="playlist_smart_name_placeholder">Smart Playlist name (e.g. 90s Favorites)</string>
+    <string name="playlist_name_placeholder">Playlist name</string>
+    <string name="playlist_auto_filter_rules">AUTO-FILTER RULES</string>
+    <string name="smart_rule_recently_added">Recently Added (Last 30 Days)</string>
+    <string name="smart_rule_favorites_only">Favorited Tracks Only</string>
+    <string name="smart_rule_min_duration">Long Jams (&gt; 5 min)</string>
+    <string name="smart_rule_max_duration">Quick Bites (&lt; 3 min)</string>
+    <string name="smart_rule_decade_90s">90s Throwback</string>
+    <string name="smart_rule_decade_2000s">2000s Hits</string>
+    <string name="smart_rule_decade_2010s">2010s Hits</string>
+    <string name="smart_rule_decade_2020s">2020s Contemporary</string>
+    <string name="search_section_top_artists">Top Artists</string>
+    <string name="search_section_explore_genres">Explore Genres</string>
+    <string name="search_section_artists">Artists</string>
+    <string name="search_section_albums">Albums</string>
+    <string name="search_section_songs">Songs</string>
+    <string name="search_section_genres">Genres</string>
+    <string name="search_section_folders">Folders</string>
+    <string name="search_category_all">All</string>
+    <string name="search_recent_searches">Recent Searches</string>
+
+    <string name="search_album_placeholder">Album</string>
+    <string name="search_artist_placeholder">Artist</string>
+    <string name="queue_section_history">History</string>
+    <string name="queue_section_playing_next">Playing Next</string>
+    <string name="queue_remove_from_queue">Remove from queue</string>
+    <string name="queue_drag_to_reorder">Drag to reorder</string>
+    <string name="queue_empty">Queue is empty</string>
+    <string name="desc_download_smart_playlist">Download smart playlist</string>
+    <string name="desc_sort_by">Sort by</string>
+    <string name="desc_playlist_options">Playlist options</string>
+    <string name="desc_download_liked_songs">Download liked songs</string>
+    <string name="desc_download_album">Download album</string>
+    <string name="desc_album_actions">Album actions</string>
+    <string name="desc_search_cover_online">Search album cover online</string>
+    <string name="desc_remove_folder_cover">Remove folder cover</string>
+    <string name="desc_change_folder_cover">Change folder cover</string>
+    <string name="desc_refine_tracks">Refine tracks</string>
+    <string name="desc_downloaded">Downloaded</string>
+    <string name="desc_download_failed">Download failed</string>
+    <string name="cover_choose_album_cover">Choose album cover</string>
+    <string name="cover_unknown_album">Unknown Album</string>
+    <string name="cover_unknown_artist">Unknown Artist</string>
+    <string name="cover_searching_catalogs">Searching catalogs…</string>
+    <plurals name="cover_artworks_found">
+        <item quantity="one">%1$d artwork found</item>
+        <item quantity="other">%1$d artworks found</item>
+    </plurals>
+    <string name="cover_select_prompt">Select a cover to apply</string>
+    <string name="cover_choose_from_device">Choose from device</string>
+    <string name="cover_revert_to_original">Revert to original</string>
+    <string name="cover_no_covers_found">No covers found</string>
+    <string name="cover_no_covers_suggestion">Try editing the album or artist search terms</string>
+    <string name="cover_applied_toast">Cover applied from device</string>
+    <string name="cover_failed_load_toast">Failed to load image</string>
+    <string name="cover_removed_toast">Custom cover removed</string>
+    <string name="cover_updated_toast">Album cover updated</string>
+    <string name="cover_failed_download_toast">Failed to download cover</string>
+    <string name="smart_playlist_top_50_title">Top 50 Most Played</string>
+    <string name="smart_playlist_top_50_desc">Your most listened tracks of all time</string>
+    <string name="smart_playlist_recently_added_title">Recently Added</string>
+    <string name="smart_playlist_recently_added_desc">Newest tracks in your library</string>
+    <string name="smart_playlist_forgotten_gems_title">Forgotten Gems</string>
+    <string name="smart_playlist_forgotten_gems_desc">Tracks you have not listened to recently</string>
+    <string name="smart_playlist_heavy_rotation_title">Heavy Rotation</string>
+    <string name="smart_playlist_heavy_rotation_desc">Your top repeats and favorites</string>
+    <string name="smart_playlist_extended_cuts_title">Extended Mixes</string>
+    <string name="smart_playlist_extended_cuts_desc">Long plays and deep cuts over 5 minutes</string>
+    <string name="smart_playlist_vintage_hits_title">Vintage Classics</string>
+    <string name="smart_playlist_vintage_hits_desc">Tracks released before 2005</string>
+    <string name="smart_playlist_empty_title">No songs found</string>
+    <string name="smart_playlist_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="smart_playlist_duration_minutes">%1$d min</string>
+    <string name="library_filter_all_songs">All songs</string>
+    <string name="library_filter_favorites">Favorites</string>
+    <string name="library_filter_downloaded">Downloaded</string>
+    <string name="library_filter_recently_added">Recently added</string>
+    <string name="library_source_all">All</string>
+    <string name="library_source_local">Local</string>
+    <string name="library_sort_name">Name</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_artist">Artist</string>
+    <string name="library_sort_album">Album</string>
+    <string name="library_sort_song_count">Song Count</string>
+    <string name="library_sort_playlist_order">Playlist Order</string>
+    <string name="library_sort_a_z">A → Z</string>
+    <string name="library_sort_z_a">Z → A</string>
+    <string name="library_sort_low_high">1 → 9</string>
+    <string name="library_sort_high_low">9 → 1</string>
+    <string name="artist_section_recently_added">Recently Added</string>
+    <string name="artist_section_all_songs">All Songs</string>
+    <string name="artist_section_albums">Albums</string>
+    <string name="artist_section_singles">Singles &amp; EPs</string>
+    <string name="artist_section_appears_on">Appears On</string>
+    <string name="artist_section_popular">Popular Songs</string>
+    <string name="album_section_tracks">Tracks</string>
+    <string name="album_options_title">Album Options</string>
+    <plurals name="library_tracks">
+        <item quantity="one">%1$d track</item>
+        <item quantity="other">%1$d tracks</item>
+    </plurals>
+    <string name="library_imported_playlist_name">Imported Playlist</string>
+    <string name="library_no_music_title">No music found</string>
+    <string name="library_no_music_message">Pull down to rescan, or check your library scan folders.</string>
+    <string name="library_scan_action">Scan Library</string>
+    <string name="playlist_new_title">New Playlist</string>
+    <string name="playlist_empty_title">No songs yet</string>
+    <string name="playlist_empty_message">Add some tracks to start this playlist.</string>
+    <string name="playlist_options_title">Playlist Options</string>
+    <string name="playlist_type_standard">Standard</string>
+    <string name="playlist_type_smart">Smart Rules</string>
+    <string name="playlist_add_song">Add to playlist</string>
+    <string name="playlist_remove_song">Remove from playlist</string>
+    <string name="liked_empty_title">No liked songs yet</string>
+    <string name="liked_empty_message">Tap the heart on any track to keep it here.</string>
+    <string name="search_title">Search</string>
+    <string name="search_subtitle">Find songs, artists, albums, and genres</string>
+    <string name="search_placeholder">Search songs, artists, albums…</string>
+    <string name="search_start_title">Search your library</string>
+    <string name="search_start_message">Find songs, artists, albums, and more.</string>
+    <string name="search_loading_title">Loading your library…</string>
+    <string name="search_loading_message">Search will work once it is ready.</string>
+    <string name="search_no_matches_title">No matches</string>
+    <string name="search_no_matches_message">Nothing found for “%1$s”.</string>
+
+    <!-- Downloads -->
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_storage_used">%1$s of %2$s used</string>
+    <string name="downloads_remove_all_description">Remove all downloads</string>
+    <string name="downloads_wifi_only">Wi-Fi only</string>
+    <string name="downloads_wifi_only_description">Wait for an unmetered network before downloading.</string>
+    <string name="downloads_auto_favorites">Auto-download Favorites</string>
+    <string name="downloads_auto_favorites_description">Automatically download newly favorited streaming songs.</string>
+    <string name="downloads_liked_title">Download Liked Songs</string>
+    <plurals name="downloads_liked_available">
+        <item quantity="one">%d remote liked song available for download</item>
+        <item quantity="other">%d remote liked songs available for download</item>
+    </plurals>
+    <string name="downloads_liked_description">Download liked songs</string>
+    <string name="downloads_remove_oldest">Remove oldest download</string>
+    <string name="downloads_remove_oldest_description">Free space while keeping newer downloads.</string>
+    <string name="downloads_storage_limit">Storage limit</string>
+    <string name="downloads_storage_limit_description">Keep downloaded music within %1$s.</string>
+    <string name="downloads_choose_storage_limit">Choose storage limit</string>
+    <string name="downloads_empty_title">No downloads yet</string>
+    <string name="downloads_empty_message">Download streamed songs to play them without a connection.</string>
+    <string name="downloads_in_progress">In progress</string>
+    <string name="downloads_downloaded">Downloaded</string>
+    <string name="downloads_remove_all_title">Remove all downloads?</string>
+    <string name="downloads_remove_all_message">This frees up storage but you’ll need a connection to play these songs again.</string>
+    <string name="downloads_remove_all_action">Remove All</string>
+    <string name="downloads_remove_oldest_title">Remove oldest download?</string>
+    <string name="downloads_remove_oldest_message">This removes %1$s from offline storage.</string>
+    <string name="downloads_limit_title">Download limit</string>
+    <string name="downloads_limit_message">Choose how much space offline music can use.</string>
+    <string name="downloads_current_limit">Current limit</string>
+    <string name="downloads_offline_storage">Offline music storage</string>
+    <string name="downloads_selected">Selected</string>
+    <string name="downloads_limit_restart_note">Changes apply the next time the download cache starts.</string>
+    <string name="downloads_status_downloading_percent">Downloading %1$d%%</string>
+    <string name="downloads_status_downloading">Downloading</string>
+    <string name="downloads_status_restarting">Restarting</string>
+    <string name="downloads_status_queued">Queued</string>
+    <string name="downloads_cancel_download">Cancel download</string>
+    <string name="downloads_song_storage">%1$s · %2$s</string>
+    <string name="downloads_remove_download">Remove download</string>
+
+    <!-- Radio -->
+    <string name="radio_title">Radio</string>
+    <string name="radio_offline_blackout">Offline Blackout Mode</string>
+    <string name="radio_offline">Offline</string>
+    <string name="radio_filtered_stations">Filtered stations</string>
+    <plurals name="radio_stations_found">
+        <item quantity="one">%1$d station found</item>
+        <item quantity="other">%1$d stations found</item>
+    </plurals>
+    <string name="radio_subtitle">Explore worldwide stations &amp; broadcasts</string>
+    <string name="radio_refine_sort">Refine &amp; sort stations</string>
+    <string name="radio_add_custom_station">Add custom station</string>
+    <string name="radio_search_stations">Search stations…</string>
+    <string name="radio_filter_country">Country: %1$s</string>
+    <string name="radio_filter_state">State: %1$s</string>
+    <string name="radio_filter_language">Language: %1$s</string>
+    <string name="radio_filter_tag">Tag: %1$s</string>
+    <string name="radio_clear_all">Clear all</string>
+    <string name="radio_you_are_offline">You’re offline</string>
+    <string name="radio_offline_blackout_message">All network streaming and external radio lookups are disabled.</string>
+    <string name="radio_offline_message">Connect to the internet to browse and play radio stations.</string>
+    <string name="radio_unreachable">Couldn’t reach Radio Browser</string>
+    <string name="radio_searching">Searching…</string>
+    <string name="radio_no_stations">No stations found</string>
+    <string name="radio_loading">Loading stations…</string>
+    <string name="radio_retry_message">Check your connection and tap to retry.</string>
+    <string name="radio_search_empty_message">Try a different search term.</string>
+    <string name="radio_loading_message">Fetching top stations from Radio Browser.</string>
+    <string name="radio_favorites">Favorites</string>
+    <string name="radio_recently_played">Recently played</string>
+    <string name="radio_search_results">Search results</string>
+    <string name="radio_top_stations">Top stations</string>
+    <string name="radio_filter_by_country">Filter by Country</string>
+    <string name="radio_filter_by_state">Filter by State / Province</string>
+    <string name="radio_filter_by_language">Filter by Language</string>
+    <string name="radio_filter_by_tag">Filter by Genre / Tag</string>
+    <string name="radio_remove_filter">Remove filter</string>
+    <string name="radio_filter_by">Filter by</string>
+    <string name="radio_country">Country</string>
+    <string name="radio_state">State / Province</string>
+    <string name="radio_language">Language</string>
+    <string name="radio_genre_tag">Genre / Tag</string>
+    <string name="radio_sort_stations_by">Sort stations by</string>
+    <string name="radio_all">All</string>
+    <string name="radio_search">Search…</string>
+    <string name="radio_clear_search">Clear search</string>
+    <string name="radio_station_name">Station name</string>
+    <string name="radio_stream_url">Stream URL</string>
+    <string name="radio_invalid_stream_url">Must start with http:// or https://</string>
+    <string name="radio_add">Add</string>
+    <string name="radio_sort_popularity">Popularity</string>
+    <string name="radio_sort_trending">Trending</string>
+    <string name="radio_sort_name">Name</string>
+    <string name="radio_sort_country">Country</string>
+    <string name="radio_sort_bitrate">Bitrate</string>
+    <string name="radio_refresh_stations">Refresh stations</string>
+
+    <!-- Now Playing: controls -->
+    <string name="now_playing_shuffle">Shuffle</string>
+    <string name="now_playing_repeat">Repeat</string>
+    <string name="now_playing_lyrics">Lyrics</string>
+    <string name="now_playing_close_lyrics">Close lyrics</string>
+    <string name="now_playing_queue">Queue</string>
+    <string name="now_playing_close_queue">Close queue</string>
+    <string name="now_playing_live">LIVE</string>
+    <string name="now_playing_connecting">CONNECTING…</string>
+    <string name="now_playing_paused">PAUSED</string>
+    <string name="now_playing_favorite">Favorite</string>
+    <string name="now_playing_unfavorite">Unfavorite</string>
+    <string name="now_playing_more">More</string>
+    <string name="now_playing_save_queue">Save Queue as Playlist</string>
+    <string name="now_playing_share_preparing">Preparing %1$s to share…</string>
+    <string name="now_playing_share_prepare_failed">Couldn’t prepare %1$s to share</string>
+    <string name="now_playing_share_title">Share %1$s</string>
+
+    <string name="lyrics_sync_tune">Tune lyrics sync</string>
+    <string name="lyrics_sync_label">Sync</string>
+    <string name="lyrics_sync_offset_short">%1$+dms</string>
+    <string name="lyrics_sync_nudge_back">-100ms</string>
+    <string name="lyrics_sync_nudge_forward">+100ms</string>
+    <string name="lyrics_sync_zero">Sync: 0ms</string>
+    <string name="lyrics_sync_value">Sync: %1$+dms</string>
+    <string name="lyrics_sync_close">Close sync tuner</string>
+
+    <string name="audio_quality_hires">Hi-Res Lossless Audio</string>
+    <string name="audio_quality_lossless">Lossless Audio</string>
+    <string name="audio_quality_title">Audio Quality</string>
+    <string name="audio_quality_format">Format</string>
+    <string name="audio_quality_sample_rate">Sample Rate</string>
+    <string name="audio_quality_bit_depth">Bit Depth</string>
+    <string name="audio_quality_bitrate">Bitrate</string>
+    <string name="audio_quality_encoding">Encoding</string>
+    <string name="audio_quality_sample_rate_value">%1$d Hz (%2$.1f kHz)</string>
+    <string name="audio_quality_bit_depth_value">%1$d-bit</string>
+    <string name="audio_quality_bitrate_value">%1$d kbps</string>
+    <string name="audio_quality_lossless_encoding">Lossless</string>
+    <string name="audio_quality_lossy_encoding">Lossy Compressed</string>
+
+    <string name="source_subsonic" translatable="false">Subsonic</string>
+    <string name="source_jellyfin" translatable="false">Jellyfin</string>
+    <string name="source_radio">Radio</string>
+    <string name="source_room">Room</string>
+    <string name="source_desktop">Computer</string>
+
+    <string name="drive_mode_title">Drive Mode</string>
+    <string name="drive_mode_exit">Exit Drive Mode</string>
+    <string name="drive_mode_empty_title">No track playing</string>
+    <string name="drive_mode_empty_message">Play a song from your library to start listening in Drive Mode.</string>
+    <string name="mini_player_live">LIVE · %1$s</string>
+
+    <!-- Now Playing: content -->
+    <string name="now_playing_empty_title">Nothing playing</string>
+    <string name="now_playing_empty_message">Choose a track from your library to start listening.</string>
+    <string name="now_playing_browse_library">Browse Library</string>
+
+    <!-- Now Playing: lyrics -->
+    <string name="lyrics_provider_lrclib">Lyrics provided by LRCLIB</string>
+    <string name="lyrics_provider_file_metadata">Lyrics from file metadata</string>
+    <string name="lyrics_provider_local_file">Lyrics from local file</string>
+    <string name="lyrics_written_by">Written by %1$s</string>
+    <string name="lyrics_search_match">Search &amp; match different lyrics</string>
+    <string name="lyrics_loading">Loading lyrics…</string>
+    <string name="lyrics_select_up_to_five">Select up to 5 lines</string>
+    <plurals name="lyrics_selected_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="lyrics_instrumental">Instrumental</string>
+    <string name="lyrics_composed_by">Composed by %1$s</string>
+    <string name="lyrics_no_lyrics">This track has no lyrics</string>
+    <string name="lyrics_search_online">Search Online</string>
+    <string name="lyrics_album_art">Album Art</string>
+
+    <!-- Now Playing: sheets -->
+    <string name="now_playing_output_bluetooth" translatable="false">Bluetooth</string>
+    <string name="now_playing_output_phone_speaker">Phone Speaker</string>
+    <string name="now_playing_timer_under_minute">&lt; 1 min</string>
+    <plurals name="now_playing_timer_remaining">
+        <item quantity="one">%d min remaining</item>
+        <item quantity="other">%d min remaining</item>
+    </plurals>
+    <string name="now_playing_off">Off</string>
+    <string name="now_playing_source_local">Local</string>
+    <string name="now_playing_source_radio_bitrate">Radio · %1$dk</string>
+    <string name="now_playing_liked">Liked</string>
+    <string name="now_playing_share">Share</string>
+    <string name="now_playing_equalizer">Equalizer</string>
+    <string name="now_playing_sleep">Sleep</string>
+    <string name="now_playing_up_next">Up Next</string>
+    <string name="now_playing_mix">Mix</string>
+    <string name="now_playing_share_song_file">Share Song File</string>
+    <string name="now_playing_send_original_audio">Send original audio</string>
+    <string name="now_playing_edit_details">Edit Details</string>
+    <string name="now_playing_edit_details_description">Title, artist, album, genre &amp; year</string>
+    <string name="now_playing_download">Download</string>
+    <string name="now_playing_download_description">Save for offline playback</string>
+    <string name="now_playing_credits_details">Credits &amp; details</string>
+    <string name="now_playing_credits_details_description">Release and source metadata</string>
+    <string name="now_playing_search_cover">Search Album Cover Online</string>
+    <string name="now_playing_search_cover_short">Search Cover Online</string>
+    <string name="now_playing_search_cover_description">Find and apply high-resolution artwork</string>
+    <string name="now_playing_audio_output">Audio output</string>
+    <string name="now_playing_eq_badge" translatable="false">EQ</string>
+    <string name="now_playing_playback_speed">Playback Speed</string>
+    <string name="now_playing_speed_value">%1$sx</string>
+    <string name="now_playing_speed_normal_badge" translatable="false">1.0x</string>
+    <string name="now_playing_listening_room">Listening Room</string>
+    <string name="now_playing_active">Active</string>
+    <string name="now_playing_wifi_audio_sharing">Wi-Fi audio sharing</string>
+    <string name="now_playing_listening_room_hosting">Hosting · %1$s</string>
+    <plurals name="now_playing_listening_room_connected_count">
+        <item quantity="one">%d connected</item>
+        <item quantity="other">%d connected</item>
+    </plurals>
+    <string name="now_playing_listening_room_following">Following %1$s</string>
+    <string name="now_playing_listening_room_fallback_room">a room</string>
+    <string name="now_playing_sleep_timer">Sleep Timer</string>
+    <string name="now_playing_drive_mode_description">Large touch HUD for safe driving</string>
+    <string name="now_playing_section_track">Track &amp; Metadata</string>
+    <string name="now_playing_section_playback">Playback &amp; Output</string>
+    <string name="now_playing_section_features">Features &amp; Modes</string>
+
+    <string name="playback_tuning_title">Tempo &amp; Pitch Tuning</string>
+    <string name="playback_speed_section">PLAYBACK SPEED</string>
+    <string name="playback_speed_normal">1.0x (Normal)</string>
+    <string name="playback_speed_value">%1$sx</string>
+    <string name="playback_pitch_section">PITCH SHIFT</string>
+    <string name="playback_pitch_multiplier">Pitch Multiplier</string>
+    <string name="playback_pitch_normal">Normal (1.0x)</string>
+    <plurals name="playback_pitch_semitones">
+        <item quantity="one">%1$+d semitone (%2$.2fx)</item>
+        <item quantity="other">%1$+d semitones (%2$.2fx)</item>
+    </plurals>
+
+    <string name="listening_room_description">Share playback and the queue only with people on this Wi-Fi. No account, cloud service, analytics, or listening history is sent anywhere.</string>
+    <plurals name="listening_room_host_status">
+        <item quantity="one">Room controls are on this phone • %d connected</item>
+        <item quantity="other">Room controls are on this phone • %d connected</item>
+    </plurals>
+    <string name="listening_room_code">Room code: %1$s</string>
+    <string name="listening_room_manual_address">If a guest can’t find this room automatically, have them enter: %1$s</string>
+    <string name="listening_room_end">End nearby room</string>
+    <string name="listening_room_end_description">Disconnect everyone immediately</string>
+    <string name="listening_room_following_host">Following the host’s playback and queue</string>
+    <string name="listening_room_leave">Leave room</string>
+    <string name="listening_room_leave_description">Return to your own playback controls</string>
+    <string name="listening_room_start">Start a nearby room</string>
+    <string name="listening_room_start_description">Host playback for people on this Wi-Fi</string>
+    <string name="listening_room_nearby">Nearby rooms</string>
+    <string name="listening_room_join_wifi">Join on this Wi-Fi</string>
+    <string name="listening_room_searching">Looking for nearby rooms on this Wi-Fi…</string>
+    <string name="listening_room_join_address">Join by address</string>
+    <string name="listening_room_join_address_description">Can’t find the room automatically? Ask the host for the address and code shown on their screen.</string>
+    <string name="listening_room_join">Join</string>
+
+    <string name="credits_source_local">On-device library</string>
+    <string name="credits_source_subsonic">Subsonic server</string>
+    <string name="credits_source_jellyfin">Jellyfin server</string>
+    <string name="credits_source_room">Streamed from Listening Room host</string>
+    <string name="credits_source_desktop">Playing on your computer</string>
+    <string name="credits_source_computer">Streamed from your computer</string>
+    <string name="credits_source_radio">Internet radio</string>
+    <string name="credits_not_supplied">Not supplied</string>
+    <string name="credits_performing_artist">Performing artist</string>
+    <string name="credits_release">Release</string>
+    <string name="credits_unknown_release">Unknown release</string>
+    <string name="credits_year">Year</string>
+    <string name="credits_genre">Genre</string>
+    <string name="credits_source">Source</string>
+    <string name="credits_missing_fields">Writer, producer, and engineer credits are shown when the active music source supplies them. This track did not include those fields.</string>
+
+    <string name="audio_output_bluetooth_audio">Bluetooth Audio</string>
+    <string name="audio_output_bluetooth_device">Bluetooth Device</string>
+    <string name="audio_output_active">Currently active output</string>
+    <string name="audio_output_phone_speaker_description">Built-in phone speaker</string>
+    <string name="audio_output_bluetooth_settings">Bluetooth Settings</string>
+    <string name="audio_output_connect_bluetooth">Connect Bluetooth Device</string>
+    <string name="audio_output_manage_bluetooth">Manage paired headsets and speakers</string>
+    <string name="audio_output_connect_bluetooth_description">Pair or connect a wireless device</string>
+
+    <string name="go_to_artist">Go to Artist</string>
+    <string name="go_to_album">Go to Album</string>
+    <string name="go_to_playlist">Go to Playlist</string>
+    <string name="go_to_no_playlists">No saved playlists yet</string>
+    <string name="go_to_choose_playlist">Choose a playlist</string>
+    <string name="go_to_no_playlists_sentence">No saved playlists yet.</string>
+    <plurals name="playlist_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+
+    <string name="sleep_timer_end_status">Stopping after current song finishes</string>
+    <plurals name="sleep_timer_minutes_remaining">
+        <item quantity="one">%d minute remaining</item>
+        <item quantity="other">%d minutes remaining</item>
+    </plurals>
+    <string name="sleep_timer_end_current">End of current song</string>
+    <string name="sleep_timer_end_current_description">Stop playback after this song completes</string>
+    <string name="sleep_timer_selected">Selected</string>
+    <string name="sleep_timer_duration_section">DURATION</string>
+    <plurals name="sleep_timer_duration_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <string name="listening_room_name">Listening Room</string>
+    <string name="listening_room_default_name">Listening Room %1$s</string>
+    <string name="listening_room_blackout_closed">Offline Blackout Mode activated. Room closed.</string>
+    <string name="listening_room_blackout_disabled">Listening Room is disabled while Offline Blackout Mode is active.</string>
+    <string name="listening_room_nobody_joined">No one joined within 2 minutes. Room closed.</string>
+    <string name="listening_room_start_failed">Couldn’t start a nearby room. Check your Wi-Fi and try again.</string>
+    <string name="listening_room_discovery_unavailable">Nearby room discovery is unavailable on this network.</string>
+    <string name="listening_room_enter_address_code">Enter the address and room code as shown by the host.</string>
+    <string name="listening_room_enter_address">Enter the address as shown on the host, such as 192.168.1.1:12345</string>
+    <string name="listening_room_join_failed">Couldn’t join this room. Check that you’re on the same Wi-Fi as the host.</string>
+    <string name="listening_room_following_notice">Following the host on this Wi-Fi network.</string>
+    <string name="listening_room_reconnecting">Reconnecting…</string>
+    <string name="listening_room_lost_host">Lost connection to the host.</string>
+
+    <!-- Lyrics search -->
+    <string name="lrclib_add_custom_lyrics">Add Custom Lyrics</string>
+    <string name="lrclib_track_artist">%1$s • %2$s</string>
+    <string name="lrclib_search">Search</string>
+    <string name="lrclib_editor_placeholder">Paste synchronized LRC or plain lyrics here…\n\nExample synced format:\n[00:12.30]First line of the song\n[00:16.80]Second line of the song…</string>
+    <string name="lrclib_contribute">Contribute to LRCLIB</string>
+    <string name="lrclib_contribute_description">Share with the open-source global lyrics database</string>
+    <string name="lrclib_applied_and_contributed">Lyrics applied and contributed to LRCLIB</string>
+    <string name="lrclib_applied_locally">Lyrics applied locally</string>
+    <string name="lrclib_publishing">Publishing…</string>
+    <string name="lrclib_save_apply">Save &amp; Apply Lyrics</string>
+    <string name="lrclib_search_online">Search Online Lyrics</string>
+    <string name="lrclib_powered_by">Powered by LRCLIB</string>
+    <string name="lrclib_add_custom">Add Custom</string>
+    <string name="lrclib_track_title_hint">Track title…</string>
+    <string name="lrclib_no_results">No lyrics found for this query</string>
+    <string name="lrclib_add_contribute">Add &amp; Contribute Lyrics</string>
+    <string name="lrclib_result_artist_album">%1$s • %2$s</string>
+    <string name="lrclib_badge_synced">SYNCED</string>
+    <string name="lrclib_badge_plain">PLAIN</string>
+    <string name="lrclib_choose_lyrics">Choose lyrics</string>
+    <string name="lrclib_artist_optional_hint">Artist (optional)</string>
+    <string name="lrclib_choose_closest_match">Choose the closest match</string>
+    <plurals name="lrclib_versions_count">
+        <item quantity="one">%d version found</item>
+        <item quantity="other">%d versions found</item>
+    </plurals>
+
+    <!-- Sleep timer -->
+    <string name="sleep_timer_title">Sleep timer</string>
+    <string name="sleep_timer_description">Stop playback automatically after a chosen time.</string>
+    <string name="sleep_timer_set_section">Set a timer</string>
+    <string name="sleep_timer_end_of_song">End of current song</string>
+    <plurals name="sleep_timer_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="sleep_timer_behavior_section">Behavior</string>
+    <string name="sleep_timer_fade_title">Gentle volume fade out</string>
+    <string name="sleep_timer_fade_description">Smoothly lower volume over the last %1$ds</string>
+    <string name="sleep_timer_fade_duration">Fade-out Duration</string>
+    <string name="sleep_timer_fade_duration_description">How long the volume takes to fade to silent</string>
+    <string name="sleep_timer_seconds_short">%1$ds</string>
+    <string name="sleep_timer_finish_song">Wait for song to finish</string>
+    <string name="sleep_timer_finish_song_description">Avoid cutting off in the middle of a track</string>
+    <string name="sleep_timer_active_section">Active timer</string>
+    <string name="sleep_timer_active">Sleep timer is on</string>
+    <string name="sleep_timer_turn_off">Turn off</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Equalizer</string>
+    <string name="equalizer_reset">Reset EQ</string>
+    <string name="equalizer_idle_title">Audio DSP Idle</string>
+    <string name="equalizer_idle_message">Play a song to attach the equalizer and audio effects.</string>
+
+    <string name="equalizer_headphone_calibration_section">HEADPHONE CALIBRATION (AUTOEQ)</string>
+    <string name="equalizer_select_headphone">Select Headphone Model</string>
+    <string name="equalizer_autoeq_applied">AutoEq target curve applied</string>
+    <string name="equalizer_calibrated_models">%1$d+ calibrated models</string>
+
+    <string name="equalizer_presets_section">PRESETS</string>
+    <string name="equalizer_save_preset">Save Preset</string>
+    <string name="equalizer_frequency_bands_section">FREQUENCY BANDS</string>
+    <string name="equalizer_audio_enhancements_section">AUDIO ENHANCEMENTS</string>
+    <string name="equalizer_bass_boost">Bass Boost</string>
+    <string name="equalizer_surround_virtualizer">Surround Virtualizer</string>
+    <string name="equalizer_loudness_dynamics_section">LOUDNESS &amp; DYNAMICS</string>
+    <string name="equalizer_preamp_gain">Preamp Gain</string>
+    <string name="equalizer_loudness_normalization">Loudness Normalization</string>
+    <string name="equalizer_loudness_normalization_description">Balance output volume across diverse audio sources</string>
+
+    <string name="equalizer_save_dialog_title">Save Equalizer Preset</string>
+    <string name="equalizer_save_dialog_message">Save the current band levels, bass boost, and preamp gain as a custom preset.</string>
+    <string name="equalizer_save_dialog_placeholder">e.g. Bass Boost Max, Vocal Clarity</string>
+
+    <string name="equalizer_calibration_title">Headphone Calibration</string>
+    <string name="equalizer_calibration_description">Calibrated frequency response curves from AutoEq</string>
+    <string name="equalizer_search_placeholder">Search brand or model (e.g. Sony, HD 600)…</string>
+    <string name="equalizer_selected">Selected</string>
+    <string name="equalizer_delete_preset">Delete preset</string>
+
+    <!-- Scrobbling -->
+    <string name="scrobbling_title">Scrobbling</string>
+    <string name="scrobbling_services_label">Scrobbler Services</string>
+    <string name="scrobbling_description">Automatically submit your listening history and live now-playing status to your scrobbling profiles.</string>
+
+    <string name="scrobbling_listenbrainz_name" translatable="false">ListenBrainz</string>
+    <string name="scrobbling_listenbrainz_section" translatable="false">LISTENBRAINZ</string>
+    <string name="scrobbling_librefm_name" translatable="false">Libre.fm</string>
+    <string name="scrobbling_librefm_section" translatable="false">LIBRE.FM</string>
+    <string name="scrobbling_lastfm_name" translatable="false">Last.fm</string>
+    <string name="scrobbling_lastfm_section" translatable="false">LAST.FM</string>
+    <string name="scrobbling_connected">Connected</string>
+    <string name="scrobbling_connected_as">Connected as %1$s</string>
+    <string name="scrobbling_not_connected">Not connected</string>
+    <string name="scrobbling_connect_account">Connect Account</string>
+    <string name="scrobbling_listenbrainz_connect_description">Enter your user token from listenbrainz.org</string>
+    <string name="scrobbling_librefm_connect_description">Log in with your Libre.fm username and password</string>
+    <string name="scrobbling_lastfm_connect_description">Log in with your Last.fm username and password</string>
+    <string name="scrobbling_disconnect_listenbrainz">Disconnect ListenBrainz account</string>
+    <string name="scrobbling_disconnect_librefm">Disconnect Libre.fm account</string>
+    <string name="scrobbling_disconnect_lastfm">Disconnect Last.fm account</string>
+
+    <string name="scrobbling_listenbrainz_dialog_title">Connect ListenBrainz</string>
+    <string name="scrobbling_listenbrainz_dialog_description">Paste your ListenBrainz User Token to enable scrobbling.</string>
+    <string name="scrobbling_user_token">User Token</string>
+    <string name="scrobbling_get_listenbrainz_token">Get user token from ListenBrainz website</string>
+    <string name="scrobbling_token_required">Please enter a valid token</string>
+    <string name="scrobbling_token_invalid">Invalid user token or network error</string>
+
+    <string name="scrobbling_librefm_dialog_title">Connect Libre.fm</string>
+    <string name="scrobbling_librefm_dialog_description">Log in with your Libre.fm account credentials.</string>
+    <string name="scrobbling_lastfm_dialog_title">Connect Last.fm</string>
+    <string name="scrobbling_lastfm_dialog_description">Log in with your Last.fm account credentials.</string>
+    <string name="scrobbling_username">Username</string>
+    <string name="scrobbling_password">Password</string>
+    <string name="scrobbling_credentials_required">Please enter username and password</string>
+    <string name="scrobbling_auth_failed">Authentication failed. Check your username and password.</string>
+    <string name="scrobbling_log_in">Log In</string>
+
+    <!-- Stats and Listening Record -->
+    <string name="stats_listening_record">Listening Record</string>
+    <string name="stats_tab_overview">Overview</string>
+    <string name="stats_tab_tracks">Top Tracks</string>
+    <string name="stats_tab_artists">Top Artists</string>
+    <string name="stats_tab_albums">Top Albums</string>
+    <string name="stats_tab_history">History</string>
+    <string name="stats_tab_rewind">Rewind</string>
+    <string name="stats_listening_by_month">Listening in %1$d</string>
+    <string name="stats_today">Today</string>
+    <string name="stats_yesterday">Yesterday</string>
+    <string name="stats_clear_stats_desc">Clear stats</string>
+    <string name="stats_sync_desc">Sync with %1$s</string>
+    <string name="stats_synced">Listening Record synced with %1$s</string>
+    <string name="stats_sync_failed">Couldn\u2019t reach %1$s. Check it\u2019s on the same Wi-Fi.</string>
+    <string name="stats_clear_confirm_title">Clear listening stats?</string>
+    <string name="stats_clear_confirm_message">This can’t be undone.</string>
+    <string name="stats_empty_title">No plays yet</string>
+    <string name="stats_empty_message">Play a song nearly to the end and it’ll show up here.</string>
+    <string name="stats_most_played">Most played</string>
+    <string name="stats_most_played_artists">MOST PLAYED ARTISTS</string>
+    <string name="stats_most_played_tracks">MOST PLAYED TRACKS</string>
+    <string name="stats_most_played_albums">MOST PLAYED ALBUMS</string>
+    <string name="stats_top_genres">TOP GENRES</string>
+    <string name="stats_busiest">BUSIEST</string>
+    <string name="stats_since">SINCE</string>
+    <plurals name="stats_plays">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+    <string name="stats_milestones">MILESTONES</string>
+    <string name="stats_view_all_most_played">View all most played</string>
+    <string name="stats_save_as_playlist">Save these tracks as a playlist</string>
+    <string name="stats_playlist_title">Listening Record: %1$s %2$d</string>
+    <string name="stats_rewind_title">Cassette Rewind %1$d</string>
+    <string name="stats_period_title">%1$s %2$d</string>
+    <string name="stats_year_title">Year %1$d</string>
+    <string name="stats_share_rewind">Share Rewind</string>
+    <string name="stats_theme_atmosphere">Atmosphere</string>
+    <string name="stats_theme_obsidian">Obsidian</string>
+    <string name="milestone_listening_time">Listening time</string>
+    <string name="milestone_tracks_completed">Tracks completed</string>
+    <string name="milestone_unlocked_this_month">Unlocked this month</string>
+    <string name="poster_top_artists">Top Artists</string>
+    <string name="poster_top_songs">Top Songs</string>
+    <string name="poster_top_albums">Top Albums</string>
+    <string name="poster_minutes">%1$s minutes</string>
+    <string name="poster_rewind">Rewind</string>
+    <string name="stats_under_a_minute">&lt; 1 min</string>
+    <string name="stats_minutes">%1$d min</string>
+    <string name="stats_recorded_all_time">RECORDED // ALL TIME</string>
+    <string name="stats_recorded_rewind">CASSETTE REWIND // ANNUAL RECAP %1$d</string>
+    <string name="stats_recorded_month">RECORDED // %1$s %2$d</string>
+    <string name="stats_time_none">No listening time has been recorded yet.</string>
+    <string name="stats_time_total">Total listening time</string>
+    <string name="stats_time_year">Total listening time for %1$d</string>
+    <string name="stats_time_month">Listening time for this month</string>
+
+    <!-- Share cards -->
+    <string name="share_card_title">Share Card</string>
+    <string name="share_lyric_quote_title">Share Lyric Quote</string>
+    <string name="share_mode_song">Song</string>
+    <string name="share_mode_lyrics">Lyrics</string>
+    <string name="share_theme_atmosphere">Atmosphere</string>
+    <string name="share_theme_obsidian">Obsidian</string>
+    <string name="share_select_different_lyrics">Select different lyrics</string>
+    <string name="share_copy_text">Copy text</string>
+    <string name="share_copied">Copied to clipboard</string>
+    <string name="share_lyrics_copied">Lyrics copied to clipboard</string>
+    <string name="share_track_credit">%1$s - %2$s</string>
+    <string name="share_to_stories">Share to Stories</string>
+
+    <!-- Device sync -->
+    <string name="device_sync_title">Library Sync</string>
+    <plurals name="device_sync_summary">
+        <item quantity="one">%1$d of %2$d song on device</item>
+        <item quantity="other">%1$d of %2$d songs on device</item>
+    </plurals>
+    <string name="device_sync_empty_title">No local songs</string>
+    <string name="device_sync_empty_message">Only songs stored on this phone can be synced to the player.</string>
+    <string name="device_sync_all_missing">Sync All Missing (%1$d)</string>
+    <string name="device_sync_uploading">Uploading</string>
+    <string name="device_sync_queued">Queued</string>
+    <string name="device_sync_on_device">On device</string>
+    <string name="device_sync_not_synced">Not synced</string>
+    <string name="pairing_not_found_wifi">No CassetteCat device found on this Wi-Fi network.</string>
+    <string name="pairing_not_found_hotspot">No CassetteCat device found on Wi-Fi hotspot.</string>
+    <string name="pairing_hotspot_no_response">Connected to the hotspot, but the player didn’t respond.</string>
+    <string name="pairing_hotspot_join_failed">Couldn’t join the CassetteCat hotspot. Make sure the player is powered on.</string>
+    <string name="pairing_hotspot_lost">Lost connection to the CassetteCat hotspot.</string>
+    <string name="pairing_player_stopped">The player stopped responding.</string>
+    <string name="pairing_discovery_failed">Network discovery failed (%1$d)</string>
+    <string name="device_sync_upload_failed">Upload failed</string>
+
+    <!-- Device firmware -->
+    <string name="action_retry">Retry</string>
+    <string name="action_update">Update</string>
+
+    <string name="device_firmware_title">Firmware Update</string>
+    <string name="device_firmware_current_version_section">CURRENT VERSION</string>
+    <string name="device_firmware_updates_section">UPDATES</string>
+    <string name="device_firmware_checking">Checking GitHub for the latest release…</string>
+    <string name="device_firmware_up_to_date">You’re on the latest version</string>
+    <string name="device_firmware_available">Update available</string>
+    <string name="device_firmware_version_on_github">v%1$s on GitHub</string>
+    <string name="device_firmware_update_now">Update Now</string>
+    <string name="device_firmware_no_releases">No firmware releases yet</string>
+    <string name="device_firmware_no_releases_description">Nothing has been published to GitHub Releases.</string>
+    <string name="device_firmware_check_failed">Couldn’t check for updates</string>
+    <string name="device_firmware_check_connection">Check your internet connection.</string>
+    <string name="device_firmware_manual_section">MANUAL UPDATE</string>
+    <string name="device_firmware_choose_file">Choose Firmware File</string>
+    <string name="device_firmware_choose_file_description">Sideload a local .bin for builds that aren’t a GitHub release yet.</string>
+    <string name="device_firmware_updating">Updating firmware, don’t close the app…</string>
+    <string name="device_firmware_remote_confirm_title">Update to v%1$s?</string>
+    <string name="device_firmware_remote_confirm_message">The player will download the update from GitHub and reboot. Don’t disconnect it or close the app while this runs.</string>
+    <string name="device_firmware_local_confirm_title">Update firmware?</string>
+    <string name="device_firmware_local_confirm_message">The player will flash “%1$s” and reboot. Don’t disconnect it or close the app while this runs.</string>
+    <string name="device_firmware_remote_started">Update started. The player will restart when it’s done.</string>
+    <string name="device_firmware_local_done">Firmware updated. The player will restart.</string>
+    <string name="device_firmware_update_failed">Update failed. Make sure the player is still connected and try again.</string>
+
+    <!-- About and legal -->
+    <string name="about_title">About &amp; Legal</string>
+    <string name="about_subtitle">Audio DSP, Data Sources, Privacy &amp; Permissions</string>
+    <string name="about_version">v%1$s</string>
+
+    <string name="about_audio_engine_title">Audio Engine &amp; Hi-Fi DSP</string>
+    <string name="about_audio_engine_body">Bit-perfect local playback with 32-bit float internal audio processing. Parametric equalization and headphone frequency response correction curves are powered by Jaakko Pasanen’s calibrated AutoEq database.</string>
+
+    <string name="about_data_sources_title">Data Sources</string>
+    <string name="about_data_sources_body">Real-time synchronized and plain lyrics are provided by LRCLIB. Album cover artwork and metadata are fetched from MusicBrainz and Cover Art Archive. Artist biographies and background information are sourced from Wikipedia &amp; Wikimedia (CC BY-SA 4.0).</string>
+    <string name="about_data_sources_cache">Metadata and lyrics are cached on-device for uninterrupted offline playback.</string>
+
+    <string name="about_privacy_title">Privacy &amp; Local-First Data</string>
+    <string name="about_privacy_body">Listening history, play stats, favorites, and playlists are stored locally on your device only. No user account is required. No analytics and no advertising SDKs are included. If the app crashes, the error is logged to a file on your device only, never transmitted anywhere; you can view, share, or clear it from Settings → Privacy → Crash Log.</string>
+    <string name="about_privacy_credentials">Saved streaming server passwords and access tokens are encrypted with the hardware-backed Android Keystore.</string>
+
+    <string name="about_permissions_title">Permissions Used</string>
+    <string name="about_permission_music_title">Music &amp; Audio</string>
+    <string name="about_permission_music_description">Required to discover and play audio files stored on your device.</string>
+    <string name="about_permission_notifications_title">Notifications</string>
+    <string name="about_permission_notifications_description">Optional. Used for background playback controls in the status bar and lockscreen.</string>
+    <string name="about_permission_wifi_title">Nearby Wi-Fi Devices</string>
+    <string name="about_permission_wifi_description">Optional. Used to find the CassetteCat companion player on your Wi-Fi network.</string>
+    <string name="about_permission_bluetooth_title">Bluetooth</string>
+    <string name="about_permission_bluetooth_description">Optional. Used only to show the name of the Bluetooth speaker or headphones you’re playing to.</string>
+
+    <string name="about_feedback_title">Feedback &amp; Open Source</string>
+    <string name="about_feedback_body">Found a bug, want to request a feature, or explore the source code? CassetteCat is free and open source software licensed under GNU GPL v3.0.</string>
+    <string name="about_website">Official Website</string>
+    <string name="about_privacy_policy">Privacy Policy</string>
+    <string name="about_terms">Terms of Service</string>
+    <string name="about_github">GitHub Issues &amp; Source Code</string>
+
+    <!-- Credits -->
+    <string name="credits_title">Credits &amp; Attribution</string>
+    <string name="credits_brand_prefix" translatable="false">Cassette</string>
+    <string name="credits_brand_accent" translatable="false">Cat</string>
+    <string name="credits_version">v%1$s</string>
+    <string name="credits_intro">An open-source, local-first hi-fi audio player with audio DSP and companion hardware sync.</string>
+
+    <string name="credits_services_section">SERVICES &amp; DATA</string>
+    <string name="credits_lrclib" translatable="false">LRCLIB</string>
+    <string name="credits_lrclib_description">Real-time synchronized and plain lyrics (lrclib.net)</string>
+    <string name="credits_deezer" translatable="false">Deezer</string>
+    <string name="credits_deezer_description">Artist photos and high-resolution album artwork (deezer.com)</string>
+    <string name="credits_itunes" translatable="false">Apple iTunes Search API</string>
+    <string name="credits_itunes_description">Official high-resolution album artwork catalog (itunes.apple.com)</string>
+    <string name="credits_audiodb" translatable="false">TheAudioDB</string>
+    <string name="credits_audiodb_description">Fallback artist images and biographies (theaudiodb.com)</string>
+    <string name="credits_radio_browser" translatable="false">Radio Browser</string>
+    <string name="credits_radio_browser_description">Community-run internet radio station directory (radio-browser.info)</string>
+    <string name="credits_wikipedia" translatable="false">Wikipedia &amp; Wikimedia</string>
+    <string name="credits_wikipedia_description">Artist biographies and album background (CC BY-SA 4.0)</string>
+    <string name="credits_musicbrainz" translatable="false">MusicBrainz</string>
+    <string name="credits_musicbrainz_description">Open music encyclopedia and metadata references</string>
+    <string name="credits_cover_art_archive" translatable="false">Cover Art Archive</string>
+    <string name="credits_cover_art_archive_description">Archival CD and vinyl cover scans (Internet Archive &amp; MusicBrainz)</string>
+    <string name="credits_listenbrainz" translatable="false">ListenBrainz</string>
+    <string name="credits_listenbrainz_description">Open scrobbling platform and CC0 listening data</string>
+    <string name="credits_librefm" translatable="false">Libre.fm</string>
+    <string name="credits_librefm_description">Free software music scrobbling network (GNU FM)</string>
+    <string name="credits_lastfm" translatable="false">Last.fm</string>
+    <string name="credits_lastfm_description">Scrobbling through the Last.fm API</string>
+    <string name="credits_subsonic" translatable="false">Subsonic API</string>
+    <string name="credits_subsonic_description">Open streaming protocol for Navidrome, Gonic, and Subsonic servers</string>
+    <string name="credits_jellyfin" translatable="false">Jellyfin API</string>
+    <string name="credits_jellyfin_description">Free software media streaming system and server protocol</string>
+    <string name="credits_github" translatable="false">GitHub</string>
+    <string name="credits_github_description">Release update checks (github.com)</string>
+
+    <string name="credits_audio_section">CORE AUDIO &amp; ARCHITECTURE</string>
+    <string name="credits_autoeq" translatable="false">AutoEq</string>
+    <string name="credits_autoeq_description">Calibrated headphone equalizer response curves by Jaakko Pasanen</string>
+    <string name="credits_media3" translatable="false">AndroidX Media3 (ExoPlayer)</string>
+    <string name="credits_media3_description">Audio streaming, session management, and offline cache</string>
+    <string name="credits_audiofx" translatable="false">Android AudioFX</string>
+    <string name="credits_audiofx_description">Parametric equalizer, bass boost, and virtualizer DSP</string>
+    <string name="credits_kotlinx" translatable="false">KotlinX Coroutines &amp; Serialization</string>
+    <string name="credits_kotlinx_description">Asynchronous flows, reactive state, and JSON persistence</string>
+    <string name="credits_datastore" translatable="false">Jetpack DataStore</string>
+    <string name="credits_datastore_description">Local-first atomic persistence and data stores</string>
+    <string name="credits_okhttp" translatable="false">OkHttp</string>
+    <string name="credits_okhttp_description">HTTP client for lyrics, artwork, and streaming</string>
+
+    <string name="credits_design_section">DESIGN &amp; TYPOGRAPHY</string>
+    <string name="credits_lucide" translatable="false">Lucide Icons</string>
+    <string name="credits_lucide_description">Open-source iconography (lucide.dev, ISC License)</string>
+    <string name="credits_simple_icons" translatable="false">Simple Icons</string>
+    <string name="credits_simple_icons_description">Brand SVG icons (simpleicons.org, CC0 1.0)</string>
+    <string name="credits_ibm_plex" translatable="false">IBM Plex (Sans &amp; Mono)</string>
+    <string name="credits_ibm_plex_description">Designed by Mike Abbink and Bold Monday for IBM (OFL 1.1)</string>
+    <string name="credits_space_grotesk" translatable="false">Space Grotesk</string>
+    <string name="credits_space_grotesk_description">Display typeface by Florian Karsten (OFL 1.1)</string>
+    <string name="credits_compose" translatable="false">Jetpack Compose &amp; Material 3</string>
+    <string name="credits_compose_description">Declarative Android UI toolkit and dynamic theming</string>
+
+    <string name="credits_license_section">OPEN SOURCE LICENSE</string>
+    <string name="credits_gpl" translatable="false">GNU General Public License v3.0</string>
+    <string name="credits_gpl_description">View source code and contribute on GitHub</string>
+
+    <string name="credits_easter_egg_title">(=^･ω･^=) Cassette Cat Lounge</string>
+    <string name="credits_easter_egg_message">You found the Cassette Cat Lounge. Tap a cat to make it purr.</string>
+    <string name="credits_easter_egg_cat_description">CassetteCat</string>
+    <string name="credits_easter_egg_footer">Made for audiophiles and tape deck people.</string>
+    <string name="credits_easter_egg_close">Purr &amp; Close</string>
 </resources>

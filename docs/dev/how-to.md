@@ -58,7 +58,7 @@ Pass `listBottomPadding` through to scrolling lists so the last item isn't hidde
 
 ## Adding text
 
-Every string the user can see goes in a resource file in `app/app/src/main/res/values/`. Strings are split by area, for example `strings_library.xml` or `strings_customization.xml`; add to the file for the screen you're changing. Don't hardcode text in Kotlin.
+Every string the user can see goes in `app/app/src/main/res/values/strings.xml`, under the comment for the area you're changing, such as `<!-- Library -->`. Keep it to this one file: Weblate translates `strings.xml`, so a string in another file never reaches translators. Don't hardcode text in Kotlin.
 
 - Brand and service names that must not be translated get `translatable="false"`.
 - Use `<plurals>` for counts such as "3 songs".

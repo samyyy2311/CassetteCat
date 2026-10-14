@@ -95,6 +95,7 @@ fun RadioScreen(
     viewModel: RadioViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val radioArtist = stringResource(AppR.string.source_radio)
     val preferences = LocalAppPreferences.current
     val serviceSettingsRepository = remember { ServiceSettingsRepository(context) }
     val serviceSettings by serviceSettingsRepository.settings.collectAsStateWithLifecycle(initialValue = ServiceSettings())
@@ -133,7 +134,7 @@ fun RadioScreen(
         }
         val stationIndex = queue.indexOfFirst { it.uuid == station.uuid }.coerceAtLeast(0)
         viewModel.recordPlay(station)
-        playbackViewModel.play(queue.map { it.toSong() }, stationIndex, onFirstPlay = onNavigateToNowPlaying)
+        playbackViewModel.play(queue.map { it.toSong(radioArtist) }, stationIndex, onFirstPlay = onNavigateToNowPlaying)
     }
 
     fun share(station: RadioStation) {
@@ -490,7 +491,8 @@ private fun RadioStationCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val song = remember(station.uuid) { station.toSong() }
+    val fallbackArtist = stringResource(AppR.string.source_radio)
+    val song = remember(station.uuid) { station.toSong(fallbackArtist) }
     Column(
         modifier = Modifier
             .fillMaxWidth()

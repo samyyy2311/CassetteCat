@@ -17,10 +17,10 @@ data class RadioStation(
     val bitrate: Int = 0
 )
 
-fun RadioStation.toSong(): Song = Song(
+fun RadioStation.toSong(fallbackArtist: String): Song = Song(
     id = "radio:$uuid",
     title = name,
-    artist = tags.split(",").firstOrNull { it.isNotBlank() }?.trim() ?: country.ifBlank { "Radio" },
+    artist = tags.split(",").firstOrNull { it.isNotBlank() }?.trim() ?: country.ifBlank { fallbackArtist },
     album = "",
     albumId = "",
     durationMs = 0L,

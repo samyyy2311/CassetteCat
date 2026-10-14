@@ -267,6 +267,7 @@ fun MainShell(
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val context = LocalContext.current
+    val radioArtist = stringResource(AppR.string.source_radio)
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
     val preferences = LocalAppPreferences.current
     val scope = rememberCoroutineScope()
@@ -413,7 +414,7 @@ fun MainShell(
         val (songs, isShuffle) = when (action) {
             AppShortcutAction.SHUFFLE_ALL -> librarySongs to true
             AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite } to false
-            AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong() } to false
+            AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong(radioArtist) } to false
             AppShortcutAction.PLAY_MEDIA -> resolvePlayMediaQueue(shortcutQuery, librarySongs, playlists, shortcutMediaType, shortcutArtist) to false
             else -> emptyList<Song>() to false
         }

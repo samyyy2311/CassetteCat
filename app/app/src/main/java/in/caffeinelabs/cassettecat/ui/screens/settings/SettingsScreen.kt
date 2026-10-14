@@ -243,8 +243,9 @@ fun SettingsScreen(
             SettingsDivider()
             NavigationRow(
                 title = stringResource(AppR.string.settings_external_services),
-                subtitle = stringResource(
-                    AppR.string.settings_external_services_count,
+                subtitle = pluralStringResource(
+                    AppR.plurals.settings_external_services_count,
+                    enabledServices,
                     enabledServices,
                     externalServices.size
                 ),
