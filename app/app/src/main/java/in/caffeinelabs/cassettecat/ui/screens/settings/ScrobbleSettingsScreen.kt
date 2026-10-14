@@ -122,8 +122,11 @@ fun ScrobbleSettingsScreen(
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(AppR.string.scrobbling_listenbrainz_name), style = MaterialTheme.typography.bodyLarge)
+                    val problem = settings.listenBrainz.problem.takeIf { isConnected && it.isNotBlank() }
                     Text(
-                        if (isConnected) {
+                        if (problem != null) {
+                            problem
+                        } else if (isConnected) {
                             if (settings.listenBrainz.userName.isNotBlank()) {
                                 stringResource(AppR.string.scrobbling_connected_as, settings.listenBrainz.userName)
                             } else {
@@ -133,7 +136,11 @@ fun ScrobbleSettingsScreen(
                             stringResource(AppR.string.scrobbling_not_connected)
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (problem != null) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
                 if (isConnected) {

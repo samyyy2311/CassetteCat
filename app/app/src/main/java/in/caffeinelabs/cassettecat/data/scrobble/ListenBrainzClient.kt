@@ -1,5 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.scrobble
 
+import android.util.Log
+import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
@@ -22,10 +24,20 @@ private data class ValidateTokenResponse(
 )
 
 @Serializable
+private data class ErrorResponse(val error: String = "")
+
+@Serializable
 private data class TrackMetadata(
     @SerialName("artist_name") val artistName: String,
     @SerialName("track_name") val trackName: String,
-    @SerialName("release_name") val releaseName: String? = null
+    @SerialName("release_name") val releaseName: String? = null,
+    @SerialName("additional_info") val additionalInfo: AdditionalInfo
+)
+
+@Serializable
+private data class AdditionalInfo(
+    @SerialName("submission_client") val submissionClient: String,
+    @SerialName("submission_client_version") val submissionClientVersion: String
 )
 
 @Serializable
@@ -60,17 +72,21 @@ class ListenBrainzClient {
         }.getOrNull()
     }
 
-    suspend fun submitNowPlaying(token: String, song: Song): Boolean = withContext(Dispatchers.IO) {
-        if (token.isBlank()) return@withContext false
+    suspend fun submitNowPlaying(token: String, song: Song): String? = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "playing_now", listenedAt = null)
     }
 
-    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): Boolean = withContext(Dispatchers.IO) {
-        if (token.isBlank()) return@withContext false
+    suspend fun submitListen(token: String, song: Song, listenedAtUnixSec: Long): String? = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext null
         submit(token, song, listenType = "single", listenedAt = listenedAtUnixSec)
     }
 
-    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): Boolean = runCatching {
+    /**
+     * Empty when ListenBrainz took the listen, the first sentence of its reason when it refused, or null when it
+     * couldn't be reached or gave no reason.
+     */
+    private fun submit(token: String, song: Song, listenType: String, listenedAt: Long?): String? = runCatching {
         val requestBody = SubmitListenRequest(
             listenType = listenType,
             payload = listOf(
@@ -79,7 +95,8 @@ class ListenBrainzClient {
                     trackMetadata = TrackMetadata(
                         artistName = song.artist,
                         trackName = song.title,
-                        releaseName = song.album.ifBlank { null }
+                        releaseName = song.album.ifBlank { null },
+                        additionalInfo = AdditionalInfo("CassetteCat Android", BuildConfig.VERSION_NAME)
                     )
                 )
             )
@@ -89,6 +106,12 @@ class ListenBrainzClient {
             .header("Authorization", "Token ${token.trim()}")
             .post(sharedJson.encodeToString(requestBody).toRequestBody(JSON_MEDIA_TYPE))
             .build()
-        sharedHttpClient.newCall(request).execute().use { it.isSuccessful }
-    }.getOrDefault(false)
+        sharedHttpClient.newCall(request).execute().use { response ->
+            if (response.isSuccessful) return@use ""
+            val reason = runCatching { sharedJson.decodeFromString<ErrorResponse>(response.body.string()).error }
+                .getOrDefault("")
+            Log.w("ListenBrainz", "Refused $listenType: ${response.code} $reason")
+            reason.substringBefore(". ").takeIf { it.isNotBlank() }?.let { if (it.endsWith(".")) it else "$it." }
+        }
+    }.onFailure { Log.w("ListenBrainz", "Couldn't submit $listenType", it) }.getOrNull()
 }

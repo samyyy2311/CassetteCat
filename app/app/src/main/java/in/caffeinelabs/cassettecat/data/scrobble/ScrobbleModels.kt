@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
 data class ListenBrainzConfig(
     val enabled: Boolean = false,
     val userToken: String = "",
-    val userName: String = ""
+    val userName: String = "",
+    // Why ListenBrainz last refused a listen, in its own words; empty once one goes through.
+    val problem: String = ""
 )
 
 /** An account on an Audioscrobbler network; [id] names its settings and stored session key. */
