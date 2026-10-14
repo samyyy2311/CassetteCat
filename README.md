@@ -191,31 +191,34 @@ app/app/build/outputs/apk/debug/app-debug.apk
 
 ## Contributing
 
-Contributions are welcome.
+Bug reports, ideas and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull
+request, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used here.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and
-[AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used in this
-project.
+### Translations
 
-### Translate CassetteCat
+<p align="center">
+  <a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/android-app/multi-auto.svg" alt="How much of the Android app each language has translated" /></a>
+</p>
 
-Translations are done on [Weblate](https://hosted.weblate.org/engage/cassettecat/), in your browser, with no
-coding needed. Pick a language, or add yours, and Weblate sends the changes here as a pull request. See
-[TRANSLATING.md](TRANSLATING.md) for a few guidelines.
+Translate CassetteCat in your browser on [Weblate](https://hosted.weblate.org/engage/cassettecat/), with no coding
+needed: pick a language, or add yours, and Weblate sends your work here as a pull request. Anything not translated yet
+shows in English. See [TRANSLATING.md](TRANSLATING.md) for a few guidelines.
 
-<a href="https://hosted.weblate.org/engage/cassettecat/"><img src="https://hosted.weblate.org/widget/cassettecat/android-app/multi-auto.svg" alt="How much of the Android app each language has translated" /></a>
-
-Anything not translated yet shows in English. The desktop app is English only for now; making it translatable is
-tracked in [CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56).
+The desktop app is English only for now; making it translatable is tracked in
+[CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56).
 
 ---
 
 ## Support
 
+CassetteCat is free, with no ads and no tracking. If it's useful to you, you can support its development:
+
 <p align="center">
-  <a href="https://ko-fi.com/samyyy2311"><img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=flat-square&logo=kofi&logoColor=white" alt="Ko-fi" /></a>
-  <a href="https://buymeacoffee.com/samyyy2311"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee" /></a>
+  <a href="https://ko-fi.com/samyyy2311"><img src="https://img.shields.io/badge/Ko--fi-2A2A2A?style=flat-square&logo=kofi&logoColor=FF5E5B" alt="Support on Ko-fi" /></a>
+  <a href="https://buymeacoffee.com/samyyy2311"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-2A2A2A?style=flat-square&logo=buymeacoffee&logoColor=FFDD00" alt="Buy Me a Coffee" /></a>
 </p>
+
+Starring the repository, reporting bugs and translating help too.
 
 ---
 
