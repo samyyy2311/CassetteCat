@@ -267,6 +267,9 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch {
             status.filterNotNull().collect { if (it.handoffRequested && state.value.controlling) requestTransfer(toDesktop = false) }
         }
+        scope.launch {
+            status.filterNotNull().collect { if (it.disconnectRequested && !state.value.disconnected) disconnect() }
+        }
         // The computer's Sync button reaches a phone that is controlling it through its status.
         scope.launch {
             status.filterNotNull().collect { if (it.syncRequested) syncWithDesktop() }

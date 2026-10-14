@@ -33,6 +33,7 @@ data class DevicePlaybackStatus(
     // Only the desktop app reports artwork and hand-off requests.
     val artworkKey: String? = null,
     val handoffRequested: Boolean = false,
+    val disconnectRequested: Boolean = false,
     val deviceName: String? = null,
     val syncRequested: Boolean = false
 )
