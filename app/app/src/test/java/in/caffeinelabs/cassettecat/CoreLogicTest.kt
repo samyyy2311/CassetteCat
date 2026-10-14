@@ -4,7 +4,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
 import `in`.caffeinelabs.cassettecat.data.listeningroom.HostClock
 import `in`.caffeinelabs.cassettecat.data.listeningroom.readLineBounded
-import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUpSpeed
+import `in`.caffeinelabs.cassettecat.data.listeningroom.roomCatchUp
 import `in`.caffeinelabs.cassettecat.data.listeningroom.isInvalidLocalRange
 import `in`.caffeinelabs.cassettecat.data.listeningroom.skipFully
 import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDesktop
@@ -254,14 +254,14 @@ class CoreLogicTest {
 
     @Test
     fun guestsCatchUpGentlyAndSeekOnlyWhenFarOutOrPaused() {
-        assertEquals(1f, roomCatchUpSpeed(15, playing = true)!!, 0f)
-        assertEquals(1.02f, roomCatchUpSpeed(-100, playing = true)!!, 1e-4f)
-        assertEquals(0.98f, roomCatchUpSpeed(100, playing = true)!!, 1e-4f)
+        assertEquals(0f, roomCatchUp(15, playing = true)!!, 0f)
+        assertEquals(0.02f, roomCatchUp(-100, playing = true)!!, 1e-4f)
+        assertEquals(-0.02f, roomCatchUp(100, playing = true)!!, 1e-4f)
         // The fastest catch-up still closes the largest gap it handles within ten seconds.
-        assertEquals(1.04f, roomCatchUpSpeed(-400, playing = true)!!, 1e-4f)
-        assertNull(roomCatchUpSpeed(-450, playing = true))
-        assertNull(roomCatchUpSpeed(100, playing = false))
-        assertEquals(1f, roomCatchUpSpeed(10, playing = false)!!, 0f)
+        assertEquals(0.04f, roomCatchUp(-400, playing = true)!!, 1e-4f)
+        assertNull(roomCatchUp(-450, playing = true))
+        assertNull(roomCatchUp(100, playing = false))
+        assertEquals(0f, roomCatchUp(10, playing = false)!!, 0f)
     }
 
     @Test

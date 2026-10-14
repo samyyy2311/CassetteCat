@@ -129,14 +129,14 @@ internal class HostClock {
 }
 
 /**
- * How much faster or slower than the host a guest [driftMs] ahead of it (behind when negative) plays to get back
- * in step within ten seconds, or null when it should seek instead. A paused guest has nothing to catch up with,
- * so it seeks.
+ * What a guest [driftMs] ahead of the host (behind when negative) adds to the host's speed to get back in step
+ * within ten seconds, or null when it should seek instead. It is added rather than multiplied so the gap closes
+ * as quickly at any host speed. A paused guest has nothing to catch up with, so it seeks.
  */
-internal fun roomCatchUpSpeed(driftMs: Long, playing: Boolean): Float? = when {
-    kotlin.math.abs(driftMs) <= IN_SYNC_MS -> 1f
+internal fun roomCatchUp(driftMs: Long, playing: Boolean): Float? = when {
+    kotlin.math.abs(driftMs) <= IN_SYNC_MS -> 0f
     !playing || kotlin.math.abs(driftMs) > SEEK_DRIFT_MS -> null
-    else -> (1f - driftMs / CATCH_UP_WINDOW_MS).coerceIn(1f - MAX_CATCH_UP, 1f + MAX_CATCH_UP)
+    else -> (-driftMs / CATCH_UP_WINDOW_MS).coerceIn(-MAX_CATCH_UP, MAX_CATCH_UP)
 }
 
 class LocalListeningRoomRepository(context: Context) {

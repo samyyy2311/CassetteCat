@@ -906,13 +906,15 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 }
         }
         val hostNowMs = listeningRoomRepository.hostElapsedRealtimeMs()
-        val positionMs = when {
-            !snapshot.isPlaying -> snapshot.positionMs
+        // The host's position moves at its speed; older hosts don't send one, so 1× is assumed as before.
+        val hostSpeed = snapshot.speed ?: 1f
+        val elapsedMs = when {
+            !snapshot.isPlaying -> 0L
             // With the host's clock known, the time on the network counts too, not just the time spent here.
-            hostNowMs != null && snapshot.capturedAtMs != null ->
-                snapshot.positionMs + (hostNowMs - snapshot.capturedAtMs)
-            else -> snapshot.positionMs + (SystemClock.elapsedRealtime() - receivedAtElapsedMs)
+            hostNowMs != null && snapshot.capturedAtMs != null -> hostNowMs - snapshot.capturedAtMs
+            else -> SystemClock.elapsedRealtime() - receivedAtElapsedMs
         }
+        val positionMs = snapshot.positionMs + (elapsedMs * hostSpeed).toLong()
         if (resolved.isNotEmpty()) repository.applyRoomQueue(resolved, positionMs, snapshot.isPlaying, snapshot.speed)
     }
 
