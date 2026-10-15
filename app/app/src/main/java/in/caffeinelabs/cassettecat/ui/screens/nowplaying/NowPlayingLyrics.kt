@@ -1,6 +1,12 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -188,16 +194,15 @@ internal fun LyricsView(
                     effectiveSyncedLyrics.forEachIndexed { i, line ->
                         val nextMs = effectiveSyncedLyrics.getOrNull(i + 1)?.timestampMs
                         val words = line.text.split(" ").filter { it.isNotBlank() }
+                        // How long a line is sung is only a guess, so it's generous: slow singers hold words, and a
+                        // break shown while they're still singing is worse than one shown a little late.
+                        val sungMs = (words.size * 500L + 1_000L).coerceIn(2_500L, 8_000L)
                         if (nextMs != null) {
                             val lineInterval = (nextMs - line.timestampMs).coerceAtLeast(100L)
-                            if (lineInterval >= 8_000L) {
-                                val maxBreak = (lineInterval - 2_000L).coerceAtLeast(1_500L)
-                                val vocalDuration = minOf(words.size * 280L + 600L, 5_000L)
-                                    .coerceAtLeast(1_500L)
-                                    .coerceAtMost(maxBreak)
-                                add(LyricDisplayItem.Line(line, i, vocalDuration))
+                            if (lineInterval >= sungMs + 5_000L) {
+                                add(LyricDisplayItem.Line(line, i, sungMs))
 
-                                val gapStart = line.timestampMs + vocalDuration + 300L
+                                val gapStart = line.timestampMs + sungMs
                                 val gapEnd = nextMs - 150L
                                 if (gapEnd - gapStart >= 4_000L) {
                                     add(LyricDisplayItem.Gap(fromMs = gapStart, toMs = gapEnd))
@@ -214,11 +219,10 @@ internal fun LyricsView(
                                 add(LyricDisplayItem.Line(line, i, vocalDuration))
                             }
                         } else {
-                            val vocalMs = (words.size * 260L + 500L).coerceIn(1_800L, 4_500L)
-                            add(LyricDisplayItem.Line(line, i, vocalMs))
+                            add(LyricDisplayItem.Line(line, i, sungMs))
 
                             if (durationMs > 0L) {
-                                val outroStart = line.timestampMs + vocalMs + 400L
+                                val outroStart = line.timestampMs + sungMs
                                 val outroEnd = durationMs - 500L
                                 if (outroEnd - outroStart >= 6_000L) {
                                     add(LyricDisplayItem.Gap(fromMs = outroStart, toMs = outroEnd))
@@ -265,12 +269,26 @@ internal fun LyricsView(
                 }
             }
 
+            // The list jumps to the new line, and each line then slides from where it was, the ones further down
+            // a moment later. A line far off screen, after a seek, is scrolled to instead.
+            var followShift by remember { mutableFloatStateOf(0f) }
+            var followTick by remember { mutableIntStateOf(0) }
+            var followAtMs by remember { mutableLongStateOf(0L) }
+
             LaunchedEffect(activeDisplayIndex, userIsDragging) {
                 if (userIsDragging) return@LaunchedEffect
-                listState.animateScrollToItem(
-                    index = activeDisplayIndex,
-                    scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
-                )
+                val scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
+                val before = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }?.offset
+                if (before == null) {
+                    listState.animateScrollToItem(activeDisplayIndex, scrollOffset)
+                    return@LaunchedEffect
+                }
+                listState.scrollToItem(activeDisplayIndex, scrollOffset)
+                withFrameNanos { }
+                val after = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }?.offset ?: before
+                followShift = (before - after).toFloat()
+                followAtMs = SystemClock.uptimeMillis()
+                followTick++
             }
 
             val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
@@ -369,18 +387,28 @@ internal fun LyricsView(
                         }
                     }
                 ) { displayIdx, item ->
+                    val trail = remember { Animatable(0f) }
+                    LaunchedEffect(followTick) {
+                        if (followTick == 0 || SystemClock.uptimeMillis() - followAtMs > 100L) return@LaunchedEffect
+                        trail.snapTo(followShift)
+                        delay((displayIdx - activeDisplayIndex + 1).coerceIn(0, 4) * 25L)
+                        trail.animateTo(0f, tween(650, easing = FastOutSlowInEasing))
+                    }
+                    Box(Modifier.fillMaxWidth().graphicsLayer { translationY = trail.value }) {
                     when (item) {
                         is LyricDisplayItem.Gap -> {
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
                             // Once the break is over its dots would sit above lines already sung.
                             AnimatedVisibility(
-                                visible = effectivePositionMs <= item.toMs,
+                                visible = isInGap,
                                 enter = expandVertically(tween(220, easing = SmoothEasing)),
                                 exit = shrinkVertically(tween(220, easing = SmoothEasing))
                             ) {
                                 GapItemView(
                                     isInGap = isInGap,
                                     isPlaying = isPlaying,
+                                    progress = ((effectivePositionMs - item.fromMs).toFloat() /
+                                        (item.toMs - item.fromMs).coerceAtLeast(1L)).coerceIn(0f, 1f),
                                     isCenterAligned = lyricsTextAlign == TextAlign.Center,
                                     onClick = {
                                         userIsDragging = false
@@ -398,7 +426,7 @@ internal fun LyricsView(
                             val line = item.lyricLine
                             val index = item.originalIndex
                             val isSelected = selectedIndices.contains(index)
-                            val distanceFromActive = abs(index - activeLineIndex)
+                            val ahead = index - activeLineIndex
                             val isActive = !selectionMode &&
                                 currentActiveItem is LyricDisplayItem.Line &&
                                 currentActiveItem.originalIndex == index
@@ -413,14 +441,21 @@ internal fun LyricsView(
                                 targetValue = when {
                                     selectionMode -> if (isSelected) 1.00f else 0.35f
                                     isActive -> 1.00f
-                                    // Distance 0 without being active is the line just sung, during a break.
-                                    distanceFromActive <= 1 -> 0.72f
-                                    distanceFromActive == 2 -> 0.56f
-                                    distanceFromActive == 3 -> 0.44f
-                                    else -> 0.34f
+                                    userIsDragging -> 0.45f
+                                    // Lines already sung disappear, and the ones to come fade the further away they are.
+                                    ahead > 0 -> maxOf(0.12f, 0.45f - (ahead - 1) * 0.1f)
+                                    else -> 0f
                                 },
-                                animationSpec = tween(220, easing = SmoothEasing),
+                                animationSpec = tween(280, easing = SmoothEasing),
                                 label = "lyricLineOpacity"
+                            )
+
+                            // Lines further ahead soften. Android draws the blur from version 12; earlier ones skip it.
+                            val lineBlur by animateDpAsState(
+                                targetValue = if (isActive || selectionMode || userIsDragging || ahead < 3) 0.dp
+                                    else minOf(6, (ahead - 2) * 2).dp,
+                                animationSpec = tween(280, easing = SmoothEasing),
+                                label = "lyricLineBlur"
                             )
 
                             val lineModifier = Modifier
@@ -457,6 +492,7 @@ internal fun LyricsView(
                                     scaleY = lineScale
                                     transformOrigin = TransformOrigin(if (lyricsTextAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
                                 }
+                                .blur(lineBlur, BlurredEdgeTreatment.Unbounded)
                                 .padding(horizontal = 24.dp, vertical = 13.dp)
 
                             if (isActive) {
@@ -477,6 +513,7 @@ internal fun LyricsView(
                                 )
                             }
                         }
+                    }
                     }
                 }
 
@@ -541,30 +578,27 @@ internal fun LyricsView(
     }
 }
 
+// A break between lines: the dots light up one by one as it passes, and gently pulse while playing.
 @Composable
 private fun GapItemView(
     isInGap: Boolean,
     isPlaying: Boolean,
+    progress: Float,
     isCenterAligned: Boolean = true,
     onClick: () -> Unit
 ) {
-    val dotsAlpha by animateFloatAsState(
-        targetValue = if (isInGap) 1.0f else 0.22f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "gapDotsAlpha"
-    )
-    val dotColor = MaterialTheme.colorScheme.tertiary
-    val density = LocalDensity.current.density
-
-    val infiniteTransition = rememberInfiniteTransition(label = "gapSequentialBounce")
-    val loopTimeMs by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 820f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(820, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "gapLoopTime"
+    val preferences = LocalAppPreferences.current
+    val dotColor = if (preferences.lyricsActiveStyle == `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle.ACCENT_GLOW) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val pulse = rememberInfiniteTransition(label = "gapPulse")
+    val pulseScale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(tween(1_100, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        label = "gapPulseScale"
     )
 
     Row(
@@ -573,38 +607,29 @@ private fun GapItemView(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .graphicsLayer { alpha = dotsAlpha }
-            .padding(horizontal = 24.dp, vertical = if (isInGap) 20.dp else 12.dp)
+            .padding(horizontal = 24.dp, vertical = 20.dp)
     ) {
-        repeat(3) { index ->
-            val yOffsetDp = if (isInGap && isPlaying) {
-                val startOffset = index * 150f
-                val timeInDot = (loopTimeMs - startOffset + 820f) % 820f
-                when {
-                    timeInDot < 260f -> {
-                        val progress = timeInDot / 260f
-                        -6f * kotlin.math.sin(progress * (Math.PI / 2).toFloat())
-                    }
-                    timeInDot < 520f -> {
-                        val progress = (timeInDot - 260f) / 260f
-                        -6f * kotlin.math.cos(progress * (Math.PI / 2).toFloat())
-                    }
-                    else -> 0f
-                }
-            } else {
-                0f
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            modifier = Modifier.graphicsLayer {
+                val scale = if (isInGap && isPlaying) pulseScale else 1f
+                scaleX = scale
+                scaleY = scale
+                transformOrigin = TransformOrigin(if (isCenterAligned) 0.5f else 0f, 0.5f)
             }
-
-            Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .graphicsLayer {
-                        translationY = yOffsetDp * density
-                    }
-                    .background(dotColor, CircleShape)
-            )
-            if (index < 2) {
-                Spacer(Modifier.width(10.dp))
+        ) {
+            repeat(3) { index ->
+                val lit by animateFloatAsState(
+                    targetValue = if (progress > index / 3f) 1f else 0.3f,
+                    animationSpec = tween(280, easing = FastOutSlowInEasing),
+                    label = "gapDotLit"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(9.dp)
+                        .graphicsLayer { alpha = lit }
+                        .background(dotColor, CircleShape)
+                )
             }
         }
     }
