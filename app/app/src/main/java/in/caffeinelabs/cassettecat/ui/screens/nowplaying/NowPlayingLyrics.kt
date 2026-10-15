@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import `in`.caffeinelabs.cassettecat.data.playback.AudioWaveformHolder
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,24 +66,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -250,9 +249,13 @@ internal fun LyricsView(
                 }
             }
 
+            // Every line, the first one included, is held this far down while it's sung.
+            val activeLineTop = 124.dp
+            // Room below the lyrics for the last lines to reach that height too, so the credits only come into view
+            // once the song's lines are done.
             val density = LocalDensity.current
-            val centerTopPad = 24.dp
-            val activeOffsetPx = with(density) { 100.dp.roundToPx() }
+            var listHeightPx by remember { mutableIntStateOf(0) }
+            val endRoom = with(density) { (listHeightPx * 0.7f).toDp() }
 
             var userScrollToken by remember { mutableIntStateOf(0) }
             var userIsDragging by remember { mutableStateOf(false) }
@@ -267,10 +270,16 @@ internal fun LyricsView(
 
             LaunchedEffect(activeDisplayIndex, userIsDragging) {
                 if (userIsDragging) return@LaunchedEffect
-                listState.animateScrollToItem(
-                    index = activeDisplayIndex,
-                    scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
-                )
+                val target = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }
+                if (target == null) {
+                    listState.animateScrollToItem(activeDisplayIndex)
+                } else {
+                    // An eased glide to the next line; the default spring snaps there.
+                    listState.animateScrollBy(
+                        value = target.offset.toFloat(),
+                        animationSpec = tween(700, easing = FastOutSlowInEasing)
+                    )
+                }
             }
 
             val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
@@ -311,8 +320,8 @@ internal fun LyricsView(
             val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = lyricsFont,
                 fontWeight = FontWeight.Bold,
-                fontSize = (28 * fontScale).sp,
-                lineHeight = (38 * fontScale).sp,
+                fontSize = (32 * fontScale).sp,
+                lineHeight = (40 * fontScale).sp,
                 letterSpacing = (-0.3).sp,
                 textAlign = lyricsTextAlign
             )
@@ -343,12 +352,13 @@ internal fun LyricsView(
             LazyColumn(
                 state = listState,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    top = centerTopPad,
-                    bottom = lyricBottomPadDp
+                    top = activeLineTop,
+                    bottom = maxOf(lyricBottomPadDp, endRoom)
                 ),
                 horizontalAlignment = lyricsHorizontalAlignment,
                 modifier = modifier
                     .fillMaxSize()
+                    .onSizeChanged { listHeightPx = it.height }
                     .nestedScroll(lyricsScrollHideConnection)
                     .clickable { onInteraction() }
                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
@@ -406,8 +416,8 @@ internal fun LyricsView(
                                 currentActiveItem.originalIndex == index
 
                             val lineScale by animateFloatAsState(
-                                targetValue = if (isActive || isSelected) 1.025f else 0.965f,
-                                animationSpec = tween(220, easing = SmoothEasing),
+                                targetValue = if (isActive || isSelected) 1f else 0.98f,
+                                animationSpec = tween(400, easing = SmoothEasing),
                                 label = "lyricLineScale"
                             )
 
@@ -416,9 +426,10 @@ internal fun LyricsView(
                                     selectionMode -> if (isSelected) 1.00f else 0.35f
                                     isActive -> 1.00f
                                     userIsDragging -> 0.45f
-                                    // Lines already sung disappear, and the ones to come fade the further away they are.
+                                    // The ones to come fade the further away they are. Lines just sung stay dim as they move
+                                    // up and out under the top edge, rather than vanishing at once.
                                     ahead > 0 -> maxOf(0.12f, 0.45f - (ahead - 1) * 0.1f)
-                                    else -> 0f
+                                    else -> maxOf(0f, 0.3f + (ahead + 1) * 0.15f)
                                 },
                                 animationSpec = tween(280, easing = SmoothEasing),
                                 label = "lyricLineOpacity"
@@ -656,7 +667,6 @@ private fun ActiveLyricLine(
         }
     }
 
-    val progress = progressAnim.value
     val onSurface = MaterialTheme.colorScheme.onSurface
     val preferences = LocalAppPreferences.current
     val activeWordColor = if (preferences.lyricsActiveStyle == `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle.ACCENT_GLOW) {
@@ -665,37 +675,58 @@ private fun ActiveLyricLine(
         onSurface
     }
 
-    val dimColor = onSurface.copy(alpha = 0.38f)
-    val annotatedString = buildAnnotatedString {
-        words.forEachIndexed { wordIdx, word ->
-            val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
-            val revealFraction = when {
-                progress >= slotEnd -> 1f
-                progress >= slotStart -> {
-                    val linearFraction = if (slotEnd > slotStart) {
-                        ((progress - slotStart) / (slotEnd - slotStart)).coerceIn(0f, 1f)
-                    } else {
-                        1f
-                    }
-                    linearFraction * linearFraction * (3f - 2f * linearFraction)
-                }
-
-                else -> 0f
-            }
-            val color = lerp(dimColor, activeWordColor, revealFraction)
-            withStyle(SpanStyle(color = color)) {
-                append(word)
-            }
-            if (wordIdx < words.size - 1) append(" ")
-        }
+    // The line is laid out once and drawn twice, dim and lit. Each frame only the lit copy's mask changes, which
+    // is a cheap redraw; rebuilding the styled text every frame meant a new text layout each time.
+    val text = remember(words) { words.joinToString(" ") }
+    val wordRanges = remember(words) {
+        var start = 0
+        words.map { word -> (start until start + word.length).also { start += word.length + 1 } }
+    }
+    var layout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
+    val wordBounds = remember(layout, wordRanges) {
+        layout?.let { result -> wordRanges.map { range -> result.getPathForRange(range.first, range.last + 1).getBounds() } }
     }
 
-    Text(
-        text = annotatedString,
-        style = lyricStyle,
-        textAlign = lyricStyle.textAlign,
-        modifier = modifier
-    )
+    Box(modifier = modifier) {
+        Text(
+            text = text,
+            style = lyricStyle,
+            color = onSurface.copy(alpha = 0.5f),
+            textAlign = lyricStyle.textAlign,
+            onTextLayout = { layout = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = text,
+            style = lyricStyle,
+            color = activeWordColor,
+            textAlign = lyricStyle.textAlign,
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    val bounds = wordBounds ?: return@drawWithContent
+                    val progress = progressAnim.value
+                    bounds.forEachIndexed { wordIdx, rect ->
+                        val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
+                        // Each word lights over its own share of the line, as it's sung; a short word still takes a
+                        // quarter of a second, so it fades rather than blinks.
+                        val span = maxOf(slotEnd - slotStart, 250f / safeDuration)
+                        val linear = ((progress - slotStart) / span).coerceIn(0f, 1f)
+                        val lit = linear * linear * (3f - 2f * linear)
+                        if (lit < 1f) {
+                            drawRect(
+                                color = Color.Black.copy(alpha = 1f - lit),
+                                topLeft = rect.topLeft,
+                                size = rect.size,
+                                blendMode = BlendMode.DstOut
+                            )
+                        }
+                    }
+                }
+        )
+    }
 }
 
 @Composable
