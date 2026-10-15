@@ -3,10 +3,6 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableFloatStateOf
-import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -269,26 +265,12 @@ internal fun LyricsView(
                 }
             }
 
-            // The list jumps to the new line, and each line then slides from where it was, the ones further down
-            // a moment later. A line far off screen, after a seek, is scrolled to instead.
-            var followShift by remember { mutableFloatStateOf(0f) }
-            var followTick by remember { mutableIntStateOf(0) }
-            var followAtMs by remember { mutableLongStateOf(0L) }
-
             LaunchedEffect(activeDisplayIndex, userIsDragging) {
                 if (userIsDragging) return@LaunchedEffect
-                val scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
-                val before = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }?.offset
-                if (before == null) {
-                    listState.animateScrollToItem(activeDisplayIndex, scrollOffset)
-                    return@LaunchedEffect
-                }
-                listState.scrollToItem(activeDisplayIndex, scrollOffset)
-                withFrameNanos { }
-                val after = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }?.offset ?: before
-                followShift = (before - after).toFloat()
-                followAtMs = SystemClock.uptimeMillis()
-                followTick++
+                listState.animateScrollToItem(
+                    index = activeDisplayIndex,
+                    scrollOffset = if (activeDisplayIndex > 0) -activeOffsetPx else 0
+                )
             }
 
             val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
@@ -387,18 +369,10 @@ internal fun LyricsView(
                         }
                     }
                 ) { displayIdx, item ->
-                    val trail = remember { Animatable(0f) }
-                    LaunchedEffect(followTick) {
-                        if (followTick == 0 || SystemClock.uptimeMillis() - followAtMs > 100L) return@LaunchedEffect
-                        trail.snapTo(followShift)
-                        delay((displayIdx - activeDisplayIndex + 1).coerceIn(0, 4) * 25L)
-                        trail.animateTo(0f, tween(650, easing = FastOutSlowInEasing))
-                    }
-                    Box(Modifier.fillMaxWidth().graphicsLayer { translationY = trail.value }) {
                     when (item) {
                         is LyricDisplayItem.Gap -> {
                             val isInGap = effectivePositionMs in item.fromMs..item.toMs
-                            // Once the break is over its dots would sit above lines already sung.
+                            // A break only takes space while it's on, so lines keep even spacing around it.
                             AnimatedVisibility(
                                 visible = isInGap,
                                 enter = expandVertically(tween(220, easing = SmoothEasing)),
@@ -513,7 +487,6 @@ internal fun LyricsView(
                                 )
                             }
                         }
-                    }
                     }
                 }
 
