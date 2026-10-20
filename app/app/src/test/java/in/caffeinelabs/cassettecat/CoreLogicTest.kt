@@ -58,6 +58,7 @@ import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.StringReader
 import kotlin.random.Random
+import `in`.caffeinelabs.cassettecat.data.stats.identity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -471,6 +472,15 @@ class CoreLogicTest {
             testSong("k", artist = "Dee", title = "Three", durationMs = 205_800L)
         ))
         assertEquals(listOf(listOf("a", "b"), listOf("h", "g"), listOf("i", "j")), groups.map { group -> group.map { it.id } })
+    }
+
+    @Test
+    fun aComputerListenFetchedAgainUnderANewSongIdIsTheSameListen() {
+        val first = Listen(1_790_371_833_778L, "Show Me Love", "Tyla", ms = 180_000L, songId = "local:1000335839")
+        val again = first.copy(songId = "local:1000343687")
+        assertEquals(first.identity, again.identity)
+        val unique = listOf(first, again).distinctBy { it.identity }
+        assertEquals(1, monthlyStatsOf(unique, emptyMap()).values.sumOf { it.songPlayCounts.values.sum() })
     }
 
     private fun testSong(

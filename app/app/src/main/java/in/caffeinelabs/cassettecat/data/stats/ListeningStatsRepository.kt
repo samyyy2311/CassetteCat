@@ -62,6 +62,10 @@ data class Listen(
 
 val Listen.statsSongId: String get() = songId ?: "song:" + songMatchKey(title, artist)
 
+// The same listen on both devices, matched as the computer matches it: song ids differ between devices and change when
+// the phone rescans, but when a listen ended and what played don't.
+internal val Listen.identity: Pair<Long, String> get() = at to title
+
 val Listen.monthKey: String get() = YearMonth.from(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())).toString()
 
 internal fun monthlyStatsOf(listens: List<Listen>, earlier: Map<String, MonthlyStats>): Map<String, MonthlyStats> {
@@ -109,8 +113,12 @@ class ListeningStatsRepository(private val context: Context) {
     suspend fun addListens(listens: List<Listen>) {
         if (listens.isEmpty()) return
         ListeningLog.lock.withLock {
-            val all = loaded() + listens
-            withContext(Dispatchers.IO) { logFile.appendText(listens.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
+            val current = loaded()
+            val known = current.mapTo(HashSet()) { it.identity }
+            val added = listens.distinctBy { it.identity }.filterNot { it.identity in known }
+            if (added.isEmpty()) return
+            val all = current + added
+            withContext(Dispatchers.IO) { logFile.appendText(added.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
             ListeningLog.listens.value = all
             context.statsDataStore.edit { prefs ->
                 val data = prefs.decode()
@@ -129,9 +137,10 @@ class ListeningStatsRepository(private val context: Context) {
     suspend fun clearAll() = replaceAll(emptyList(), emptyMap(), emptyList())
 
     suspend fun replaceAll(listens: List<Listen>, earlierMonthly: Map<String, MonthlyStats>, milestones: List<Milestone>) {
+        val unique = listens.distinctBy { it.identity }
         ListeningLog.lock.withLock {
-            withContext(Dispatchers.IO) { logFile.writeText(listens.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
-            ListeningLog.listens.value = listens
+            withContext(Dispatchers.IO) { logFile.writeText(unique.joinToString("") { sharedJson.encodeToString(it) + "\n" }) }
+            ListeningLog.listens.value = unique
             context.statsDataStore.edit { it[STATS_KEY] = sharedJson.encodeToString(StatsData(earlierMonthly, milestones)) }
         }
         BackupManager(context).dataChanged()
@@ -141,7 +150,11 @@ class ListeningStatsRepository(private val context: Context) {
 
     private suspend fun loaded(): List<Listen> = ListeningLog.listens.value ?: withContext(Dispatchers.IO) {
         if (!logFile.exists()) return@withContext emptyList()
-        logFile.readLines().mapNotNull { line -> runCatching { sharedJson.decodeFromString<Listen>(line) }.getOrNull() }
+        val all = logFile.readLines().mapNotNull { line -> runCatching { sharedJson.decodeFromString<Listen>(line) }.getOrNull() }
+        // Earlier versions could save a computer's listen twice, so a log holding repeats is written back without them.
+        all.distinctBy { it.identity }.also { unique ->
+            if (unique.size != all.size) logFile.writeText(unique.joinToString("") { sharedJson.encodeToString(it) + "\n" })
+        }
     }.also { ListeningLog.listens.value = it }
 
     private fun withNewMilestones(current: List<Milestone>, type: MilestoneType, newTotal: Long, thresholds: List<Long>): List<Milestone> {

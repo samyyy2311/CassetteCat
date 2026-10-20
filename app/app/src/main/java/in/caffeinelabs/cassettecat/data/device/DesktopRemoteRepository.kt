@@ -24,7 +24,6 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.stats.Listen
-import `in`.caffeinelabs.cassettecat.data.stats.statsSongId
 import `in`.caffeinelabs.cassettecat.data.stats.ListeningStatsRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.DesktopCertificate
 import `in`.caffeinelabs.cassettecat.data.streaming.pairingCertificate
@@ -636,10 +635,8 @@ class DesktopRemoteRepository private constructor(context: Context) {
         val listens = apiClient.getListens(desktop.host, desktop.port, desktop.code, since) ?: return false
         if (listens.isEmpty()) return uploaded
         val songsByKey = localLibrary.getSongs().associateBy { songMatchKey(it.title, it.artist) }
-        val known = statsRepository.listens.first().mapTo(HashSet()) { it.at to it.statsSongId }
-        statsRepository.addListens(
-            listens.map { it.copy(songId = songsByKey[songMatchKey(it.title, it.artist)]?.id) }.filterNot { (it.at to it.statsSongId) in known }
-        )
+        // The log skips listens it already has, so a computer's history fetched again isn't counted twice.
+        statsRepository.addListens(listens.map { it.copy(songId = songsByKey[songMatchKey(it.title, it.artist)]?.id) })
         dataStore.edit { it[DESKTOP_LISTENS_SINCE] = listens.maxOf { listen -> listen.at } }
         return uploaded
     }
