@@ -210,7 +210,6 @@ private fun drawSongCard(
         color = android.graphics.Color.WHITE
         textSize = 104f
         typeface = spaceGroteskBold
-        fontVariationSettings = "'wght' 700"
         textAlign = Paint.Align.CENTER
     }
     val safeTitle = if (song.title.length > 32) song.title.take(30) + "…" else song.title
@@ -262,7 +261,7 @@ private fun drawLyricCard(
 ) {
     val width = canvas.width
     val height = canvas.height
-    val (spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, _) = typefaces
+    val (_, spaceGroteskSemiBold, ibmPlexMono, _, spaceGroteskMedium) = typefaces
     val thumbSize = 240f
     val thumbLeft = 180f
     val thumbTop = 160f
@@ -294,8 +293,7 @@ private fun drawLyricCard(
     val headerTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = 84f
-        typeface = spaceGroteskBold
-        fontVariationSettings = "'wght' 600"
+        typeface = spaceGroteskSemiBold
     }
     val safeHeaderTitle = if (song.title.length > 26) song.title.take(24) + "…" else song.title
     canvas.drawText(safeHeaderTitle, thumbLeft + thumbSize + 48f, thumbTop + 104f, headerTitlePaint)
@@ -318,8 +316,7 @@ private fun drawLyricCard(
     val lyricPaint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = fontSize
-        typeface = spaceGroteskSemiBold
-        fontVariationSettings = "'wght' 500"
+        typeface = spaceGroteskMedium
     }
 
     val textToDraw = validLines.joinToString("\n")

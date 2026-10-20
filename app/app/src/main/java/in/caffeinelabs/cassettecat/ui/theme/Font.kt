@@ -5,18 +5,21 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 
+// One file per weight: the variable fonts were drawn at their default weight, Light for Space Grotesk, so bold
+// text came out thin.
 val SpaceGroteskFontFamily = FontFamily(
-    Font(resId = R.font.space_grotesk_variable, weight = FontWeight.Normal),
-    Font(resId = R.font.space_grotesk_variable, weight = FontWeight.Medium),
-    Font(resId = R.font.space_grotesk_variable, weight = FontWeight.SemiBold),
-    Font(resId = R.font.space_grotesk_variable, weight = FontWeight.Bold)
+    Font(resId = R.font.space_grotesk_light, weight = FontWeight.Light),
+    Font(resId = R.font.space_grotesk_regular, weight = FontWeight.Normal),
+    Font(resId = R.font.space_grotesk_medium, weight = FontWeight.Medium),
+    Font(resId = R.font.space_grotesk_semibold, weight = FontWeight.SemiBold),
+    Font(resId = R.font.space_grotesk_bold, weight = FontWeight.Bold)
 )
 
 val IbmPlexSansFontFamily = FontFamily(
-    Font(resId = R.font.ibm_plex_sans_variable, weight = FontWeight.Normal),
-    Font(resId = R.font.ibm_plex_sans_variable, weight = FontWeight.Medium),
-    Font(resId = R.font.ibm_plex_sans_variable, weight = FontWeight.SemiBold),
-    Font(resId = R.font.ibm_plex_sans_variable, weight = FontWeight.Bold)
+    Font(resId = R.font.ibm_plex_sans_regular, weight = FontWeight.Normal),
+    Font(resId = R.font.ibm_plex_sans_medium, weight = FontWeight.Medium),
+    Font(resId = R.font.ibm_plex_sans_semibold, weight = FontWeight.SemiBold),
+    Font(resId = R.font.ibm_plex_sans_bold, weight = FontWeight.Bold)
 )
 
 val IbmPlexMonoFontFamily = FontFamily(
