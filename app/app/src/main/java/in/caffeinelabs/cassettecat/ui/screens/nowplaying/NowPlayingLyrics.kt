@@ -14,12 +14,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import `in`.caffeinelabs.cassettecat.data.playback.AudioWaveformHolder
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -274,11 +274,17 @@ internal fun LyricsView(
                 if (target == null) {
                     listState.animateScrollToItem(activeDisplayIndex)
                 } else {
-                    // An eased glide to the next line; the default spring snaps there.
-                    listState.animateScrollBy(
-                        value = target.offset.toFloat(),
-                        animationSpec = tween(700, easing = FastOutSlowInEasing)
-                    )
+                    // An eased glide to the next line; the default spring snaps there. Each frame covers its share of
+                    // what's left, measured again, so a break collapsing on the way doesn't leave the line short.
+                    listState.scroll {
+                        var covered = 0f
+                        animate(0f, 1f, animationSpec = tween(700, easing = FastOutSlowInEasing)) { eased, _ ->
+                            val offset = listState.layoutInfo.visibleItemsInfo
+                                .firstOrNull { it.index == activeDisplayIndex }?.offset ?: return@animate
+                            if (covered < 1f) scrollBy(offset * (eased - covered) / (1f - covered))
+                            covered = eased
+                        }
+                    }
                 }
             }
 
@@ -712,8 +718,10 @@ private fun ActiveLyricLine(
                         val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
                         // Each word lights over its own share of the line, as it's sung; a short word still takes a
                         // quarter of a second, so it fades rather than blinks.
-                        val span = maxOf(slotEnd - slotStart, 250f / safeDuration)
-                        val linear = ((progress - slotStart) / span).coerceIn(0f, 1f)
+                        // The last words start earlier when that quarter-second would outlast the line.
+                        val span = maxOf(slotEnd - slotStart, 250f / safeDuration).coerceAtMost(1f)
+                        val start = minOf(slotStart, 1f - span)
+                        val linear = ((progress - start) / span).coerceIn(0f, 1f)
                         val lit = linear * linear * (3f - 2f * linear)
                         if (lit < 1f) {
                             drawRect(
