@@ -62,9 +62,9 @@ data class Listen(
 
 val Listen.statsSongId: String get() = songId ?: "song:" + songMatchKey(title, artist)
 
-// The same listen on both devices, matched as the computer matches it: song ids differ between devices and change when
-// the phone rescans, but when a listen ended and what played don't.
-internal val Listen.identity: Pair<Long, String> get() = at to title
+// The same listen on both devices: song ids differ between devices and change when the phone rescans, but when a
+// listen ended and what played don't.
+internal val Listen.identity: Pair<Long, String> get() = at to songMatchKey(title, artist)
 
 val Listen.monthKey: String get() = YearMonth.from(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())).toString()
 

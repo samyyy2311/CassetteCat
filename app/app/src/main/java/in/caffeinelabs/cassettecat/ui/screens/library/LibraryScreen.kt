@@ -716,10 +716,9 @@ fun LibraryScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         LibraryViewMode.FOLDERS -> {
-                                            val folders = remember(groupedFolders, folderSortOrder, folderSortDirection, folderCovers) {
+                                            val folders = remember(groupedFolders, folderSortOrder, folderSortDirection) {
                                                 val sorted = groupedFolders.sortedWith(folderSortOrder.comparator())
-                                                (if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted)
-                                                    .map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+                                                if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted
                                             }
                                             FoldersTab(
                                                 folders = folders,
