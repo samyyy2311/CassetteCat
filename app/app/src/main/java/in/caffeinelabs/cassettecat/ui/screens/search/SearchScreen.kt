@@ -181,10 +181,11 @@ fun SearchScreen(
             .map { it.first }
     }
 
+    // Albums and folders are only grouped once there's a query to match them against.
     val allArtists = remember(allSongs) { allSongs.groupedByArtist() }
-    val allAlbums = remember(allSongs) { allSongs.groupedByAlbum() }
+    val allAlbums by remember(allSongs) { lazy { allSongs.groupedByAlbum() } }
     val allGenres = remember(allSongs) { allSongs.groupedByGenre() }
-    val allFolders = remember(allSongs) { allSongs.groupedByFolder() }
+    val allFolders by remember(allSongs) { lazy { allSongs.groupedByFolder() } }
 
     val matchedArtists = remember(trimmed, allArtists) {
         if (trimmed.isBlank()) emptyList()
@@ -194,7 +195,7 @@ fun SearchScreen(
         }
     }
 
-    val matchedAlbums = remember(trimmed, allAlbums) {
+    val matchedAlbums = remember(trimmed, allSongs) {
         if (trimmed.isBlank()) emptyList()
         else allAlbums.filter {
             it.album.contains(trimmed, ignoreCase = true) ||
@@ -209,7 +210,7 @@ fun SearchScreen(
         }
     }
 
-    val matchedFolders = remember(trimmed, allFolders) {
+    val matchedFolders = remember(trimmed, allSongs) {
         if (trimmed.isBlank()) emptyList()
         else allFolders.filter {
             it.folderName.contains(trimmed, ignoreCase = true) ||

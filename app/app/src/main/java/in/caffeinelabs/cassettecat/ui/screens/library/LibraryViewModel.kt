@@ -20,6 +20,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepo
 import `in`.caffeinelabs.cassettecat.data.streaming.subsonic.SubsonicLibraryRepository
 import android.os.SystemClock
 import android.util.Log
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
@@ -54,10 +55,14 @@ fun SortDirection.flipped(): SortDirection =
 
 private val LEADING_ARTICLE_REGEX = Regex("""^(the|an|a)\s+""", RegexOption.IGNORE_CASE)
 
-fun String.sortKey(): String {
+// Sorting asks for the same names' keys thousands of times, so each is worked out once.
+// ponytail: grows with the library's distinct names and is never trimmed; bound it if libraries get huge.
+private val sortKeys = ConcurrentHashMap<String, String>()
+
+fun String.sortKey(): String = sortKeys.getOrPut(this) {
     val withoutArticle = LEADING_ARTICLE_REGEX.find(this)?.let { substring(it.value.length) } ?: this
     val clean = withoutArticle.trimStart('\'', '"', '[', '(', '{', '#', ' ', '\t', '.', '-', '_')
-    return clean.lowercase().ifEmpty { lowercase() }
+    clean.lowercase().ifEmpty { lowercase() }
 }
 
 private fun symbolOrNumberFirst(value: String): Int {

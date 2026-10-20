@@ -216,7 +216,7 @@ internal fun SongsTabContent(
 
 @Composable
 internal fun ArtistsTabContent(
-    filteredSongs: List<Song>,
+    groups: List<ArtistGroup>,
     sortOrder: ArtistSortOrder,
     sortDirection: SortDirection,
     collectionLayout: CollectionLayout,
@@ -234,10 +234,10 @@ internal fun ArtistsTabContent(
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
-    val artists = remember(filteredSongs, sortOrder, sortDirection) {
+    val artists = remember(groups, sortOrder, sortDirection) {
         val comparator = sortOrder.comparator()
             .let { if (sortDirection == SortDirection.DESCENDING) it.reversed() else it }
-        filteredSongs.groupedByArtist().sortedWith(comparator)
+        groups.sortedWith(comparator)
     }
 
     if (artists.isEmpty()) {
@@ -282,7 +282,7 @@ internal fun ArtistsTabContent(
 
 @Composable
 internal fun AlbumsTabContent(
-    filteredSongs: List<Song>,
+    groups: List<AlbumGroup>,
     sortOrder: AlbumSortOrder,
     sortDirection: SortDirection,
     collectionLayout: CollectionLayout,
@@ -300,10 +300,10 @@ internal fun AlbumsTabContent(
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
-    val albums = remember(filteredSongs, sortOrder, sortDirection) {
+    val albums = remember(groups, sortOrder, sortDirection) {
         val comparator = sortOrder.comparator()
             .let { if (sortDirection == SortDirection.DESCENDING) it.reversed() else it }
-        filteredSongs.groupedByAlbum().sortedWith(comparator)
+        groups.sortedWith(comparator)
     }
 
     if (albums.isEmpty()) {
@@ -348,7 +348,7 @@ internal fun AlbumsTabContent(
 
 @Composable
 internal fun GenresTabContent(
-    filteredSongs: List<Song>,
+    groups: List<GenreGroup>,
     sortOrder: GenreSortOrder,
     sortDirection: SortDirection,
     collectionLayout: CollectionLayout,
@@ -367,10 +367,10 @@ internal fun GenresTabContent(
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
     val gridColumns = preferences.gridColumnCount
 
-    val genres = remember(filteredSongs, sortOrder, sortDirection) {
+    val genres = remember(groups, sortOrder, sortDirection) {
         val comparator = sortOrder.comparator()
             .let { if (sortDirection == SortDirection.DESCENDING) it.reversed() else it }
-        filteredSongs.groupedByGenre().sortedWith(comparator)
+        groups.sortedWith(comparator)
     }
 
     if (genres.isEmpty()) {
