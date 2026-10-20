@@ -1,5 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.home
 
+import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
+import kotlin.random.Random
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -44,7 +48,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -66,8 +69,6 @@ import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.SongRowSkeleton
-import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByAlbum
-import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.screens.library.rememberSkeletonColor
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
@@ -97,20 +98,22 @@ fun HomeScreen(
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val recentlyPlayed = playbackState.history
     val favorites = allSongs.filter { it.isFavorite }
-    // Pulling to refresh deals new picks even when the library itself hasn't changed.
-    var refreshCount by remember { mutableStateOf(0) }
-    val shufflePicks = remember(allSongs, refreshCount) {
+    // The picks are dealt from a saved seed, so they stay put when coming back to this tab; pulling to refresh deals
+    // new ones even when the library itself hasn't changed.
+    var pickSeed by rememberSaveable { mutableLongStateOf(Random.nextLong()) }
+    val shufflePicks = remember(allSongs, pickSeed) {
+        val random = Random(pickSeed)
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         if (hour >= 22 || hour < 5) {
-            val soft = allSongs.filter { it.isSoftGenre() }.shuffled()
-            (soft + allSongs.shuffled()).distinct().take(8)
+            val soft = allSongs.filter { it.isSoftGenre() }.shuffled(random)
+            (soft + allSongs.shuffled(random)).distinct().take(8)
         } else {
-            allSongs.shuffled().take(8)
+            allSongs.shuffled(random).take(8)
         }
     }
-    val heroSong = remember(allSongs, refreshCount) { allSongs.randomOrNull() }
+    val heroSong = remember(allSongs, pickSeed) { allSongs.randomOrNull(Random(pickSeed)) }
 
-    val greetingRes = remember(refreshCount) { getDynamicGreetingRes() }
+    val greetingRes = remember(pickSeed) { getDynamicGreetingRes(Random(pickSeed)) }
 
     val heavyRotation = remember(allSongs, monthlyStats) {
         val counts = monthlyStats.values
@@ -149,7 +152,7 @@ fun HomeScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
-            refreshCount++
+            pickSeed = Random.nextLong()
             libraryViewModel.refresh()
         },
         modifier = modifier.fillMaxSize()
@@ -332,8 +335,8 @@ private fun HomeSkeletonContent(listBottomPadding: Dp, color: Color = rememberSk
 
 @Composable
 private fun LibrarySnapshot(songs: List<Song>, onClick: () -> Unit) {
-    val artistCount = remember(songs) { songs.groupedByArtist().size }
-    val albumCount = remember(songs) { songs.groupedByAlbum().size }
+    val artistCount = remember(songs) { songs.flatMapTo(HashSet()) { it.artist.splitArtists() }.size }
+    val albumCount = remember(songs) { songs.mapTo(HashSet()) { it.albumId }.size }
     Text(
         listOf(
             pluralStringResource(AppR.plurals.library_songs, songs.size, songs.size),
@@ -473,7 +476,7 @@ private val SOFT_GENRE_KEYWORDS = setOf("ambient", "chill", "lofi", "lo-fi", "ja
 
 private fun Song.isSoftGenre(): Boolean = genres.any { g -> SOFT_GENRE_KEYWORDS.any { g.lowercase().contains(it) } }
 
-private fun getDynamicGreetingRes(): Int {
+private fun getDynamicGreetingRes(random: Random): Int {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
@@ -523,6 +526,6 @@ private fun getDynamicGreetingRes(): Int {
             AppR.string.greeting_after_hours_rotation
         )
     }
-    return options.random()
+    return options.random(random)
 }
 
