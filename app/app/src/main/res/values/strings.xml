@@ -594,6 +594,8 @@
     <string name="customization_blurred_background_description">Show blurred album art behind Now Playing</string>
     <string name="customization_remaining_time">Show Remaining Time</string>
     <string name="customization_remaining_time_description">Show a countdown such as -02:45 instead of the full track length</string>
+    <string name="customization_track_details">Show Format and Output</string>
+    <string name="customization_track_details_description">The file format and the speaker or headphones playing, under the song title</string>
     <string name="customization_mini_swipe">Mini-Player Swipe to Skip</string>
     <string name="customization_mini_swipe_description">Swipe across the mini-player to change tracks</string>
     <string name="customization_swipe_lyrics">Swipe Up on Art for Lyrics</string>

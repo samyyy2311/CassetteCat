@@ -20,6 +20,7 @@ private val AMOLED_DARK_THEME = booleanPreferencesKey("amoled_dark_theme")
 private val DEFAULT_LIBRARY_TAB = stringPreferencesKey("default_library_tab")
 private val ALBUM_ART_CORNER_RADIUS = intPreferencesKey("album_art_corner_radius")
 private val SHOW_REMAINING_TIME = booleanPreferencesKey("show_remaining_time")
+private val SHOW_TRACK_DETAILS = booleanPreferencesKey("show_track_details")
 private val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
 
 private val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
@@ -152,6 +153,7 @@ data class AppPreferences(
     val defaultLibraryTab: DefaultLibraryTab = DefaultLibraryTab.SONGS,
     val albumArtCornerRadiusDp: Int = 16,
     val showRemainingTime: Boolean = false,
+    val showTrackDetails: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val gaplessPlayback: Boolean = true,
@@ -239,6 +241,7 @@ class AppPreferencesRepository(private val context: Context) {
             },
             albumArtCornerRadiusDp = prefs[ALBUM_ART_CORNER_RADIUS] ?: 16,
             showRemainingTime = prefs[SHOW_REMAINING_TIME] ?: false,
+            showTrackDetails = prefs[SHOW_TRACK_DETAILS] ?: true,
             hapticFeedbackEnabled = prefs[HAPTIC_FEEDBACK_ENABLED] ?: true,
             crossfadeSeconds = prefs[CROSSFADE_SECONDS] ?: 0,
             gaplessPlayback = prefs[GAPLESS_PLAYBACK] ?: true,
@@ -356,6 +359,10 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setShowRemainingTime(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SHOW_REMAINING_TIME] = enabled }
+    }
+
+    suspend fun setShowTrackDetails(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[SHOW_TRACK_DETAILS] = enabled }
     }
 
     suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
@@ -641,6 +648,7 @@ class AppPreferencesRepository(private val context: Context) {
             defaultLibraryTab = current.defaultLibraryTab.name,
             albumArtCornerRadiusDp = current.albumArtCornerRadiusDp,
             showRemainingTime = current.showRemainingTime,
+            showTrackDetails = current.showTrackDetails,
             hapticFeedbackEnabled = current.hapticFeedbackEnabled,
             crossfadeSeconds = current.crossfadeSeconds,
             gaplessPlayback = current.gaplessPlayback,
@@ -717,6 +725,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[DEFAULT_LIBRARY_TAB] = backup.defaultLibraryTab
             prefs[ALBUM_ART_CORNER_RADIUS] = backup.albumArtCornerRadiusDp
             prefs[SHOW_REMAINING_TIME] = backup.showRemainingTime
+            prefs[SHOW_TRACK_DETAILS] = backup.showTrackDetails
             prefs[HAPTIC_FEEDBACK_ENABLED] = backup.hapticFeedbackEnabled
             prefs[CROSSFADE_SECONDS] = backup.crossfadeSeconds
             prefs[GAPLESS_PLAYBACK] = backup.gaplessPlayback

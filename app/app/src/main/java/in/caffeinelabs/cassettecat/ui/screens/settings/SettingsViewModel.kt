@@ -210,6 +210,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setShowRemainingTime(enabled) }
     }
 
+    fun setShowTrackDetails(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setShowTrackDetails(enabled) }
+    }
+
     fun setHapticFeedbackEnabled(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setHapticFeedbackEnabled(enabled) }
     }

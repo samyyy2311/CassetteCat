@@ -37,6 +37,7 @@ data class BackupAppPreferences(
     val defaultLibraryTab: String = "SONGS",
     val albumArtCornerRadiusDp: Int = 16,
     val showRemainingTime: Boolean = false,
+    val showTrackDetails: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val gaplessPlayback: Boolean = true,
