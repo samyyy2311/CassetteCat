@@ -209,9 +209,15 @@ internal fun AlbumArtCard(
         ) {
             if (song.source == MusicSource.Radio) {
                 var artwork by remember(song.id) { mutableStateOf<Bitmap?>(null) }
-                LaunchedEffect(song.id) { artwork = loadSongArtwork(context, song) }
+                var loading by remember(song.id) { mutableStateOf(true) }
+                LaunchedEffect(song.id) {
+                    artwork = loadSongArtwork(context, song)
+                    loading = false
+                }
                 val loadedArtwork = artwork
-                if (loadedArtwork != null) {
+                if (loading) {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
+                } else if (loadedArtwork != null) {
                     Image(
                         bitmap = loadedArtwork.asImageBitmap(),
                         contentDescription = null,
