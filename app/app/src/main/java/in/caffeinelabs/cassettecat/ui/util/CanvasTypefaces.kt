@@ -9,7 +9,8 @@ data class CanvasTypefaces(
     val spaceGroteskBold: Typeface,
     val spaceGroteskSemiBold: Typeface,
     val ibmPlexMono: Typeface,
-    val ibmPlexSans: Typeface
+    val ibmPlexSans: Typeface,
+    val spaceGroteskMedium: Typeface
 )
 
 fun loadCanvasTypefaces(context: Context): CanvasTypefaces {
@@ -29,5 +30,10 @@ fun loadCanvasTypefaces(context: Context): CanvasTypefaces {
         ResourcesCompat.getFont(context, AppR.font.ibm_plex_sans_regular)
     }.getOrNull() ?: Typeface.DEFAULT
 
-    return CanvasTypefaces(spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, ibmPlexSans)
+    // The fonts are static, one file per weight, so each weight is loaded rather than set as a variation.
+    val spaceGroteskMedium = runCatching {
+        ResourcesCompat.getFont(context, AppR.font.space_grotesk_medium)
+    }.getOrNull() ?: Typeface.DEFAULT
+
+    return CanvasTypefaces(spaceGroteskBold, spaceGroteskSemiBold, ibmPlexMono, ibmPlexSans, spaceGroteskMedium)
 }
