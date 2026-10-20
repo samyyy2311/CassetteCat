@@ -63,6 +63,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.CassetteCat">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,6 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.search
 
-import androidx.activity.compose.BackHandler
+import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -150,7 +150,7 @@ fun SearchScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    BackHandler(enabled = query.isNotEmpty()) {
+    AppBackHandler(enabled = query.isNotEmpty()) {
         query = ""
         selectedCategory = SearchCategory.ALL
         keyboardController?.hide()

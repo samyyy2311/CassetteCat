@@ -3,7 +3,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import android.provider.OpenableColumns
-import androidx.activity.compose.BackHandler
+import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -191,7 +191,7 @@ fun LibraryScreen(
     var showComputerPlaylists by remember { mutableStateOf(false) }
     var computerPlaylists by remember { mutableStateOf<List<DesktopPlaylist>?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
-    BackHandler(enabled = selectionMode) {
+    AppBackHandler(enabled = selectionMode) {
         selectedIds = emptySet()
     }
     val favoritesRepository = remember { FavoritesRepository(context) }
