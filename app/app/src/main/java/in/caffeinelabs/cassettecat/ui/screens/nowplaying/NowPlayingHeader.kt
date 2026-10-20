@@ -274,8 +274,9 @@ internal fun TitleRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val showTrackDetails = LocalAppPreferences.current.showTrackDetails
-                if (showTrackDetails) {
+                // The same switch as the badges on song rows, so one setting gives a clean look everywhere.
+                val showDetails = LocalAppPreferences.current.showAudioQualityBadge
+                if (showDetails) {
                     audioFormat?.let { AudioQualityBadge(audioFormat = it) }
                 }
                 if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
@@ -299,7 +300,7 @@ internal fun TitleRow(
                         )
                     }
                 }
-                if (showTrackDetails) BluetoothOutputLabel()
+                if (showDetails) BluetoothOutputLabel()
             }
         }
         PressDepthIconButton(

@@ -558,14 +558,6 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             )
             SettingsDivider()
             ToggleRow(
-                title = stringResource(AppR.string.customization_track_details),
-                subtitle = stringResource(AppR.string.customization_track_details_description),
-                checked = prefs.showTrackDetails,
-                onCheckedChange = viewModel::setShowTrackDetails,
-                iconRes = R.drawable.lucide_ic_info,
-            )
-            SettingsDivider()
-            ToggleRow(
                 title = stringResource(AppR.string.customization_mini_swipe),
                 subtitle = stringResource(AppR.string.customization_mini_swipe_description),
                 checked = prefs.miniPlayerSwipeToSkip,
