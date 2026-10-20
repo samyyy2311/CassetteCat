@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
@@ -981,18 +982,21 @@ fun MainShell(
             LoadingBar()
         }
 
-        // Composed after the pages and the player so it comes first. Plain page-to-page back is left to the
-        // NavHost, which animates the predictive back gesture.
+        // The handler added last gets back first, and the NavHost adds its own again as pages change, so this one
+        // is added again whenever its state or the page changes. Plain page-to-page back is left to the NavHost,
+        // which animates the predictive back gesture.
         val playerStep = backSteps.latest(BackLayer.PLAYER)
         val pageStep = backSteps.latest(BackLayer.PAGE)
         val atTabRoot = navController.previousBackStackEntry == null
-        BackHandler(enabled = isSheetExpanded || pageStep != null || (atTabRoot && currentTab != startTab)) {
-            when {
-                isSheetExpanded && playerStep != null -> playerStep.action()
-                isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER -> nowPlayingView = NowPlayingView.PLAYER
-                isSheetExpanded -> scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                pageStep != null -> pageStep.action()
-                atTabRoot -> navigateToTab(startTab)
+        key(currentRoute, isSheetExpanded, nowPlayingView, playerStep, pageStep) {
+            BackHandler(enabled = isSheetExpanded || pageStep != null || (atTabRoot && currentTab != startTab)) {
+                when {
+                    isSheetExpanded && playerStep != null -> playerStep.action()
+                    isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER -> nowPlayingView = NowPlayingView.PLAYER
+                    isSheetExpanded -> scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                    pageStep != null -> pageStep.action()
+                    atTabRoot -> navigateToTab(startTab)
+                }
             }
         }
 
