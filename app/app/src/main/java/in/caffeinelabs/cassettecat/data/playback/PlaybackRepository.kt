@@ -151,7 +151,9 @@ class PlaybackRepository(private val context: Context) {
         })
         repositoryScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
-                volumeLimitMultiplier = if (prefs.volumeLimitEnabled) prefs.maxVolumePercent / 100f else 1f
+                // Squared, because loudness follows the level in decibels: a straight 50% sounds only a little
+                // quieter, while this turns 50% down by about 12 dB.
+                volumeLimitMultiplier = if (prefs.volumeLimitEnabled) (prefs.maxVolumePercent / 100f).let { it * it } else 1f
                 if (!volumeOverrideActive) controller?.volume = replayGainVolume * volumeLimitMultiplier
             }
         }

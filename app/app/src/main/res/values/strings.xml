@@ -626,7 +626,7 @@
     <string name="customization_mono_audio">Mono Audio Downmix</string>
     <string name="customization_mono_audio_description">Combine left and right channels for single-earbud listening</string>
     <string name="customization_volume_limit">Volume Limit (Ear Protection)</string>
-    <string name="customization_volume_limit_description">Cap the maximum playback level</string>
+    <string name="customization_volume_limit_description">Turns all playback down, to protect your hearing</string>
     <string name="customization_max_volume">Maximum Volume</string>
     <string name="customization_max_volume_description">Set the loudest level CassetteCat can play</string>
     <string name="customization_percent">%1$d%%</string>
