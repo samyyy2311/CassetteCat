@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -221,7 +222,6 @@ private fun MiniPlayerArtRow(
     onThumbnailBoundsChange: (Rect) -> Unit,
     deviceName: String?
 ) {
-    val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
 
     LaunchedEffect(currentSong.id, previousSong?.id, nextSong?.id) {
@@ -231,25 +231,9 @@ private fun MiniPlayerArtRow(
     }
 
     key(currentSong.id, previousSong?.id) {
-        val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id, showNextPlaceholder) {
-            buildList {
-                if (previousSong != null) add(previousSong)
-                add(currentSong)
-                if (nextSong != null) add(nextSong) else if (showNextPlaceholder) add(currentSong)
-            }
-        }
+        val (windowSongs, pagerState) =
+            rememberSongSwipePager(currentSong, previousSong, nextSong, showNextPlaceholder, onSwipeNext, onSwipePrevious)
         val currentIndex = if (previousSong != null) 1 else 0
-        val pagerState = rememberPagerState(initialPage = currentIndex) { windowSongs.size }
-
-        LaunchedEffect(pagerState) {
-            snapshotFlow { pagerState.settledPage }.collect { settled ->
-                if (settled != currentIndex) {
-                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                    if (settled > currentIndex) onSwipeNext() else onSwipePrevious()
-                    pagerState.animateScrollToPage(currentIndex)
-                }
-            }
-        }
 
         HorizontalPager(
             state = pagerState,
@@ -324,4 +308,37 @@ private fun MiniPlayerSongRow(
             }
         }
     }
+}
+
+// Pages over just the previous, current and next song. A settled swipe skips, then the pager snaps back to the
+// middle so the next recomposition starts from the new current song.
+@Composable
+internal fun rememberSongSwipePager(
+    currentSong: Song,
+    previousSong: Song?,
+    nextSong: Song?,
+    padMissingNext: Boolean,
+    onSwipeNext: () -> Unit,
+    onSwipePrevious: () -> Unit
+): Pair<List<Song>, PagerState> {
+    val haptics = LocalHapticFeedback.current
+    val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id, padMissingNext) {
+        buildList {
+            if (previousSong != null) add(previousSong)
+            add(currentSong)
+            if (nextSong != null) add(nextSong) else if (padMissingNext) add(currentSong)
+        }
+    }
+    val currentIndex = if (previousSong != null) 1 else 0
+    val pagerState = rememberPagerState(initialPage = currentIndex) { windowSongs.size }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { settled ->
+            if (settled != currentIndex) {
+                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                if (settled > currentIndex) onSwipeNext() else onSwipePrevious()
+                pagerState.animateScrollToPage(currentIndex)
+            }
+        }
+    }
+    return windowSongs to pagerState
 }
