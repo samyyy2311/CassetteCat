@@ -17,12 +17,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +35,7 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
 import `in`.caffeinelabs.cassettecat.data.device.FirmwareUpdateInfo
 import `in`.caffeinelabs.cassettecat.data.device.GitHubReleaseResult
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
@@ -95,17 +95,7 @@ fun DeviceFirmwareScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
-            Text(stringResource(AppR.string.device_firmware_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.device_firmware_title), onBack)
 
         SettingsSection(title = stringResource(AppR.string.device_firmware_current_version_section)) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {

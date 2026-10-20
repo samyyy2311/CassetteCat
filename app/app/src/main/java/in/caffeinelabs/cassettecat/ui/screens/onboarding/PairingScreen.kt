@@ -21,8 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -37,7 +37,7 @@ import `in`.caffeinelabs.cassettecat.data.device.CompanionStatus
 import `in`.caffeinelabs.cassettecat.data.device.DeviceConnectionType
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
 import `in`.caffeinelabs.cassettecat.data.device.DiscoveredDevice
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.NavigationRow
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsDivider
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.SettingsSection
@@ -75,19 +75,7 @@ fun PairingScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                R.drawable.lucide_ic_chevron_left,
-                stringResource(AppR.string.action_back),
-                onFinish
-            )
-            Text(stringResource(AppR.string.pairing_player_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.pairing_player_title), onFinish)
 
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
