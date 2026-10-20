@@ -49,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
@@ -279,8 +280,13 @@ fun MainShell(
 
     // Tabs replace each other instead of piling up, each keeping its own pages: back from a page lands on its tab,
     // and from any other tab back goes to the start tab before leaving the app.
-    var startTab by remember { mutableStateOf(MainRoute.LIBRARY) }
-    var currentTab by remember { mutableStateOf(MainRoute.LIBRARY) }
+    var startTab by rememberSaveable { mutableStateOf(MainRoute.LIBRARY) }
+    // A page's own route can't say which tab it's under, as pages opened from Home are library pages, so the tab is
+    // kept here. It follows any tab's own page too, since back to the start tab is the NavHost's, not navigateToTab.
+    var currentTab by rememberSaveable { mutableStateOf(MainRoute.LIBRARY) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in MainRoute.BOTTOM_TABS) currentTab = currentRoute ?: return@LaunchedEffect
+    }
 
     fun navigateToTab(route: String) {
         scope.launch { appPreferencesRepository.setLastOpenedRoute(route) }
@@ -307,7 +313,6 @@ fun MainShell(
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
             startTab = targetRoute
-            currentTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
                     popUpTo(MainRoute.LIBRARY) {
@@ -983,19 +988,17 @@ fun MainShell(
         }
 
         // The handler added last gets back first, and the NavHost adds its own again as pages change, so this one
-        // is added again whenever its state or the page changes. Plain page-to-page back is left to the NavHost,
-        // which animates the predictive back gesture.
+        // is added again whenever its state or the page changes. Plain page-to-page back, a tab back to the start tab
+        // included, is left to the NavHost, which animates the predictive back gesture.
         val playerStep = backSteps.latest(BackLayer.PLAYER)
         val pageStep = backSteps.latest(BackLayer.PAGE)
-        val atTabRoot = navController.previousBackStackEntry == null
         key(currentRoute, isSheetExpanded, nowPlayingView, playerStep, pageStep) {
-            BackHandler(enabled = isSheetExpanded || pageStep != null || (atTabRoot && currentTab != startTab)) {
+            BackHandler(enabled = isSheetExpanded || pageStep != null) {
                 when {
                     isSheetExpanded && playerStep != null -> playerStep.action()
                     isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER -> nowPlayingView = NowPlayingView.PLAYER
                     isSheetExpanded -> scope.launch { scaffoldState.bottomSheetState.partialExpand() }
                     pageStep != null -> pageStep.action()
-                    atTabRoot -> navigateToTab(startTab)
                 }
             }
         }
