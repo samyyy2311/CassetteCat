@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.semantics.contentType
@@ -32,13 +33,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +50,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
@@ -179,75 +179,29 @@ fun ConnectServerScreen(
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OutlinedTextField(
+                    ServerTextField(
                         value = serverUrl,
                         onValueChange = { serverUrl = it },
-                        label = { Text(stringResource(AppR.string.server_url)) },
-                        placeholder = { Text("https://music.example.com", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_globe),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        label = stringResource(AppR.string.server_url),
+                        placeholder = "https://music.example.com",
+                        icon = R.drawable.lucide_ic_globe
                     )
 
-                    OutlinedTextField(
+                    ServerTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text(stringResource(AppR.string.server_username)) },
-                        placeholder = { Text(stringResource(AppR.string.server_username_placeholder)) },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_user),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username }
+                        label = stringResource(AppR.string.server_username),
+                        placeholder = stringResource(AppR.string.server_username_placeholder),
+                        icon = R.drawable.lucide_ic_user,
+                        modifier = Modifier.semantics { contentType = ContentType.Username }
                     )
 
-                    OutlinedTextField(
+                    ServerTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text(stringResource(AppR.string.server_password)) },
-                        placeholder = { Text("••••••••") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.lucide_ic_lock),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
+                        label = stringResource(AppR.string.server_password),
+                        placeholder = "••••••••",
+                        icon = R.drawable.lucide_ic_lock,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             Icon(
@@ -263,7 +217,7 @@ fun ConnectServerScreen(
                                     .clickable(onClick = hapticClick { passwordVisible = !passwordVisible })
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
+                        modifier = Modifier.semantics { contentType = ContentType.Password }
                     )
 
                     if (current is ConnectionState.Failed) {
@@ -423,6 +377,44 @@ fun ConnectServerScreen(
             }
         )
     }
+}
+
+@Composable
+private fun ServerTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    @DrawableRes icon: Int,
+    modifier: Modifier = Modifier,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: (@Composable () -> Unit)? = null
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        trailingIcon = trailingIcon,
+        visualTransformation = visualTransformation,
+        singleLine = true,
+        shape = RoundedCornerShape(12.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
 }
 
 private fun protocolTitleRes(protocol: StreamingProtocol): Int = when (protocol) {
