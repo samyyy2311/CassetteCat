@@ -23,13 +23,13 @@ data class LyricLine(val timestampMs: Long, val text: String)
 data class CachedLyrics(
     val syncedLyrics: String? = null,
     val plainLyrics: String? = null,
-    // When LRCLIB last had nothing for the song, so fetching for the whole library skips it for a while.
+    // Set on a miss; the library fetch skips the song until MISSING_RETRY_MS has passed.
     val missingAt: Long? = null
 )
 
 enum class LibraryLookup { FOUND, MISSING, FAILED }
 
-// A song LRCLIB had nothing for is asked about again after this, in case someone has added it since.
+// Misses are retried after this, since LRCLIB keeps growing.
 private const val MISSING_RETRY_MS = 30L * 24 * 60 * 60 * 1000
 
 data class LyricsLookupResult(val syncedLyrics: List<LyricLine>? = null, val plainLyrics: String? = null)
@@ -53,8 +53,8 @@ private data class LrcLibResponse(
     val albumName: String? = null
 )
 
-// Free, no-auth synced-lyrics lookup with fallback query cleaning. Lyrics are kept with the app's files rather than its
-// cache, which Android may clear, as some were picked by hand and search looks through them.
+// Free, no-auth synced-lyrics lookup with fallback query cleaning. Lyrics live in filesDir, not cacheDir: the system
+// may clear the cache, and some were picked by hand.
 class LrcLibClient(context: Context) {
     private val lyricsDir by lazy {
         File(context.filesDir, "lyrics").apply {
@@ -99,7 +99,7 @@ class LrcLibClient(context: Context) {
             runCatching { lookUp(artist, title, album, cacheKey) }.getOrNull()
         }
 
-    /** The song's kept lyrics as they were saved, synced or plain, for search to look through. */
+    /** Stored lyrics as saved, synced or plain. */
     fun storedLyrics(artist: String, title: String, album: String): String? =
         readCached(keyFor(artist, title, album))?.let { it.syncedLyrics ?: it.plainLyrics }?.ifBlank { null }
 
@@ -108,7 +108,7 @@ class LrcLibClient(context: Context) {
         return System.currentTimeMillis() - missingAt < MISSING_RETRY_MS
     }
 
-    /** Looks a song up for search, telling a song LRCLIB has nothing for apart from one it couldn't be asked about. */
+    /** Like fetchLyrics, but tells a miss apart from a failed request. */
     suspend fun lookUpForLibrary(artist: String, title: String, album: String): LibraryLookup =
         withContext(Dispatchers.IO) {
             val cacheKey = keyFor(artist, title, album)

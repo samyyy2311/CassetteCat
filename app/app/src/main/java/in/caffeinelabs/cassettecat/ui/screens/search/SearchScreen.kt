@@ -224,7 +224,7 @@ fun SearchScreen(
         }
     }
 
-    // Kept lyrics are read once there's something to search for, and let go when the search is cleared.
+    // Loaded on the first lyric search, released when the query is cleared.
     val lrcLibClient = remember { LrcLibClient(context) }
     var lyricsIndex by remember(allSongs) { mutableStateOf<List<SongLyrics>?>(null) }
     val searchingLyrics = trimmed.length >= 3
@@ -513,7 +513,7 @@ fun SearchScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
-                                                // Lined up with the song's title, past the row's cover.
+                                                // Align with SongRow's title.
                                                 modifier = Modifier.padding(start = lyricLineIndent, end = 24.dp, bottom = 8.dp)
                                             )
                                         }

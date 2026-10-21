@@ -10,7 +10,7 @@ class SongLyrics(val song: Song, val lines: List<String>, val folded: List<Strin
 
 data class LyricMatch(val song: Song, val line: String)
 
-// Lower case without accents or punctuation, so "Don't Stop" finds "dont stop". Apostrophes join the word they're in.
+// Case-, accent- and punctuation-insensitive; apostrophes are dropped so "don't" matches "dont".
 internal fun foldedForSearch(text: String): String {
     val folded = StringBuilder(text.length)
     for (c in Normalizer.normalize(text, Normalizer.Form.NFKD).lowercase()) {
@@ -23,16 +23,13 @@ internal fun foldedForSearch(text: String): String {
     return folded.toString().trim()
 }
 
-// The sung lines of plain or LRC lyrics, without their times or tags such as [ar:Artist]. A repeated chorus counts once.
+// Lyric lines without LRC timestamps or tags, duplicates removed.
 internal fun songLyrics(song: Song, lyrics: String): SongLyrics? {
     val lines = lyrics.lines().map { it.replace(LYRIC_TAGS, "").trim() }.filter { it.isNotEmpty() }.distinct()
     return if (lines.isEmpty()) null else SongLyrics(song, lines, lines.map(::foldedForSearch))
 }
 
-/**
- * Songs with a line holding every word of [query], best first. Words match from their start, so one still being typed
- * counts, and the words in order rank above the same words anywhere in the line.
- */
+/** Songs with a line matching every word of [query], best first. Prefix match per word; in-order scores higher. */
 internal fun lyricMatches(songs: List<SongLyrics>, query: String, limit: Int = 20): List<LyricMatch> {
     val folded = foldedForSearch(query)
     if (folded.length < 3) return emptyList()

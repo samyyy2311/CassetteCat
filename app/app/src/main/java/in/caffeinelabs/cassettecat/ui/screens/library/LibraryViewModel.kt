@@ -278,7 +278,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 if (_uiState.value is LibraryUiState.Loaded) publishLoadedSongs()
             }
         }
-        // A library change starts the lyrics fetch over, so only a different set of songs counts, not a new order.
+        // Restart the lyrics fetch only when the set of songs changes, not the order.
         viewModelScope.launch {
             combine(
                 _uiState.mapNotNull { (it as? LibraryUiState.Loaded)?.songs },

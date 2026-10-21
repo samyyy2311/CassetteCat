@@ -13,10 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * Fetches lyrics for every song in the library, one at a time, so search can look through them. It runs while the app
- * does, only on Wi-Fi or another unmetered network, and carries on from where it got to on the next start.
- */
+/** Fetches lyrics for the whole library, for search. Unmetered networks only; resumes on the next start. */
 object LibraryLyricsFetcher {
     data class Progress(val found: Int = 0, val total: Int = 0, val left: Int = 0, val waitingForWifi: Boolean = false)
 
@@ -52,12 +49,12 @@ object LibraryLyricsFetcher {
             while (true) {
                 val result = client.lookUpForLibrary(song.artist, song.title, song.album)
                 if (result == LibraryLookup.FOUND) found++
-                // LRCLIB is busy now and then: ask again in a minute, and move on if this song keeps failing.
+                // Transient failure: retry in a minute, skip the song after three.
                 if (result != LibraryLookup.FAILED || ++tries >= 3) break
                 delay(60_000)
             }
             _progress.value = Progress(found, songs.size, pending.size - index - 1)
-            // LRCLIB is run by volunteers, so a library's worth of requests goes one at a time with a pause between.
+            // Throttle: one request at a time, with a short gap.
             delay(300)
         }
     }
