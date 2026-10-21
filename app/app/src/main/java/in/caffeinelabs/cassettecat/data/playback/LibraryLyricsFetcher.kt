@@ -7,7 +7,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,13 +27,13 @@ object LibraryLyricsFetcher {
     private var job: Job? = null
 
     fun update(context: Context, songs: List<Song>, enabled: Boolean) {
-        job?.cancel()
-        if (!enabled) {
-            _progress.value = Progress()
-            return
-        }
+        val previous = job
         val appContext = context.applicationContext
-        job = scope.launch { fetch(appContext, songs) }
+        job = scope.launch {
+            // The old run must be gone before progress is reset or a new run starts.
+            previous?.cancelAndJoin()
+            if (enabled) fetch(appContext, songs) else _progress.value = Progress()
+        }
     }
 
     private suspend fun fetch(context: Context, songs: List<Song>) {
@@ -41,13 +44,12 @@ object LibraryLyricsFetcher {
         _progress.value = Progress(found, songs.size, pending.size)
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         pending.forEachIndexed { index, song ->
-            while (connectivity.isActiveNetworkMetered) {
-                _progress.value = _progress.value.copy(waitingForWifi = true)
-                delay(60_000)
-            }
             var tries = 0
             while (true) {
+                waitForUnmeteredNetwork(connectivity)
                 val result = client.lookUpForLibrary(song.artist, song.title, song.album)
+                // The request itself can't be cancelled, so don't report it after a cancel.
+                currentCoroutineContext().ensureActive()
                 if (result == LibraryLookup.FOUND) found++
                 // Transient failure: retry in a minute, skip the song after three.
                 if (result != LibraryLookup.FAILED || ++tries >= 3) break
@@ -57,5 +59,12 @@ object LibraryLyricsFetcher {
             // Throttle: one request at a time, with a short gap.
             delay(300)
         }
+    }
+
+    private suspend fun waitForUnmeteredNetwork(connectivity: ConnectivityManager) {
+        if (!connectivity.isActiveNetworkMetered) return
+        _progress.value = _progress.value.copy(waitingForWifi = true)
+        while (connectivity.isActiveNetworkMetered) delay(60_000)
+        _progress.value = _progress.value.copy(waitingForWifi = false)
     }
 }

@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.playback
 import android.content.Context
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,9 @@ data class CachedLyrics(
 )
 
 enum class LibraryLookup { FOUND, MISSING, FAILED }
+
+// Shared by every client, since the playback and library-fetch clients write the same files.
+private val cacheLock = Any()
 
 // Misses are retried after this, since LRCLIB keeps growing.
 private const val MISSING_RETRY_MS = 30L * 24 * 60 * 60 * 1000
@@ -59,7 +63,10 @@ class LrcLibClient(context: Context) {
     private val lyricsDir by lazy {
         File(context.filesDir, "lyrics").apply {
             mkdirs()
-            File(context.cacheDir, "lyrics").listFiles()?.forEach { it.renameTo(File(this, it.name)) }
+            File(context.cacheDir, "lyrics").listFiles()?.forEach { old ->
+                val target = File(this, old.name)
+                if (target.exists() || old.renameTo(target) || runCatching { old.copyTo(target) }.isSuccess) old.delete()
+            }
         }
     }
 
@@ -117,7 +124,12 @@ class LrcLibClient(context: Context) {
                     if (found != null) {
                         LibraryLookup.FOUND
                     } else {
-                        writeToCache(cacheKey, CachedLyrics(missingAt = System.currentTimeMillis()))
+                        synchronized(cacheLock) {
+                            // Lyrics saved by hand during the lookup take precedence.
+                            if (readFromCache(cacheKey) == null) {
+                                writeToCache(cacheKey, CachedLyrics(missingAt = System.currentTimeMillis()))
+                            }
+                        }
                         LibraryLookup.MISSING
                     }
                 },
@@ -132,7 +144,10 @@ class LrcLibClient(context: Context) {
         val searchUrl = "https://lrclib.net/api/search?artist_name=${artist.urlEncode()}" +
             "&track_name=${title.urlEncode()}"
 
-        var candidates = (request(exactUrl) ?: emptyList()) + (request(searchUrl, isSearch = true) ?: emptyList())
+        val exact = request(exactUrl) ?: emptyList()
+        // Synced lyrics for this album already win the ranking below, so the search can be skipped.
+        val exactIsBest = exact.any { it.toResult()?.syncedLyrics != null && it.albumName.equals(album, ignoreCase = true) }
+        var candidates = if (exactIsBest) exact else exact + (request(searchUrl, isSearch = true) ?: emptyList())
 
         val cleanTitle = cleanTitle(title)
         if (candidates.isEmpty() && cleanTitle != title) {
@@ -179,7 +194,9 @@ class LrcLibClient(context: Context) {
     }
 
     private fun writeToCache(cacheKey: String, payload: CachedLyrics) {
-        runCatching { File(lyricsDir, "$cacheKey.json").writeText(sharedJson.encodeToString(payload)) }
+        synchronized(cacheLock) {
+            runCatching { File(lyricsDir, "$cacheKey.json").writeText(sharedJson.encodeToString(payload)) }
+        }
     }
 
     private fun cleanTitle(title: String): String {
@@ -198,7 +215,10 @@ class LrcLibClient(context: Context) {
                 .build()
         ).execute()
         response.use {
-            if (!it.isSuccessful) return null
+            // The exact lookup answers 404 with no match and 503 for some album queries; a failed search is a real failure.
+            if (!it.isSuccessful) {
+                if (isSearch) throw IOException("LRCLIB search failed: ${it.code}") else return null
+            }
             val body = it.body.string()
             return if (isSearch) sharedJson.decodeFromString<List<LrcLibResponse>>(body) else listOf(sharedJson.decodeFromString(body))
         }
