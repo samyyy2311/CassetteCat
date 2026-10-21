@@ -318,7 +318,7 @@ fun MainShell(
                 DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
-            // A start tab that was taken off the bar opens Library instead, which always stays on it.
+            // Fall back to Library if the start tab is hidden.
             val targetRoute = wantedRoute.takeIf { route -> visibleNavTabs.any { it.route() == route } } ?: MainRoute.LIBRARY
             startTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {

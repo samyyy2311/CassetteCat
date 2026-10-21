@@ -110,7 +110,7 @@ enum class DefaultLibraryTab { SONGS, ARTISTS, ALBUMS, GENRES, PLAYLISTS, FOLDER
 enum class NavTab {
     HOME, LIBRARY, RADIO, SEARCH, SETTINGS;
 
-    // Back from any tab returns to Library, and Settings is the way back to this choice, so both always stay.
+    // Back always returns to Library, and Settings is needed to undo this, so neither can be hidden.
     val canHide: Boolean get() = this != LIBRARY && this != SETTINGS
 }
 
