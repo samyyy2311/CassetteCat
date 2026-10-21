@@ -44,7 +44,6 @@ object LibraryLyricsFetcher {
         _progress.value = Progress(found, songs.size, pending.size)
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         pending.forEachIndexed { index, song ->
-            // Checked once a minute; a network callback would start sooner, but a minute's wait costs nothing here.
             while (connectivity.isActiveNetworkMetered) {
                 _progress.value = _progress.value.copy(waitingForWifi = true)
                 delay(60_000)
