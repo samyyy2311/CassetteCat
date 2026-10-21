@@ -22,7 +22,7 @@ android {
 
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.9.0"
+        ?: "1.9.1"
 
     val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
         gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }

@@ -2,6 +2,20 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.9.1]
+
+* Search finds songs by a line from their lyrics. Turn on Find Songs by Their Lyrics in Customisation > Lyrics to download lyrics for your library over Wi-Fi, so search has them to look through.
+* Choose which tabs sit on the bottom bar and in what order, in Customisation > Navigation > Bottom Bar. Library and Settings always stay.
+* Customisation is grouped by what each setting changes: Look & Feel, Navigation, Home Feed, Now Playing & Mini-Player, Gestures, Sound, Playback and Lyrics.
+* Synced lyrics follow the song more smoothly. Each word lights up as it's sung, and the list glides from line to line.
+* Bold text across the app now looks bold.
+* Back closes things in the order you opened them, on every page.
+* Home, Library and Search open faster, and covers no longer flash an empty record while they load.
+* Drive Mode turns to landscape when your phone does.
+* Listens fetched again from your computer are no longer counted twice.
+* The volume limit turns all playback down instead of capping the slider.
+* All of the app's text can now be translated.
+
 ## [1.9.0]
 
 * Fix Tags checks your whole library with MusicBrainz in the background and lists the titles, artists, albums and years it would correct. Nothing changes until you review the list and tap Apply, and Revert to Original Tags still undoes it.
