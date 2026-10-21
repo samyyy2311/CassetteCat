@@ -144,6 +144,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
 import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLibraryTabsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNavTabsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationRoute
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
@@ -302,16 +303,21 @@ fun MainShell(
         }
     }
 
+    val visibleNavTabs = remember(preferences.navTabOrder, preferences.hiddenNavTabs) {
+        preferences.navTabOrder.filterNot { it in preferences.hiddenNavTabs }
+    }
     var initialTabHandled by remember { mutableStateOf(false) }
     LaunchedEffect(preferences.defaultStartScreen, preferences.lastOpenedRoute) {
         if (!initialTabHandled) {
             initialTabHandled = true
-            val targetRoute = when (preferences.defaultStartScreen) {
+            val wantedRoute = when (preferences.defaultStartScreen) {
                 DefaultStartScreen.HOME -> MainRoute.HOME
                 DefaultStartScreen.LIBRARY -> MainRoute.LIBRARY
                 DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
+            // A start tab that was taken off the bar opens Library instead, which always stays on it.
+            val targetRoute = wantedRoute.takeIf { route -> visibleNavTabs.any { it.route() == route } } ?: MainRoute.LIBRARY
             startTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
@@ -775,11 +781,19 @@ fun MainShell(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             onNavigateToLibraryTabs = { navController.navigate(CustomizationRoute.LIBRARY_TABS) },
+                            onNavigateToNavTabs = { navController.navigate(CustomizationRoute.NAV_TABS) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
                     composable(CustomizationRoute.LIBRARY_TABS) {
                         CustomizationLibraryTabsScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.NAV_TABS) {
+                        CustomizationNavTabsScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -1013,6 +1027,7 @@ fun MainShell(
                     .clipToBounds()
             ) {
                 BottomNavBar(
+                    tabs = visibleNavTabs,
                     currentRoute = currentRoute.takeIf { it in MainRoute.BOTTOM_TABS } ?: currentTab,
                     contentAlpha = 1f - fraction,
                     onNavigate = ::navigateToTab,

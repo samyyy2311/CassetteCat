@@ -566,6 +566,7 @@
     <string name="customization_default_library_tab">Default Library Tab</string>
     <string name="customization_default_library_tab_description">Choose the section shown when you open the Library</string>
     <string name="customization_library_tabs">Library Tabs</string>
+    <string name="customization_nav_tabs">Bottom Bar</string>
     <plurals name="customization_library_tabs_summary">
         <item quantity="one">%1$d of %2$d shown · Reorder and visibility</item>
         <item quantity="other">%1$d of %2$d shown · Reorder and visibility</item>

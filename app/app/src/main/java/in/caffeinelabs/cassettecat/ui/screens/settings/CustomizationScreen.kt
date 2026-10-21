@@ -63,6 +63,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
@@ -186,6 +187,7 @@ object CustomizationRoute {
     const val THEME = "main/settings/customization/theme"
     const val STARTUP_LIBRARY = "main/settings/customization/startup_library"
     const val LIBRARY_TABS = "main/settings/customization/library_tabs"
+    const val NAV_TABS = "main/settings/customization/nav_tabs"
     const val NOW_PLAYING = "main/settings/customization/now_playing"
     const val AUDIO_ENGINE = "main/settings/customization/audio_engine"
     const val LYRICS = "main/settings/customization/lyrics"
@@ -414,12 +416,14 @@ fun CustomizationStartupLibraryScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onNavigateToLibraryTabs: () -> Unit,
+    onNavigateToNavTabs: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
+    val visibleNavTabs = prefs.navTabOrder.count { it !in prefs.hiddenNavTabs }
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         PageHeader(stringResource(AppR.string.customization_startup_library), onBack)
         Spacer(Modifier.height(16.dp))
@@ -454,6 +458,18 @@ fun CustomizationStartupLibraryScreen(
                 ),
                 iconRes = R.drawable.lucide_ic_list,
                 onClick = onNavigateToLibraryTabs
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.customization_nav_tabs),
+                subtitle = pluralStringResource(
+                    AppR.plurals.customization_library_tabs_summary,
+                    visibleNavTabs,
+                    visibleNavTabs,
+                    prefs.navTabOrder.size
+                ),
+                iconRes = R.drawable.lucide_ic_panel_bottom,
+                onClick = onNavigateToNavTabs
             )
             SettingsDivider()
             SheetPickerRow(
@@ -987,6 +1003,31 @@ fun CustomizationLibraryTabsScreen(viewModel: SettingsViewModel, onBack: () -> U
 }
 
 @Composable
+fun CustomizationNavTabsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val prefs = uiState.preferences
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
+        PageHeader(stringResource(AppR.string.customization_nav_tabs), onBack)
+        Spacer(Modifier.height(16.dp))
+        SettingsSection {
+            prefs.navTabOrder.forEachIndexed { index, tab ->
+                OrderableToggleRow(
+                    title = navTabLabel(tab),
+                    checked = tab !in prefs.hiddenNavTabs,
+                    canDisable = tab.canHide,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < prefs.navTabOrder.lastIndex,
+                    onCheckedChange = { viewModel.setNavTabVisible(tab, it) },
+                    onMoveUp = { viewModel.moveNavTab(tab, -1) },
+                    onMoveDown = { viewModel.moveNavTab(tab, 1) }
+                )
+                if (index != prefs.navTabOrder.lastIndex) SettingsDivider(startPadding = 24.dp)
+            }
+        }
+    }
+}
+
+@Composable
 private fun OrderableToggleRow(
     title: String,
     checked: Boolean,
@@ -1359,6 +1400,17 @@ internal fun themeAccentShortLabel(accent: ThemeAccent): String = stringResource
         ThemeAccent.TAPE_MAGENTA -> AppR.string.customization_theme_tape_magenta_short
         ThemeAccent.MONOCHROME_SILVER -> AppR.string.customization_theme_monochrome_short
         ThemeAccent.CUSTOM -> AppR.string.customization_custom_accent
+    }
+)
+
+@Composable
+private fun navTabLabel(tab: NavTab): String = stringResource(
+    when (tab) {
+        NavTab.HOME -> AppR.string.nav_home
+        NavTab.LIBRARY -> AppR.string.library_title
+        NavTab.RADIO -> AppR.string.radio_title
+        NavTab.SEARCH -> AppR.string.search_title
+        NavTab.SETTINGS -> AppR.string.settings_title
     }
 )
 
