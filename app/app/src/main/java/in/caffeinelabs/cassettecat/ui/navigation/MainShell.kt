@@ -1013,7 +1013,7 @@ fun MainShell(
                     .clipToBounds()
             ) {
                 BottomNavBar(
-                    currentRoute = parentTabRoute(currentRoute).takeIf { it in MainRoute.BOTTOM_TABS } ?: currentTab,
+                    currentRoute = currentRoute.takeIf { it in MainRoute.BOTTOM_TABS } ?: currentTab,
                     contentAlpha = 1f - fraction,
                     onNavigate = ::navigateToTab,
                     onSearchLongPress = {
