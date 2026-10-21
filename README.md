@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.9.0-2A2A2A?style=flat-square&logo=git&logoColor=E55B3C" alt="Version 1.9.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v1.9.1-2A2A2A?style=flat-square&logo=git&logoColor=E55B3C" alt="Version 1.9.1" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/GPL--3.0-2A2A2A?style=flat-square&logo=gnu&logoColor=white" alt="GPL-3.0" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android_8.0+-2A2A2A?style=flat-square&logo=android&logoColor=3DDC84" alt="Android 8.0+" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2A2A2A?style=flat-square&logo=kotlin&logoColor=7F52FF" alt="Kotlin" /></a>
