@@ -8,6 +8,8 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.playback.LibraryLyricsFetcher
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
@@ -31,8 +33,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -273,6 +277,18 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 favoriteIds = it
                 if (_uiState.value is LibraryUiState.Loaded) publishLoadedSongs()
             }
+        }
+        // Restart the lyrics fetch only when the set of songs changes, not the order.
+        viewModelScope.launch {
+            combine(
+                _uiState.mapNotNull { (it as? LibraryUiState.Loaded)?.songs },
+                appPreferencesRepository.preferences.map { it.lyricsForSearch },
+                serviceSettingsRepository.settings.map { it.isEnabled(ExternalService.LRCLIB) }
+            ) { songs, wanted, lrcLibOn -> songs to (wanted && lrcLibOn) }
+                .distinctUntilChanged { old, new ->
+                    old.second == new.second && old.first.map(Song::id).toSet() == new.first.map(Song::id).toSet()
+                }
+                .collect { (songs, enabled) -> LibraryLyricsFetcher.update(getApplication(), songs, enabled) }
         }
         viewModelScope.launch {
             metadataOverridesRepo.overrides.collect {

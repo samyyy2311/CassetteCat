@@ -1,5 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
+import `in`.caffeinelabs.cassettecat.data.playback.LibraryLyricsFetcher
+import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -842,6 +844,27 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
                 checked = prefs.localLrcPriority,
                 onCheckedChange = viewModel::setLocalLrcPriority,
                 iconRes = R.drawable.lucide_ic_file_text,
+            )
+            SettingsDivider()
+            val lyricsProgress by LibraryLyricsFetcher.progress.collectAsStateWithLifecycle()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_lyrics_for_search),
+                subtitle = when {
+                    !prefs.lyricsForSearch -> stringResource(AppR.string.customization_lyrics_for_search_description)
+                    !uiState.services.isEnabled(ExternalService.LRCLIB) ->
+                        stringResource(AppR.string.customization_lyrics_for_search_paused)
+                    lyricsProgress.waitingForWifi -> stringResource(AppR.string.customization_lyrics_for_search_wifi)
+                    lyricsProgress.total == 0 -> stringResource(AppR.string.customization_lyrics_for_search_starting)
+                    lyricsProgress.left > 0 -> pluralStringResource(
+                        AppR.plurals.customization_lyrics_for_search_left, lyricsProgress.left, lyricsProgress.left
+                    )
+                    else -> stringResource(
+                        AppR.string.customization_lyrics_for_search_done, lyricsProgress.found, lyricsProgress.total
+                    )
+                },
+                checked = prefs.lyricsForSearch,
+                onCheckedChange = viewModel::setLyricsForSearch,
+                iconRes = R.drawable.lucide_ic_text_search,
             )
         }
     }

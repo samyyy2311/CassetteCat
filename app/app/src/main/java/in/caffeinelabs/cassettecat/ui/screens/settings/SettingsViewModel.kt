@@ -131,6 +131,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setLocalLrcPriority(enabled) }
     }
 
+    fun setLyricsForSearch(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setLyricsForSearch(enabled) }
+    }
+
     fun setIgnoreShortAudioClips(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setIgnoreShortAudioClips(enabled) }
     }

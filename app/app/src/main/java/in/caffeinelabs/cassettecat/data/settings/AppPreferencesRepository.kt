@@ -76,6 +76,7 @@ private val PAUSE_ON_DISCONNECT = booleanPreferencesKey("pause_on_disconnect")
 private val KEEP_SCREEN_ON_LYRICS = booleanPreferencesKey("keep_screen_on_lyrics")
 private val LYRICS_FONT_SIZE = stringPreferencesKey("lyrics_font_size")
 private val LOCAL_LRC_PRIORITY = booleanPreferencesKey("local_lrc_priority")
+private val LYRICS_FOR_SEARCH = booleanPreferencesKey("lyrics_for_search")
 private val IGNORE_SHORT_AUDIO_CLIPS = booleanPreferencesKey("ignore_short_audio_clips")
 private val SHOW_HOME_RECENTLY_PLAYED = booleanPreferencesKey("show_home_recently_played")
 private val SHOW_HOME_HEAVY_ROTATION = booleanPreferencesKey("show_home_heavy_rotation")
@@ -211,6 +212,7 @@ data class AppPreferences(
     val keepScreenOnLyrics: Boolean = false,
     val lyricsFontSize: LyricsFontSize = LyricsFontSize.MEDIUM,
     val localLrcPriority: Boolean = true,
+    val lyricsForSearch: Boolean = false,
     val ignoreShortAudioClips: Boolean = false,
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,
@@ -325,6 +327,7 @@ class AppPreferencesRepository(private val context: Context) {
                 LyricsFontSize.MEDIUM
             },
             localLrcPriority = prefs[LOCAL_LRC_PRIORITY] ?: true,
+            lyricsForSearch = prefs[LYRICS_FOR_SEARCH] ?: false,
             ignoreShortAudioClips = prefs[IGNORE_SHORT_AUDIO_CLIPS] ?: false,
             showHomeRecentlyPlayed = prefs[SHOW_HOME_RECENTLY_PLAYED] ?: true,
             showHomeHeavyRotation = prefs[SHOW_HOME_HEAVY_ROTATION] ?: true,
@@ -586,6 +589,10 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[LOCAL_LRC_PRIORITY] = enabled }
     }
 
+    suspend fun setLyricsForSearch(enabled: Boolean) {
+        context.appPreferencesDataStore.edit { it[LYRICS_FOR_SEARCH] = enabled }
+    }
+
     suspend fun setIgnoreShortAudioClips(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[IGNORE_SHORT_AUDIO_CLIPS] = enabled }
     }
@@ -721,6 +728,7 @@ class AppPreferencesRepository(private val context: Context) {
             keepScreenOnLyrics = current.keepScreenOnLyrics,
             lyricsFontSize = current.lyricsFontSize.name,
             localLrcPriority = current.localLrcPriority,
+            lyricsForSearch = current.lyricsForSearch,
             ignoreShortAudioClips = current.ignoreShortAudioClips,
             showHomeRecentlyPlayed = current.showHomeRecentlyPlayed,
             showHomeHeavyRotation = current.showHomeHeavyRotation,
@@ -805,6 +813,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[KEEP_SCREEN_ON_LYRICS] = backup.keepScreenOnLyrics
             prefs[LYRICS_FONT_SIZE] = backup.lyricsFontSize
             prefs[LOCAL_LRC_PRIORITY] = backup.localLrcPriority
+            prefs[LYRICS_FOR_SEARCH] = backup.lyricsForSearch
             prefs[IGNORE_SHORT_AUDIO_CLIPS] = backup.ignoreShortAudioClips
             prefs[SHOW_HOME_RECENTLY_PLAYED] = backup.showHomeRecentlyPlayed
             prefs[SHOW_HOME_HEAVY_ROTATION] = backup.showHomeHeavyRotation
