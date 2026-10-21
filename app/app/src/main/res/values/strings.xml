@@ -57,8 +57,8 @@
     <string name="fix_tags_description">Check song details against MusicBrainz and review what would change</string>
     <string name="fix_tags_not_started">Not checked yet</string>
     <plurals name="customization_lyrics_for_search_left">
-        <item quantity="one">Looking up lyrics, %d song to go</item>
-        <item quantity="other">Looking up lyrics, %d songs to go</item>
+        <item quantity="one">%d song left to check</item>
+        <item quantity="other">%d songs left to check</item>
     </plurals>
     <plurals name="fix_tags_checking">
         <item quantity="one">Checking %1$d of %2$d song</item>
@@ -658,10 +658,10 @@
     <string name="customization_local_lrc">Prioritize Local .lrc Sidecars</string>
     <string name="customization_local_lrc_description">Use local .lrc files before looking online</string>
     <string name="customization_lyrics_for_search">Find Songs by Their Lyrics</string>
-    <string name="customization_lyrics_for_search_description">Downloads lyrics for your whole library from LRCLIB over Wi-Fi, so search can find a song by a line from it</string>
-    <string name="customization_lyrics_for_search_paused">Paused until LRCLIB is on and Offline mode is off</string>
+    <string name="customization_lyrics_for_search_description">Downloads lyrics for your songs over Wi-Fi, so you can search by a line</string>
+    <string name="customization_lyrics_for_search_paused">Paused while LRCLIB is off or Offline mode is on</string>
     <string name="customization_lyrics_for_search_starting">Looking up lyrics…</string>
-    <string name="customization_lyrics_for_search_wifi">Waiting for Wi-Fi to look up the rest</string>
+    <string name="customization_lyrics_for_search_wifi">Waiting for Wi-Fi</string>
     <string name="customization_lyrics_for_search_done">%1$d of %2$d songs have lyrics</string>
 
     <string name="customization_streaming_cache">Streaming Cache Quota</string>
