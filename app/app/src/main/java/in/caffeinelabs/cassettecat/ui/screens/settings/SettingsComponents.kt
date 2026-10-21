@@ -165,7 +165,11 @@ fun appSwitchColors(): SwitchColors = SwitchDefaults.colors(
     checkedBorderColor = MaterialTheme.colorScheme.tertiary,
     uncheckedThumbColor = MaterialTheme.colorScheme.outline,
     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+    // A switch that's on but can't be turned off still reads as on, only dimmed.
+    disabledCheckedThumbColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f),
+    disabledCheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    disabledCheckedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f)
 )
 
 @Composable
