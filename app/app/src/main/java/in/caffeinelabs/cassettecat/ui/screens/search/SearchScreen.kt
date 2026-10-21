@@ -1,5 +1,11 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.search
 
+import `in`.caffeinelabs.cassettecat.data.playback.LrcLibClient
+import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.produceState
 import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -218,6 +224,25 @@ fun SearchScreen(
         }
     }
 
+    // Loaded on the first lyric search, released when the query is cleared.
+    val lrcLibClient = remember { LrcLibClient(context) }
+    var lyricsIndex by remember(allSongs) { mutableStateOf<List<SongLyrics>?>(null) }
+    val searchingLyrics = trimmed.length >= 3
+    LaunchedEffect(searchingLyrics, trimmed.isEmpty(), allSongs) {
+        if (trimmed.isEmpty()) lyricsIndex = null
+        if (!searchingLyrics || lyricsIndex != null) return@LaunchedEffect
+        lyricsIndex = withContext(Dispatchers.IO) {
+            allSongs.mapNotNull { song ->
+                lrcLibClient.storedLyrics(song.artist, song.title, song.album)?.let { songLyrics(song, it) }
+            }
+        }
+    }
+    val lyricHits by produceState(emptyList<LyricMatch>(), trimmed, lyricsIndex) {
+        val index = lyricsIndex
+        value = if (index == null) emptyList() else withContext(Dispatchers.Default) { lyricMatches(index, trimmed) }
+    }
+    val lyricLineIndent = if (LocalAppPreferences.current.trackRowDensity == TrackRowDensity.COMPACT) 80.dp else 86.dp
+
     val topArtists = remember(allArtists) {
         allArtists.sortedByDescending { it.songs.size }.take(10)
     }
@@ -389,7 +414,8 @@ fun SearchScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            matchedSongs.isEmpty() && matchedArtists.isEmpty() && matchedAlbums.isEmpty() && matchedGenres.isEmpty() && matchedFolders.isEmpty() -> {
+            matchedSongs.isEmpty() && matchedArtists.isEmpty() && matchedAlbums.isEmpty() && matchedGenres.isEmpty() &&
+                matchedFolders.isEmpty() && lyricHits.isEmpty() -> {
                 SearchPrompt(
                     iconRes = R.drawable.lucide_ic_search_x,
                     title = stringResource(AppR.string.search_no_matches_title),
@@ -465,6 +491,32 @@ fun SearchScreen(
                                             onMoreClick = { songForOptions = song },
                                             onClick = { playSong(matchedSongs, song) }
                                         )
+                                    }
+                                }
+
+                                if (lyricHits.isNotEmpty()) {
+                                    item(key = "section_lyrics_header", contentType = "section_songs_header") {
+                                        Spacer(Modifier.height(12.dp))
+                                        SearchSectionHeader(stringResource(AppR.string.search_section_lyrics))
+                                        Spacer(Modifier.height(6.dp))
+                                    }
+                                    items(lyricHits, key = { "lyric_${it.song.id}" }, contentType = { "lyric" }) { hit ->
+                                        Column {
+                                            SongRow(
+                                                song = hit.song,
+                                                onMoreClick = { songForOptions = hit.song },
+                                                onClick = { playSong(lyricHits.map { it.song }, hit.song) }
+                                            )
+                                            Text(
+                                                text = "“${hit.line}”",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                // Align with SongRow's title.
+                                                modifier = Modifier.padding(start = lyricLineIndent, end = 24.dp, bottom = 8.dp)
+                                            )
+                                        }
                                     }
                                 }
 

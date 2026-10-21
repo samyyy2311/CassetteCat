@@ -1,6 +1,6 @@
 # Privacy Policy for CassetteCat
 
-**Last Updated:** August 18, 2026
+**Last Updated:** October 21, 2026
 
 CassetteCat ("we", "our", or "the app") is a free and open-source audio player developed with a strict **privacy-first, local-first** architecture. We believe that your listening habits and personal data belong solely to you.
 
@@ -36,7 +36,8 @@ If you connect CassetteCat to a self-hosted media server (such as Subsonic, Navi
 CassetteCat only makes network requests to external services when directly necessary for features you use:
 
 1. **Lyrics (LRCLIB):**
-   * When fetching synchronized or plain lyrics, track titles and artist names are queried against the public [LRCLIB](https://lrclib.net) API.
+   * When fetching synchronized or plain lyrics, song titles, artist names and album names are queried against the public [LRCLIB](https://lrclib.net) API.
+   * If you turn on **Find Songs by Their Lyrics**, this happens for each song that doesn't have lyrics yet, one at a time and only on Wi-Fi or another unmetered network, so search can look through them. The lyrics are kept on your device.
 2. **Metadata & Artwork (MusicBrainz / Cover Art Archive / TheAudioDB / Deezer):**
    * Public metadata APIs are queried using artist and album names to fetch album covers and artist biographies.
 3. **Optional Scrobbling (ListenBrainz / Libre.fm):**

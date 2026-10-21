@@ -188,7 +188,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val _isCurrentSongFavorite = MutableStateFlow(false)
     val isCurrentSongFavorite: StateFlow<Boolean> = _isCurrentSongFavorite.asStateFlow()
 
-    private val lrcLibClient = LrcLibClient(app.cacheDir)
+    private val lrcLibClient = LrcLibClient(app)
     private val localLrcLoader = LocalLrcLoader(app)
     private val embeddedLyricsLoader = EmbeddedLyricsLoader(app)
     private val serviceSettingsRepository = ServiceSettingsRepository(app)

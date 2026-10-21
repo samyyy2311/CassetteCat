@@ -56,6 +56,10 @@
     <string name="fix_tags_title">Fix Tags</string>
     <string name="fix_tags_description">Check song details against MusicBrainz and review what would change</string>
     <string name="fix_tags_not_started">Not checked yet</string>
+    <plurals name="customization_lyrics_for_search_left">
+        <item quantity="one">%d song left to check</item>
+        <item quantity="other">%d songs left to check</item>
+    </plurals>
     <plurals name="fix_tags_checking">
         <item quantity="one">Checking %1$d of %2$d song</item>
         <item quantity="other">Checking %1$d of %2$d songs</item>
@@ -653,6 +657,12 @@
     <string name="customization_keep_awake_description">Prevent the display from sleeping while lyrics are open</string>
     <string name="customization_local_lrc">Prioritize Local .lrc Sidecars</string>
     <string name="customization_local_lrc_description">Use local .lrc files before looking online</string>
+    <string name="customization_lyrics_for_search">Find Songs by Their Lyrics</string>
+    <string name="customization_lyrics_for_search_description">Downloads lyrics for your songs over Wi-Fi, so you can search by a line</string>
+    <string name="customization_lyrics_for_search_paused">Paused while LRCLIB is off or Offline mode is on</string>
+    <string name="customization_lyrics_for_search_starting">Looking up lyrics…</string>
+    <string name="customization_lyrics_for_search_wifi">Waiting for Wi-Fi</string>
+    <string name="customization_lyrics_for_search_done">%1$d of %2$d songs have lyrics</string>
 
     <string name="customization_streaming_cache">Streaming Cache Quota</string>
     <string name="customization_streaming_cache_description">Maximum storage used for cached streamed audio</string>
@@ -969,6 +979,7 @@
     <string name="search_section_albums">Albums</string>
     <string name="search_section_songs">Songs</string>
     <string name="search_section_genres">Genres</string>
+    <string name="search_section_lyrics">Lyrics</string>
     <string name="search_section_folders">Folders</string>
     <string name="search_category_all">All</string>
     <string name="search_recent_searches">Recent Searches</string>

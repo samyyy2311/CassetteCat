@@ -1,7 +1,9 @@
 package `in`.caffeinelabs.cassettecat.data.playback
 
+import android.content.Context
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +23,18 @@ data class LyricLine(val timestampMs: Long, val text: String)
 @Serializable
 data class CachedLyrics(
     val syncedLyrics: String? = null,
-    val plainLyrics: String? = null
+    val plainLyrics: String? = null,
+    // Set on a miss; the library fetch skips the song until MISSING_RETRY_MS has passed.
+    val missingAt: Long? = null
 )
+
+enum class LibraryLookup { FOUND, MISSING, FAILED }
+
+// Shared by every client, since the playback and library-fetch clients write the same files.
+private val cacheLock = Any()
+
+// Misses are retried after this, since LRCLIB keeps growing.
+private const val MISSING_RETRY_MS = 30L * 24 * 60 * 60 * 1000
 
 data class LyricsLookupResult(val syncedLyrics: List<LyricLine>? = null, val plainLyrics: String? = null)
 
@@ -45,10 +57,17 @@ private data class LrcLibResponse(
     val albumName: String? = null
 )
 
-// Free, no-auth synced-lyrics lookup with disk caching and fallback query cleaning.
-class LrcLibClient(private val cacheDir: File? = null) {
-    private val lyricsCacheDir by lazy {
-        cacheDir?.let { File(it, "lyrics").apply { mkdirs() } }
+// Free, no-auth synced-lyrics lookup with fallback query cleaning. Lyrics live in filesDir, not cacheDir: the system
+// may clear the cache, and some were picked by hand.
+class LrcLibClient(context: Context) {
+    private val lyricsDir by lazy {
+        File(context.filesDir, "lyrics").apply {
+            mkdirs()
+            File(context.cacheDir, "lyrics").listFiles()?.forEach { old ->
+                val target = File(this, old.name)
+                if (target.exists() || old.renameTo(target) || runCatching { old.copyTo(target) }.isSuccess) old.delete()
+            }
+        }
     }
 
     suspend fun search(query: String, artist: String = ""): List<LrcLibSearchResultItem> = withContext(Dispatchers.IO) {
@@ -77,70 +96,106 @@ class LrcLibClient(private val cacheDir: File? = null) {
     }
 
     fun saveLyricsToCache(artist: String, title: String, album: String, syncedLyrics: String?, plainLyrics: String?) {
-        val cacheKey = hashKey("$artist|$title|$album".lowercase())
-        writeToCache(cacheKey, syncedLyrics, plainLyrics)
+        writeToCache(keyFor(artist, title, album), CachedLyrics(syncedLyrics, plainLyrics))
     }
 
     suspend fun fetchLyrics(artist: String, title: String, album: String): LyricsLookupResult? =
         withContext(Dispatchers.IO) {
-            val cacheKey = hashKey("$artist|$title|$album".lowercase())
+            val cacheKey = keyFor(artist, title, album)
             readFromCache(cacheKey)?.let { return@withContext it }
-
-            runCatching {
-                val exactUrl = "https://lrclib.net/api/get?artist_name=${artist.urlEncode()}" +
-                    "&track_name=${title.urlEncode()}&album_name=${album.urlEncode()}"
-                val searchUrl = "https://lrclib.net/api/search?artist_name=${artist.urlEncode()}" +
-                    "&track_name=${title.urlEncode()}"
-
-                var candidates = (request(exactUrl) ?: emptyList()) + (request(searchUrl, isSearch = true) ?: emptyList())
-
-                val cleanTitle = cleanTitle(title)
-                if (candidates.isEmpty() && cleanTitle != title) {
-                    val cleanSearchUrl = "https://lrclib.net/api/search?artist_name=${artist.urlEncode()}" +
-                        "&track_name=${cleanTitle.urlEncode()}"
-                    candidates = request(cleanSearchUrl, isSearch = true) ?: emptyList()
-                }
-
-                if (candidates.isEmpty()) {
-                    val titleSearchUrl = "https://lrclib.net/api/search?q=${title.urlEncode()}"
-                    candidates = request(titleSearchUrl, isSearch = true) ?: emptyList()
-                }
-                if (candidates.isEmpty() && cleanTitle != title) {
-                    val cleanTitleSearchUrl = "https://lrclib.net/api/search?q=${cleanTitle.urlEncode()}"
-                    candidates = request(cleanTitleSearchUrl, isSearch = true) ?: emptyList()
-                }
-
-                val best = candidates
-                    .mapNotNull { response -> response.toResult()?.let { result -> result to response } }
-                    .maxWithOrNull(
-                        compareBy<Pair<LyricsLookupResult, LrcLibResponse>> { it.first.syncedLyrics != null }
-                            .thenBy { it.second.albumName.equals(album, ignoreCase = true) }
-                    )
-
-                best?.let { (result, raw) ->
-                    writeToCache(cacheKey, raw.syncedLyrics, raw.plainLyrics)
-                    result
-                }
-            }.getOrNull()
+            runCatching { lookUp(artist, title, album, cacheKey) }.getOrNull()
         }
 
-    private fun readFromCache(cacheKey: String): LyricsLookupResult? {
-        val file = lyricsCacheDir?.let { File(it, "$cacheKey.json") } ?: return null
-        if (!file.exists()) return null
-        return runCatching {
-            val cached = sharedJson.decodeFromString<CachedLyrics>(file.readText())
-            val synced = cached.syncedLyrics?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
-            val plain = cached.plainLyrics?.trim()?.ifEmpty { null }
-            if (synced != null || plain != null) LyricsLookupResult(synced, plain) else null
-        }.getOrNull()
+    /** Stored lyrics as saved, synced or plain. */
+    fun storedLyrics(artist: String, title: String, album: String): String? =
+        readCached(keyFor(artist, title, album))?.let { it.syncedLyrics ?: it.plainLyrics }?.ifBlank { null }
+
+    fun missingRecently(artist: String, title: String, album: String): Boolean {
+        val missingAt = readCached(keyFor(artist, title, album))?.missingAt ?: return false
+        return System.currentTimeMillis() - missingAt < MISSING_RETRY_MS
     }
 
-    private fun writeToCache(cacheKey: String, syncedLyrics: String?, plainLyrics: String?) {
-        val dir = lyricsCacheDir ?: return
-        runCatching {
-            val file = File(dir, "$cacheKey.json")
-            val payload = CachedLyrics(syncedLyrics = syncedLyrics, plainLyrics = plainLyrics)
-            file.writeText(sharedJson.encodeToString(payload))
+    /** Like fetchLyrics, but tells a miss apart from a failed request. */
+    suspend fun lookUpForLibrary(artist: String, title: String, album: String): LibraryLookup =
+        withContext(Dispatchers.IO) {
+            val cacheKey = keyFor(artist, title, album)
+            runCatching { lookUp(artist, title, album, cacheKey) }.fold(
+                onSuccess = { found ->
+                    if (found != null) {
+                        LibraryLookup.FOUND
+                    } else {
+                        synchronized(cacheLock) {
+                            // Lyrics saved by hand during the lookup take precedence.
+                            if (readFromCache(cacheKey) == null) {
+                                writeToCache(cacheKey, CachedLyrics(missingAt = System.currentTimeMillis()))
+                            }
+                        }
+                        LibraryLookup.MISSING
+                    }
+                },
+                onFailure = { LibraryLookup.FAILED }
+            )
+        }
+
+    // Throws when LRCLIB can't be reached; null when it has no lyrics for the song.
+    private fun lookUp(artist: String, title: String, album: String, cacheKey: String): LyricsLookupResult? {
+        val exactUrl = "https://lrclib.net/api/get?artist_name=${artist.urlEncode()}" +
+            "&track_name=${title.urlEncode()}&album_name=${album.urlEncode()}"
+        val searchUrl = "https://lrclib.net/api/search?artist_name=${artist.urlEncode()}" +
+            "&track_name=${title.urlEncode()}"
+
+        val exact = request(exactUrl) ?: emptyList()
+        // Synced lyrics for this album already win the ranking below, so the search can be skipped.
+        val exactIsBest = exact.any { it.toResult()?.syncedLyrics != null && it.albumName.equals(album, ignoreCase = true) }
+        var candidates = if (exactIsBest) exact else exact + (request(searchUrl, isSearch = true) ?: emptyList())
+
+        val cleanTitle = cleanTitle(title)
+        if (candidates.isEmpty() && cleanTitle != title) {
+            val cleanSearchUrl = "https://lrclib.net/api/search?artist_name=${artist.urlEncode()}" +
+                "&track_name=${cleanTitle.urlEncode()}"
+            candidates = request(cleanSearchUrl, isSearch = true) ?: emptyList()
+        }
+
+        if (candidates.isEmpty()) {
+            val titleSearchUrl = "https://lrclib.net/api/search?q=${title.urlEncode()}"
+            candidates = request(titleSearchUrl, isSearch = true) ?: emptyList()
+        }
+        if (candidates.isEmpty() && cleanTitle != title) {
+            val cleanTitleSearchUrl = "https://lrclib.net/api/search?q=${cleanTitle.urlEncode()}"
+            candidates = request(cleanTitleSearchUrl, isSearch = true) ?: emptyList()
+        }
+
+        val best = candidates
+            .mapNotNull { response -> response.toResult()?.let { result -> result to response } }
+            .maxWithOrNull(
+                compareBy<Pair<LyricsLookupResult, LrcLibResponse>> { it.first.syncedLyrics != null }
+                    .thenBy { it.second.albumName.equals(album, ignoreCase = true) }
+            )
+
+        return best?.let { (result, raw) ->
+            writeToCache(cacheKey, CachedLyrics(raw.syncedLyrics, raw.plainLyrics))
+            result
+        }
+    }
+
+    private fun keyFor(artist: String, title: String, album: String) = hashKey("$artist|$title|$album".lowercase())
+
+    private fun readCached(cacheKey: String): CachedLyrics? {
+        val file = File(lyricsDir, "$cacheKey.json")
+        if (!file.exists()) return null
+        return runCatching { sharedJson.decodeFromString<CachedLyrics>(file.readText()) }.getOrNull()
+    }
+
+    private fun readFromCache(cacheKey: String): LyricsLookupResult? {
+        val cached = readCached(cacheKey) ?: return null
+        val synced = cached.syncedLyrics?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
+        val plain = cached.plainLyrics?.trim()?.ifEmpty { null }
+        return if (synced != null || plain != null) LyricsLookupResult(synced, plain) else null
+    }
+
+    private fun writeToCache(cacheKey: String, payload: CachedLyrics) {
+        synchronized(cacheLock) {
+            runCatching { File(lyricsDir, "$cacheKey.json").writeText(sharedJson.encodeToString(payload)) }
         }
     }
 
@@ -160,7 +215,10 @@ class LrcLibClient(private val cacheDir: File? = null) {
                 .build()
         ).execute()
         response.use {
-            if (!it.isSuccessful) return null
+            // The exact lookup answers 404 with no match and 503 for some album queries; a failed search is a real failure.
+            if (!it.isSuccessful) {
+                if (isSearch) throw IOException("LRCLIB search failed: ${it.code}") else return null
+            }
             val body = it.body.string()
             return if (isSearch) sharedJson.decodeFromString<List<LrcLibResponse>>(body) else listOf(sharedJson.decodeFromString(body))
         }
