@@ -2,7 +2,6 @@ package `in`.caffeinelabs.cassettecat.ui.screens.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -31,7 +29,7 @@ import `in`.caffeinelabs.cassettecat.data.library.TagChange
 import `in`.caffeinelabs.cassettecat.data.library.TagField
 import `in`.caffeinelabs.cassettecat.data.library.TagFixProblem
 import `in`.caffeinelabs.cassettecat.data.library.TagFixRepository
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
@@ -59,13 +57,7 @@ fun FixTagsScreen(libraryViewModel: LibraryViewModel, onBack: () -> Unit, modifi
     fun changeText(change: TagChange) = changeFormat.format(labels.getValue(change.field), change.from.ifBlank { empty }, change.to)
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-            Text(stringResource(AppR.string.fix_tags_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.fix_tags_title), onBack)
 
         LazyColumn(contentPadding = PaddingValues(bottom = listBottomPadding + 32.dp)) {
             item {

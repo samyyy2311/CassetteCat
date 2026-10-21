@@ -130,6 +130,8 @@ fun AlbumArt(
             }
         )
     }
+    // Until the lookup finishes the cover is a plain tile, so the vinyl only shows for songs without art.
+    var loading by remember(song.id, thumbnail, customCoverPath) { mutableStateOf(bitmap == null) }
     LaunchedEffect(song.id, thumbnail, customCoverPath) {
         if (customCoverPath != null) {
             val file = java.io.File(customCoverPath)
@@ -153,11 +155,14 @@ fun AlbumArt(
                 MusicSource.ListeningRoomHost -> null
             }
         }
+        loading = false
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Crossfade(targetState = bitmap, animationSpec = tween(100), label = "albumArtCrossfade") { current ->
-            if (current != null) {
+        Crossfade(targetState = bitmap to loading, animationSpec = tween(100), label = "albumArtCrossfade") { (current, isLoading) ->
+            if (isLoading && current == null) {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
+            } else if (current != null) {
                 val imageAspectRatio = if (current.height > 0) current.width.toFloat() / current.height.toFloat() else 1f
                 val isNonSquare = imageAspectRatio < 0.94f || imageAspectRatio > 1.06f
                 if (isNonSquare) {

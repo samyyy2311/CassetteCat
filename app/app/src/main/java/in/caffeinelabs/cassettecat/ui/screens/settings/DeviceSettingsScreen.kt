@@ -14,11 +14,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,11 +28,10 @@ import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.device.DeviceConnectionType
 import `in`.caffeinelabs.cassettecat.data.device.DevicePairingState
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.screens.onboarding.PairingViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticToggle
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
-import com.composables.icons.lucide.R
 
 @Composable
 fun DeviceSettingsScreen(
@@ -64,17 +63,7 @@ fun DeviceSettingsScreen(
     val resetFailedMessage = stringResource(AppR.string.device_settings_reset_failed)
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
-            Text(stringResource(AppR.string.pairing_device_settings_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.pairing_device_settings_title), onBack)
 
         SettingsSection(title = stringResource(AppR.string.device_settings_name_section)) {
             Row(

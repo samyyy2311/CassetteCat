@@ -14,11 +14,15 @@ import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
 import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
 import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
 import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
+import `in`.caffeinelabs.cassettecat.ui.components.LoadingBar
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
 import androidx.compose.material3.Text
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -44,6 +48,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
@@ -272,17 +278,27 @@ fun MainShell(
     val preferences = LocalAppPreferences.current
     val scope = rememberCoroutineScope()
 
+    // Tabs replace each other instead of piling up, each keeping its own pages: back from a page lands on its tab,
+    // and from any other tab back goes to the start tab before leaving the app.
+    var startTab by rememberSaveable { mutableStateOf(MainRoute.LIBRARY) }
+    // A page's own route can't say which tab it's under, as pages opened from Home are library pages, so the tab is
+    // kept here. It follows any tab's own page too, since back to the start tab is the NavHost's, not navigateToTab.
+    var currentTab by rememberSaveable { mutableStateOf(MainRoute.LIBRARY) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in MainRoute.BOTTOM_TABS) currentTab = currentRoute ?: return@LaunchedEffect
+    }
+
     fun navigateToTab(route: String) {
         scope.launch { appPreferencesRepository.setLastOpenedRoute(route) }
-        val activeParent = parentTabRoute(currentRoute)
-        if (activeParent == route) {
-            if (currentRoute != route) {
-                navController.popBackStack(route, inclusive = false)
-            }
-        } else {
-            navController.navigate(route) {
-                launchSingleTop = true
-            }
+        if (route == currentTab) {
+            navController.popBackStack(route, inclusive = false)
+            return
+        }
+        currentTab = route
+        navController.navigate(route) {
+            popUpTo(startTab) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
         }
     }
 
@@ -296,6 +312,7 @@ fun MainShell(
                 DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
+            startTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
                     popUpTo(MainRoute.LIBRARY) {
@@ -311,6 +328,7 @@ fun MainShell(
     val pairingViewModel: PairingViewModel = viewModel()
     val radioFavoritesRepository = remember { RadioFavoritesRepository(context) }
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+    val libraryRefreshing by libraryViewModel.isRefreshing.collectAsStateWithLifecycle()
     val librarySongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val skipRestoreForLaunchShortcut = remember { shortcutAction != null }
@@ -445,13 +463,7 @@ fun MainShell(
         }
     }
 
-    BackHandler(enabled = isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER) {
-        nowPlayingView = NowPlayingView.PLAYER
-    }
-
-    BackHandler(enabled = isSheetExpanded && nowPlayingView == NowPlayingView.PLAYER) {
-        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-    }
+    val backSteps = remember { AppBackSteps() }
 
     CassetteCatTheme(
         accent = if (artworkAccent != null) ThemeAccent.CUSTOM else preferences.themeAccent,
@@ -459,7 +471,10 @@ fun MainShell(
         isAmoled = preferences.amoledDarkTheme,
         appFontFamily = preferences.appFontFamily
     ) {
-    CompositionLocalProvider(LocalPlayingSong provides PlayingSong(playbackState.currentSong?.id, playbackState.isPlaying)) {
+    CompositionLocalProvider(
+        LocalPlayingSong provides PlayingSong(playbackState.currentSong?.id, playbackState.isPlaying),
+        LocalAppBackSteps provides backSteps
+    ) {
     Box(modifier.fillMaxSize()) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
@@ -963,6 +978,31 @@ fun MainShell(
             }
         }
 
+        AnimatedVisibility(
+            visible = showChrome && (libraryState is LibraryUiState.Loading || libraryRefreshing),
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding()
+        ) {
+            LoadingBar()
+        }
+
+        // The handler added last gets back first, and the NavHost adds its own again as pages change, so this one
+        // is added again whenever its state or the page changes. Plain page-to-page back, a tab back to the start tab
+        // included, is left to the NavHost, which animates the predictive back gesture.
+        val playerStep = backSteps.latest(BackLayer.PLAYER)
+        val pageStep = backSteps.latest(BackLayer.PAGE)
+        key(currentRoute, isSheetExpanded, nowPlayingView, playerStep, pageStep) {
+            BackHandler(enabled = isSheetExpanded || pageStep != null) {
+                when {
+                    isSheetExpanded && playerStep != null -> playerStep.action()
+                    isSheetExpanded && nowPlayingView != NowPlayingView.PLAYER -> nowPlayingView = NowPlayingView.PLAYER
+                    isSheetExpanded -> scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                    pageStep != null -> pageStep.action()
+                }
+            }
+        }
+
         if (showChrome && !imeVisible) {
             Box(
                 modifier = Modifier
@@ -973,7 +1013,7 @@ fun MainShell(
                     .clipToBounds()
             ) {
                 BottomNavBar(
-                    currentRoute = currentRoute,
+                    currentRoute = currentRoute.takeIf { it in MainRoute.BOTTOM_TABS } ?: currentTab,
                     contentAlpha = 1f - fraction,
                     onNavigate = ::navigateToTab,
                     onSearchLongPress = {

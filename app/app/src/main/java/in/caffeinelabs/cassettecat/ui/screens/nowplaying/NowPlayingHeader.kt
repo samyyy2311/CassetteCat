@@ -20,6 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -273,8 +274,10 @@ internal fun TitleRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                audioFormat?.let {
-                    AudioQualityBadge(audioFormat = it)
+                // The same switch as the badges on song rows, so one setting gives a clean look everywhere.
+                val showDetails = LocalAppPreferences.current.showAudioQualityBadge
+                if (showDetails) {
+                    audioFormat?.let { AudioQualityBadge(audioFormat = it) }
                 }
                 if (song.source != MusicSource.Local && song.source != MusicSource.Desktop) {
                     val sourceColor = song.source.color()
@@ -297,7 +300,7 @@ internal fun TitleRow(
                         )
                     }
                 }
-                BluetoothOutputLabel()
+                if (showDetails) BluetoothOutputLabel()
             }
         }
         PressDepthIconButton(

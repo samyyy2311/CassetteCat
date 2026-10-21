@@ -18,13 +18,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +40,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -60,13 +61,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val shareCrashLogTitle = stringResource(AppR.string.privacy_share_crash_log)
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-            Text(stringResource(AppR.string.privacy_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.privacy_title), onBack)
 
         SettingsSection(title = stringResource(AppR.string.privacy_listening_record)) {
             Row(

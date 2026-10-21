@@ -417,9 +417,11 @@ internal fun LyricsView(
                             val index = item.originalIndex
                             val isSelected = selectedIndices.contains(index)
                             val ahead = index - activeLineIndex
+                            // A short intro has no break before it, so the first line is in place but not lit until it starts.
                             val isActive = !selectionMode &&
                                 currentActiveItem is LyricDisplayItem.Line &&
-                                currentActiveItem.originalIndex == index
+                                currentActiveItem.originalIndex == index &&
+                                line.timestampMs <= effectivePositionMs
 
                             val lineScale by animateFloatAsState(
                                 targetValue = if (isActive || isSelected) 1f else 0.98f,

@@ -581,7 +581,7 @@
     <string name="customization_default_sort">Default Sort Order</string>
     <string name="customization_default_sort_description">How the song list is sorted when you first open it</string>
     <string name="customization_format_badges">Show Audio Format Badges</string>
-    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows</string>
+    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows, and the format and output under the playing song</string>
 
     <string name="customization_album_corner">Album Art Corner Style</string>
     <string name="customization_album_corner_description">Choose rounded or square album art</string>
@@ -626,7 +626,7 @@
     <string name="customization_mono_audio">Mono Audio Downmix</string>
     <string name="customization_mono_audio_description">Combine left and right channels for single-earbud listening</string>
     <string name="customization_volume_limit">Volume Limit (Ear Protection)</string>
-    <string name="customization_volume_limit_description">Cap the maximum playback level</string>
+    <string name="customization_volume_limit_description">Turns all playback down, to protect your hearing</string>
     <string name="customization_max_volume">Maximum Volume</string>
     <string name="customization_max_volume_description">Set the loudest level CassetteCat can play</string>
     <string name="customization_percent">%1$d%%</string>

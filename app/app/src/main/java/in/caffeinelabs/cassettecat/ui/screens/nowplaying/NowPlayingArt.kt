@@ -70,6 +70,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
+import `in`.caffeinelabs.cassettecat.ui.components.rememberSongSwipePager
 import `in`.caffeinelabs.cassettecat.ui.components.AlbumArt
 import `in`.caffeinelabs.cassettecat.ui.components.loadSongArtwork
 import `in`.caffeinelabs.cassettecat.ui.components.prefetchAlbumArt
@@ -96,32 +97,14 @@ internal fun AlbumArtCarousel(
     onSwipeUp: (() -> Unit)? = null,
     isPlaying: Boolean = true
 ) {
-    val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
     LaunchedEffect(previousSong?.id, nextSong?.id) {
         launch { prefetchAlbumArt(context, previousSong) }
         launch { prefetchAlbumArt(context, nextSong) }
     }
     key(currentSong.id, previousSong?.id) {
-        val windowSongs = remember(currentSong.id, previousSong?.id, nextSong?.id) {
-            buildList {
-                if (previousSong != null) add(previousSong)
-                add(currentSong)
-                if (nextSong != null) add(nextSong)
-            }
-        }
-        val currentIndex = if (previousSong != null) 1 else 0
-        val pagerState = rememberPagerState(initialPage = currentIndex) { windowSongs.size }
-
-        LaunchedEffect(pagerState) {
-            snapshotFlow { pagerState.settledPage }.collect { settled ->
-                if (settled != currentIndex) {
-                    haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                    if (settled > currentIndex) onSwipeNext() else onSwipePrevious()
-                    pagerState.animateScrollToPage(currentIndex)
-                }
-            }
-        }
+        val (windowSongs, pagerState) =
+            rememberSongSwipePager(currentSong, previousSong, nextSong, false, onSwipeNext, onSwipePrevious)
 
         HorizontalPager(
             state = pagerState,
@@ -226,9 +209,15 @@ internal fun AlbumArtCard(
         ) {
             if (song.source == MusicSource.Radio) {
                 var artwork by remember(song.id) { mutableStateOf<Bitmap?>(null) }
-                LaunchedEffect(song.id) { artwork = loadSongArtwork(context, song) }
+                var loading by remember(song.id) { mutableStateOf(true) }
+                LaunchedEffect(song.id) {
+                    artwork = loadSongArtwork(context, song)
+                    loading = false
+                }
                 val loadedArtwork = artwork
-                if (loadedArtwork != null) {
+                if (loading) {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
+                } else if (loadedArtwork != null) {
                     Image(
                         bitmap = loadedArtwork.asImageBitmap(),
                         contentDescription = null,

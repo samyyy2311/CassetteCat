@@ -322,57 +322,38 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     _fallbackLyrics.value = null
                     _lyricsProvider.value = null
                     _isLoadingLyrics.value = false
-                    val prioritizeLocalLrc = appPreferences.value.localLrcPriority
-                    if (prioritizeLocalLrc && song != null && song.source == MusicSource.Local) {
-                        val localLrc = localLrcLoader.loadFor(song)
-                        if (localLrc != null) {
-                            _syncedLyrics.value = localLrc
-                            _lyricsProvider.value = "Local file"
-                        } else if (!embedded.isNullOrBlank()) {
-                            _lyricsProvider.value = "Embedded metadata"
-                        } else {
-                            val localEmbedded = embeddedLyricsLoader.loadFor(song)
-                            if (!localEmbedded.isNullOrBlank()) {
-                                _fallbackLyrics.value = localEmbedded
-                                _lyricsProvider.value = "Embedded metadata"
-                            } else if (request.lrcLibEnabled) {
-                                _isLoadingLyrics.value = true
-                                try {
-                                    lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
-                                        _syncedLyrics.value = result.syncedLyrics
-                                        _fallbackLyrics.value = result.plainLyrics
-                                        _lyricsProvider.value = "LRCLIB"
-                                    }
-                                } finally {
-                                    _isLoadingLyrics.value = false
-                                }
-                            }
+                    // Lyrics files and tags are only read for songs stored on this phone.
+                    val localSong = song?.takeIf { it.source == MusicSource.Local }
+                    suspend fun loadLocalFile(): Boolean {
+                        val lrc = localSong?.let { localLrcLoader.loadFor(it) } ?: return false
+                        _syncedLyrics.value = lrc
+                        _lyricsProvider.value = "Local file"
+                        return true
+                    }
+                    suspend fun loadEmbedded(): Boolean {
+                        if (embedded.isNullOrBlank()) {
+                            val tagged = localSong?.let { embeddedLyricsLoader.loadFor(it) }
+                            if (tagged.isNullOrBlank()) return false
+                            _fallbackLyrics.value = tagged
                         }
-                    } else if (!embedded.isNullOrBlank()) {
                         _lyricsProvider.value = "Embedded metadata"
-                    } else if (song != null) {
-                        val localEmbedded = if (song.source == MusicSource.Local) embeddedLyricsLoader.loadFor(song) else null
-                        if (!localEmbedded.isNullOrBlank()) {
-                            _fallbackLyrics.value = localEmbedded
-                            _lyricsProvider.value = "Embedded metadata"
-                        } else {
-                            val localLrc = if (song.source == MusicSource.Local) localLrcLoader.loadFor(song) else null
-                            if (localLrc != null) {
-                                _syncedLyrics.value = localLrc
-                                _lyricsProvider.value = "Local file"
-                            } else if (request.lrcLibEnabled) {
-                                _isLoadingLyrics.value = true
-                                try {
-                                    lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
-                                        _syncedLyrics.value = result.syncedLyrics
-                                        _fallbackLyrics.value = result.plainLyrics
-                                        _lyricsProvider.value = "LRCLIB"
-                                    }
-                                } finally {
-                                    _isLoadingLyrics.value = false
-                                }
-                            }
+                        return true
+                    }
+                    val found = if (appPreferences.value.localLrcPriority) {
+                        loadLocalFile() || loadEmbedded()
+                    } else {
+                        loadEmbedded() || loadLocalFile()
+                    }
+                    if (found || song == null || !request.lrcLibEnabled) return@collectLatest
+                    _isLoadingLyrics.value = true
+                    try {
+                        lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
+                            _syncedLyrics.value = result.syncedLyrics
+                            _fallbackLyrics.value = result.plainLyrics
+                            _lyricsProvider.value = "LRCLIB"
                         }
+                    } finally {
+                        _isLoadingLyrics.value = false
                     }
                 }
         }

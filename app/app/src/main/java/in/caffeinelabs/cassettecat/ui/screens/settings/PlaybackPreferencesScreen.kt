@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
@@ -51,15 +51,7 @@ fun PlaybackPreferencesScreen(
             .verticalScroll(rememberScrollState())
             .padding(top = 8.dp, bottom = listBottomPadding + 40.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-            Text(stringResource(AppR.string.sleep_timer_title), style = MaterialTheme.typography.headlineSmall)
-        }
+        PageHeader(stringResource(AppR.string.sleep_timer_title), onBack)
 
         Text(
             text = stringResource(AppR.string.sleep_timer_description),

@@ -3,7 +3,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.library
 
 import android.provider.OpenableColumns
-import androidx.activity.compose.BackHandler
+import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -191,7 +191,7 @@ fun LibraryScreen(
     var showComputerPlaylists by remember { mutableStateOf(false) }
     var computerPlaylists by remember { mutableStateOf<List<DesktopPlaylist>?>(null) }
     val selectionMode = selectedIds.isNotEmpty()
-    BackHandler(enabled = selectionMode) {
+    AppBackHandler(enabled = selectionMode) {
         selectedIds = emptySet()
     }
     val favoritesRepository = remember { FavoritesRepository(context) }
@@ -231,11 +231,12 @@ fun LibraryScreen(
         }
     }
 
-    val groupedArtists = remember(filteredSongs) { filteredSongs.groupedByArtist() }
-    val groupedAlbums = remember(filteredSongs) { filteredSongs.groupedByAlbum() }
-    val groupedGenres = remember(filteredSongs) { filteredSongs.groupedByGenre() }
-    val groupedFolders = remember(filteredSongs, folderCovers) {
-        filteredSongs.groupedByFolder().map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+    // Grouped only once a tab shows them, so opening the library doesn't group every song four ways.
+    val groupedArtists by remember(filteredSongs) { lazy { filteredSongs.groupedByArtist() } }
+    val groupedAlbums by remember(filteredSongs) { lazy { filteredSongs.groupedByAlbum() } }
+    val groupedGenres by remember(filteredSongs) { lazy { filteredSongs.groupedByGenre() } }
+    val groupedFolders by remember(filteredSongs, folderCovers) {
+        lazy { filteredSongs.groupedByFolder().map { it.copy(customCoverPath = folderCovers[it.folderPath]) } }
     }
 
     val importedPlaylistName = stringResource(AppR.string.library_imported_playlist_name)
@@ -672,7 +673,7 @@ fun LibraryScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         LibraryViewMode.ARTISTS -> ArtistsTabContent(
-                                            filteredSongs = filteredSongs,
+                                            groups = groupedArtists,
                                             sortOrder = artistSortOrder,
                                             sortDirection = artistSortDirection,
                                             collectionLayout = collectionLayout,
@@ -686,7 +687,7 @@ fun LibraryScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         LibraryViewMode.ALBUMS -> AlbumsTabContent(
-                                            filteredSongs = filteredSongs,
+                                            groups = groupedAlbums,
                                             sortOrder = albumSortOrder,
                                             sortDirection = albumSortDirection,
                                             collectionLayout = collectionLayout,
@@ -700,7 +701,7 @@ fun LibraryScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         LibraryViewMode.GENRES -> GenresTabContent(
-                                            filteredSongs = filteredSongs,
+                                            groups = groupedGenres,
                                             sortOrder = genreSortOrder,
                                             sortDirection = genreSortDirection,
                                             collectionLayout = collectionLayout,
@@ -715,10 +716,9 @@ fun LibraryScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         LibraryViewMode.FOLDERS -> {
-                                            val folders = remember(groupedFolders, folderSortOrder, folderSortDirection, folderCovers) {
+                                            val folders = remember(groupedFolders, folderSortOrder, folderSortDirection) {
                                                 val sorted = groupedFolders.sortedWith(folderSortOrder.comparator())
-                                                (if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted)
-                                                    .map { it.copy(customCoverPath = folderCovers[it.folderPath]) }
+                                                if (folderSortDirection == SortDirection.DESCENDING) sorted.reversed() else sorted
                                             }
                                             FoldersTab(
                                                 folders = folders,

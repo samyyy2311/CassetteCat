@@ -407,7 +407,7 @@ internal fun SelectableSongRow(
         modifier = Modifier
             .fillMaxWidth()
             .tapScaleSelectable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .padding(start = 24.dp, end = 20.dp, top = 4.dp, bottom = 4.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

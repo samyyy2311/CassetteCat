@@ -2,7 +2,8 @@ package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.listeningRoomStatus
 import android.content.res.Configuration
-import androidx.activity.compose.BackHandler
+import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
+import `in`.caffeinelabs.cassettecat.ui.navigation.BackLayer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
@@ -390,7 +391,7 @@ internal fun NowPlayingLyricsView(
     var showShareSheet by remember { mutableStateOf(false) }
     var showLrcLibSearchSheet by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = selectionMode) {
+    AppBackHandler(enabled = selectionMode, layer = BackLayer.PLAYER) {
         selectionMode = false
         selectedIndices = emptySet()
     }

@@ -1,9 +1,9 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.view.WindowManager
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -57,12 +57,15 @@ fun DriveModeScreen(
     val context = LocalContext.current
     val activity = context as? Activity
 
-    BackHandler(onBack = onBack)
-
     DisposableEffect(Unit) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // The app stays in portrait, but a phone mounted sideways in a car gets Drive Mode's landscape layout,
+        // following the phone's own rotation setting.
+        val lockedOrientation = activity?.requestedOrientation
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            lockedOrientation?.let { activity.requestedOrientation = it }
         }
     }
 

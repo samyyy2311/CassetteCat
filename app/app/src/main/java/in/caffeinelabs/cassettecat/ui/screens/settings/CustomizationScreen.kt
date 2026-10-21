@@ -33,12 +33,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +72,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
+import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
 import `in`.caffeinelabs.cassettecat.ui.screens.nowplaying.FullOpenBottomSheet
@@ -117,7 +118,7 @@ fun CustomizationScreen(
     }
 
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_title), onBack)
+        PageHeader(stringResource(AppR.string.customization_title), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             NavigationRow(
@@ -193,19 +194,6 @@ object CustomizationRoute {
 }
 
 @Composable
-private fun CategoryHeader(title: String, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PressDepthIconButton(R.drawable.lucide_ic_chevron_left, stringResource(AppR.string.action_back), onBack)
-        Text(title, style = MaterialTheme.typography.headlineSmall)
-    }
-}
-
-@Composable
 private fun Modifier.categoryModifier(listBottomPadding: Dp) = this
     .fillMaxSize()
     .verticalScroll(rememberScrollState())
@@ -216,7 +204,7 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_theme), onBack)
+        PageHeader(stringResource(AppR.string.customization_theme), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
@@ -433,7 +421,7 @@ fun CustomizationStartupLibraryScreen(
     val prefs = uiState.preferences
     val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_startup_library), onBack)
+        PageHeader(stringResource(AppR.string.customization_startup_library), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             SheetPickerRow(
@@ -514,7 +502,7 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_now_playing), onBack)
+        PageHeader(stringResource(AppR.string.customization_now_playing), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             SheetPickerRow(
@@ -618,7 +606,7 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_audio_engine), onBack)
+        PageHeader(stringResource(AppR.string.customization_audio_engine), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             SheetPickerRow(
@@ -744,7 +732,7 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_lyrics), onBack)
+        PageHeader(stringResource(AppR.string.customization_lyrics), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             SheetPickerRow(
@@ -828,7 +816,7 @@ fun CustomizationStorageScreen(
     var showResetDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_storage), onBack)
+        PageHeader(stringResource(AppR.string.customization_storage), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             SheetPickerRow(
@@ -941,7 +929,7 @@ fun CustomizationHomeFeedScreen(viewModel: SettingsViewModel, onBack: () -> Unit
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_home_feed), onBack)
+        PageHeader(stringResource(AppR.string.customization_home_feed), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             prefs.homeSectionOrder.forEachIndexed { index, section ->
@@ -978,7 +966,7 @@ fun CustomizationLibraryTabsScreen(viewModel: SettingsViewModel, onBack: () -> U
     val prefs = uiState.preferences
     val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
-        CategoryHeader(stringResource(AppR.string.customization_library_tabs), onBack)
+        PageHeader(stringResource(AppR.string.customization_library_tabs), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
             prefs.libraryTabOrder.forEachIndexed { index, tab ->
