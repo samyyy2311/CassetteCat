@@ -26,6 +26,8 @@
         tools:targetApi="33" />
     <!-- Android 14+: lets the player offer a contextual share suggestion after a screenshot. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
+    <!-- The activity locks to portrait; without this, Play leaves out landscape-only devices such as cars. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
 
     <!-- Package visibility for direct app icons and share targets (WhatsApp, Instagram) -->
     <queries>
