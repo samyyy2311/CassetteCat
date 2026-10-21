@@ -309,17 +309,20 @@ fun MainShell(
         preferences.navTabOrder.filterNot { it in preferences.hiddenNavTabs }
     }
     var initialTabHandled by remember { mutableStateOf(false) }
-    LaunchedEffect(preferences.defaultStartScreen, preferences.lastOpenedRoute) {
+    LaunchedEffect(Unit) {
         if (!initialTabHandled) {
             initialTabHandled = true
-            val wantedRoute = when (preferences.defaultStartScreen) {
+            // The composition starts with default preferences, so read the saved ones.
+            val saved = appPreferencesRepository.preferences.first()
+            val wantedRoute = when (saved.defaultStartScreen) {
                 DefaultStartScreen.HOME -> MainRoute.HOME
                 DefaultStartScreen.LIBRARY -> MainRoute.LIBRARY
-                DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
+                DefaultStartScreen.LAST_OPENED -> saved.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
             // Fall back to Library if the start tab is hidden.
-            val targetRoute = wantedRoute.takeIf { route -> visibleNavTabs.any { it.route() == route } } ?: MainRoute.LIBRARY
+            val visible = saved.navTabOrder.filterNot { it in saved.hiddenNavTabs }.map { it.route() }
+            val targetRoute = wantedRoute.takeIf { it in visible } ?: MainRoute.LIBRARY
             startTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
