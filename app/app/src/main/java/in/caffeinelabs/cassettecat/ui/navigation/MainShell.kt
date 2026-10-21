@@ -143,7 +143,10 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedSc
 import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
 import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationGesturesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLibraryTabsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNavTabsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationPlaybackScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationRoute
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
@@ -210,15 +213,15 @@ object MainRoute {
     const val SCROBBLING = "main/settings/scrobbling"
 }
 
-private val tabAwareEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
-    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+private fun tabAwareEnter(tabOrder: List<String>): AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    val fromIndex = tabOrder.indexOf(initialState.destination.route)
+    val toIndex = tabOrder.indexOf(targetState.destination.route)
     slideEnter(fromRight = fromIndex == -1 || toIndex == -1 || toIndex > fromIndex)
 }
 
-private val tabAwareExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
-    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+private fun tabAwareExit(tabOrder: List<String>): AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    val fromIndex = tabOrder.indexOf(initialState.destination.route)
+    val toIndex = tabOrder.indexOf(targetState.destination.route)
     slideExit(toRight = fromIndex != -1 && toIndex != -1 && toIndex < fromIndex)
 }
 
@@ -302,16 +305,25 @@ fun MainShell(
         }
     }
 
+    val visibleNavTabs = remember(preferences.navTabOrder, preferences.hiddenNavTabs) {
+        preferences.navTabOrder.filterNot { it in preferences.hiddenNavTabs }
+    }
+    val visibleTabRoutes = remember(visibleNavTabs) { visibleNavTabs.map { it.route() } }
     var initialTabHandled by remember { mutableStateOf(false) }
-    LaunchedEffect(preferences.defaultStartScreen, preferences.lastOpenedRoute) {
+    LaunchedEffect(Unit) {
         if (!initialTabHandled) {
             initialTabHandled = true
-            val targetRoute = when (preferences.defaultStartScreen) {
+            // The composition starts with default preferences, so read the saved ones.
+            val saved = appPreferencesRepository.preferences.first()
+            val wantedRoute = when (saved.defaultStartScreen) {
                 DefaultStartScreen.HOME -> MainRoute.HOME
                 DefaultStartScreen.LIBRARY -> MainRoute.LIBRARY
-                DefaultStartScreen.LAST_OPENED -> preferences.lastOpenedRoute
+                DefaultStartScreen.LAST_OPENED -> saved.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
+            // Fall back to Library if the start tab is hidden.
+            val visible = saved.navTabOrder.filterNot { it in saved.hiddenNavTabs }.map { it.route() }
+            val targetRoute = wantedRoute.takeIf { it in visible } ?: MainRoute.LIBRARY
             startTab = targetRoute
             if (targetRoute != MainRoute.LIBRARY) {
                 navController.navigate(targetRoute) {
@@ -572,8 +584,8 @@ fun MainShell(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(if (isHeroRoute) Modifier else Modifier.statusBarsPadding()),
-                    enterTransition = tabAwareEnter,
-                    exitTransition = tabAwareExit,
+                    enterTransition = tabAwareEnter(visibleTabRoutes),
+                    exitTransition = tabAwareExit(visibleTabRoutes),
                     popEnterTransition = mechanicalPopEnter,
                     popExitTransition = mechanicalPopExit,
                     predictivePopEnterTransition = { mechanicalPopEnter() },
@@ -775,6 +787,7 @@ fun MainShell(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             onNavigateToLibraryTabs = { navController.navigate(CustomizationRoute.LIBRARY_TABS) },
+                            onNavigateToNavTabs = { navController.navigate(CustomizationRoute.NAV_TABS) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -785,8 +798,29 @@ fun MainShell(
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
+                    composable(CustomizationRoute.NAV_TABS) {
+                        CustomizationNavTabsScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
                     composable(CustomizationRoute.NOW_PLAYING) {
                         CustomizationNowPlayingScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.GESTURES) {
+                        CustomizationGesturesScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.PLAYBACK) {
+                        CustomizationPlaybackScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
@@ -1013,6 +1047,7 @@ fun MainShell(
                     .clipToBounds()
             ) {
                 BottomNavBar(
+                    tabs = visibleNavTabs,
                     currentRoute = currentRoute.takeIf { it in MainRoute.BOTTOM_TABS } ?: currentTab,
                     contentAlpha = 1f - fraction,
                     onNavigate = ::navigateToTab,

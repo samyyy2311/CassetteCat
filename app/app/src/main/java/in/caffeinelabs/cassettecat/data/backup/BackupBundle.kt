@@ -53,6 +53,9 @@ data class BackupAppPreferences(
     val showNowPlayingBlur: Boolean = true,
     val libraryTabOrder: List<String> = emptyList(),
     val hiddenLibraryTabs: Set<String> = emptySet(),
+    val navTabOrder: List<String> = emptyList(),
+    // Null in backups made before the bottom bar could be changed; empty means every tab shows.
+    val hiddenNavTabs: Set<String>? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",

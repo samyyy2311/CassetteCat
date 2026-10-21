@@ -65,6 +65,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.data.settings.HomeSection
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsActiveStyle
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
@@ -96,8 +97,6 @@ fun CustomizationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
-    val cornerStyle = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp }
-    val cornerLabel = albumCornerShortLabel(cornerStyle)
     val crossfadeLabel = if (prefs.crossfadeSeconds == 0) {
         stringResource(AppR.string.customization_crossfade_off)
     } else {
@@ -141,15 +140,29 @@ fun CustomizationScreen(
                     startScreenLabel(prefs.defaultStartScreen),
                     libraryTabLabel(prefs.defaultLibraryTab)
                 ),
-                iconRes = R.drawable.lucide_ic_library,
+                iconRes = R.drawable.lucide_ic_panel_bottom,
                 onClick = { onNavigate(CustomizationRoute.STARTUP_LIBRARY) },
             )
             SettingsDivider()
             NavigationRow(
+                title = stringResource(AppR.string.customization_home_feed),
+                subtitle = stringResource(AppR.string.customization_home_summary, homeFeedCount),
+                iconRes = R.drawable.lucide_ic_history,
+                onClick = { onNavigate(CustomizationRoute.HOME_FEED) },
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = stringResource(AppR.string.customization_now_playing),
-                subtitle = stringResource(AppR.string.customization_corner_summary, cornerLabel),
-                iconRes = R.drawable.lucide_ic_hand,
+                subtitle = backdropLabel(prefs.nowPlayingBackdropStyle),
+                iconRes = R.drawable.lucide_ic_disc_3,
                 onClick = { onNavigate(CustomizationRoute.NOW_PLAYING) },
+            )
+            SettingsDivider()
+            NavigationRow(
+                title = stringResource(AppR.string.customization_gestures),
+                subtitle = stringResource(AppR.string.customization_gestures_summary),
+                iconRes = R.drawable.lucide_ic_hand,
+                onClick = { onNavigate(CustomizationRoute.GESTURES) },
             )
             SettingsDivider()
             NavigationRow(
@@ -164,6 +177,13 @@ fun CustomizationScreen(
             )
             SettingsDivider()
             NavigationRow(
+                title = stringResource(AppR.string.customization_playback),
+                subtitle = stringResource(AppR.string.customization_playback_summary),
+                iconRes = R.drawable.lucide_ic_play,
+                onClick = { onNavigate(CustomizationRoute.PLAYBACK) },
+            )
+            SettingsDivider()
+            NavigationRow(
                 title = stringResource(AppR.string.customization_lyrics),
                 subtitle = stringResource(
                     AppR.string.customization_lyrics_summary,
@@ -173,13 +193,6 @@ fun CustomizationScreen(
                 iconRes = R.drawable.lucide_ic_file_text,
                 onClick = { onNavigate(CustomizationRoute.LYRICS) },
             )
-            SettingsDivider()
-            NavigationRow(
-                title = stringResource(AppR.string.customization_home_feed),
-                subtitle = stringResource(AppR.string.customization_home_summary, homeFeedCount),
-                iconRes = R.drawable.lucide_ic_history,
-                onClick = { onNavigate(CustomizationRoute.HOME_FEED) },
-            )
         }
     }
 }
@@ -188,8 +201,11 @@ object CustomizationRoute {
     const val THEME = "main/settings/customization/theme"
     const val STARTUP_LIBRARY = "main/settings/customization/startup_library"
     const val LIBRARY_TABS = "main/settings/customization/library_tabs"
+    const val NAV_TABS = "main/settings/customization/nav_tabs"
     const val NOW_PLAYING = "main/settings/customization/now_playing"
     const val AUDIO_ENGINE = "main/settings/customization/audio_engine"
+    const val GESTURES = "main/settings/customization/gestures"
+    const val PLAYBACK = "main/settings/customization/playback"
     const val LYRICS = "main/settings/customization/lyrics"
     const val STORAGE = "main/settings/customization/storage"
     const val HOME_FEED = "main/settings/customization/home_feed"
@@ -279,24 +295,6 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
                 iconRes = R.drawable.lucide_ic_palette,
             )
             SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_mini_progress),
-                subtitle = stringResource(AppR.string.customization_mini_progress_description),
-                checked = prefs.showMiniPlayerProgress,
-                onCheckedChange = viewModel::setShowMiniPlayerProgress,
-                iconRes = R.drawable.lucide_ic_activity,
-            )
-            SettingsDivider()
-            SheetPickerRow(
-                title = stringResource(AppR.string.customization_mini_action),
-                subtitle = stringResource(AppR.string.customization_mini_action_description),
-                iconRes = R.drawable.lucide_ic_mouse_pointer_click,
-                options = MiniPlayerAction.entries,
-                selected = prefs.miniPlayerAction,
-                label = { miniPlayerActionLabel(it) },
-                onSelect = viewModel::setMiniPlayerAction
-            )
-            SettingsDivider()
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_app_typography),
                 subtitle = stringResource(AppR.string.customization_app_typography_description),
@@ -306,6 +304,47 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
                 label = { appFontShortLabel(it) },
                 sheetLabel = { appFontFullLabel(it) },
                 onSelect = viewModel::setAppFontFamily
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_album_corner),
+                subtitle = stringResource(AppR.string.customization_album_corner_description),
+                iconRes = R.drawable.lucide_ic_disc,
+                options = AlbumArtCornerStyle.entries,
+                selected = AlbumArtCornerStyle.entries.firstOrNull { it.radiusDp == prefs.albumArtCornerRadiusDp }
+                    ?: AlbumArtCornerStyle.CURVED,
+                label = { albumCornerShortLabel(it) },
+                sheetLabel = { albumCornerFullLabel(it) },
+                sheetSubtitle = { albumCornerDescription(it) },
+                onSelect = { viewModel.setAlbumArtCornerRadiusDp(it.radiusDp) }
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_song_density),
+                subtitle = stringResource(AppR.string.customization_song_density_description),
+                iconRes = R.drawable.lucide_ic_list,
+                options = TrackRowDensity.entries,
+                selected = prefs.trackRowDensity,
+                label = { trackRowDensityLabel(it) },
+                onSelect = viewModel::setTrackRowDensity
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_grid_columns),
+                subtitle = stringResource(AppR.string.customization_grid_columns_description),
+                iconRes = R.drawable.lucide_ic_grid_2x2,
+                options = listOf(2, 3, 4),
+                selected = prefs.gridColumnCount,
+                label = { pluralStringResource(AppR.plurals.customization_columns, it, it) },
+                onSelect = viewModel::setGridColumnCount
+            )
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_format_badges),
+                subtitle = stringResource(AppR.string.customization_format_badges_description),
+                checked = prefs.showAudioQualityBadge,
+                onCheckedChange = viewModel::setShowAudioQualityBadge,
+                iconRes = R.drawable.lucide_ic_music,
             )
         }
     }
@@ -416,12 +455,14 @@ fun CustomizationStartupLibraryScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onNavigateToLibraryTabs: () -> Unit,
+    onNavigateToNavTabs: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val prefs = uiState.preferences
     val visibleTabs = prefs.libraryTabOrder.filterNot { it in prefs.hiddenLibraryTabs }
+    val visibleNavTabs = prefs.navTabOrder.count { it !in prefs.hiddenNavTabs }
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         PageHeader(stringResource(AppR.string.customization_startup_library), onBack)
         Spacer(Modifier.height(16.dp))
@@ -436,14 +477,16 @@ fun CustomizationStartupLibraryScreen(
                 onSelect = viewModel::setDefaultStartScreen
             )
             SettingsDivider()
-            SheetPickerRow(
-                title = stringResource(AppR.string.customization_default_library_tab),
-                subtitle = stringResource(AppR.string.customization_default_library_tab_description),
-                iconRes = R.drawable.lucide_ic_library,
-                options = visibleTabs,
-                selected = prefs.defaultLibraryTab.takeIf { it in visibleTabs } ?: visibleTabs.first(),
-                label = { libraryTabLabel(it) },
-                onSelect = viewModel::setDefaultLibraryTab
+            NavigationRow(
+                title = stringResource(AppR.string.customization_nav_tabs),
+                subtitle = pluralStringResource(
+                    AppR.plurals.customization_library_tabs_summary,
+                    visibleNavTabs,
+                    visibleNavTabs,
+                    prefs.navTabOrder.size
+                ),
+                iconRes = R.drawable.lucide_ic_panel_bottom,
+                onClick = onNavigateToNavTabs
             )
             SettingsDivider()
             NavigationRow(
@@ -459,23 +502,13 @@ fun CustomizationStartupLibraryScreen(
             )
             SettingsDivider()
             SheetPickerRow(
-                title = stringResource(AppR.string.customization_grid_columns),
-                subtitle = stringResource(AppR.string.customization_grid_columns_description),
-                iconRes = R.drawable.lucide_ic_grid_2x2,
-                options = listOf(2, 3, 4),
-                selected = prefs.gridColumnCount,
-                label = { pluralStringResource(AppR.plurals.customization_columns, it, it) },
-                onSelect = viewModel::setGridColumnCount
-            )
-            SettingsDivider()
-            SheetPickerRow(
-                title = stringResource(AppR.string.customization_song_density),
-                subtitle = stringResource(AppR.string.customization_song_density_description),
-                iconRes = R.drawable.lucide_ic_list,
-                options = TrackRowDensity.entries,
-                selected = prefs.trackRowDensity,
-                label = { trackRowDensityLabel(it) },
-                onSelect = viewModel::setTrackRowDensity
+                title = stringResource(AppR.string.customization_default_library_tab),
+                subtitle = stringResource(AppR.string.customization_default_library_tab_description),
+                iconRes = R.drawable.lucide_ic_library,
+                options = visibleTabs,
+                selected = prefs.defaultLibraryTab.takeIf { it in visibleTabs } ?: visibleTabs.first(),
+                label = { libraryTabLabel(it) },
+                onSelect = viewModel::setDefaultLibraryTab
             )
             SettingsDivider()
             SheetPickerRow(
@@ -486,14 +519,6 @@ fun CustomizationStartupLibraryScreen(
                 selected = prefs.defaultSortMetric,
                 label = { defaultSortLabel(it) },
                 onSelect = viewModel::setDefaultSortMetric
-            )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_format_badges),
-                subtitle = stringResource(AppR.string.customization_format_badges_description),
-                checked = prefs.showAudioQualityBadge,
-                onCheckedChange = viewModel::setShowAudioQualityBadge,
-                iconRes = R.drawable.lucide_ic_music,
             )
         }
     }
@@ -507,18 +532,6 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
         PageHeader(stringResource(AppR.string.customization_now_playing), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
-            SheetPickerRow(
-                title = stringResource(AppR.string.customization_album_corner),
-                subtitle = stringResource(AppR.string.customization_album_corner_description),
-                iconRes = R.drawable.lucide_ic_disc,
-                options = AlbumArtCornerStyle.entries,
-                selected = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp },
-                label = { albumCornerShortLabel(it) },
-                sheetLabel = { albumCornerFullLabel(it) },
-                sheetSubtitle = { albumCornerDescription(it) },
-                onSelect = { viewModel.setAlbumArtCornerRadiusDp(it.radiusDp) }
-            )
-            SettingsDivider()
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_backdrop),
                 subtitle = stringResource(AppR.string.customization_backdrop_description),
@@ -548,57 +561,22 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
             )
             SettingsDivider()
             ToggleRow(
-                title = stringResource(AppR.string.customization_mini_swipe),
-                subtitle = stringResource(AppR.string.customization_mini_swipe_description),
-                checked = prefs.miniPlayerSwipeToSkip,
-                onCheckedChange = viewModel::setMiniPlayerSwipeToSkip,
-                iconRes = R.drawable.lucide_ic_move_horizontal,
+                title = stringResource(AppR.string.customization_mini_progress),
+                subtitle = stringResource(AppR.string.customization_mini_progress_description),
+                checked = prefs.showMiniPlayerProgress,
+                onCheckedChange = viewModel::setShowMiniPlayerProgress,
+                iconRes = R.drawable.lucide_ic_activity,
             )
             SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_swipe_lyrics),
-                subtitle = stringResource(AppR.string.customization_swipe_lyrics_description),
-                checked = prefs.swipeUpLyricsEnabled,
-                onCheckedChange = viewModel::setSwipeUpLyricsEnabled,
-                iconRes = R.drawable.lucide_ic_chevrons_up,
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_mini_action),
+                subtitle = stringResource(AppR.string.customization_mini_action_description),
+                iconRes = R.drawable.lucide_ic_mouse_pointer_click,
+                options = MiniPlayerAction.entries,
+                selected = prefs.miniPlayerAction,
+                label = { miniPlayerActionLabel(it) },
+                onSelect = viewModel::setMiniPlayerAction
             )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_flip_pause),
-                subtitle = stringResource(AppR.string.customization_flip_pause_description),
-                checked = prefs.flipToPauseEnabled,
-                onCheckedChange = viewModel::setFlipToPauseEnabled,
-                iconRes = R.drawable.lucide_ic_rotate_ccw,
-            )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_wave_skip),
-                subtitle = stringResource(AppR.string.customization_wave_skip_description),
-                checked = prefs.proximityWaveSkipEnabled,
-                onCheckedChange = viewModel::setProximityWaveSkipEnabled,
-                iconRes = R.drawable.lucide_ic_hand,
-            )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_shake_skip),
-                subtitle = stringResource(AppR.string.customization_shake_skip_description),
-                checked = prefs.shakeToSkipEnabled,
-                onCheckedChange = viewModel::setShakeToSkipEnabled,
-                iconRes = R.drawable.lucide_ic_smartphone,
-            )
-            if (prefs.shakeToSkipEnabled) {
-                SettingsDivider()
-                SettingsSliderRow(
-                    title = stringResource(AppR.string.customization_shake_sensitivity),
-                    subtitle = stringResource(AppR.string.customization_shake_sensitivity_description),
-                    value = prefs.shakeSensitivity.toFloat(),
-                    valueRange = 1f..5f,
-                    steps = 3,
-                    label = shakeSensitivityLabel(prefs.shakeSensitivity),
-                    iconRes = R.drawable.lucide_ic_sliders_horizontal,
-                    onValueChange = { viewModel.setShakeSensitivity(it.roundToInt()) }
-                )
-            }
         }
     }
 }
@@ -685,7 +663,90 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
                     onSelect = viewModel::setMaxVolumePercent
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun CustomizationGesturesScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val prefs = uiState.preferences
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
+        PageHeader(stringResource(AppR.string.customization_gestures), onBack)
+        Spacer(Modifier.height(16.dp))
+        SettingsSection {
+            ToggleRow(
+                title = stringResource(AppR.string.customization_mini_swipe),
+                subtitle = stringResource(AppR.string.customization_mini_swipe_description),
+                checked = prefs.miniPlayerSwipeToSkip,
+                onCheckedChange = viewModel::setMiniPlayerSwipeToSkip,
+                iconRes = R.drawable.lucide_ic_move_horizontal,
+            )
             SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_swipe_lyrics),
+                subtitle = stringResource(AppR.string.customization_swipe_lyrics_description),
+                checked = prefs.swipeUpLyricsEnabled,
+                onCheckedChange = viewModel::setSwipeUpLyricsEnabled,
+                iconRes = R.drawable.lucide_ic_chevrons_up,
+            )
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_flip_pause),
+                subtitle = stringResource(AppR.string.customization_flip_pause_description),
+                checked = prefs.flipToPauseEnabled,
+                onCheckedChange = viewModel::setFlipToPauseEnabled,
+                iconRes = R.drawable.lucide_ic_rotate_ccw,
+            )
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_wave_skip),
+                subtitle = stringResource(AppR.string.customization_wave_skip_description),
+                checked = prefs.proximityWaveSkipEnabled,
+                onCheckedChange = viewModel::setProximityWaveSkipEnabled,
+                iconRes = R.drawable.lucide_ic_hand,
+            )
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_shake_skip),
+                subtitle = stringResource(AppR.string.customization_shake_skip_description),
+                checked = prefs.shakeToSkipEnabled,
+                onCheckedChange = viewModel::setShakeToSkipEnabled,
+                iconRes = R.drawable.lucide_ic_smartphone,
+            )
+            if (prefs.shakeToSkipEnabled) {
+                SettingsDivider()
+                SettingsSliderRow(
+                    title = stringResource(AppR.string.customization_shake_sensitivity),
+                    subtitle = stringResource(AppR.string.customization_shake_sensitivity_description),
+                    value = prefs.shakeSensitivity.toFloat(),
+                    valueRange = 1f..5f,
+                    steps = 3,
+                    label = shakeSensitivityLabel(prefs.shakeSensitivity),
+                    iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                    onValueChange = { viewModel.setShakeSensitivity(it.roundToInt()) }
+                )
+            }
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_haptics),
+                subtitle = stringResource(AppR.string.customization_haptics_description),
+                checked = prefs.hapticFeedbackEnabled,
+                onCheckedChange = viewModel::setHapticFeedbackEnabled,
+                iconRes = R.drawable.lucide_ic_vibrate,
+            )
+        }
+    }
+}
+
+@Composable
+fun CustomizationPlaybackScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val prefs = uiState.preferences
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
+        PageHeader(stringResource(AppR.string.customization_playback), onBack)
+        Spacer(Modifier.height(16.dp))
+        SettingsSection {
             ToggleRow(
                 title = stringResource(AppR.string.customization_resume_queue),
                 subtitle = stringResource(AppR.string.customization_resume_queue_description),
@@ -716,14 +777,6 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
                 checked = prefs.autoDriveModeBluetooth,
                 onCheckedChange = viewModel::setAutoDriveModeBluetooth,
                 iconRes = R.drawable.lucide_ic_car,
-            )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_haptics),
-                subtitle = stringResource(AppR.string.customization_haptics_description),
-                checked = prefs.hapticFeedbackEnabled,
-                onCheckedChange = viewModel::setHapticFeedbackEnabled,
-                iconRes = R.drawable.lucide_ic_vibrate,
             )
         }
     }
@@ -1004,6 +1057,31 @@ fun CustomizationLibraryTabsScreen(viewModel: SettingsViewModel, onBack: () -> U
                     onMoveDown = { viewModel.moveLibraryTab(tab, 1) }
                 )
                 if (index != prefs.libraryTabOrder.lastIndex) SettingsDivider(startPadding = 24.dp)
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomizationNavTabsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, listBottomPadding: Dp = 0.dp) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val prefs = uiState.preferences
+    Column(modifier = modifier.categoryModifier(listBottomPadding)) {
+        PageHeader(stringResource(AppR.string.customization_nav_tabs), onBack)
+        Spacer(Modifier.height(16.dp))
+        SettingsSection {
+            prefs.navTabOrder.forEachIndexed { index, tab ->
+                OrderableToggleRow(
+                    title = navTabLabel(tab),
+                    checked = tab !in prefs.hiddenNavTabs,
+                    canDisable = tab.canHide,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < prefs.navTabOrder.lastIndex,
+                    onCheckedChange = { viewModel.setNavTabVisible(tab, it) },
+                    onMoveUp = { viewModel.moveNavTab(tab, -1) },
+                    onMoveDown = { viewModel.moveNavTab(tab, 1) }
+                )
+                if (index != prefs.navTabOrder.lastIndex) SettingsDivider(startPadding = 24.dp)
             }
         }
     }
@@ -1382,6 +1460,17 @@ internal fun themeAccentShortLabel(accent: ThemeAccent): String = stringResource
         ThemeAccent.TAPE_MAGENTA -> AppR.string.customization_theme_tape_magenta_short
         ThemeAccent.MONOCHROME_SILVER -> AppR.string.customization_theme_monochrome_short
         ThemeAccent.CUSTOM -> AppR.string.customization_custom_accent
+    }
+)
+
+@Composable
+private fun navTabLabel(tab: NavTab): String = stringResource(
+    when (tab) {
+        NavTab.HOME -> AppR.string.nav_home
+        NavTab.LIBRARY -> AppR.string.library_title
+        NavTab.RADIO -> AppR.string.radio_title
+        NavTab.SEARCH -> AppR.string.search_title
+        NavTab.SETTINGS -> AppR.string.settings_title
     }
 )
 

@@ -11,6 +11,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultSortMetric
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
@@ -200,6 +201,14 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             order.add(to, order.removeAt(from))
             viewModelScope.launch { appPreferencesRepository.setLibraryTabOrder(order) }
         }
+    }
+
+    fun moveNavTab(tab: NavTab, offset: Int) {
+        viewModelScope.launch { appPreferencesRepository.moveNavTab(tab, offset) }
+    }
+
+    fun setNavTabVisible(tab: NavTab, visible: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setNavTabVisible(tab, visible) }
     }
 
     fun setLibraryTabVisible(tab: DefaultLibraryTab, visible: Boolean) {

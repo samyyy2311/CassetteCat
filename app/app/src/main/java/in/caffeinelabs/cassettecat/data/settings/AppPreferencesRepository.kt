@@ -38,6 +38,8 @@ private val SHOW_AUDIO_QUALITY_BADGE = booleanPreferencesKey("show_audio_quality
 private val SHOW_NOW_PLAYING_BLUR = booleanPreferencesKey("show_now_playing_blur")
 private val LIBRARY_TAB_ORDER = stringPreferencesKey("library_tab_order")
 private val HIDDEN_LIBRARY_TABS = stringPreferencesKey("hidden_library_tabs")
+private val NAV_TAB_ORDER = stringPreferencesKey("nav_tab_order")
+private val HIDDEN_NAV_TABS = stringPreferencesKey("hidden_nav_tabs")
 private val LAST_LIBRARY_TAB = stringPreferencesKey("last_library_tab")
 
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
@@ -106,6 +108,13 @@ enum class ThemeAccent(val colorValue: Long, val containerValue: Long) {
 
 enum class DefaultLibraryTab { SONGS, ARTISTS, ALBUMS, GENRES, PLAYLISTS, FOLDERS }
 
+enum class NavTab {
+    HOME, LIBRARY, RADIO, SEARCH, SETTINGS;
+
+    // Back always returns to Library, and Settings is needed to undo this, so neither can be hidden.
+    val canHide: Boolean get() = this != LIBRARY && this != SETTINGS
+}
+
 enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOTTEN_FAVORITES }
 
 enum class MiniPlayerAction { NEXT, PREVIOUS, FAVORITE, QUEUE, REPEAT }
@@ -169,6 +178,8 @@ data class AppPreferences(
     val showNowPlayingBlur: Boolean = true,
     val libraryTabOrder: List<DefaultLibraryTab> = DefaultLibraryTab.entries,
     val hiddenLibraryTabs: Set<DefaultLibraryTab> = emptySet(),
+    val navTabOrder: List<NavTab> = NavTab.entries,
+    val hiddenNavTabs: Set<NavTab> = emptySet(),
     val lastLibraryTab: DefaultLibraryTab? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
@@ -265,6 +276,8 @@ class AppPreferencesRepository(private val context: Context) {
             showNowPlayingBlur = prefs[SHOW_NOW_PLAYING_BLUR] ?: true,
             libraryTabOrder = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries),
             hiddenLibraryTabs = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries),
+            navTabOrder = orderedEnumValues(prefs[NAV_TAB_ORDER], NavTab.entries),
+            hiddenNavTabs = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).filterTo(mutableSetOf()) { it.canHide },
             lastLibraryTab = prefs[LAST_LIBRARY_TAB]?.let { runCatching { DefaultLibraryTab.valueOf(it) }.getOrNull() },
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
@@ -415,6 +428,24 @@ class AppPreferencesRepository(private val context: Context) {
 
     suspend fun setShowNowPlayingBlur(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[SHOW_NOW_PLAYING_BLUR] = enabled }
+    }
+
+    suspend fun moveNavTab(tab: NavTab, offset: Int) {
+        context.appPreferencesDataStore.edit { prefs ->
+            val order = orderedEnumValues(prefs[NAV_TAB_ORDER], NavTab.entries).toMutableList()
+            val from = order.indexOf(tab)
+            order.add((from + offset).coerceIn(order.indices), order.removeAt(from))
+            prefs[NAV_TAB_ORDER] = order.joinToString(",") { it.name }
+        }
+    }
+
+    suspend fun setNavTabVisible(tab: NavTab, visible: Boolean) {
+        if (!tab.canHide) return
+        context.appPreferencesDataStore.edit { prefs ->
+            val hidden = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).toMutableSet()
+            if (visible) hidden -= tab else hidden += tab
+            prefs[HIDDEN_NAV_TABS] = hidden.joinToString(",") { it.name }
+        }
     }
 
     suspend fun setLibraryTabOrder(tabs: List<DefaultLibraryTab>) {
@@ -664,6 +695,8 @@ class AppPreferencesRepository(private val context: Context) {
             showNowPlayingBlur = current.showNowPlayingBlur,
             libraryTabOrder = current.libraryTabOrder.map { it.name },
             hiddenLibraryTabs = current.hiddenLibraryTabs.map { it.name }.toSet(),
+            navTabOrder = current.navTabOrder.map { it.name },
+            hiddenNavTabs = current.hiddenNavTabs.map { it.name }.toSet(),
             librarySortDirection = current.librarySortDirection,
             libraryCollectionLayout = current.libraryCollectionLayout,
             librarySongFilter = current.librarySongFilter,
@@ -745,6 +778,10 @@ class AppPreferencesRepository(private val context: Context) {
             if (backup.hiddenLibraryTabs.isNotEmpty()) {
                 prefs[HIDDEN_LIBRARY_TABS] = backup.hiddenLibraryTabs.joinToString(",")
             }
+            if (backup.navTabOrder.isNotEmpty()) {
+                prefs[NAV_TAB_ORDER] = backup.navTabOrder.joinToString(",")
+            }
+            backup.hiddenNavTabs?.let { prefs[HIDDEN_NAV_TABS] = it.joinToString(",") }
             prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
             prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
             prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter

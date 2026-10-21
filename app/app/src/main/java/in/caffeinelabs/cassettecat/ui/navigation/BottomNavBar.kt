@@ -22,18 +22,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
 
 private data class NavItem(val route: String, val iconRes: Int, val labelRes: Int)
 
-private val items = listOf(
-    NavItem(MainRoute.HOME, R.drawable.lucide_ic_house, AppR.string.nav_home),
-    NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, AppR.string.library_title),
-    NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, AppR.string.radio_title),
-    NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, AppR.string.search_title),
-    NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, AppR.string.settings_title)
-)
+private fun NavTab.item() = when (this) {
+    NavTab.HOME -> NavItem(MainRoute.HOME, R.drawable.lucide_ic_house, AppR.string.nav_home)
+    NavTab.LIBRARY -> NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, AppR.string.library_title)
+    NavTab.RADIO -> NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, AppR.string.radio_title)
+    NavTab.SEARCH -> NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, AppR.string.search_title)
+    NavTab.SETTINGS -> NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, AppR.string.settings_title)
+}
+
+fun NavTab.route() = item().route
 
 fun parentTabRoute(currentRoute: String?): String? = when {
     currentRoute == MainRoute.HOME || currentRoute?.startsWith("${MainRoute.HOME}/") == true -> MainRoute.HOME
@@ -45,6 +48,7 @@ fun parentTabRoute(currentRoute: String?): String? = when {
 }
 @Composable
 fun BottomNavBar(
+    tabs: List<NavTab>,
     currentRoute: String?,
     contentAlpha: Float = 1f,
     onNavigate: (String) -> Unit,
@@ -59,7 +63,7 @@ fun BottomNavBar(
             .alpha(contentAlpha),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        items.forEach { item ->
+        tabs.map { it.item() }.forEach { item ->
             val selected = activeTabRoute == item.route
             val tint = if (selected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
             val label = stringResource(item.labelRes)
