@@ -581,7 +581,7 @@
     <string name="customization_default_sort">Default Sort Order</string>
     <string name="customization_default_sort_description">How the song list is sorted when you first open it</string>
     <string name="customization_format_badges">Show Audio Format Badges</string>
-    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows, and the format and output under the song playing</string>
+    <string name="customization_format_badges_description">Show FLAC, MP3, AAC, and HI-RES badges on track rows, and the format and output under the playing song</string>
 
     <string name="customization_album_corner">Album Art Corner Style</string>
     <string name="customization_album_corner_description">Choose rounded or square album art</string>

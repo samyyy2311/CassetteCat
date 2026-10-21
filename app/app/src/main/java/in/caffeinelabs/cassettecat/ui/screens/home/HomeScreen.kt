@@ -113,7 +113,9 @@ fun HomeScreen(
     }
     val heroSong = remember(allSongs, pickSeed) { allSongs.randomOrNull(Random(pickSeed)) }
 
-    val greetingRes = remember(pickSeed) { getDynamicGreetingRes(Random(pickSeed)) }
+    // Picked again when the hour changes, so a morning greeting doesn't last into the evening.
+    val hourNow = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val greetingRes = remember(pickSeed, hourNow) { getDynamicGreetingRes(Random(pickSeed)) }
 
     val heavyRotation = remember(allSongs, monthlyStats) {
         val counts = monthlyStats.values
