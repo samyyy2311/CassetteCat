@@ -143,8 +143,10 @@ import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedSc
 import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
 import `in`.caffeinelabs.cassettecat.ui.util.rememberConnectedBluetoothDevice
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLyricsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationGesturesScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationLibraryTabsScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNavTabsScreen
+import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationPlaybackScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationNowPlayingScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationRoute
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationScreen
@@ -801,6 +803,20 @@ fun MainShell(
                     }
                     composable(CustomizationRoute.NOW_PLAYING) {
                         CustomizationNowPlayingScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.GESTURES) {
+                        CustomizationGesturesScreen(
+                            viewModel = viewModel(),
+                            onBack = { navController.popBackStack() },
+                            listBottomPadding = contentPadding.calculateBottomPadding()
+                        )
+                    }
+                    composable(CustomizationRoute.PLAYBACK) {
+                        CustomizationPlaybackScreen(
                             viewModel = viewModel(),
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()

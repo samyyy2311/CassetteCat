@@ -524,13 +524,16 @@
 
     <!-- Customisation -->
     <string name="customization_title">Customisation</string>
-    <string name="customization_theme">Theme</string>
+    <string name="customization_theme">Look &amp; Feel</string>
     <string name="customization_theme_summary">%1$s · AMOLED %2$s</string>
-    <string name="customization_startup_library">Startup &amp; Library</string>
+    <string name="customization_startup_library">Navigation</string>
     <string name="customization_startup_summary">%1$s · %2$s tab</string>
-    <string name="customization_now_playing">Now Playing &amp; Gestures</string>
-    <string name="customization_corner_summary">%1$s corners</string>
-    <string name="customization_audio_engine">Audio Engine</string>
+    <string name="customization_now_playing">Now Playing &amp; Mini-Player</string>
+    <string name="customization_audio_engine">Sound</string>
+    <string name="customization_gestures">Gestures</string>
+    <string name="customization_gestures_summary">Swipes, flip, wave and shake</string>
+    <string name="customization_playback">Playback</string>
+    <string name="customization_playback_summary">Resume, autoplay and Drive Mode</string>
     <string name="customization_audio_summary">%1$s · ReplayGain %2$s</string>
     <string name="customization_lyrics">Lyrics</string>
     <string name="customization_lyrics_summary">%1$s size · %2$s</string>
