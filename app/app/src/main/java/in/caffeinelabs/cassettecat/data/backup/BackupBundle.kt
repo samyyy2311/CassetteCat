@@ -84,6 +84,7 @@ data class BackupAppPreferences(
     val keepScreenOnLyrics: Boolean = false,
     val lyricsFontSize: String = "MEDIUM",
     val localLrcPriority: Boolean = true,
+    val lyricsForSearch: Boolean = false,
     val ignoreShortAudioClips: Boolean = false,
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,

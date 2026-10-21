@@ -22,6 +22,9 @@ import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.playback.resumableQueue
 import `in`.caffeinelabs.cassettecat.data.scrobble.credentialToMigrate
 import `in`.caffeinelabs.cassettecat.data.update.isNewer
+import `in`.caffeinelabs.cassettecat.ui.screens.search.songLyrics
+import `in`.caffeinelabs.cassettecat.ui.screens.search.lyricMatches
+import `in`.caffeinelabs.cassettecat.ui.screens.search.foldedForSearch
 import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultLibraryTab
@@ -481,6 +484,21 @@ class CoreLogicTest {
         assertEquals(first.identity, again.identity)
         val unique = listOf(first, again).distinctBy { it.identity }
         assertEquals(1, monthlyStatsOf(unique, emptyMap()).values.sumOf { it.songPlayCounts.values.sum() })
+    }
+
+    @Test
+    fun lyricMatchesRankWordsInOrderFirst() {
+        val songs = listOfNotNull(
+            songLyrics(testSong("a"), "[ar:Queen]\n[00:01.00]Don't stop me now\n[00:04.00]Having a time"),
+            songLyrics(testSong("b"), "Now stop, me don't"),
+            songLyrics(testSong("c"), "Stopping by")
+        )
+        val hits = lyricMatches(songs, "DONT stop me")
+        assertEquals(listOf("a", "b"), hits.map { it.song.id })
+        assertEquals("Don't stop me now", hits.first().line)
+        assertEquals(listOf("c"), lyricMatches(songs, "stopp").map { it.song.id })
+        assertTrue(lyricMatches(songs, "me").isEmpty())
+        assertEquals("cafe", foldedForSearch("Café!"))
     }
 
     private fun testSong(

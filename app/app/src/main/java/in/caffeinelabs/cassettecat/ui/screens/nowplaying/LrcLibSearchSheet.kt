@@ -126,7 +126,7 @@ internal fun LrcLibSearchSheet(
     val haptics = LocalHapticFeedback.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
-    val lrcLibClient = remember { LrcLibClient(context.cacheDir) }
+    val lrcLibClient = remember { LrcLibClient(context) }
     val appliedAndContributedMessage = stringResource(AppR.string.lrclib_applied_and_contributed)
     val appliedLocallyMessage = stringResource(AppR.string.lrclib_applied_locally)
 
