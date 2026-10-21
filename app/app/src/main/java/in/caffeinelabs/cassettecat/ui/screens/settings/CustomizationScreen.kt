@@ -309,7 +309,8 @@ fun CustomizationThemeScreen(viewModel: SettingsViewModel, onBack: () -> Unit, m
                 subtitle = stringResource(AppR.string.customization_album_corner_description),
                 iconRes = R.drawable.lucide_ic_disc,
                 options = AlbumArtCornerStyle.entries,
-                selected = AlbumArtCornerStyle.entries.first { it.radiusDp == prefs.albumArtCornerRadiusDp },
+                selected = AlbumArtCornerStyle.entries.firstOrNull { it.radiusDp == prefs.albumArtCornerRadiusDp }
+                    ?: AlbumArtCornerStyle.CURVED,
                 label = { albumCornerShortLabel(it) },
                 sheetLabel = { albumCornerFullLabel(it) },
                 sheetSubtitle = { albumCornerDescription(it) },

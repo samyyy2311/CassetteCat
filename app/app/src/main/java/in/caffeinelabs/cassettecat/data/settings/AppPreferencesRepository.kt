@@ -427,8 +427,13 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[SHOW_NOW_PLAYING_BLUR] = enabled }
     }
 
-    suspend fun setNavTabOrder(tabs: List<NavTab>) {
-        context.appPreferencesDataStore.edit { it[NAV_TAB_ORDER] = tabs.joinToString(",") { tab -> tab.name } }
+    suspend fun moveNavTab(tab: NavTab, offset: Int) {
+        context.appPreferencesDataStore.edit { prefs ->
+            val order = orderedEnumValues(prefs[NAV_TAB_ORDER], NavTab.entries).toMutableList()
+            val from = order.indexOf(tab)
+            order.add((from + offset).coerceIn(order.indices), order.removeAt(from))
+            prefs[NAV_TAB_ORDER] = order.joinToString(",") { it.name }
+        }
     }
 
     suspend fun setNavTabVisible(tab: NavTab, visible: Boolean) {
@@ -768,7 +773,7 @@ class AppPreferencesRepository(private val context: Context) {
             if (backup.navTabOrder.isNotEmpty()) {
                 prefs[NAV_TAB_ORDER] = backup.navTabOrder.joinToString(",")
             }
-            prefs[HIDDEN_NAV_TABS] = backup.hiddenNavTabs.joinToString(",")
+            backup.hiddenNavTabs?.let { prefs[HIDDEN_NAV_TABS] = it.joinToString(",") }
             prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
             prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
             prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter

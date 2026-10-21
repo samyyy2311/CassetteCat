@@ -200,13 +200,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun moveNavTab(tab: NavTab, offset: Int) {
-        val order = uiState.value.preferences.navTabOrder.toMutableList()
-        val from = order.indexOf(tab)
-        val to = (from + offset).coerceIn(order.indices)
-        if (from != -1 && from != to) {
-            order.add(to, order.removeAt(from))
-            viewModelScope.launch { appPreferencesRepository.setNavTabOrder(order) }
-        }
+        viewModelScope.launch { appPreferencesRepository.moveNavTab(tab, offset) }
     }
 
     fun setNavTabVisible(tab: NavTab, visible: Boolean) {

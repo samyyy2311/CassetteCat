@@ -213,15 +213,15 @@ object MainRoute {
     const val SCROBBLING = "main/settings/scrobbling"
 }
 
-private val tabAwareEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
-    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+private fun tabAwareEnter(tabOrder: List<String>): AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    val fromIndex = tabOrder.indexOf(initialState.destination.route)
+    val toIndex = tabOrder.indexOf(targetState.destination.route)
     slideEnter(fromRight = fromIndex == -1 || toIndex == -1 || toIndex > fromIndex)
 }
 
-private val tabAwareExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    val fromIndex = MainRoute.BOTTOM_TABS.indexOf(initialState.destination.route)
-    val toIndex = MainRoute.BOTTOM_TABS.indexOf(targetState.destination.route)
+private fun tabAwareExit(tabOrder: List<String>): AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    val fromIndex = tabOrder.indexOf(initialState.destination.route)
+    val toIndex = tabOrder.indexOf(targetState.destination.route)
     slideExit(toRight = fromIndex != -1 && toIndex != -1 && toIndex < fromIndex)
 }
 
@@ -308,6 +308,7 @@ fun MainShell(
     val visibleNavTabs = remember(preferences.navTabOrder, preferences.hiddenNavTabs) {
         preferences.navTabOrder.filterNot { it in preferences.hiddenNavTabs }
     }
+    val visibleTabRoutes = remember(visibleNavTabs) { visibleNavTabs.map { it.route() } }
     var initialTabHandled by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!initialTabHandled) {
@@ -583,8 +584,8 @@ fun MainShell(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(if (isHeroRoute) Modifier else Modifier.statusBarsPadding()),
-                    enterTransition = tabAwareEnter,
-                    exitTransition = tabAwareExit,
+                    enterTransition = tabAwareEnter(visibleTabRoutes),
+                    exitTransition = tabAwareExit(visibleTabRoutes),
                     popEnterTransition = mechanicalPopEnter,
                     popExitTransition = mechanicalPopExit,
                     predictivePopEnterTransition = { mechanicalPopEnter() },
