@@ -138,16 +138,16 @@ internal fun NowPlayingPlayerView(
                 positionMs = positionMs,
                 durationMs = state.durationMs,
                 onSeek = { playbackViewModel.seekTo(it) },
-                isShuffleEnabled = state.isShuffleEnabled,
-                onToggleShuffle = { playbackViewModel.toggleShuffle() },
                 onSkipPrevious = onSkipPrevious,
                 isPlaying = state.isPlaying,
                 playWhenReady = state.playWhenReady,
                 onTogglePlayPause = { playbackViewModel.togglePlayPause() },
                 onSkipNext = onSkipNext,
+                onMenu = onShowMenu,
+                isShuffleEnabled = state.isShuffleEnabled,
+                onToggleShuffle = { playbackViewModel.toggleShuffle() },
                 repeatMode = state.repeatMode,
                 onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
-                onMenu = onShowMenu,
                 modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
             )
         } else {
@@ -187,16 +187,28 @@ internal fun NowPlayingPlayerView(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.weight(4f))
-            art(
-                Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .aspectRatio(1f)
-            )
-            Spacer(Modifier.weight(3f))
+            if (isClickWheel) {
+                // The wheel needs a fixed height, so the artwork gives up room instead of the gaps.
+                Spacer(Modifier.height(16.dp))
+                art(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .weight(1f, fill = false)
+                        .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                )
+                Spacer(Modifier.height(24.dp))
+            } else {
+                Spacer(Modifier.weight(4f))
+                art(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .aspectRatio(1f)
+                )
+                Spacer(Modifier.weight(3f))
+            }
             info()
-            // The wheel is much taller than the classic row, so give back some of the gap below it.
-            Spacer(Modifier.height(if (isClickWheel) 24.dp else 64.dp))
+            // The bottom row's touch targets already add 12 dp, so this evens the wheel's gaps above and below.
+            Spacer(Modifier.height(if (isClickWheel) 8.dp else 64.dp))
             LyricsQueueToggleRow(activeView, onActiveViewChange, onOpenDevices, deviceName)
         }
     }

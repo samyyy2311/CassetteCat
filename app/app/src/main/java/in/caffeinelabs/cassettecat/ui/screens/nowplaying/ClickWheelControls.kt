@@ -1,12 +1,7 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -28,15 +23,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -51,12 +46,11 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import com.composables.icons.lucide.R
 import kotlin.math.PI
@@ -65,78 +59,80 @@ import kotlin.math.hypot
 import kotlin.math.min
 
 // Centre button diameter as a share of the whole wheel, matching the classic click-wheel proportions.
-private const val CENTER_FRACTION = 0.38f
+private const val CENTER_FRACTION = 0.36f
 
 // One haptic "click" and one seek step for every this many degrees the wheel is spun.
 private const val WHEEL_TICK_DEGREES = 15f
 private const val WHEEL_SEEK_STEP_MS = 5_000L
 
-private val WHEEL_MAX_SIZE = 240.dp
-private val WHEEL_MIN_SIZE = 150.dp
+private val WHEEL_MAX_SIZE = 264.dp
+private val WHEEL_MIN_SIZE = 160.dp
 
 private enum class WheelZone { MENU, PREVIOUS, NEXT, PLAY_PAUSE, CENTER }
 
-// Scrubber on top, then shuffle · click wheel · repeat. Menu opens the song menu; spinning the wheel scrubs.
+// Scrubber on top with shuffle and repeat between its times, then the click wheel.
+// Menu opens the song menu; spinning the wheel scrubs.
 @Composable
 internal fun ClickWheelControlsRow(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
-    isShuffleEnabled: Boolean,
-    onToggleShuffle: () -> Unit,
     onSkipPrevious: () -> Unit,
     isPlaying: Boolean,
     playWhenReady: Boolean = isPlaying,
     onTogglePlayPause: () -> Unit,
     onSkipNext: () -> Unit,
+    onMenu: () -> Unit,
+    isShuffleEnabled: Boolean,
+    onToggleShuffle: () -> Unit,
     repeatMode: Int,
     onCycleRepeatMode: () -> Unit,
-    onMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val seekable = isSeekablePlayback(durationMs)
     Column(modifier) {
         if (seekable) {
-            ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
+            ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek) {
+                // The same raised buttons as the desktop's, with the accent outline while on.
+                val scheme = MaterialTheme.colorScheme
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TransportButton(
+                        iconRes = R.drawable.lucide_ic_shuffle,
+                        size = 36.dp,
+                        tint = if (isShuffleEnabled) scheme.tertiary else scheme.onSurfaceVariant,
+                        onClick = onToggleShuffle,
+                        contentDescription = stringResource(AppR.string.now_playing_shuffle),
+                        accented = isShuffleEnabled
+                    )
+                    TransportButton(
+                        iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
+                        size = 36.dp,
+                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) scheme.tertiary else scheme.onSurfaceVariant,
+                        onClick = onCycleRepeatMode,
+                        contentDescription = stringResource(AppR.string.now_playing_repeat),
+                        accented = repeatMode != Player.REPEAT_MODE_OFF
+                    )
+                }
+            }
         } else {
             LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
         }
-        Spacer(Modifier.height(20.dp))
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            // Leave room for the side toggles, and keep short screens from pushing the artwork off.
+        Spacer(Modifier.height(8.dp))
+        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            // Short screens get a smaller wheel, so the artwork keeps its room.
             val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-            val wheelSize = min(
-                min((maxWidth - 112.dp).value, (screenHeight * 0.28f).value),
-                WHEEL_MAX_SIZE.value
-            ).coerceAtLeast(WHEEL_MIN_SIZE.value).dp
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PressDepthIconButton(
-                    iconRes = R.drawable.lucide_ic_shuffle,
-                    contentDescription = stringResource(AppR.string.now_playing_shuffle),
-                    tint = if (isShuffleEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    onClick = onToggleShuffle
-                )
-                ClickWheel(
-                    size = wheelSize,
-                    playWhenReady = playWhenReady,
-                    onMenu = onMenu,
-                    onSkipPrevious = onSkipPrevious,
-                    onSkipNext = onSkipNext,
-                    onTogglePlayPause = onTogglePlayPause,
-                    onSpinSeek = if (seekable) { target -> onSeek(target.coerceIn(0L, durationMs)) } else null,
-                    positionMs = positionMs
-                )
-                PressDepthIconButton(
-                    iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
-                    contentDescription = stringResource(AppR.string.now_playing_repeat),
-                    tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    onClick = onCycleRepeatMode
-                )
-            }
+            val wheelSize = min(min(maxWidth.value * 0.68f, (screenHeight * 0.3f).value), WHEEL_MAX_SIZE.value)
+                .coerceAtLeast(WHEEL_MIN_SIZE.value).dp
+            ClickWheel(
+                size = wheelSize,
+                playWhenReady = playWhenReady,
+                onMenu = onMenu,
+                onSkipPrevious = onSkipPrevious,
+                onSkipNext = onSkipNext,
+                onTogglePlayPause = onTogglePlayPause,
+                onSpinSeek = if (seekable) { target -> onSeek(target.coerceIn(0L, durationMs)) } else null,
+                positionMs = positionMs
+            )
         }
     }
 }
@@ -158,11 +154,6 @@ private fun ClickWheel(
     val touchSlop = LocalViewConfiguration.current.touchSlop
 
     var pressedZone by remember { mutableStateOf<WheelZone?>(null) }
-    val centerDepth by animateDpAsState(
-        targetValue = if (pressedZone == WheelZone.CENTER) 3.dp else 0.dp,
-        animationSpec = tween(80, easing = LinearEasing),
-        label = "wheelCenterDepth"
-    )
 
     val currentOnMenu by rememberUpdatedState(onMenu)
     val currentOnPrevious by rememberUpdatedState(onSkipPrevious)
@@ -218,8 +209,8 @@ private fun ClickWheel(
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) break
                         change.consume()
-                        // Only the ring spins; once a finger travels far enough it's a spin, not a tap.
-                        if (!spinning && zone != WheelZone.CENTER && currentOnSpinSeek != null &&
+                        // Once a finger travels far enough it's a spin, not a tap.
+                        if (!spinning && currentOnSpinSeek != null &&
                             (change.position - down.position).getDistance() > touchSlop
                         ) {
                             spinning = true
@@ -255,62 +246,39 @@ private fun ClickWheel(
         contentAlignment = Alignment.Center
     ) {
         val scheme = MaterialTheme.colorScheme
-        val cap = Brush.linearGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
         val labelColor = scheme.onSurfaceVariant
         fun zoneTint(zone: WheelZone) = if (pressedZone == zone) scheme.tertiary else labelColor
+        val pressedShade = scheme.onSurface.copy(alpha = 0.08f)
 
-        // The ring: the same raised cap as the transport buttons, with the pressed quarter shaded.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .shadow(6.dp, CircleShape)
-                .clip(CircleShape)
-                .background(cap)
-                .border(1.dp, scheme.outlineVariant, CircleShape)
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                val pressed = pressedZone
-                if (pressed != null && pressed != WheelZone.CENTER) {
-                    val start = when (pressed) {
-                        WheelZone.NEXT -> -45f
-                        WheelZone.PLAY_PAUSE -> 45f
-                        WheelZone.PREVIOUS -> 135f
-                        else -> 225f
-                    }
-                    drawArc(scheme.onSurface.copy(alpha = 0.06f), startAngle = start, sweepAngle = 90f, useCenter = true)
+        // Lit from above like the transport buttons; a press shades its quarter or the centre.
+        val ring = Brush.verticalGradient(listOf(scheme.surfaceContainerHighest, scheme.surfaceContainerHigh))
+        val cap = Brush.verticalGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
+        Canvas(Modifier.fillMaxSize().shadow(8.dp, CircleShape)) {
+            drawCircle(ring)
+            val pressed = pressedZone
+            if (pressed != null && pressed != WheelZone.CENTER) {
+                val start = when (pressed) {
+                    WheelZone.NEXT -> -45f
+                    WheelZone.PLAY_PAUSE -> 45f
+                    WheelZone.PREVIOUS -> 135f
+                    else -> 225f
                 }
+                drawArc(pressedShade, startAngle = start, sweepAngle = 90f, useCenter = true)
             }
+            val centerRadius = this.size.minDimension * CENTER_FRACTION / 2f
+            drawCircle(cap, radius = centerRadius)
+            drawCircle(scheme.outlineVariant, radius = centerRadius, style = Stroke(1.dp.toPx()))
+            if (pressed == WheelZone.CENTER) drawCircle(pressedShade, radius = centerRadius)
         }
 
-        // The centre: a play and pause button like the classic layout's, sinking a little when pressed.
-        Box(
-            Modifier
-                .size(size * CENTER_FRACTION)
-                .offset { IntOffset(0, centerDepth.roundToPx()) }
-                .shadow(if (pressedZone == WheelZone.CENTER) 0.dp else 5.dp, CircleShape)
-                .clip(CircleShape)
-                .background(cap)
-                .border(
-                    if (playWhenReady) 1.5.dp else 1.dp,
-                    if (playWhenReady) scheme.tertiary else scheme.outlineVariant,
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(if (playWhenReady) R.drawable.lucide_ic_pause else R.drawable.lucide_ic_play),
-                contentDescription = null,
-                tint = scheme.tertiary,
-                modifier = Modifier.size(size * CENTER_FRACTION * 0.36f)
-            )
-        }
-
+        // Play and pause carry the accent, as the classic layout's play button does.
+        val playPauseTint = if (pressedZone == WheelZone.PLAY_PAUSE) scheme.onSurface else scheme.tertiary
         val labelInset = size * ((1f - CENTER_FRACTION) / 4f + CENTER_FRACTION / 2f)
-        val iconSize = (size.value * 0.08f).coerceIn(14f, 20f).dp
+        val iconSize = (size.value * 0.1f).coerceIn(16f, 24f).dp
         Text(
             text = menuLabel.uppercase(),
             color = zoneTint(WheelZone.MENU),
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.5.sp,
             modifier = Modifier.offset(y = -labelInset)
@@ -330,13 +298,14 @@ private fun ClickWheel(
         Icon(
             painter = painterResource(R.drawable.lucide_ic_play),
             contentDescription = null,
-            tint = zoneTint(WheelZone.PLAY_PAUSE),
+            // The action the button would take next is the brighter of the two.
+            tint = playPauseTint.copy(alpha = if (playWhenReady) 0.5f else 1f),
             modifier = Modifier.offset(x = -iconSize * 0.45f, y = labelInset).size(iconSize * 0.8f)
         )
         Icon(
             painter = painterResource(R.drawable.lucide_ic_pause),
             contentDescription = null,
-            tint = zoneTint(WheelZone.PLAY_PAUSE),
+            tint = playPauseTint.copy(alpha = if (playWhenReady) 1f else 0.5f),
             modifier = Modifier.offset(x = iconSize * 0.45f, y = labelInset).size(iconSize * 0.8f)
         )
     }

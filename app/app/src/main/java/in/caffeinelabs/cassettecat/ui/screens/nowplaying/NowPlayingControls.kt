@@ -192,7 +192,9 @@ internal fun LyricsQueueToggleRow(
 internal fun ScrubberControl(
     positionMs: Long,
     durationMs: Long,
-    onSeek: (Long) -> Unit
+    onSeek: (Long) -> Unit,
+    // Sits between the two times, for layouts with no other room for it.
+    centerContent: (@Composable () -> Unit)? = null
 ) {
     val context = LocalContext.current
     val appPreferencesRepository = remember { AppPreferencesRepository(context) }
@@ -250,8 +252,13 @@ internal fun ScrubberControl(
             track = { sliderState -> FaderTrack(sliderState, isActive = isDragging) },
             thumb = { FaderThumb(isActive = isDragging) }
         )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(formatTime(effectivePositionMs), style = readoutStyle())
+            centerContent?.invoke()
             val remainingMs = (durationMs - effectivePositionMs).coerceAtLeast(0L)
             val durationText = if (preferences.showRemainingTime) "-${formatTime(remainingMs)}" else formatTime(durationMs)
             Text(
