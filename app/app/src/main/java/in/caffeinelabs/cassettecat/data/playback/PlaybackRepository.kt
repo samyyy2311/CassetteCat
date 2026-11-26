@@ -198,6 +198,18 @@ class PlaybackRepository(private val context: Context) {
 
     suspend fun shuffleAll(songs: List<Song>) = playQueue(songs, startIndex = songs.size, shuffle = true)
 
+    // Play pressed on the notification or headphones after the app was closed starts the service with the saved queue on
+    // its own. The app then has to take that queue on, or it shows no song and its controls act on a queue it doesn't have.
+    fun adoptSessionQueue(songsById: Map<String, Song>): Boolean {
+        val c = controller ?: return false
+        if (currentQueue.isNotEmpty() || c.mediaItemCount == 0) return false
+        val songs = (0 until c.mediaItemCount).map { songsById[c.getMediaItemAt(it).mediaId] ?: return false }
+        currentQueue = songs
+        originalQueue = songs
+        updateState()
+        return true
+    }
+
     // no play(): loads and seeks without auto-starting audio; no-ops if something's already loaded
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return

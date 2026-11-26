@@ -123,7 +123,6 @@ class PlaybackService : MediaLibraryService() {
     private var isFlipToPauseEnabled: Boolean = false
     private var isProximityWaveSkipEnabled: Boolean = false
     private var isPauseOnDisconnectEnabled: Boolean = true
-    private var isGaplessPlaybackEnabled: Boolean = true
     private var wasPausedByFlip: Boolean = false
     private var flipTimeoutJob: Job? = null
     private var isHapticFeedbackEnabled: Boolean = true
@@ -276,15 +275,6 @@ class PlaybackService : MediaLibraryService() {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 syncWidgetState(navigationPlayer)
                 updateNotificationLayout(navigationPlayer)
-                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
-                    serviceScope.launch(Dispatchers.Main) {
-                        player.pause()
-                        delay(600L)
-                        if (player.playbackState != Player.STATE_ENDED) {
-                            player.play()
-                        }
-                    }
-                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -330,7 +320,6 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
                 isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
-                isGaplessPlaybackEnabled = prefs.gaplessPlayback
                 player.skipSilenceEnabled = prefs.skipSilence
                 sequentialNavigationPlayer?.autoplayEnabled = prefs.autoplayEnabled
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
