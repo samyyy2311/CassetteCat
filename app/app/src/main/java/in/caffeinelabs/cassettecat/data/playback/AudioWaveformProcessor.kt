@@ -2,36 +2,69 @@
 
 package `in`.caffeinelabs.cassettecat.data.playback
 
-import android.os.SystemClock
 import androidx.media3.common.C
+import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.sqrt
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
+// Audio is analysed before it reaches the speaker, about half a second early, so each set of bands
+// keeps the song position it belongs to and the lyrics screen shows the set for what is playing now.
 object AudioWaveformHolder {
-    private val _amplitudes = MutableStateFlow(FloatArray(7) { 0f })
-    val amplitudes: StateFlow<FloatArray> = _amplitudes.asStateFlow()
+    private const val CAPACITY = 256
+    private val positions = LongArray(CAPACITY)
+    private val bands = Array(CAPACITY) { FloatArray(BAND_COUNT) }
+    private var size = 0
+    private var next = 0
+    private val watchers = AtomicInteger()
 
     // Only the lyrics screen draws the bands, so audio is analysed only while it is showing.
-    val isWatched: Boolean get() = _amplitudes.subscriptionCount.value > 0
+    val isWatched: Boolean get() = watchers.get() > 0
 
-    fun update(values: FloatArray) {
-        _amplitudes.value = values
+    fun watch() = watchers.incrementAndGet()
+
+    fun unwatch() = watchers.decrementAndGet()
+
+    @Synchronized
+    fun record(positionMs: Long, values: FloatArray) {
+        positions[next] = positionMs
+        values.copyInto(bands[next])
+        next = (next + 1) % CAPACITY
+        if (size < CAPACITY) size++
     }
 
-    fun reset() {
-        _amplitudes.value = FloatArray(7) { 0f }
+    // The latest set at or just before the position, or null when none was analysed for it.
+    @Synchronized
+    fun bandsAt(positionMs: Long): FloatArray? {
+        var best = -1
+        for (i in 0 until size) {
+            val at = positions[i]
+            if (at <= positionMs && positionMs - at < MAX_GAP_MS && (best < 0 || at > positions[best])) best = i
+        }
+        return if (best < 0) null else bands[best].copyOf()
     }
+
+    @Synchronized
+    fun clear() {
+        size = 0
+        next = 0
+    }
+
+    private const val MAX_GAP_MS = 150L
 }
 
+private const val BAND_COUNT = 7
+
 class AudioWaveformProcessor private constructor() : BaseAudioProcessor() {
-    private val currentBands = FloatArray(7) { 0f }
-    private var lastUpdateMs = 0L
+    private val currentBands = FloatArray(BAND_COUNT)
+    // Song position of the next sample to arrive, in microseconds.
+    private var positionUs = 0L
+    private var timeline: Timeline = Timeline.EMPTY
+    private var periodIndex = C.INDEX_UNSET
+    private val period = Timeline.Period()
 
     private var lp0 = 0f
     private var lp1 = 0f
@@ -52,6 +85,7 @@ class AudioWaveformProcessor private constructor() : BaseAudioProcessor() {
             val duplicate = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
             process16BitPcm(duplicate, inputAudioFormat.channelCount)
         }
+        advancePosition(remaining / inputAudioFormat.bytesPerFrame)
 
         val output = replaceOutputBuffer(remaining)
         output.put(inputBuffer)
@@ -123,11 +157,26 @@ class AudioWaveformProcessor private constructor() : BaseAudioProcessor() {
             currentBands[i] = if (t > c) (c * 0.25f + t * 0.75f) else (c * 0.82f)
         }
 
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastUpdateMs >= 24L) {
-            lastUpdateMs = now
-            AudioWaveformHolder.update(currentBands.clone())
+        AudioWaveformHolder.record(positionUs / 1000, currentBands)
+    }
+
+    // Songs that run straight into the next aren't flushed between them, so the position rolls over
+    // into the next song once it passes the current one's length.
+    private fun advancePosition(frames: Int) {
+        positionUs += frames * C.MICROS_PER_SECOND / inputAudioFormat.sampleRate
+        if (periodIndex == C.INDEX_UNSET) return
+        val durationUs = timeline.getPeriod(periodIndex, period).durationUs
+        if (durationUs != C.TIME_UNSET && positionUs >= durationUs && periodIndex + 1 < timeline.periodCount) {
+            positionUs -= durationUs
+            periodIndex++
         }
+    }
+
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        positionUs = streamMetadata.positionOffsetUs
+        timeline = streamMetadata.timeline
+        periodIndex = streamMetadata.periodUid?.let { timeline.getIndexOfPeriod(it) } ?: C.INDEX_UNSET
+        AudioWaveformHolder.clear()
     }
 
     override fun onReset() {
@@ -138,7 +187,10 @@ class AudioWaveformProcessor private constructor() : BaseAudioProcessor() {
         lp4 = 0f
         lp5 = 0f
         currentBands.fill(0f)
-        AudioWaveformHolder.reset()
+        positionUs = 0L
+        timeline = Timeline.EMPTY
+        periodIndex = C.INDEX_UNSET
+        AudioWaveformHolder.clear()
     }
 
     companion object {

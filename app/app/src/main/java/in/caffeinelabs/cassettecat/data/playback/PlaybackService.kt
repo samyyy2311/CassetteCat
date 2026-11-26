@@ -890,6 +890,13 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
     private var baseVolume = 1f
     private var fadeMultiplier = 1f
     private var fadeJob: Job? = null
+    // Paused as far as controllers know from the moment the fade-out starts, so the app's
+    // button doesn't flick back to Pause while the volume falls.
+    private var pausing = false
+
+    override fun getPlayWhenReady(): Boolean = !pausing && super.getPlayWhenReady()
+
+    override fun isPlaying(): Boolean = !pausing && super.isPlaying()
 
     override fun getVolume(): Float = baseVolume
 
@@ -900,6 +907,7 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
 
     override fun play() {
         val fadingOut = fadeJob?.isActive == true
+        pausing = false
         if (!fadingOut && !isPlaying) {
             fadeMultiplier = 0f
             applyVolume()
@@ -910,7 +918,9 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
 
     override fun pause() {
         if (!isPlaying) return super.pause()
+        pausing = true
         fadeTo(0f) {
+            pausing = false
             pauseNow()
             fadeMultiplier = 1f
             applyVolume()
