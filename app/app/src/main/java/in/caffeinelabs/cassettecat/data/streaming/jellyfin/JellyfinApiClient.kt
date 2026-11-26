@@ -13,6 +13,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class JellyfinApiException(message: String) : Exception(message)
 
+// What the phone's player decodes; "container|codec" limits a container to that codec.
+private const val PLAYABLE_CONTAINERS =
+    "mp3,aac,m4a|aac,m4b|aac,mp4|aac,flac,ogg|vorbis,ogg|opus,oga|vorbis,oga|opus,opus,webm|opus,webma|opus,wav"
+
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')
 
@@ -127,9 +131,18 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
         response.close()
     }
 
+    // The universal stream sends a song as it is when the player reads its format, and otherwise has the server
+    // convert it to MP3, so ALAC, WMA, APE and other formats the phone can't decode still play.
     fun streamUrl(itemId: String, accessToken: String): String =
-        "$baseUrl/Audio/$itemId/stream".toHttpUrl().newBuilder()
-            .addQueryParameter("static", "true")
+        "$baseUrl/Audio/$itemId/universal".toHttpUrl().newBuilder()
+            .addQueryParameter("container", PLAYABLE_CONTAINERS)
+            .addQueryParameter("transcodingContainer", "mp3")
+            .addQueryParameter("transcodingProtocol", "http")
+            .addQueryParameter("audioCodec", "mp3")
+            .addQueryParameter("audioBitRate", "320000")
+            // High enough that lossless files are sent as they are rather than converted to fit.
+            .addQueryParameter("maxStreamingBitrate", "140000000")
+            .addQueryParameter("deviceId", deviceId)
             .addQueryParameter("api_key", accessToken)
             .build()
             .toString()
