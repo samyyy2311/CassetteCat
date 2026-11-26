@@ -13,9 +13,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class JellyfinApiException(message: String) : Exception(message)
 
-// What the phone's player decodes; "container|codec" limits a container to that codec.
+// What the phone's player decodes; "container|codec" limits a container to those codecs.
+// WAV is limited to the PCM forms Media3 reads, so ADPCM and the like are converted.
 private const val PLAYABLE_CONTAINERS =
-    "mp3,aac,m4a|aac,m4b|aac,mp4|aac,flac,ogg|vorbis|opus|flac,oga|vorbis|opus|flac,opus,webm|opus,webma|opus,wav"
+    "mp3,aac,m4a|aac|flac,m4b|aac,mp4|aac|flac,flac,ogg|vorbis|opus|flac,oga|vorbis|opus|flac,opus,webm|opus,webma|opus," +
+        "wav|pcm_s16le|pcm_s24le|pcm_s32le|pcm_u8|pcm_f32le|pcm_alaw|pcm_mulaw"
 
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')

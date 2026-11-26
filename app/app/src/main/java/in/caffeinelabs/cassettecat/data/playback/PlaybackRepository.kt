@@ -200,14 +200,20 @@ class PlaybackRepository(private val context: Context) {
 
     // Play pressed on the notification or headphones after the app was closed starts the service with the saved queue on
     // its own. The app then has to take that queue on, or it shows no song and its controls act on a queue it doesn't have.
+    // Stations, and songs the library no longer has, are taken on as the session describes them.
     fun adoptSessionQueue(songsById: Map<String, Song>): Boolean {
         val c = controller ?: return false
         if (currentQueue.isNotEmpty() || c.mediaItemCount == 0) return false
-        val songs = (0 until c.mediaItemCount).map { songsById[c.getMediaItemAt(it).mediaId] ?: return false }
+        val songs = (0 until c.mediaItemCount).map { index ->
+            val item = c.getMediaItemAt(index)
+            songsById[item.mediaId] ?: item.toSessionSong()
+        }
         currentQueue = songs
         originalQueue = songs
         shuffleEnabled = c.shuffleModeEnabled
         updateState()
+        resetHistoryTracking(_state.value.currentSong)
+        if (c.isPlaying) resumeHistoryTracking()
         return true
     }
 
@@ -798,6 +804,26 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
                 .build()
         )
         .build()
+}
+
+private fun MediaItem.toSessionSong(): Song {
+    val source = when {
+        mediaId.startsWith("radio:") -> MusicSource.Radio
+        mediaId.startsWith("subsonic:") -> MusicSource.Subsonic
+        mediaId.startsWith("jellyfin:") -> MusicSource.Jellyfin
+        else -> MusicSource.Local
+    }
+    return Song(
+        id = mediaId,
+        title = mediaMetadata.title?.toString().orEmpty(),
+        artist = mediaMetadata.artist?.toString().orEmpty(),
+        album = mediaMetadata.albumTitle?.toString().orEmpty(),
+        albumId = "",
+        durationMs = 0L,
+        contentUri = localConfiguration?.uri ?: Uri.EMPTY,
+        source = source,
+        artUri = mediaMetadata.artworkUri
+    )
 }
 
 // Bridges Guava's ListenableFuture to a suspend call without a Guava/coroutines-guava

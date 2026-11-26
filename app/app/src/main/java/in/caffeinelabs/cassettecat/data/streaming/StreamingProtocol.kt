@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.data.streaming
 
+import java.net.Inet4Address
 import java.net.InetAddress
 
 enum class StreamingProtocol { SUBSONIC, JELLYFIN }
@@ -23,7 +24,8 @@ fun completeServerUrl(input: String): String {
 }
 
 internal fun isHomeNetworkHost(host: String): Boolean {
-    val name = host.lowercase()
+    // A fully qualified name may end in a dot, as in nas.local.
+    val name = host.lowercase().removeSuffix(".")
     if (name == "localhost" || listOf(".local", ".lan", ".home.arpa", ".internal", ".localdomain").any(name::endsWith)) {
         return true
     }
@@ -37,6 +39,8 @@ internal fun isHomeNetworkHost(host: String): Boolean {
     if (':' in name) {
         // An IPv6 literal is parsed without a lookup, which also covers expanded forms such as 0:0:0:0:0:0:0:1.
         val address = runCatching { InetAddress.getByName(name) }.getOrNull() ?: return false
+        // An IPv4-mapped address, such as ::ffff:192.168.1.10, comes back as IPv4.
+        if (address is Inet4Address) return isHomeNetworkHost(address.hostAddress.orEmpty())
         return address.isLoopbackAddress || address.isLinkLocalAddress || (address.address[0].toInt() and 0xfe) == 0xfc
     }
     // A single word, such as a server's own name, only resolves on the local network.
