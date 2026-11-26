@@ -431,15 +431,16 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             // The player may already be playing, started from the notification while the app was closed.
             connection.join()
             val songsById = allSongs.associateBy { it.id }
-            repository.adoptSessionQueue(songsById)
-            if (!appPreferences.value.resumeQueueOnLaunch) return@launch
-            val saved = stateRepository.load()
+            val resume = appPreferences.value.resumeQueueOnLaunch
+            // History is restored before a queue is taken on: a paused one saves the playback state, history included.
+            val saved = if (resume) stateRepository.load() else null
             if (saved != null && saved.historySongIds.isNotEmpty()) {
                 val resolvedHistory = saved.historySongIds.mapNotNull { songsById[it] }
                 if (resolvedHistory.isNotEmpty()) {
                     repository.restoreHistory(resolvedHistory)
                 }
             }
+            repository.adoptSessionQueue(songsById)
             if (saved == null || localState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch

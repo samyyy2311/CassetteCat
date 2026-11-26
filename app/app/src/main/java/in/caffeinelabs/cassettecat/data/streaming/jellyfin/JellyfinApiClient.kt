@@ -15,7 +15,7 @@ class JellyfinApiException(message: String) : Exception(message)
 
 // What the phone's player decodes; "container|codec" limits a container to that codec.
 private const val PLAYABLE_CONTAINERS =
-    "mp3,aac,m4a|aac,m4b|aac,mp4|aac,flac,ogg|vorbis,ogg|opus,oga|vorbis,oga|opus,opus,webm|opus,webma|opus,wav"
+    "mp3,aac,m4a|aac,m4b|aac,mp4|aac,flac,ogg|vorbis|opus|flac,oga|vorbis|opus|flac,opus,webm|opus,webma|opus,wav"
 
 class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
     private val baseUrl = serverUrl.trimEnd('/')

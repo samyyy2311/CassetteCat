@@ -206,6 +206,7 @@ class PlaybackRepository(private val context: Context) {
         val songs = (0 until c.mediaItemCount).map { songsById[c.getMediaItemAt(it).mediaId] ?: return false }
         currentQueue = songs
         originalQueue = songs
+        shuffleEnabled = c.shuffleModeEnabled
         updateState()
         return true
     }

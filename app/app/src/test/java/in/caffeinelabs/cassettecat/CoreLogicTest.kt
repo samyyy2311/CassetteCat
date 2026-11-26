@@ -78,6 +78,8 @@ class CoreLogicTest {
         assertEquals("http://nas.local", completeServerUrl("nas.local"))
         assertEquals("http://100.101.1.2:8096", completeServerUrl("100.101.1.2:8096"))
         assertEquals("http://[fd00::5]:8096", completeServerUrl("[fd00::5]:8096"))
+        assertEquals("http://[0:0:0:0:0:0:0:1]:8096", completeServerUrl("[0:0:0:0:0:0:0:1]:8096"))
+        assertEquals("https://[2001:db8::1]:8096", completeServerUrl("[2001:db8::1]:8096"))
         assertEquals("https://music.example.com", completeServerUrl("music.example.com"))
         assertEquals("https://8.8.8.8", completeServerUrl("8.8.8.8"))
         assertEquals("http://music.example.com", completeServerUrl("http://music.example.com"))

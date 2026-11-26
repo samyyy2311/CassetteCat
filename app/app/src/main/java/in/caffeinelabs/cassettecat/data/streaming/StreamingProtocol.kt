@@ -1,5 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.streaming
 
+import java.net.InetAddress
+
 enum class StreamingProtocol { SUBSONIC, JELLYFIN }
 
 /**
@@ -33,7 +35,9 @@ internal fun isHomeNetworkHost(host: String): Boolean {
             (first == 169 && second == 254) || (first == 100 && second in 64..127)
     }
     if (':' in name) {
-        return name == "::1" || name.startsWith("fc") || name.startsWith("fd") || name.startsWith("fe80")
+        // An IPv6 literal is parsed without a lookup, which also covers expanded forms such as 0:0:0:0:0:0:0:1.
+        val address = runCatching { InetAddress.getByName(name) }.getOrNull() ?: return false
+        return address.isLoopbackAddress || address.isLinkLocalAddress || (address.address[0].toInt() and 0xfe) == 0xfc
     }
     // A single word, such as a server's own name, only resolves on the local network.
     return '.' !in name
