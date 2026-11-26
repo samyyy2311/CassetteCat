@@ -65,6 +65,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -93,6 +94,8 @@ internal fun NowPlayingPlayerView(
 ) {
     val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // The click wheel only replaces the player view's controls; lyrics and queue keep the compact classic row.
+    val isClickWheel = preferences.playerControlsStyle == PlayerControlsStyle.IPOD
 
     val art: @Composable (Modifier) -> Unit = { modifier ->
         AlbumArtCarousel(
@@ -130,10 +133,29 @@ internal fun NowPlayingPlayerView(
         Spacer(Modifier.height(20.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
             .coerceIn(0f, 1f)
-        PlaybackControls(
-            state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious,
-            modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
-        )
+        if (isClickWheel) {
+            ClickWheelControlsRow(
+                positionMs = positionMs,
+                durationMs = state.durationMs,
+                onSeek = { playbackViewModel.seekTo(it) },
+                isShuffleEnabled = state.isShuffleEnabled,
+                onToggleShuffle = { playbackViewModel.toggleShuffle() },
+                onSkipPrevious = onSkipPrevious,
+                isPlaying = state.isPlaying,
+                playWhenReady = state.playWhenReady,
+                onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                onSkipNext = onSkipNext,
+                repeatMode = state.repeatMode,
+                onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
+                onMenu = onShowMenu,
+                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
+            )
+        } else {
+            PlaybackControls(
+                state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious,
+                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
+            )
+        }
     }
 
     if (isLandscape) {
@@ -173,7 +195,8 @@ internal fun NowPlayingPlayerView(
             )
             Spacer(Modifier.weight(3f))
             info()
-            Spacer(Modifier.height(64.dp))
+            // The wheel is much taller than the classic row, so give back some of the gap below it.
+            Spacer(Modifier.height(if (isClickWheel) 24.dp else 64.dp))
             LyricsQueueToggleRow(activeView, onActiveViewChange, onOpenDevices, deviceName)
         }
     }

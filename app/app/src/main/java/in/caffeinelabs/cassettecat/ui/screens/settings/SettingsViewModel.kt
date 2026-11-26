@@ -21,6 +21,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
@@ -171,6 +172,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setMiniPlayerAction(action: MiniPlayerAction) {
         viewModelScope.launch { appPreferencesRepository.setMiniPlayerAction(action) }
+    }
+
+    fun setPlayerControlsStyle(style: PlayerControlsStyle) {
+        viewModelScope.launch { appPreferencesRepository.setPlayerControlsStyle(style) }
     }
 
     fun setArtworkAccentEnabled(enabled: Boolean) {

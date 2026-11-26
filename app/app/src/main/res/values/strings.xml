@@ -561,6 +561,12 @@
     <string name="customization_mini_progress_description">Show a thin progress line on the mini-player</string>
     <string name="customization_mini_action">Mini-Player Action</string>
     <string name="customization_mini_action_description">Choose the button beside play and pause</string>
+    <string name="customization_player_controls">Player Style</string>
+    <string name="customization_player_controls_description">Choose how the Now Playing screen looks</string>
+    <string name="customization_player_controls_classic">Classic</string>
+    <string name="customization_player_controls_classic_description">The original tape-deck fader and buttons</string>
+    <string name="customization_player_controls_ipod">Click Wheel</string>
+    <string name="customization_player_controls_ipod_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
     <string name="customization_app_typography">App Typography</string>
     <string name="customization_app_typography_description">Choose the font family used throughout the app</string>
     <string name="customization_custom_colour_title">Custom Accent Colour</string>
@@ -1193,6 +1199,11 @@
 
     <!-- Now Playing: controls -->
     <string name="now_playing_shuffle">Shuffle</string>
+    <string name="now_playing_previous">Previous</string>
+    <string name="now_playing_next">Next</string>
+    <string name="now_playing_play_pause">Play or pause</string>
+    <string name="now_playing_menu">Menu</string>
+    <string name="now_playing_click_wheel">Click wheel</string>
     <string name="now_playing_repeat">Repeat</string>
     <string name="now_playing_lyrics">Lyrics</string>
     <string name="now_playing_close_lyrics">Close lyrics</string>

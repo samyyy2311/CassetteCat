@@ -96,6 +96,7 @@ data class BackupAppPreferences(
     val homeSectionOrder: List<String> = emptyList(),
     val showMiniPlayerProgress: Boolean = true,
     val miniPlayerAction: String = "NEXT",
+    val playerControlsStyle: String = "CLASSIC",
     val artworkAccentEnabled: Boolean = false,
     val autoDriveModeBluetooth: Boolean = false,
     val radioSortOrder: String = "POPULARITY",

@@ -189,7 +189,7 @@ internal fun LyricsQueueToggleRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScrubberControl(
+internal fun ScrubberControl(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit

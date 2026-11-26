@@ -72,6 +72,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
@@ -532,6 +533,17 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
         PageHeader(stringResource(AppR.string.customization_now_playing), onBack)
         Spacer(Modifier.height(16.dp))
         SettingsSection {
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_player_controls),
+                subtitle = stringResource(AppR.string.customization_player_controls_description),
+                iconRes = R.drawable.lucide_ic_sliders_horizontal,
+                options = PlayerControlsStyle.entries,
+                selected = prefs.playerControlsStyle,
+                label = { playerControlsStyleLabel(it) },
+                sheetSubtitle = { playerControlsStyleDescription(it) },
+                onSelect = viewModel::setPlayerControlsStyle
+            )
+            SettingsDivider()
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_backdrop),
                 subtitle = stringResource(AppR.string.customization_backdrop_description),
@@ -1504,6 +1516,22 @@ private fun miniPlayerActionLabel(action: MiniPlayerAction): String = stringReso
         MiniPlayerAction.FAVORITE -> AppR.string.customization_mini_favorite
         MiniPlayerAction.QUEUE -> AppR.string.customization_mini_queue
         MiniPlayerAction.REPEAT -> AppR.string.customization_mini_repeat
+    }
+)
+
+@Composable
+private fun playerControlsStyleLabel(style: PlayerControlsStyle): String = stringResource(
+    when (style) {
+        PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic
+        PlayerControlsStyle.IPOD -> AppR.string.customization_player_controls_ipod
+    }
+)
+
+@Composable
+private fun playerControlsStyleDescription(style: PlayerControlsStyle): String = stringResource(
+    when (style) {
+        PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic_description
+        PlayerControlsStyle.IPOD -> AppR.string.customization_player_controls_ipod_description
     }
 )
 
