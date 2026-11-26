@@ -4,7 +4,6 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +26,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -50,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
+import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import com.composables.icons.lucide.R
 import kotlin.math.PI
@@ -93,24 +90,19 @@ internal fun ClickWheelControlsRow(
     Column(modifier) {
         if (seekable) {
             ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek) {
-                // The same raised buttons as the desktop's, with the accent outline while on.
                 val scheme = MaterialTheme.colorScheme
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    TransportButton(
+                Row {
+                    PressDepthIconButton(
                         iconRes = R.drawable.lucide_ic_shuffle,
-                        size = 36.dp,
-                        tint = if (isShuffleEnabled) scheme.tertiary else scheme.onSurfaceVariant,
-                        onClick = onToggleShuffle,
                         contentDescription = stringResource(AppR.string.now_playing_shuffle),
-                        accented = isShuffleEnabled
+                        tint = if (isShuffleEnabled) scheme.tertiary else scheme.onSurfaceVariant,
+                        onClick = onToggleShuffle
                     )
-                    TransportButton(
+                    PressDepthIconButton(
                         iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
-                        size = 36.dp,
-                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) scheme.tertiary else scheme.onSurfaceVariant,
-                        onClick = onCycleRepeatMode,
                         contentDescription = stringResource(AppR.string.now_playing_repeat),
-                        accented = repeatMode != Player.REPEAT_MODE_OFF
+                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) scheme.tertiary else scheme.onSurfaceVariant,
+                        onClick = onCycleRepeatMode
                     )
                 }
             }
@@ -250,11 +242,14 @@ private fun ClickWheel(
         fun zoneTint(zone: WheelZone) = if (pressedZone == zone) scheme.tertiary else labelColor
         val pressedShade = scheme.onSurface.copy(alpha = 0.08f)
 
-        // Lit from above like the transport buttons; a press shades its quarter or the centre.
-        val ring = Brush.verticalGradient(listOf(scheme.surfaceContainerHighest, scheme.surfaceContainerHigh))
+        // A see-through ring lit from above, so the artwork's colour shows through, around a centre
+        // with the transport buttons' cap and accent edge. A press shades its quarter or the centre.
+        val ring = Brush.verticalGradient(listOf(scheme.onSurface.copy(alpha = 0.1f), scheme.onSurface.copy(alpha = 0.03f)))
         val cap = Brush.verticalGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
-        Canvas(Modifier.fillMaxSize().shadow(8.dp, CircleShape)) {
+        Canvas(Modifier.fillMaxSize()) {
+            val hairline = 1.dp.toPx()
             drawCircle(ring)
+            drawCircle(scheme.outlineVariant, radius = this.size.minDimension / 2f - hairline / 2f, style = Stroke(hairline))
             val pressed = pressedZone
             if (pressed != null && pressed != WheelZone.CENTER) {
                 val start = when (pressed) {
@@ -267,7 +262,7 @@ private fun ClickWheel(
             }
             val centerRadius = this.size.minDimension * CENTER_FRACTION / 2f
             drawCircle(cap, radius = centerRadius)
-            drawCircle(scheme.outlineVariant, radius = centerRadius, style = Stroke(1.dp.toPx()))
+            drawCircle(scheme.tertiary, radius = centerRadius, style = Stroke(1.5.dp.toPx()))
             if (pressed == WheelZone.CENTER) drawCircle(pressedShade, radius = centerRadius)
         }
 
