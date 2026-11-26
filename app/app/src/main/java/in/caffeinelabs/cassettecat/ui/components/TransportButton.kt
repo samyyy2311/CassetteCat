@@ -32,7 +32,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 @Composable
 fun TransportButton(
-    iconRes: Int,
+    iconRes: Int?,
     size: Dp,
     tint: Color,
     onClick: () -> Unit,
@@ -72,11 +72,13 @@ fun TransportButton(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(size * 0.42f)
-        )
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(size * 0.42f)
+            )
+        }
     }
 }

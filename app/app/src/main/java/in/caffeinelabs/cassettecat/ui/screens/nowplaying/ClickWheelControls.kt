@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +27,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -48,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
+import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import com.composables.icons.lucide.R
 import kotlin.math.PI
@@ -65,7 +68,7 @@ private const val WHEEL_SEEK_STEP_MS = 5_000L
 private val WHEEL_MAX_SIZE = 264.dp
 private val WHEEL_MIN_SIZE = 160.dp
 
-private enum class WheelZone { MENU, PREVIOUS, NEXT, PLAY_PAUSE, CENTER }
+private enum class WheelZone { MENU, PREVIOUS, NEXT, PLAY_PAUSE }
 
 // Scrubber on top with shuffle and repeat between its times, then the click wheel.
 // Menu opens the song menu; spinning the wheel scrubs.
@@ -229,7 +232,7 @@ private fun ClickWheel(
                             WheelZone.MENU -> currentOnMenu()
                             WheelZone.PREVIOUS -> currentOnPrevious()
                             WheelZone.NEXT -> currentOnNext()
-                            WheelZone.PLAY_PAUSE, WheelZone.CENTER -> currentOnPlayPause()
+                            WheelZone.PLAY_PAUSE -> currentOnPlayPause()
                         }
                     }
                     pressedZone = null
@@ -242,29 +245,31 @@ private fun ClickWheel(
         fun zoneTint(zone: WheelZone) = if (pressedZone == zone) scheme.tertiary else labelColor
         val pressedShade = scheme.onSurface.copy(alpha = 0.08f)
 
-        // A see-through ring lit from above, so the artwork's colour shows through, around a centre
-        // with the transport buttons' cap and accent edge. A press shades its quarter or the centre.
-        val ring = Brush.verticalGradient(listOf(scheme.onSurface.copy(alpha = 0.1f), scheme.onSurface.copy(alpha = 0.03f)))
-        val cap = Brush.verticalGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
-        Canvas(Modifier.fillMaxSize()) {
+        // The ring has the transport buttons' cap, outline and shadow, and a press shades its quarter.
+        val cap = Brush.linearGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
+        Canvas(Modifier.fillMaxSize().shadow(5.dp, CircleShape)) {
             val hairline = 1.dp.toPx()
-            drawCircle(ring)
+            drawCircle(cap)
             drawCircle(scheme.outlineVariant, radius = this.size.minDimension / 2f - hairline / 2f, style = Stroke(hairline))
-            val pressed = pressedZone
-            if (pressed != null && pressed != WheelZone.CENTER) {
-                val start = when (pressed) {
-                    WheelZone.NEXT -> -45f
-                    WheelZone.PLAY_PAUSE -> 45f
-                    WheelZone.PREVIOUS -> 135f
-                    else -> 225f
-                }
-                drawArc(pressedShade, startAngle = start, sweepAngle = 90f, useCenter = true)
+            val pressed = pressedZone ?: return@Canvas
+            val start = when (pressed) {
+                WheelZone.NEXT -> -45f
+                WheelZone.PLAY_PAUSE -> 45f
+                WheelZone.PREVIOUS -> 135f
+                WheelZone.MENU -> 225f
             }
-            val centerRadius = this.size.minDimension * CENTER_FRACTION / 2f
-            drawCircle(cap, radius = centerRadius)
-            drawCircle(scheme.tertiary, radius = centerRadius, style = Stroke(1.5.dp.toPx()))
-            if (pressed == WheelZone.CENTER) drawCircle(pressedShade, radius = centerRadius)
+            drawArc(pressedShade, startAngle = start, sweepAngle = 90f, useCenter = true)
         }
+
+        // The centre is the app's transport button, accented while playing like the classic play button.
+        TransportButton(
+            iconRes = null,
+            size = size * CENTER_FRACTION,
+            tint = scheme.tertiary,
+            onClick = onTogglePlayPause,
+            contentDescription = playPauseLabel,
+            accented = playWhenReady
+        )
 
         // Play and pause carry the accent, as the classic layout's play button does.
         val playPauseTint = if (pressedZone == WheelZone.PLAY_PAUSE) scheme.onSurface else scheme.tertiary
@@ -315,7 +320,7 @@ private fun angleOf(point: Offset, center: Offset): Float {
 private fun zoneAt(point: Offset, center: Offset, radius: Float): WheelZone? {
     val distance = hypot(point.x - center.x, point.y - center.y)
     if (distance > radius) return null
-    if (distance <= radius * CENTER_FRACTION) return WheelZone.CENTER
+    if (distance <= radius * CENTER_FRACTION) return null
     val angle = angleOf(point, center)
     return when {
         angle >= 315f || angle < 45f -> WheelZone.NEXT
