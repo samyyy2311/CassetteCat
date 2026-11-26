@@ -891,8 +891,19 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
     private var fadeMultiplier = 1f
     private var fadeJob: Job? = null
     // Paused as far as controllers know from the moment the fade-out starts, so the app's
-    // button doesn't flick back to Pause while the volume falls.
+    // button doesn't flick back to Pause while the volume falls. The session only applies
+    // the changes it is told about, so the switch is announced both ways.
     private var pausing = false
+        set(value) {
+            if (field == value) return
+            field = value
+            val playWhenReady = getPlayWhenReady()
+            val playing = isPlaying()
+            listeners.forEach {
+                it.onPlayWhenReadyChanged(playWhenReady, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                it.onIsPlayingChanged(playing)
+            }
+        }
 
     override fun getPlayWhenReady(): Boolean = !pausing && super.getPlayWhenReady()
 
@@ -920,8 +931,8 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
         if (!isPlaying) return super.pause()
         pausing = true
         fadeTo(0f) {
-            pausing = false
             pauseNow()
+            pausing = false
             fadeMultiplier = 1f
             applyVolume()
         }
