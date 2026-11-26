@@ -123,7 +123,6 @@ class PlaybackService : MediaLibraryService() {
     private var isFlipToPauseEnabled: Boolean = false
     private var isProximityWaveSkipEnabled: Boolean = false
     private var isPauseOnDisconnectEnabled: Boolean = true
-    private var isGaplessPlaybackEnabled: Boolean = true
     private var wasPausedByFlip: Boolean = false
     private var flipTimeoutJob: Job? = null
     private var isHapticFeedbackEnabled: Boolean = true
@@ -276,15 +275,6 @@ class PlaybackService : MediaLibraryService() {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 syncWidgetState(navigationPlayer)
                 updateNotificationLayout(navigationPlayer)
-                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !isGaplessPlaybackEnabled) {
-                    serviceScope.launch(Dispatchers.Main) {
-                        player.pause()
-                        delay(600L)
-                        if (player.playbackState != Player.STATE_ENDED) {
-                            player.play()
-                        }
-                    }
-                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -330,7 +320,6 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             appPreferencesRepository.preferences.collect { prefs ->
                 isPauseOnDisconnectEnabled = prefs.pauseOnHeadphoneDisconnect
-                isGaplessPlaybackEnabled = prefs.gaplessPlayback
                 player.skipSilenceEnabled = prefs.skipSilence
                 sequentialNavigationPlayer?.autoplayEnabled = prefs.autoplayEnabled
                 val maxChannels = if (prefs.monoAudio) 1 else Int.MAX_VALUE
@@ -901,6 +890,24 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
     private var baseVolume = 1f
     private var fadeMultiplier = 1f
     private var fadeJob: Job? = null
+    // Paused as far as controllers know from the moment the fade-out starts, so the app's
+    // button doesn't flick back to Pause while the volume falls. The session only applies
+    // the changes it is told about, so the switch is announced both ways.
+    private var pausing = false
+        set(value) {
+            if (field == value) return
+            field = value
+            val playWhenReady = getPlayWhenReady()
+            val playing = isPlaying()
+            listeners.forEach {
+                it.onPlayWhenReadyChanged(playWhenReady, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                it.onIsPlayingChanged(playing)
+            }
+        }
+
+    override fun getPlayWhenReady(): Boolean = !pausing && super.getPlayWhenReady()
+
+    override fun isPlaying(): Boolean = !pausing && super.isPlaying()
 
     override fun getVolume(): Float = baseVolume
 
@@ -911,6 +918,7 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
 
     override fun play() {
         val fadingOut = fadeJob?.isActive == true
+        pausing = false
         if (!fadingOut && !isPlaying) {
             fadeMultiplier = 0f
             applyVolume()
@@ -921,8 +929,10 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
 
     override fun pause() {
         if (!isPlaying) return super.pause()
+        pausing = true
         fadeTo(0f) {
             pauseNow()
+            pausing = false
             fadeMultiplier = 1f
             applyVolume()
         }

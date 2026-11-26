@@ -127,7 +127,8 @@ internal fun NowPlayingPlayerView(
             Spacer(Modifier.height(8.dp))
             StatusPill(R.drawable.lucide_ic_users, listeningRoomStatus(listeningRoomState))
         }
-        Spacer(Modifier.height(20.dp))
+        // The scrubber's touch area already adds space above its track.
+        Spacer(Modifier.height(8.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
             .coerceIn(0f, 1f)
         PlaybackControls(
