@@ -95,7 +95,7 @@ internal fun NowPlayingPlayerView(
     val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The click wheel only replaces the player view's controls; lyrics and queue keep the compact classic row.
-    val isClickWheel = preferences.playerControlsStyle == PlayerControlsStyle.IPOD
+    val isClickWheel = preferences.playerControlsStyle == PlayerControlsStyle.CLICK_WHEEL
 
     val art: @Composable (Modifier) -> Unit = { modifier ->
         AlbumArtCarousel(

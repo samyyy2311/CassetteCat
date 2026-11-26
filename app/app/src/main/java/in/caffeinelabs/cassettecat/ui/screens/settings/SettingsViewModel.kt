@@ -21,8 +21,8 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
-import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent

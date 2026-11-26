@@ -120,7 +120,7 @@ enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOT
 
 enum class MiniPlayerAction { NEXT, PREVIOUS, FAVORITE, QUEUE, REPEAT }
 
-enum class PlayerControlsStyle { CLASSIC, IPOD }
+enum class PlayerControlsStyle { CLASSIC, CLICK_WHEEL }
 
 enum class AlbumArtCornerStyle(val radiusDp: Int) {
     CURVED(16),

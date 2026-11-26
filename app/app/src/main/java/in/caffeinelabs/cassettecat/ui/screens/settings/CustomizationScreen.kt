@@ -72,8 +72,8 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontFamily
 import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
-import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
@@ -1523,7 +1523,7 @@ private fun miniPlayerActionLabel(action: MiniPlayerAction): String = stringReso
 private fun playerControlsStyleLabel(style: PlayerControlsStyle): String = stringResource(
     when (style) {
         PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic
-        PlayerControlsStyle.IPOD -> AppR.string.customization_player_controls_ipod
+        PlayerControlsStyle.CLICK_WHEEL -> AppR.string.customization_player_controls_click_wheel
     }
 )
 
@@ -1531,7 +1531,7 @@ private fun playerControlsStyleLabel(style: PlayerControlsStyle): String = strin
 private fun playerControlsStyleDescription(style: PlayerControlsStyle): String = stringResource(
     when (style) {
         PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic_description
-        PlayerControlsStyle.IPOD -> AppR.string.customization_player_controls_ipod_description
+        PlayerControlsStyle.CLICK_WHEEL -> AppR.string.customization_player_controls_click_wheel_description
     }
 )
 

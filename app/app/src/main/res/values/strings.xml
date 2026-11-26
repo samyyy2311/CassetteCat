@@ -565,8 +565,8 @@
     <string name="customization_player_controls_description">Choose how the Now Playing screen looks</string>
     <string name="customization_player_controls_classic">Classic</string>
     <string name="customization_player_controls_classic_description">The original tape-deck fader and buttons</string>
-    <string name="customization_player_controls_ipod">Click Wheel</string>
-    <string name="customization_player_controls_ipod_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
+    <string name="customization_player_controls_click_wheel">Click Wheel</string>
+    <string name="customization_player_controls_click_wheel_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
     <string name="customization_app_typography">App Typography</string>
     <string name="customization_app_typography_description">Choose the font family used throughout the app</string>
     <string name="customization_custom_colour_title">Custom Accent Colour</string>
