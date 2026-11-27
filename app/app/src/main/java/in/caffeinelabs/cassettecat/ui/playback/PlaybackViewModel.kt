@@ -401,6 +401,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (isFollowingRoomHost()) return
         val picked = if (shuffle) songs.shuffled() else songs.drop(startIndex)
         viewModelScope.launch {
+            // On a cold start, such as Open with, the queue can arrive before the player is connected.
+            connection.join()
             if (!playOnControlledDesktop(picked)) repository.playQueue(songs, startIndex, shuffle)
         }
     }
@@ -415,7 +417,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setFavorite(song: Song, favorite: Boolean) {
         viewModelScope.launch { favoritesRepository.setFavorite(song.id, favorite) }
-        scrobbleManager.love(listOf(song), favorite)
+        // Stations aren't songs, and the computer's songs are loved by the computer.
+        if (song.source != MusicSource.Radio && song.source != MusicSource.Desktop) scrobbleManager.love(listOf(song), favorite)
     }
 
     val lovesLeft = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager.lovesLeft
@@ -431,6 +434,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun shuffleAll(songs: List<Song>) {
         if (isFollowingRoomHost() || songs.isEmpty()) return
         viewModelScope.launch {
+            connection.join()
             if (!playOnControlledDesktop(songs.shuffled())) repository.shuffleAll(songs)
         }
     }

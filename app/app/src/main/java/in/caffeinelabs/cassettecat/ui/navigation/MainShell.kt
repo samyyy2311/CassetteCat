@@ -237,7 +237,8 @@ private fun resolvePlaylistMatch(q: String, songs: List<Song>, playlists: List<P
 
 // A file opened from another app plays as the library's song when the library has it, or else as it is.
 private suspend fun songForOpenedFile(context: Context, uri: Uri, librarySongs: List<Song>): Song? {
-    librarySongs.firstOrNull { it.contentUri == uri }?.let { return it }
+    // A file manager may hand over the file's path rather than the library's content address.
+    librarySongs.firstOrNull { it.contentUri == uri || (uri.scheme == "file" && it.filePath == uri.path) }?.let { return it }
     return withContext(Dispatchers.IO) {
         val name = runCatching {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->

@@ -67,6 +67,8 @@ class PlaybackRepository(private val context: Context) {
     var onQueueLowWatermark: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
+    // Counts queues replaced wholesale, so an undo can tell it's still the queue a song came from.
+    private var queueGeneration = 0
     // The song the player's current tracks were reported for.
     private var tracksSongId: String? = null
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
@@ -119,6 +121,7 @@ class PlaybackRepository(private val context: Context) {
                                     skippedIds = skipTracker.skippedSongIds()
                                 )
                                 currentQueue = freshShuffle
+                                queueGeneration++
                                 val mediaItems = freshShuffle.map { it.toMediaItem(context) }
                                 c.setMediaItems(mediaItems, 0, 0L)
                                 c.prepare()
@@ -190,6 +193,7 @@ class PlaybackRepository(private val context: Context) {
         }
 
         currentQueue = finalQueue
+        queueGeneration++
         shuffleEnabled = shuffle
         resetHistoryTracking(finalQueue.getOrNull(targetIndex))
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem(context) } }
@@ -216,6 +220,7 @@ class PlaybackRepository(private val context: Context) {
         }
         currentQueue = songs
         originalQueue = songs
+        queueGeneration++
         shuffleEnabled = c.shuffleModeEnabled
         updateState()
         resetHistoryTracking(_state.value.currentSong)
@@ -227,6 +232,7 @@ class PlaybackRepository(private val context: Context) {
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return
         currentQueue = songs
+        queueGeneration++
         originalQueue = songs
         val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
         controller?.apply {
@@ -244,6 +250,7 @@ class PlaybackRepository(private val context: Context) {
         var catchUp = 0f
         if (!sameQueue) {
             currentQueue = songs
+            queueGeneration++
             originalQueue = songs
             shuffleEnabled = false
             val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
@@ -540,16 +547,20 @@ class PlaybackRepository(private val context: Context) {
         if (currentIndex == C.INDEX_UNSET) return null
         val upNextIndex = currentQueue.drop(currentIndex + 1).indexOfFirst { it.id == songId }.takeIf { it >= 0 } ?: return null
         val absoluteIndex = currentIndex + 1 + upNextIndex
-        val removal = QueueRemoval(currentQueue[absoluteIndex], upNextIndex, originalQueue.indexOfFirst { it.id == songId })
+        val originalIndex = originalQueue.indexOfFirst { it.id == songId }
+        val removal = QueueRemoval(currentQueue[absoluteIndex], upNextIndex, originalIndex, queueGeneration)
         c.removeMediaItem(absoluteIndex)
         currentQueue = currentQueue.toMutableList().apply { removeAt(absoluteIndex) }
-        originalQueue = originalQueue.filter { it.id != songId }
+        // Only this copy goes, so a song queued twice keeps its other copy in the unshuffled order.
+        if (originalIndex >= 0) originalQueue = originalQueue.toMutableList().apply { removeAt(originalIndex) }
         updateState()
         return removal
     }
 
     // Puts a removed song back where it was in Up Next, counted from the song playing now.
     fun restoreToUpNext(removal: QueueRemoval) {
+        // A queue started since then is a different queue, and the song doesn't belong in it.
+        if (removal.queueGeneration != queueGeneration) return
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
         if (currentIndex == C.INDEX_UNSET) return
@@ -831,7 +842,7 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
         .build()
 }
 
-data class QueueRemoval(val song: Song, val upNextIndex: Int, val originalIndex: Int)
+data class QueueRemoval(val song: Song, val upNextIndex: Int, val originalIndex: Int, val queueGeneration: Int)
 
 internal fun MediaItem.toSessionSong(): Song {
     val source = when {
