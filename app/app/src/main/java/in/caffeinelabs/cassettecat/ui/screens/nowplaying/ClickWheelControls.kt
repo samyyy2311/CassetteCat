@@ -199,6 +199,7 @@ private fun ClickWheel(
                     var spinning = false
                     var lastAngle = angleOf(down.position, center)
                     var lastPosition = down.position
+                    var offRing = false
                     var accumulated = 0f
                     var steps = 0
                     val startPosition = currentPosition
@@ -210,6 +211,16 @@ private fun ClickWheel(
                         change.consume()
                         lastPosition = change.position
                         val angle = angleOf(change.position, center)
+                        // Crossing the centre swings the angle without going round the ring, so it isn't counted,
+                        // and tracking picks up again from where the finger comes back onto the ring.
+                        if ((change.position - center).getDistance() <= radius * CENTER_FRACTION) {
+                            offRing = true
+                            continue
+                        }
+                        if (offRing) {
+                            offRing = false
+                            lastAngle = angle
+                        }
                         var delta = angle - lastAngle
                         if (delta > 180f) delta -= 360f
                         if (delta < -180f) delta += 360f
