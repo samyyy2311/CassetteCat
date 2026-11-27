@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.util.AtomicFile
 import android.util.Log
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 
@@ -37,8 +39,12 @@ private const val LISTENBRAINZ = "listenbrainz"
 // One a second keeps a long Sync Likes within the services' rate limits.
 private const val SEND_INTERVAL_MS = 1_000L
 
-// Tries made while online; a song a service keeps refusing is dropped rather than blocking the rest.
-private const val MAX_ATTEMPTS = 5
+// A failing service is retried after a minute, then twice as long each time, up to six hours apart.
+private const val FIRST_RETRY_MS = 60_000L
+private const val LONGEST_RETRY_MS = 6 * 60 * 60_000L
+
+// Last.fm refuses scrobbles older than two weeks, so nothing is worth keeping longer.
+private const val KEEP_FOR_MS = 14 * 24 * 60 * 60_000L
 
 @Serializable
 internal data class OutboxItem(
@@ -51,7 +57,9 @@ internal data class OutboxItem(
     val loved: Boolean = false,
     // The services still to accept it: ListenBrainz and the ids of the Audioscrobbler accounts.
     val targets: Set<String>,
-    val attempts: Int = 0
+    val attempts: Int = 0,
+    val addedAtMs: Long = 0L,
+    val nextTryAtMs: Long = 0L
 ) {
     enum class Kind { SCROBBLE, LOVE }
 
@@ -76,7 +84,8 @@ internal object ScrobbleOutbox {
     private val loaded = CompletableDeferred<Unit>()
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private var started = false
-    private var nextId = System.currentTimeMillis()
+    private var nextId = 0L
+    private lateinit var file: AtomicFile
 
     val lovesLeft: StateFlow<Int> =
         items.map { list -> list.count { it.kind == OutboxItem.Kind.LOVE } }.stateIn(scope, SharingStarted.Eagerly, 0)
@@ -87,17 +96,21 @@ internal object ScrobbleOutbox {
             started = true
         }
         val app = context.applicationContext
-        val file = File(app.filesDir, OUTBOX_FILE)
+        file = AtomicFile(File(app.filesDir, OUTBOX_FILE))
         scope.launch {
-            items.value = runCatching { sharedJson.decodeFromString<List<OutboxItem>>(file.readText()) }.getOrDefault(emptyList())
+            items.value = runCatching { sharedJson.decodeFromString<List<OutboxItem>>(file.readFully().decodeToString()) }
+                .getOrDefault(emptyList())
+            // New ids follow both the clock and anything restored, so no two items ever share one.
+            nextId = maxOf(System.currentTimeMillis(), (items.value.maxOfOrNull { it.id } ?: 0L) + 1)
             loaded.complete(Unit)
-            send(app, file)
+            send(app)
         }
-        // The sender waits while offline or in blackout, and carries on when either changes.
+        // The sender waits while offline or in blackout, and carries on when either changes, including when
+        // a network that stayed connected gets its internet back.
         app.getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(
             object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    wake.trySend(Unit)
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) wake.trySend(Unit)
                 }
             }
         )
@@ -108,39 +121,45 @@ internal object ScrobbleOutbox {
         }
     }
 
-    // A love replaces one still waiting for the same song, so only the latest choice is sent.
-    suspend fun add(context: Context, kind: OutboxItem.Kind, songs: List<Song>, loved: Boolean = false, listenedAtSec: Long = 0L) {
+    // Queued in the outbox's own scope, so it outlives the screen or service that asked. A love replaces one
+    // still waiting for the same song, so only the latest choice is sent.
+    fun add(context: Context, kind: OutboxItem.Kind, songs: List<Song>, loved: Boolean = false, listenedAtSec: Long = 0L) {
         start(context)
-        loaded.await()
-        val targets = enabledTargets(context)
-        if (targets.isEmpty() || songs.isEmpty()) return
-        val file = File(context.applicationContext.filesDir, OUTBOX_FILE)
-        mutex.withLock {
-            val keys = songs.map { songMatchKey(it.title, it.artist) }.toSet()
-            val kept = if (kind == OutboxItem.Kind.LOVE) {
-                items.value.filterNot { it.kind == OutboxItem.Kind.LOVE && songMatchKey(it.title, it.artist) in keys }
-            } else {
-                items.value
+        scope.launch {
+            loaded.await()
+            val targets = enabledTargets(context)
+            if (targets.isEmpty() || songs.isEmpty()) return@launch
+            mutex.withLock {
+                val keys = songs.map { songMatchKey(it.title, it.artist) }.toSet()
+                val kept = if (kind == OutboxItem.Kind.LOVE) {
+                    items.value.filterNot { it.kind == OutboxItem.Kind.LOVE && songMatchKey(it.title, it.artist) in keys }
+                } else {
+                    items.value
+                }
+                val now = System.currentTimeMillis()
+                items.value = kept + songs.map { song ->
+                    OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, targets, addedAtMs = now)
+                }
+                save()
             }
-            items.value = kept + songs.map { song ->
-                OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, targets)
-            }
-            save(file)
+            wake.trySend(Unit)
         }
-        wake.trySend(Unit)
     }
 
-    private suspend fun send(context: Context, file: File) {
+    private suspend fun send(context: Context) {
         val settingsRepository = ScrobbleSettingsRepository(context)
         val serviceSettings = ServiceSettingsRepository(context)
         val listenBrainz = ListenBrainzClient()
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         while (true) {
-            val next = items.value.firstOrNull()
+            val now = System.currentTimeMillis()
+            val next = items.value.firstOrNull { it.nextTryAtMs <= now }
             val online = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
                 ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
             if (next == null || !online || serviceSettings.settings.first().offlineBlackoutMode) {
-                wake.receive()
+                // Sleeps until something changes or the earliest retry is due.
+                val due = items.value.minOfOrNull { it.nextTryAtMs }?.takeIf { next == null && it > now }
+                withTimeoutOrNull(due?.minus(now) ?: Long.MAX_VALUE) { wake.receive() }
                 continue
             }
             val settings = settingsRepository.settings.first()
@@ -151,14 +170,14 @@ internal object ScrobbleOutbox {
                 // A newer love for the same song may have replaced this one while it was being sent.
                 if (items.value.any { it.id == next.id }) {
                     val rest = items.value.filterNot { it.id == next.id }
-                    val attempts = next.attempts + 1
-                    // What's still owed goes to the back, so one failing song doesn't hold up the others.
-                    items.value = if (pending.isEmpty() || attempts >= MAX_ATTEMPTS) {
+                    val expired = now - next.addedAtMs > KEEP_FOR_MS
+                    items.value = if (pending.isEmpty() || expired) {
                         rest
                     } else {
-                        rest + next.copy(targets = pending, attempts = attempts)
+                        val wait = (FIRST_RETRY_MS shl next.attempts.coerceAtMost(10)).coerceAtMost(LONGEST_RETRY_MS)
+                        rest + next.copy(targets = pending, attempts = next.attempts + 1, nextTryAtMs = now + wait)
                     }
-                    save(file)
+                    save()
                 }
             }
             delay(SEND_INTERVAL_MS)
@@ -204,8 +223,16 @@ internal object ScrobbleOutbox {
         }
     }
 
-    private fun save(file: File) {
-        runCatching { file.writeText(sharedJson.encodeToString(items.value)) }
+    // Written whole to a new file and swapped in, so a crash mid-write keeps the previous queue.
+    private fun save() {
+        val stream = runCatching { file.startWrite() }
             .onFailure { Log.w("ScrobbleOutbox", "Couldn't save the waiting scrobbles and loves", it) }
+            .getOrNull() ?: return
+        runCatching { stream.write(sharedJson.encodeToString(items.value).encodeToByteArray()) }
+            .onSuccess { file.finishWrite(stream) }
+            .onFailure {
+                file.failWrite(stream)
+                Log.w("ScrobbleOutbox", "Couldn't save the waiting scrobbles and loves", it)
+            }
     }
 }

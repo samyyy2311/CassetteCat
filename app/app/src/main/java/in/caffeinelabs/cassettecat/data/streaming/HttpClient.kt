@@ -6,9 +6,12 @@ import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.ConnectionPool
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
+import java.net.InetAddress
+import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -22,14 +25,29 @@ fun checkBlackout(host: String) {
     if (blackoutActive && !isHomeNetworkHost(host)) throw IOException("Blackout mode is on")
 }
 
+// A name can look local and still lead to the internet, so in blackout only home network addresses are used.
+private object BlackoutDns : Dns {
+    override fun lookup(hostname: String): List<InetAddress> {
+        val addresses = Dns.SYSTEM.lookup(hostname)
+        if (!blackoutActive) return addresses
+        return addresses.filter { isHomeNetworkHost(it.hostAddress.orEmpty()) }
+            .ifEmpty { throw UnknownHostException("Blackout mode is on") }
+    }
+}
+
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
     .hostnameVerifier(pinnedHostnameVerifier)
     .connectionPool(ConnectionPool(5, 1, TimeUnit.MINUTES))
     // Hard ceiling on total duration; per-read timeouts reset when servers trickle bytes.
     .callTimeout(45, TimeUnit.SECONDS)
-    .addInterceptor { chain ->
+    .dns(BlackoutDns)
+    // A network interceptor runs for every connection, so a redirect is checked as well.
+    .addNetworkInterceptor { chain ->
         checkBlackout(chain.request().url.host)
+        chain.proceed(chain.request())
+    }
+    .addInterceptor { chain ->
         val request = chain.request().newBuilder()
             .header("User-Agent", "CassetteCat/${BuildConfig.VERSION_NAME} (https://github.com/samyyy2311/CassetteCat)")
             .build()

@@ -82,7 +82,7 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
-import `in`.caffeinelabs.cassettecat.data.streaming.checkBlackout
+import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +99,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
 
 @UnstableApi
@@ -159,9 +160,12 @@ class PlaybackService : MediaLibraryService() {
         favoritesRepository = FavoritesRepository(this)
         libraryTree = MediaLibraryTree(this)
 
-        // Streams are refused in blackout like every other request, whatever started the playback.
+        // Blackout pauses every song that isn't on the phone, so the player takes nothing from the network then,
+        // whatever started the playback; the player follows redirects itself, so no host is trusted.
         val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
-            if (spec.uri.scheme == "http" || spec.uri.scheme == "https") checkBlackout(spec.uri.host.orEmpty())
+            if (blackoutActive && (spec.uri.scheme == "http" || spec.uri.scheme == "https")) {
+                throw IOException("Blackout mode is on")
+            }
             spec
         }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent

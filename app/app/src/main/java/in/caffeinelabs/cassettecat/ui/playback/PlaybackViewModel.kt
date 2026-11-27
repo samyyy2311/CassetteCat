@@ -713,7 +713,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         val removal = _queueRemoval.value ?: return
         _queueRemoval.value = null
         queueUndoExpiry?.cancel()
-        repository.restoreToUpNext(removal)
+        // A guest's queue belongs to the host.
+        if (!isFollowingRoomHost()) repository.restoreToUpNext(removal)
     }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {

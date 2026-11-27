@@ -52,13 +52,13 @@ class ScrobbleManager(
     // Marks songs as loved, or not, on every connected account. They wait in the outbox until sent, so
     // loves made offline or in blackout mode go out once the connection is back.
     fun love(songs: List<Song>, loved: Boolean) {
-        scope.launch { ScrobbleOutbox.add(context, OutboxItem.Kind.LOVE, songs, loved = loved) }
+        ScrobbleOutbox.add(context, OutboxItem.Kind.LOVE, songs, loved = loved)
     }
 
     // The listen keeps the time it was played, and waits in the outbox until each service has it.
     fun onTrackPlayed(song: Song) {
         val nowSec = System.currentTimeMillis() / 1000L
-        scope.launch { ScrobbleOutbox.add(context, OutboxItem.Kind.SCROBBLE, listOf(song), listenedAtSec = nowSec) }
+        ScrobbleOutbox.add(context, OutboxItem.Kind.SCROBBLE, listOf(song), listenedAtSec = nowSec)
     }
 
     companion object {

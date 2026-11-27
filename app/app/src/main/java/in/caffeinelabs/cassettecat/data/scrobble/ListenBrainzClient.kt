@@ -90,6 +90,7 @@ class ListenBrainzClient {
     }
 
     // Feedback is given for a MusicBrainz recording, which the files don't name, so it's looked up first.
+    // True once sent, and also when MusicBrainz has no such recording, as there's then nothing to love.
     suspend fun sendFeedback(token: String, song: Song, loved: Boolean): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
         runCatching {
@@ -101,7 +102,7 @@ class ListenBrainzClient {
             val mbid = sharedHttpClient.newCall(lookup).execute().use { response ->
                 if (!response.isSuccessful) return@runCatching false
                 sharedJson.decodeFromString<LookupResponse>(response.body.string()).recordingMbid
-            } ?: return@runCatching false
+            } ?: return@runCatching true
             val body = sharedJson.encodeToString(RecordingFeedback(mbid, if (loved) 1 else 0))
             val feedback = Request.Builder()
                 .url("$API_BASE/feedback/recording-feedback")
