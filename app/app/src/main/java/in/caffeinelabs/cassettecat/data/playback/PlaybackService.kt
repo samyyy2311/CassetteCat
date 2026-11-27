@@ -6,6 +6,7 @@ import android.util.Log
 import `in`.caffeinelabs.cassettecat.data.library.decodeLocalArtwork
 import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
+import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
@@ -104,6 +105,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 class PlaybackService : MediaLibraryService() {
     private var mediaSession: MediaLibrarySession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scrobbleManager by lazy { ScrobbleManager(this, serviceScope) }
     private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var libraryTree: MediaLibraryTree
     private var currentFavoriteIds: Set<String> = emptySet()
@@ -470,7 +472,10 @@ class PlaybackService : MediaLibraryService() {
             val streamingLibrary = streamingLibraries.entries.firstOrNull { currentMediaId.startsWith(it.key) }?.value
             serviceScope.launch {
                 runCatching { streamingLibrary?.setFavorite(currentMediaId, favorite) }
-                    .onSuccess { favoritesRepository.setFavorite(currentMediaId, favorite) }
+                    .onSuccess {
+                        favoritesRepository.setFavorite(currentMediaId, favorite)
+                        scrobbleManager.love(listOf(currentItem.toSessionSong()), favorite)
+                    }
                     .onFailure { Log.w("PlaybackService", "Couldn't update the like on the server", it) }
             }
         }

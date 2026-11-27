@@ -1513,6 +1513,13 @@
     <string name="scrobbling_librefm_section" translatable="false">LIBRE.FM</string>
     <string name="scrobbling_lastfm_name" translatable="false">Last.fm</string>
     <string name="scrobbling_lastfm_section" translatable="false">LAST.FM</string>
+    <string name="scrobbling_loves_section">Loves</string>
+    <string name="scrobbling_sync_likes">Sync Likes</string>
+    <string name="scrobbling_sync_likes_description">Songs you like are marked as loved on your accounts. Sync adds the ones you liked before</string>
+    <plurals name="scrobbling_loves_left">
+        <item quantity="one">%d love left to send</item>
+        <item quantity="other">%d loves left to send</item>
+    </plurals>
     <string name="scrobbling_connected">Connected</string>
     <string name="scrobbling_connected_as">Connected as %1$s</string>
     <string name="scrobbling_not_connected">Not connected</string>

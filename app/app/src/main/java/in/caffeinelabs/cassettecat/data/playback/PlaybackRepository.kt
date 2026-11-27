@@ -806,7 +806,7 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
         .build()
 }
 
-private fun MediaItem.toSessionSong(): Song {
+internal fun MediaItem.toSessionSong(): Song {
     val source = when {
         mediaId.startsWith("radio:") -> MusicSource.Radio
         mediaId.startsWith("subsonic:") -> MusicSource.Subsonic

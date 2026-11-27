@@ -857,7 +857,10 @@ fun MainShell(
                         )
                     }
                     composable(MainRoute.SCROBBLING) {
+                        val lovesLeft by playbackViewModel.lovesLeft.collectAsStateWithLifecycle()
                         ScrobbleSettingsScreen(
+                            lovesLeft = lovesLeft,
+                            onSyncLikes = { playbackViewModel.syncLikes(librarySongs) },
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )

@@ -394,8 +394,19 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (wasIdle) onFirstPlay()
     }
 
-    fun setFavorite(songId: String, favorite: Boolean) {
-        viewModelScope.launch { favoritesRepository.setFavorite(songId, favorite) }
+    fun setFavorite(song: Song, favorite: Boolean) {
+        viewModelScope.launch { favoritesRepository.setFavorite(song.id, favorite) }
+        scrobbleManager.love(listOf(song), favorite)
+    }
+
+    val lovesLeft = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager.lovesLeft
+
+    // Loves every liked song in [songs] on the connected accounts, for likes made before they were connected.
+    fun syncLikes(songs: List<Song>) {
+        viewModelScope.launch {
+            val liked = favoritesRepository.favoriteIds.first()
+            scrobbleManager.love(songs.filter { it.id in liked && it.source != MusicSource.Desktop }, loved = true)
+        }
     }
 
     fun shuffleAll(songs: List<Song>) {
@@ -697,6 +708,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     librariesBySource[song.source]?.setFavorite(song.id, newValue)
                     favoritesRepository.setFavorite(song.id, newValue)
+                    scrobbleManager.love(listOf(song), newValue)
                     if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
                         `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
                     }
