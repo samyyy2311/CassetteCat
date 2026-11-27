@@ -2,6 +2,25 @@
 
 All notable changes to CassetteCat are documented in this file.
 
+## [1.10.0]
+
+* Songs you like are marked as loved on Last.fm, Libre.fm and ListenBrainz. Sync Likes in Scrobbling sends the ones each account is missing, and takes back loves for songs you no longer like.
+* Scrobbles and loves made offline or in Offline Blackout Mode wait on the phone and are sent once you're back online, including to accounts you connect later.
+* A Click Wheel player style, in Customisation > Now Playing & Mini-Player > Player Style.
+* Four seek bar styles to choose from: Fader, Line, Wavy and Waveform, in Customisation > Now Playing & Mini-Player > Seek Bar.
+* A song removed from Up Next can be put back with Undo for a few seconds.
+* CassetteCat shows up under Open with for audio files.
+* Lyrics stored in M4A files show before any online search, and timed ones follow the song.
+* Lyrics, covers and the seek bar change smoothly from one song to the next.
+* Find Songs by Their Lyrics can also download over mobile data, with Use Mobile Data Too.
+* Offline Blackout Mode cuts every connection outside your home network, and the lyrics screen says when it stopped a search.
+* Jellyfin songs in any format play. The server converts the ones your phone can't decode.
+* Home servers connect without typing `http://`.
+* Songs run straight into the next one, with no pause between them, so the Gapless Playback setting is gone.
+* Reopening the app after swiping it away picks up whatever is already playing.
+* The pause button no longer flicks back while the music fades out.
+* The instrumental bars on the lyrics screen pulse steadily for every song.
+
 ## [1.9.1]
 
 * Search finds songs by a line from their lyrics. Turn on Find Songs by Their Lyrics in Customisation > Lyrics to download lyrics for your library over Wi-Fi, so search has them to look through.
