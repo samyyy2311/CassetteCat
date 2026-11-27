@@ -46,6 +46,10 @@ private const val LONGEST_RETRY_MS = 6 * 60 * 60_000L
 // Last.fm refuses scrobbles older than two weeks, so nothing is worth keeping longer.
 private const val KEEP_FOR_MS = 14 * 24 * 60 * 60_000L
 
+// The queue is saved every so many sends rather than after each, so a long Sync Likes doesn't rewrite it
+// every second. A crash then resends at most that many, which the services take as the same love again.
+private const val SAVE_EVERY_SENDS = 20
+
 @Serializable
 internal data class OutboxItem(
     val id: Long,
@@ -55,8 +59,9 @@ internal data class OutboxItem(
     val album: String,
     val listenedAtSec: Long = 0L,
     val loved: Boolean = false,
-    // The services still to accept it: ListenBrainz and the ids of the Audioscrobbler accounts.
-    val targets: Set<String>,
+    // The services that already have it: ListenBrainz and the ids of the Audioscrobbler accounts. It goes to
+    // whichever are connected when it's sent, so plays and likes from before an account was connected reach it too.
+    val delivered: Set<String> = emptySet(),
     val attempts: Int = 0,
     val addedAtMs: Long = 0L,
     val nextTryAtMs: Long = 0L
@@ -85,6 +90,7 @@ internal object ScrobbleOutbox {
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private var started = false
     private var nextId = 0L
+    private var sendsSinceSave = 0
     private lateinit var file: AtomicFile
 
     val lovesLeft: StateFlow<Int> =
@@ -119,6 +125,12 @@ internal object ScrobbleOutbox {
                 wake.trySend(Unit)
             }
         }
+        // A newly connected account picks up what's waiting.
+        scope.launch {
+            ScrobbleSettingsRepository(app).settings.map(::connectedServices).distinctUntilChanged().collect {
+                wake.trySend(Unit)
+            }
+        }
     }
 
     // Queued in the outbox's own scope, so it outlives the screen or service that asked. A love replaces one
@@ -127,8 +139,7 @@ internal object ScrobbleOutbox {
         start(context)
         scope.launch {
             loaded.await()
-            val targets = enabledTargets(context)
-            if (targets.isEmpty() || songs.isEmpty()) return@launch
+            if (songs.isEmpty()) return@launch
             mutex.withLock {
                 val keys = songs.map { songMatchKey(it.title, it.artist) }.toSet()
                 val kept = if (kind == OutboxItem.Kind.LOVE) {
@@ -138,7 +149,7 @@ internal object ScrobbleOutbox {
                 }
                 val now = System.currentTimeMillis()
                 items.value = kept + songs.map { song ->
-                    OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, targets, addedAtMs = now)
+                    OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, addedAtMs = now)
                 }
                 save()
             }
@@ -153,39 +164,50 @@ internal object ScrobbleOutbox {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         while (true) {
             val now = System.currentTimeMillis()
-            val next = items.value.firstOrNull { it.nextTryAtMs <= now }
+            mutex.withLock {
+                val fresh = items.value.filter { now - it.addedAtMs <= KEEP_FOR_MS }
+                if (fresh.size != items.value.size) {
+                    items.value = fresh
+                    save()
+                }
+            }
+            val settings = settingsRepository.settings.first()
+            val services = connectedServices(settings)
+            // With no account connected, everything waits for one.
+            val next = if (services.isEmpty()) null else items.value.firstOrNull { it.nextTryAtMs <= now }
             val online = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
                 ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
             if (next == null || !online || serviceSettings.settings.first().offlineBlackoutMode) {
                 // Sleeps until something changes or the earliest retry is due.
-                val due = items.value.minOfOrNull { it.nextTryAtMs }?.takeIf { next == null && it > now }
+                val due = items.value.minOfOrNull { it.nextTryAtMs }?.takeIf { next == null && services.isNotEmpty() && it > now }
                 withTimeoutOrNull(due?.minus(now) ?: Long.MAX_VALUE) { wake.receive() }
                 continue
             }
-            val settings = settingsRepository.settings.first()
-            val pending = next.targets.filterTo(mutableSetOf()) { target ->
-                !deliver(target, next, settings, settingsRepository, listenBrainz)
+            val accepted = (services - next.delivered).filterTo(mutableSetOf()) { service ->
+                deliver(service, next, settings, settingsRepository, listenBrainz)
             }
+            val delivered = next.delivered + accepted
             mutex.withLock {
                 // A newer love for the same song may have replaced this one while it was being sent.
                 if (items.value.any { it.id == next.id }) {
                     val rest = items.value.filterNot { it.id == next.id }
-                    val expired = now - next.addedAtMs > KEEP_FOR_MS
-                    items.value = if (pending.isEmpty() || expired) {
+                    items.value = if (delivered.containsAll(services)) {
                         rest
                     } else {
                         val wait = (FIRST_RETRY_MS shl next.attempts.coerceAtMost(10)).coerceAtMost(LONGEST_RETRY_MS)
-                        rest + next.copy(targets = pending, attempts = next.attempts + 1, nextTryAtMs = now + wait)
+                        rest + next.copy(delivered = delivered, attempts = next.attempts + 1, nextTryAtMs = now + wait)
                     }
-                    save()
+                    if (++sendsSinceSave >= SAVE_EVERY_SENDS || items.value.none { it.nextTryAtMs <= now }) {
+                        save()
+                        sendsSinceSave = 0
+                    }
                 }
             }
             delay(SEND_INTERVAL_MS)
         }
     }
 
-    // True once the service has it, or when it can never take it: the account was disconnected or
-    // switched off, or ListenBrainz refused the listen.
+    // True once the service has it, or when it can never take it, as when ListenBrainz refuses the listen.
     private suspend fun deliver(
         target: String,
         item: OutboxItem,
@@ -212,16 +234,14 @@ internal object ScrobbleOutbox {
         }
     }
 
-    private suspend fun enabledTargets(context: Context): Set<String> {
-        val settings = ScrobbleSettingsRepository(context).settings.first()
-        return buildSet {
+    private fun connectedServices(settings: ScrobbleSettings): Set<String> =
+        buildSet {
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) add(LISTENBRAINZ)
             ScrobbleAccount.entries.forEach { account ->
                 val config = settings.account(account)
                 if (account.client != null && config.enabled && config.sessionKey.isNotBlank()) add(account.id)
             }
         }
-    }
 
     // Written whole to a new file and swapped in, so a crash mid-write keeps the previous queue.
     private fun save() {

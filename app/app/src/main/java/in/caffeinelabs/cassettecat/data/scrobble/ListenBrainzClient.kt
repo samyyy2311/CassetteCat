@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import android.util.Log
+import java.io.IOException
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
@@ -94,15 +95,21 @@ class ListenBrainzClient {
     suspend fun sendFeedback(token: String, song: Song, loved: Boolean): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
         runCatching {
-            val lookupUrl = "$API_BASE/metadata/lookup/".toHttpUrl().newBuilder()
-                .addQueryParameter("artist_name", song.artist)
-                .addQueryParameter("recording_name", song.title)
-                .build()
-            val lookup = Request.Builder().url(lookupUrl).header("Authorization", "Token ${token.trim()}").get().build()
-            val mbid = sharedHttpClient.newCall(lookup).execute().use { response ->
-                if (!response.isSuccessful) return@runCatching false
-                sharedJson.decodeFromString<LookupResponse>(response.body.string()).recordingMbid
-            } ?: return@runCatching true
+            // With the album the match is closer, and without it a song still matches when the album is named
+            // differently there, such as a deluxe edition.
+            fun lookUp(album: String?): String? {
+                val url = "$API_BASE/metadata/lookup/".toHttpUrl().newBuilder()
+                    .addQueryParameter("artist_name", song.artist)
+                    .addQueryParameter("recording_name", song.title)
+                    .apply { if (album != null) addQueryParameter("release_name", album) }
+                    .build()
+                val request = Request.Builder().url(url).header("Authorization", "Token ${token.trim()}").get().build()
+                return sharedHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("Lookup failed: ${response.code}")
+                    sharedJson.decodeFromString<LookupResponse>(response.body.string()).recordingMbid
+                }
+            }
+            val mbid = song.album.takeIf { it.isNotBlank() }?.let(::lookUp) ?: lookUp(null) ?: return@runCatching true
             val body = sharedJson.encodeToString(RecordingFeedback(mbid, if (loved) 1 else 0))
             val feedback = Request.Builder()
                 .url("$API_BASE/feedback/recording-feedback")

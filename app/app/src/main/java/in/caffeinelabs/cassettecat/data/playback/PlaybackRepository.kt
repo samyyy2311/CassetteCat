@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
@@ -138,6 +139,7 @@ class PlaybackRepository(private val context: Context) {
                 updateState()
             }
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = updateState()
+            override fun onPlayerErrorChanged(error: PlaybackException?) = updateState()
             override fun onRepeatModeChanged(repeatMode: Int) = updateState()
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                 applyShuffleMode(shuffleModeEnabled)
@@ -675,7 +677,8 @@ class PlaybackRepository(private val context: Context) {
             previousInQueue = currentQueue.getOrNull(index - 1),
             history = history.toList(),
             currentLyrics = if (tracksCurrent) extractLyrics(c.currentTracks) else null,
-            tracksLoaded = tracksCurrent,
+            // A file the player can't open never reports tracks, so its error counts as having looked.
+            tracksLoaded = tracksCurrent || c.playerError != null,
             audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }
