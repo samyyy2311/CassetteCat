@@ -758,8 +758,7 @@ private fun extractLyrics(tracks: Tracks): String? {
                     is BinaryFrame -> if (entry.id == "USLT") parseUsltFrame(entry.data)?.let { return it }
                     // MP4 files, such as Apple Music's, keep lyrics in a ©lyr atom that Media3 reads as text.
                     is TextInformationFrame -> if (entry.id == "USLT") {
-                        entry.values.joinToString("
-").trim().ifEmpty { null }?.let { return it }
+                        entry.values.joinToString("\n").trim().ifEmpty { null }?.let { return it }
                     }
                     is VorbisComment -> if (entry.key == "LYRICS" || entry.key == "UNSYNCEDLYRICS") {
                         return entry.value.trim().ifEmpty { null }
