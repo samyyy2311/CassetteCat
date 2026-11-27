@@ -41,6 +41,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -83,6 +85,8 @@ import kotlin.math.sin
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
 private const val POSITION_JUMP_MS = 1_000f
+// How quickly the bar closes the gap to where the song really is; longer is gentler.
+private const val POSITION_CATCH_UP_MS = 400f
 
 internal fun isSeekablePlayback(durationMs: Long): Boolean = durationMs > 0L
 
@@ -280,23 +284,37 @@ internal fun ScrubberControl(
     val safeDuration = durationMs.coerceAtLeast(0L).toFloat()
 
     val targetSliderValue = effectivePositionMs.toFloat().coerceIn(0f, safeDuration.coerceAtLeast(1f))
-    // Position updates come every quarter second, a little early or late. Between them the bar moves on with the
-    // clock every frame, and each update nudges it halfway to the reported position, so it never stops and starts.
-    // A seek, a new song or a pause puts it at the reported position at once.
+    // Position updates come every quarter second, a little early or late, so the bar isn't moved to each one.
+    // Every frame it works out where the song is now, from the last update and the time since, and eases towards
+    // that, so corrections are spread over a few frames instead of showing as steps. A seek, a new song or a pause
+    // puts it at the reported position at once.
     var shownPositionMs by remember { mutableFloatStateOf(targetSliderValue) }
+    val latestTarget by rememberUpdatedState(targetSliderValue)
     LaunchedEffect(isPlaying) {
-        if (!isPlaying) return@LaunchedEffect
-        var lastFrameMs = withFrameMillis { it }
+        if (!isPlaying) {
+            snapshotFlow { latestTarget }.collect { shownPositionMs = it }
+            return@LaunchedEffect
+        }
+        var reported = latestTarget
+        var reportedAtMs = withFrameMillis { it }
+        var lastFrameMs = reportedAtMs
         while (true) {
             withFrameMillis { frameMs ->
-                shownPositionMs = (shownPositionMs + (frameMs - lastFrameMs)).coerceAtMost(safeDuration.coerceAtLeast(1f))
+                if (latestTarget != reported) {
+                    reported = latestTarget
+                    reportedAtMs = frameMs
+                }
+                val elapsedMs = (frameMs - lastFrameMs).toFloat()
                 lastFrameMs = frameMs
+                val expectedMs = (reported + (frameMs - reportedAtMs)).coerceAtMost(safeDuration.coerceAtLeast(1f))
+                val errorMs = expectedMs - shownPositionMs
+                shownPositionMs = if (abs(errorMs) > POSITION_JUMP_MS) {
+                    expectedMs
+                } else {
+                    shownPositionMs + elapsedMs + errorMs * (elapsedMs / POSITION_CATCH_UP_MS).coerceAtMost(1f)
+                }
             }
         }
-    }
-    LaunchedEffect(targetSliderValue, isPlaying) {
-        val drift = targetSliderValue - shownPositionMs
-        shownPositionMs = if (!isPlaying || abs(drift) > POSITION_JUMP_MS) targetSliderValue else shownPositionMs + drift / 2
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
