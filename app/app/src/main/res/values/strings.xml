@@ -572,6 +572,10 @@
     <string name="customization_seek_bar_fader_description">A ridged groove with a fader cap you slide</string>
     <string name="customization_seek_bar_line">Line</string>
     <string name="customization_seek_bar_line_description">A thin line in the accent colour, as on the desktop app. The handle shows while you drag.</string>
+    <string name="customization_seek_bar_wavy">Wavy</string>
+    <string name="customization_seek_bar_wavy_description">Ripples while music plays, like the system media controls</string>
+    <string name="customization_seek_bar_waveform">Waveform</string>
+    <string name="customization_seek_bar_waveform_description">Shows the song’s loud and quiet parts. Songs on this phone only; others show a line.</string>
     <string name="customization_player_controls_click_wheel_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
     <string name="customization_app_typography">App Typography</string>
     <string name="customization_app_typography_description">Choose the font family used throughout the app</string>

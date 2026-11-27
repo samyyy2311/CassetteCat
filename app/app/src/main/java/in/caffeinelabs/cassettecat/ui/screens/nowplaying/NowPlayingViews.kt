@@ -154,7 +154,8 @@ internal fun NowPlayingPlayerView(
                 onToggleShuffle = { playbackViewModel.toggleShuffle() },
                 repeatMode = state.repeatMode,
                 onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
-                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
+                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha },
+                waveform = rememberWaveform(song)
             )
         } else {
             PlaybackControls(
@@ -375,7 +376,8 @@ internal fun PlaybackControls(
         onSkipNext = onSkipNext,
         repeatMode = state.repeatMode,
         onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
-        modifier = modifier
+        modifier = modifier,
+        waveform = rememberWaveform(state.currentSong)
     )
 }
 

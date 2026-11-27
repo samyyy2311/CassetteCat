@@ -122,7 +122,7 @@ enum class MiniPlayerAction { NEXT, PREVIOUS, FAVORITE, QUEUE, REPEAT }
 
 enum class PlayerControlsStyle { CLASSIC, CLICK_WHEEL }
 
-enum class SeekBarStyle { FADER, LINE }
+enum class SeekBarStyle { FADER, LINE, WAVY, WAVEFORM }
 
 enum class AlbumArtCornerStyle(val radiusDp: Int) {
     CURVED(16),

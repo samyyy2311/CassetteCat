@@ -1536,6 +1536,8 @@ private fun seekBarStyleLabel(style: SeekBarStyle): String = stringResource(
     when (style) {
         SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader
         SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line
+        SeekBarStyle.WAVY -> AppR.string.customization_seek_bar_wavy
+        SeekBarStyle.WAVEFORM -> AppR.string.customization_seek_bar_waveform
     }
 )
 
@@ -1544,6 +1546,8 @@ private fun seekBarStyleDescription(style: SeekBarStyle): String = stringResourc
     when (style) {
         SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader_description
         SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line_description
+        SeekBarStyle.WAVY -> AppR.string.customization_seek_bar_wavy_description
+        SeekBarStyle.WAVEFORM -> AppR.string.customization_seek_bar_waveform_description
     }
 )
 

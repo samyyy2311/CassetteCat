@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -48,7 +49,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -59,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.playback.SongWaveforms
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -67,6 +74,8 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.PI
+import kotlin.math.sin
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
 
@@ -86,10 +95,11 @@ internal fun PlaybackControlsRow(
     onSkipNext: () -> Unit,
     repeatMode: Int,
     onCycleRepeatMode: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    waveform: FloatArray? = null
 ) {
     Column(modifier) {
-        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady)
+        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady, waveform)
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -140,10 +150,11 @@ internal fun ProgressReadout(
     onSeek: (Long) -> Unit,
     isPlaying: Boolean,
     playWhenReady: Boolean,
+    waveform: FloatArray? = null,
     centerContent: (@Composable () -> Unit)? = null
 ) {
     if (isSeekablePlayback(durationMs)) {
-        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, centerContent = centerContent)
+        ScrubberControl(positionMs, durationMs, onSeek, isPlaying, waveform, centerContent)
     } else {
         LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
         if (centerContent != null) {
@@ -224,6 +235,9 @@ internal fun ScrubberControl(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
+    isPlaying: Boolean,
+    // The song's loudness for the Waveform style; without it that style draws a line.
+    waveform: FloatArray?,
     // Sits between the two times, for layouts with no other room for it.
     centerContent: (@Composable () -> Unit)? = null
 ) {
@@ -284,12 +298,19 @@ internal fun ScrubberControl(
                 when (preferences.seekBarStyle) {
                     SeekBarStyle.FADER -> FaderTrack(sliderState, isActive = isDragging)
                     SeekBarStyle.LINE -> LineTrack(sliderState, isActive = isDragging)
+                    SeekBarStyle.WAVY -> WavyTrack(sliderState, isActive = isDragging, isPlaying = isPlaying)
+                    SeekBarStyle.WAVEFORM -> if (waveform != null) {
+                        WaveformTrack(sliderState, waveform)
+                    } else {
+                        LineTrack(sliderState, isActive = isDragging)
+                    }
                 }
             },
             thumb = {
                 when (preferences.seekBarStyle) {
                     SeekBarStyle.FADER -> FaderThumb(isActive = isDragging)
-                    SeekBarStyle.LINE -> LineThumb(isActive = isDragging)
+                    SeekBarStyle.LINE, SeekBarStyle.WAVEFORM -> LineThumb(isActive = isDragging)
+                    SeekBarStyle.WAVY -> WavyThumb()
                 }
             }
         )
@@ -416,6 +437,83 @@ private fun LineTrack(sliderState: SliderState, isActive: Boolean) {
     ) {
         Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary, shape))
     }
+}
+
+// The system media controls' look: the played part ripples while music plays and lies flat when paused.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WavyTrack(sliderState: SliderState, isActive: Boolean, isPlaying: Boolean) {
+    val fraction = sliderFraction(sliderState)
+    val amplitude by animateDpAsState(if (isPlaying && !isActive) 3.dp else 0.dp, tween(300), label = "wavyAmplitude")
+    val phase by rememberInfiniteTransition(label = "wavyPhase").animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * PI.toFloat(),
+        animationSpec = infiniteRepeatable(tween(1_000, easing = LinearEasing)),
+        label = "wavyPhaseValue"
+    )
+    val played = MaterialTheme.colorScheme.tertiary
+    val rest = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
+    Canvas(Modifier.fillMaxWidth().height(12.dp)) {
+        val stroke = 3.dp.toPx()
+        val mid = size.height / 2f
+        val end = size.width * fraction
+        val wavelength = 20.dp.toPx()
+        val path = Path().apply {
+            moveTo(0f, mid)
+            var x = 0f
+            while (x < end) {
+                lineTo(x, mid + amplitude.toPx() * sin(x / wavelength * 2f * PI.toFloat() - phase))
+                x += 2f
+            }
+            lineTo(end, mid)
+        }
+        drawPath(path, played, style = Stroke(stroke, cap = StrokeCap.Round))
+        if (end < size.width) drawLine(rest, Offset(end, mid), Offset(size.width, mid), stroke, StrokeCap.Round)
+    }
+}
+
+@Composable
+private fun WavyThumb() {
+    Box(Modifier.size(width = 4.dp, height = 18.dp).background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(2.dp)))
+}
+
+// The song's loudness as bars, filled in up to the playing point.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WaveformTrack(sliderState: SliderState, waveform: FloatArray) {
+    val fraction = sliderFraction(sliderState)
+    val played = MaterialTheme.colorScheme.tertiary
+    val rest = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+    Canvas(Modifier.fillMaxWidth().height(28.dp)) {
+        val slot = size.width / waveform.size
+        val barWidth = slot * 0.6f
+        waveform.forEachIndexed { index, level ->
+            val height = (size.height * level).coerceAtLeast(barWidth)
+            val left = index * slot + (slot - barWidth) / 2f
+            drawRoundRect(
+                color = if ((index + 0.5f) / waveform.size <= fraction) played else rest,
+                topLeft = Offset(left, (size.height - height) / 2f),
+                size = Size(barWidth, height),
+                cornerRadius = CornerRadius(barWidth / 2f)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+private fun sliderFraction(sliderState: SliderState): Float {
+    val range = (sliderState.valueRange.endInclusive - sliderState.valueRange.start).coerceAtLeast(1f)
+    return ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
+}
+
+// Loads the playing song's shape when the Waveform seek bar is chosen.
+@Composable
+internal fun rememberWaveform(song: Song?): FloatArray? {
+    val context = LocalContext.current
+    val style = LocalAppPreferences.current.seekBarStyle
+    return produceState<FloatArray?>(null, song?.id, style) {
+        value = if (song != null && style == SeekBarStyle.WAVEFORM) SongWaveforms.load(context, song) else null
+    }.value
 }
 
 // Shown only while dragging, as on the desktop. Its width stays fixed, as the slider insets the track by it.
