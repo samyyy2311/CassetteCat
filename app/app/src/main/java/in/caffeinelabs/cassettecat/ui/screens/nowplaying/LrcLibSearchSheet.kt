@@ -63,6 +63,7 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LrcLibClient
 import `in`.caffeinelabs.cassettecat.data.playback.LrcLibSearchResultItem
 import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
+import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.theme.SpaceGroteskFontFamily
@@ -553,7 +554,9 @@ internal fun LrcLibSearchSheet(
                                 modifier = Modifier.size(36.dp)
                             )
                             Text(
-                                text = stringResource(AppR.string.lrclib_no_results),
+                                text = stringResource(
+                                    if (blackoutActive) AppR.string.offline_blackout_search else AppR.string.lrclib_no_results
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

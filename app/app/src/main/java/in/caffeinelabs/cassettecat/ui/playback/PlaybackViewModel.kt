@@ -340,8 +340,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                             ?: return false
                         // Files often carry timed LRC text rather than plain lyrics; those follow the song.
                         val timed = parseLrc(text)
-                        if (timed.isNotEmpty()) _syncedLyrics.value = timed
-                        else if (embedded.isNullOrBlank()) _fallbackLyrics.value = text
+                        if (timed.isNotEmpty()) _syncedLyrics.value = timed else _fallbackLyrics.value = text
                         _lyricsProvider.value = "Embedded metadata"
                         return true
                     }

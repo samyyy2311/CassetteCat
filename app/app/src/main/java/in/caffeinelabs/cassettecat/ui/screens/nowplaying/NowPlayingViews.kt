@@ -536,7 +536,8 @@ internal fun NowPlayingLyricsView(
         Spacer(Modifier.height(4.dp))
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             LyricsView(
-                lyrics = state.currentLyrics ?: fallbackLyrics,
+                // The player's raw tag text may be timed LRC, which is shown as synced lyrics once read.
+                lyrics = fallbackLyrics,
                 syncedLyrics = syncedLyrics,
                 positionMs = positionMs,
                 durationMs = state.durationMs,
@@ -623,12 +624,12 @@ internal fun NowPlayingLyricsView(
     }
 
     if (showShareSheet) {
-        val lines = remember(selectedIndices, syncedLyrics, syncOffsetMs, state.currentLyrics, fallbackLyrics) {
+        val lines = remember(selectedIndices, syncedLyrics, syncOffsetMs, fallbackLyrics) {
             if (!syncedLyrics.isNullOrEmpty()) {
                 val effective = adjustLyricsSync(syncedLyrics, syncOffsetMs)
                 selectedIndices.sorted().mapNotNull { idx -> effective.getOrNull(idx)?.text }
             } else {
-                val plainLines = (state.currentLyrics ?: fallbackLyrics)?.lines()?.filter { it.isNotBlank() } ?: emptyList()
+                val plainLines = fallbackLyrics?.lines()?.filter { it.isNotBlank() } ?: emptyList()
                 selectedIndices.sorted().mapNotNull { idx -> plainLines.getOrNull(idx) }
             }
         }

@@ -1452,6 +1452,7 @@
     <string name="lrclib_add_custom">Add Custom</string>
     <string name="lrclib_track_title_hint">Track title…</string>
     <string name="lrclib_no_results">No lyrics found for this query</string>
+    <string name="offline_blackout_search">Offline Blackout Mode is on. Turn it off in Settings to search online.</string>
     <string name="lrclib_add_contribute">Add &amp; Contribute Lyrics</string>
     <string name="lrclib_result_artist_album">%1$s • %2$s</string>
     <string name="lrclib_badge_synced">SYNCED</string>
