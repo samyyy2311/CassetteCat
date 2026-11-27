@@ -34,6 +34,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 
 private const val OUTBOX_FILE = "scrobble_outbox.json"
+private const val LOVED_FILE = "scrobble_loved.json"
 private const val LISTENBRAINZ = "listenbrainz"
 
 // One a second keeps a long Sync Likes within the services' rate limits.
@@ -80,6 +81,9 @@ internal data class OutboxItem(
     )
 }
 
+@Serializable
+internal data class LovedSong(val artist: String, val title: String, val album: String)
+
 // Scrobbles and loves wait here until each service has them, so none are lost to blackout mode, a
 // missing connection or a service being down. Kept in a file, so they also survive the app closing.
 internal object ScrobbleOutbox {
@@ -91,7 +95,11 @@ internal object ScrobbleOutbox {
     private var started = false
     private var nextId = 0L
     private var sendsSinceSave = 0
+    private var lovedChanged = false
     private lateinit var file: AtomicFile
+    private lateinit var lovedFile: AtomicFile
+    // The songs each service has loved through the app, so Sync Likes only sends what a service lacks.
+    private var lovedOn: Map<String, Map<String, LovedSong>> = emptyMap()
 
     val lovesLeft: StateFlow<Int> =
         items.map { list -> list.count { it.kind == OutboxItem.Kind.LOVE } }.stateIn(scope, SharingStarted.Eagerly, 0)
@@ -103,11 +111,15 @@ internal object ScrobbleOutbox {
         }
         val app = context.applicationContext
         file = AtomicFile(File(app.filesDir, OUTBOX_FILE))
+        lovedFile = AtomicFile(File(app.filesDir, LOVED_FILE))
         scope.launch {
             items.value = runCatching { sharedJson.decodeFromString<List<OutboxItem>>(file.readFully().decodeToString()) }
                 .getOrDefault(emptyList())
             // New ids follow both the clock and anything restored, so no two items ever share one.
             nextId = maxOf(System.currentTimeMillis(), (items.value.maxOfOrNull { it.id } ?: 0L) + 1)
+            lovedOn = runCatching {
+                sharedJson.decodeFromString<Map<String, Map<String, LovedSong>>>(lovedFile.readFully().decodeToString())
+            }.getOrDefault(emptyMap())
             loaded.complete(Unit)
             send(app)
         }
@@ -125,21 +137,32 @@ internal object ScrobbleOutbox {
                 wake.trySend(Unit)
             }
         }
-        // A newly connected account picks up what's waiting.
+        // A newly connected account picks up what's waiting. Signing out forgets what that account loved, as
+        // the next sign-in may be someone else.
         scope.launch {
-            ScrobbleSettingsRepository(app).settings.map(::connectedServices).distinctUntilChanged().collect {
+            ScrobbleSettingsRepository(app).settings.distinctUntilChanged().collect { settings ->
+                loaded.await()
+                val signedIn = signedInServices(settings)
+                mutex.withLock {
+                    if (!signedIn.containsAll(lovedOn.keys)) {
+                        lovedOn = lovedOn.filterKeys { it in signedIn }
+                        saveLoved()
+                    }
+                }
                 wake.trySend(Unit)
             }
         }
     }
 
     // Queued in the outbox's own scope, so it outlives the screen or service that asked. A love replaces one
-    // still waiting for the same song, so only the latest choice is sent.
+    // still waiting for the same song, so only the latest choice is sent, and a love skips the services that
+    // already have it.
     fun add(context: Context, kind: OutboxItem.Kind, songs: List<Song>, loved: Boolean = false, listenedAtSec: Long = 0L) {
         start(context)
         scope.launch {
             loaded.await()
             if (songs.isEmpty()) return@launch
+            val services = connectedServices(ScrobbleSettingsRepository(context).settings.first())
             mutex.withLock {
                 val keys = songs.map { songMatchKey(it.title, it.artist) }.toSet()
                 val kept = if (kind == OutboxItem.Kind.LOVE) {
@@ -148,12 +171,34 @@ internal object ScrobbleOutbox {
                     items.value
                 }
                 val now = System.currentTimeMillis()
-                items.value = kept + songs.map { song ->
-                    OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, addedAtMs = now)
+                items.value = kept + songs.mapNotNull { song ->
+                    val key = songMatchKey(song.title, song.artist)
+                    val alreadyLoved = if (kind == OutboxItem.Kind.LOVE && loved) {
+                        lovedOn.filterValues { key in it }.keys
+                    } else {
+                        emptySet()
+                    }
+                    // Every connected service has it already; a service connected later still gets it from Sync Likes.
+                    if (services.isNotEmpty() && alreadyLoved.containsAll(services)) return@mapNotNull null
+                    OutboxItem(nextId++, kind, song.artist, song.title, song.album, listenedAtSec, loved, alreadyLoved, addedAtMs = now)
                 }
                 save()
             }
             wake.trySend(Unit)
+        }
+    }
+
+    // Loves every liked song in the library, and takes back loves the app sent for library songs no longer liked,
+    // such as ones unliked while an account was signed out. Songs outside the library are left alone, as a missing
+    // server doesn't mean they were unliked.
+    fun syncLikes(context: Context, library: List<Song>, likedIds: Set<String>) {
+        start(context)
+        scope.launch {
+            loaded.await()
+            val (liked, notLiked) = library.partition { it.id in likedIds }
+            val lovedKeys = mutex.withLock { lovedOn.values.flatMapTo(mutableSetOf()) { it.keys } }
+            add(context, OutboxItem.Kind.LOVE, liked, loved = true)
+            add(context, OutboxItem.Kind.LOVE, notLiked.filter { songMatchKey(it.title, it.artist) in lovedKeys }, loved = false)
         }
     }
 
@@ -188,6 +233,18 @@ internal object ScrobbleOutbox {
             }
             val delivered = next.delivered + accepted
             mutex.withLock {
+                if (next.kind == OutboxItem.Kind.LOVE && accepted.isNotEmpty()) {
+                    val key = songMatchKey(next.title, next.artist)
+                    lovedOn = (lovedOn.keys + accepted).associateWith { service ->
+                        val songs = lovedOn[service].orEmpty()
+                        when {
+                            service !in accepted -> songs
+                            next.loved -> songs + (key to LovedSong(next.artist, next.title, next.album))
+                            else -> songs - key
+                        }
+                    }
+                    lovedChanged = true
+                }
                 // A newer love for the same song may have replaced this one while it was being sent.
                 if (items.value.any { it.id == next.id }) {
                     val rest = items.value.filterNot { it.id == next.id }
@@ -199,6 +256,8 @@ internal object ScrobbleOutbox {
                     }
                     if (++sendsSinceSave >= SAVE_EVERY_SENDS || items.value.none { it.nextTryAtMs <= now }) {
                         save()
+                        if (lovedChanged) saveLoved()
+                        lovedChanged = false
                         sendsSinceSave = 0
                     }
                 }
@@ -234,6 +293,13 @@ internal object ScrobbleOutbox {
         }
     }
 
+    // Signed in, whether or not switched on, as switching an account off keeps its loves.
+    private fun signedInServices(settings: ScrobbleSettings): Set<String> =
+        buildSet {
+            if (settings.listenBrainz.userToken.isNotBlank()) add(LISTENBRAINZ)
+            ScrobbleAccount.entries.forEach { if (settings.account(it).sessionKey.isNotBlank()) add(it.id) }
+        }
+
     private fun connectedServices(settings: ScrobbleSettings): Set<String> =
         buildSet {
             if (settings.listenBrainz.enabled && settings.listenBrainz.userToken.isNotBlank()) add(LISTENBRAINZ)
@@ -243,15 +309,19 @@ internal object ScrobbleOutbox {
             }
         }
 
-    // Written whole to a new file and swapped in, so a crash mid-write keeps the previous queue.
-    private fun save() {
-        val stream = runCatching { file.startWrite() }
+    private fun saveLoved() = write(lovedFile, sharedJson.encodeToString(lovedOn))
+
+    private fun save() = write(file, sharedJson.encodeToString(items.value))
+
+    // Written whole to a new file and swapped in, so a crash mid-write keeps the previous copy.
+    private fun write(target: AtomicFile, text: String) {
+        val stream = runCatching { target.startWrite() }
             .onFailure { Log.w("ScrobbleOutbox", "Couldn't save the waiting scrobbles and loves", it) }
             .getOrNull() ?: return
-        runCatching { stream.write(sharedJson.encodeToString(items.value).encodeToByteArray()) }
-            .onSuccess { file.finishWrite(stream) }
+        runCatching { stream.write(text.encodeToByteArray()) }
+            .onSuccess { target.finishWrite(stream) }
             .onFailure {
-                file.failWrite(stream)
+                target.failWrite(stream)
                 Log.w("ScrobbleOutbox", "Couldn't save the waiting scrobbles and loves", it)
             }
     }

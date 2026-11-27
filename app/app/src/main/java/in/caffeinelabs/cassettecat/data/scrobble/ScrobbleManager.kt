@@ -55,6 +55,11 @@ class ScrobbleManager(
         ScrobbleOutbox.add(context, OutboxItem.Kind.LOVE, songs, loved = loved)
     }
 
+    // Brings the accounts' loves in line with the library's likes, sending only what each account lacks.
+    fun syncLikes(library: List<Song>, likedIds: Set<String>) {
+        ScrobbleOutbox.syncLikes(context, library, likedIds)
+    }
+
     // The listen keeps the time it was played, and waits in the outbox until each service has it.
     fun onTrackPlayed(song: Song) {
         val nowSec = System.currentTimeMillis() / 1000L

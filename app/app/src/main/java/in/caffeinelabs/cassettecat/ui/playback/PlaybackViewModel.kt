@@ -423,11 +423,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     val lovesLeft = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager.lovesLeft
 
-    // Loves every liked song in [songs] on the connected accounts, for likes made before they were connected.
+    // Loves the library's liked songs on the connected accounts and takes back loves for songs no longer liked,
+    // sending only what each account doesn't have yet.
     fun syncLikes(songs: List<Song>) {
         viewModelScope.launch {
             val liked = favoritesRepository.favoriteIds.first()
-            scrobbleManager.love(songs.filter { it.id in liked && it.source != MusicSource.Desktop }, loved = true)
+            scrobbleManager.syncLikes(songs.filter { it.source != MusicSource.Desktop && it.source != MusicSource.Radio }, liked)
         }
     }
 
