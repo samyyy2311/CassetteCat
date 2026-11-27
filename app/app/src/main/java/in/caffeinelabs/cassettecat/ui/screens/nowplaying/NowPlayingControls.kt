@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -262,8 +263,20 @@ internal fun ScrubberControl(
         }
     }
 
+    // A new song's length can arrive a frame before its position. Until a fresh position comes in,
+    // the old song's one is ignored, so the bar starts the new song at zero instead of flicking to the end.
+    var knownDurationMs by remember { mutableLongStateOf(durationMs) }
+    var stalePositionMs by remember { mutableStateOf<Long?>(null) }
+    if (durationMs != knownDurationMs) {
+        knownDurationMs = durationMs
+        stalePositionMs = positionMs
+    } else if (stalePositionMs != null && positionMs != stalePositionMs) {
+        stalePositionMs = null
+    }
+    val currentPositionMs = if (stalePositionMs != null) 0L else positionMs
+
     val isDragging = dragPositionMs != null
-    val effectivePositionMs = dragPositionMs ?: pendingSeekMs ?: positionMs
+    val effectivePositionMs = dragPositionMs ?: pendingSeekMs ?: currentPositionMs
     val safeDuration = durationMs.coerceAtLeast(0L).toFloat()
 
     val targetSliderValue = effectivePositionMs.toFloat().coerceIn(0f, safeDuration.coerceAtLeast(1f))
