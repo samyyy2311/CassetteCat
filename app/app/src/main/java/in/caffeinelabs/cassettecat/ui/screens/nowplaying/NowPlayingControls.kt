@@ -142,6 +142,9 @@ internal fun ProgressReadout(
         ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, centerContent = centerContent)
     } else {
         LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
+        if (centerContent != null) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { centerContent() }
+        }
     }
 }
 

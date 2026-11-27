@@ -271,7 +271,8 @@ private fun ClickWheel(
 
 // Follows one touch on the wheel and returns the quarter it tapped, or null for a spin or a press
 // that slid off. Only travel around the ring makes a spin, so a finger slipping inwards or outwards
-// still taps, and crossing the centre swings the angle without going round, so it isn't counted.
+// still taps. Crossing the centre swings the angle without going round, and moving off the wheel
+// isn't turning it, so neither is counted; tracking picks up again once the finger is back on the ring.
 private suspend fun AwaitPointerEventScope.trackWheelGesture(
     touchSlop: Float,
     canSpin: Boolean,
@@ -297,13 +298,16 @@ private suspend fun AwaitPointerEventScope.trackWheelGesture(
         val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
         if (!change.pressed) break
         change.consume()
+        val previous = lastPosition
         lastPosition = change.position
         val angle = angleOf(change.position, center)
-        if ((change.position - center).getDistance() <= radius * CENTER_FRACTION) {
+        val distance = (change.position - center).getDistance()
+        if (distance <= radius * CENTER_FRACTION || distance > radius) {
             offRing = true
             continue
         }
-        if (offRing) {
+        // A fast swipe can jump across the centre between two samples without one landing in it.
+        if (offRing || distanceToSegment(center, previous, change.position) <= radius * CENTER_FRACTION) {
             offRing = false
             lastAngle = angle
         }
@@ -326,6 +330,14 @@ private suspend fun AwaitPointerEventScope.trackWheelGesture(
     }
     // A press counts only when the finger lifts over the quarter it went down on.
     return zone.takeIf { !spinning && zoneAt(lastPosition, center, radius) == zone }
+}
+
+private fun distanceToSegment(point: Offset, start: Offset, end: Offset): Float {
+    val segment = end - start
+    val lengthSquared = segment.x * segment.x + segment.y * segment.y
+    if (lengthSquared == 0f) return (point - start).getDistance()
+    val t = (((point.x - start.x) * segment.x + (point.y - start.y) * segment.y) / lengthSquared).coerceIn(0f, 1f)
+    return (point - (start + segment * t)).getDistance()
 }
 
 // Degrees clockwise from the positive x-axis, 0..360, in screen coordinates (y down).
