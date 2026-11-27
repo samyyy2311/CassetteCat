@@ -1,7 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.animation.core.Animatable
@@ -17,9 +16,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -180,14 +176,15 @@ internal fun LyricsView(
         if (syncedLyrics == null || syncOffsetMs == 0L) syncedLyrics else adjustLyricsSync(syncedLyrics, syncOffsetMs)
     }
 
-    // Lyrics change with a crossfade, so a new song, a lookup finishing or the instrumental view never pops in.
-    // The fade follows a change of lyrics, not of the sync offset, which only moves the timings.
-    AnimatedContent(
-        targetState = ShownLyrics(effectiveSyncedLyrics, syncedLyrics, lyrics, isLoading),
-        contentKey = { Triple(it.isLoading, it.source, it.plain) },
-        transitionSpec = { fadeIn(tween(LYRICS_FADE_MS)) togetherWith fadeOut(tween(LYRICS_FADE_MS)) },
-        label = "lyricsContent"
-    ) { shown ->
+    // New lyrics fade in, so a new song, a lookup finishing or the instrumental view never pops in. Only the
+    // incoming lyrics are drawn, which keeps a song change light. The sync offset only moves timings, so it doesn't fade.
+    val shown = ShownLyrics(effectiveSyncedLyrics, syncedLyrics, lyrics, isLoading)
+    val lyricsAlpha = remember { Animatable(1f) }
+    LaunchedEffect(shown.isLoading, shown.source, shown.plain) {
+        lyricsAlpha.snapTo(0f)
+        lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
+    }
+    Box(Modifier.graphicsLayer { alpha = lyricsAlpha.value }) {
         when {
             !shown.synced.isNullOrEmpty() -> {
                 val displayItems: List<LyricDisplayItem> = remember(shown.synced, durationMs) {
@@ -599,7 +596,7 @@ private data class ShownLyrics(
     val isLoading: Boolean
 )
 
-private const val LYRICS_FADE_MS = 250
+private const val LYRICS_FADE_MS = 200
 private const val LOADING_HINT_DELAY_MS = 1_000L
 
 @Composable
