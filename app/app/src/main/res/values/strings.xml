@@ -566,6 +566,9 @@
     <string name="customization_player_controls_classic">Classic</string>
     <string name="customization_player_controls_classic_description">The original tape-deck fader and buttons</string>
     <string name="customization_player_controls_click_wheel">Click Wheel</string>
+    <string name="customization_section_player">Player</string>
+    <string name="customization_section_background">Background</string>
+    <string name="customization_section_mini_player">Mini-Player</string>
     <string name="customization_seek_bar">Seek Bar</string>
     <string name="customization_seek_bar_description">Choose how the song’s progress looks</string>
     <string name="customization_seek_bar_fader">Fader</string>

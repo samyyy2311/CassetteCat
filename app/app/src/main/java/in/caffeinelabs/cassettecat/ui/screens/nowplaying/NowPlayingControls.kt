@@ -439,42 +439,50 @@ private fun LineTrack(sliderState: SliderState, isActive: Boolean) {
     }
 }
 
-// The system media controls' look: the played part ripples while music plays and lies flat when paused.
+// The system media controls' look: the played part ripples while music plays and lies flat when
+// paused or dragged, with a gap either side of the handle.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WavyTrack(sliderState: SliderState, isActive: Boolean, isPlaying: Boolean) {
     val fraction = sliderFraction(sliderState)
-    val amplitude by animateDpAsState(if (isPlaying && !isActive) 3.dp else 0.dp, tween(300), label = "wavyAmplitude")
+    val amplitude by animateDpAsState(if (isPlaying && !isActive) 3.dp else 0.dp, tween(400), label = "wavyAmplitude")
     val phase by rememberInfiniteTransition(label = "wavyPhase").animateFloat(
         initialValue = 0f,
         targetValue = 2f * PI.toFloat(),
-        animationSpec = infiniteRepeatable(tween(1_000, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(1_600, easing = LinearEasing)),
         label = "wavyPhaseValue"
     )
     val played = MaterialTheme.colorScheme.tertiary
     val rest = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
-    Canvas(Modifier.fillMaxWidth().height(12.dp)) {
-        val stroke = 3.dp.toPx()
+    Canvas(Modifier.fillMaxWidth().height(14.dp)) {
+        val stroke = 4.dp.toPx()
+        val gap = 6.dp.toPx()
         val mid = size.height / 2f
-        val end = size.width * fraction
-        val wavelength = 20.dp.toPx()
-        val path = Path().apply {
-            moveTo(0f, mid)
-            var x = 0f
-            while (x < end) {
-                lineTo(x, mid + amplitude.toPx() * sin(x / wavelength * 2f * PI.toFloat() - phase))
-                x += 2f
+        val at = size.width * fraction
+        val wavelength = 32.dp.toPx()
+        val waveEnd = at - gap
+        if (waveEnd > 0f) {
+            val path = Path().apply {
+                moveTo(0f, mid)
+                var x = 0f
+                while (x < waveEnd) {
+                    // The wave eases in over its first half-length, so it doesn't start with a jolt.
+                    val ease = (x / (wavelength / 2f)).coerceAtMost(1f)
+                    lineTo(x, mid + amplitude.toPx() * ease * sin(x / wavelength * 2f * PI.toFloat() - phase))
+                    x += 1.5f
+                }
+                lineTo(waveEnd, mid + amplitude.toPx() * sin(waveEnd / wavelength * 2f * PI.toFloat() - phase))
             }
-            lineTo(end, mid)
+            drawPath(path, played, style = Stroke(stroke, cap = StrokeCap.Round))
         }
-        drawPath(path, played, style = Stroke(stroke, cap = StrokeCap.Round))
-        if (end < size.width) drawLine(rest, Offset(end, mid), Offset(size.width, mid), stroke, StrokeCap.Round)
+        val restStart = at + gap
+        if (restStart < size.width) drawLine(rest, Offset(restStart, mid), Offset(size.width, mid), stroke, StrokeCap.Round)
     }
 }
 
 @Composable
 private fun WavyThumb() {
-    Box(Modifier.size(width = 4.dp, height = 18.dp).background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(2.dp)))
+    Box(Modifier.size(width = 4.dp, height = 20.dp).background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(50)))
 }
 
 // The song's loudness as bars, filled in up to the playing point.

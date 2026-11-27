@@ -533,7 +533,7 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         PageHeader(stringResource(AppR.string.customization_now_playing), onBack)
         Spacer(Modifier.height(16.dp))
-        SettingsSection {
+        SettingsSection(title = stringResource(AppR.string.customization_section_player)) {
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_player_controls),
                 subtitle = stringResource(AppR.string.customization_player_controls_description),
@@ -556,6 +556,16 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
                 onSelect = viewModel::setSeekBarStyle
             )
             SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_remaining_time),
+                subtitle = stringResource(AppR.string.customization_remaining_time_description),
+                checked = prefs.showRemainingTime,
+                onCheckedChange = viewModel::setShowRemainingTime,
+                iconRes = R.drawable.lucide_ic_timer,
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        SettingsSection(title = stringResource(AppR.string.customization_section_background)) {
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_backdrop),
                 subtitle = stringResource(AppR.string.customization_backdrop_description),
@@ -575,15 +585,9 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
                 onCheckedChange = viewModel::setShowNowPlayingBlur,
                 iconRes = R.drawable.lucide_ic_layers,
             )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_remaining_time),
-                subtitle = stringResource(AppR.string.customization_remaining_time_description),
-                checked = prefs.showRemainingTime,
-                onCheckedChange = viewModel::setShowRemainingTime,
-                iconRes = R.drawable.lucide_ic_timer,
-            )
-            SettingsDivider()
+        }
+        Spacer(Modifier.height(24.dp))
+        SettingsSection(title = stringResource(AppR.string.customization_section_mini_player)) {
             ToggleRow(
                 title = stringResource(AppR.string.customization_mini_progress),
                 subtitle = stringResource(AppR.string.customization_mini_progress_description),
