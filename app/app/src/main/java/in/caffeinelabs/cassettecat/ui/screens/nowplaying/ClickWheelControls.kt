@@ -48,9 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.Player
 import `in`.caffeinelabs.cassettecat.R as AppR
-import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import com.composables.icons.lucide.R
@@ -93,26 +91,11 @@ internal fun ClickWheelControlsRow(
 ) {
     val seekable = isSeekablePlayback(durationMs)
     Column(modifier) {
-        if (seekable) {
-            ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek) {
-                val scheme = MaterialTheme.colorScheme
-                Row {
-                    PressDepthIconButton(
-                        iconRes = R.drawable.lucide_ic_shuffle,
-                        contentDescription = stringResource(AppR.string.now_playing_shuffle),
-                        tint = if (isShuffleEnabled) scheme.tertiary else scheme.onSurfaceVariant,
-                        onClick = onToggleShuffle
-                    )
-                    PressDepthIconButton(
-                        iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
-                        contentDescription = stringResource(AppR.string.now_playing_repeat),
-                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) scheme.tertiary else scheme.onSurfaceVariant,
-                        onClick = onCycleRepeatMode
-                    )
-                }
+        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady) {
+            Row {
+                ShuffleButton(isShuffleEnabled, onToggleShuffle)
+                RepeatButton(repeatMode, onCycleRepeatMode)
             }
-        } else {
-            LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
         }
         Spacer(Modifier.height(8.dp))
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

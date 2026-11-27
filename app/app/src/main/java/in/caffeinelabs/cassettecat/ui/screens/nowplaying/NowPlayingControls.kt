@@ -85,23 +85,14 @@ internal fun PlaybackControlsRow(
     modifier: Modifier = Modifier
 ) {
     Column(modifier) {
-        if (isSeekablePlayback(durationMs)) {
-            ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek)
-        } else {
-            LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
-        }
+        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady)
         Spacer(Modifier.height(32.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_shuffle,
-                contentDescription = stringResource(AppR.string.now_playing_shuffle),
-                tint = if (isShuffleEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = onToggleShuffle
-            )
+            ShuffleButton(isShuffleEnabled, onToggleShuffle)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TransportButton(
                     iconRes = R.drawable.lucide_ic_skip_back,
@@ -131,14 +122,47 @@ internal fun PlaybackControlsRow(
                     onClick = onSkipNext
                 )
             }
-            PressDepthIconButton(
-                iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
-                contentDescription = stringResource(AppR.string.now_playing_repeat),
-                tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = onCycleRepeatMode
-            )
+            RepeatButton(repeatMode, onCycleRepeatMode)
         }
     }
+}
+
+// The seek bar for songs, or the live indicator for streams without a length. [centerContent] sits
+// between the seek bar's times.
+@Composable
+internal fun ProgressReadout(
+    positionMs: Long,
+    durationMs: Long,
+    onSeek: (Long) -> Unit,
+    isPlaying: Boolean,
+    playWhenReady: Boolean,
+    centerContent: (@Composable () -> Unit)? = null
+) {
+    if (isSeekablePlayback(durationMs)) {
+        ScrubberControl(positionMs = positionMs, durationMs = durationMs, onSeek = onSeek, centerContent = centerContent)
+    } else {
+        LiveIndicator(isPlaying = isPlaying, isBuffering = playWhenReady && !isPlaying)
+    }
+}
+
+@Composable
+internal fun ShuffleButton(isShuffleEnabled: Boolean, onToggleShuffle: () -> Unit) {
+    PressDepthIconButton(
+        iconRes = R.drawable.lucide_ic_shuffle,
+        contentDescription = stringResource(AppR.string.now_playing_shuffle),
+        tint = if (isShuffleEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+        onClick = onToggleShuffle
+    )
+}
+
+@Composable
+internal fun RepeatButton(repeatMode: Int, onCycleRepeatMode: () -> Unit) {
+    PressDepthIconButton(
+        iconRes = if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.lucide_ic_repeat_1 else R.drawable.lucide_ic_repeat,
+        contentDescription = stringResource(AppR.string.now_playing_repeat),
+        tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+        onClick = onCycleRepeatMode
+    )
 }
 
 @Composable
