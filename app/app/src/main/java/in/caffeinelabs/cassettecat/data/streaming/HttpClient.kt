@@ -25,9 +25,11 @@ fun checkBlackout(host: String) {
     if (blackoutActive && !isHomeNetworkHost(host)) throw IOException("Blackout mode is on")
 }
 
-// A name can look local and still lead to the internet, so in blackout only home network addresses are used.
+// In blackout a name outside the home network isn't even looked up, as the lookup itself goes out. A name that
+// looks local can still lead to the internet, so only home network addresses are used.
 private object BlackoutDns : Dns {
     override fun lookup(hostname: String): List<InetAddress> {
+        checkBlackout(hostname)
         val addresses = Dns.SYSTEM.lookup(hostname)
         if (!blackoutActive) return addresses
         return addresses.filter { isHomeNetworkHost(it.hostAddress.orEmpty()) }
