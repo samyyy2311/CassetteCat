@@ -314,18 +314,25 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         // only when there's no embedded lyrics for the current song
         viewModelScope.launch {
+            var lyricsSongId: String? = null
             playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
                 .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
-                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB), tracksLoaded)
+                    // Only a song on the phone waits for its file's tags before going online.
+                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB), tracksLoaded || song?.source != MusicSource.Local)
                 }
                 .distinctUntilChanged()
                 .collectLatest { request ->
                     val song = request.song
                     val embedded = request.embeddedLyrics
-                    _syncedLyrics.value = null
-                    _fallbackLyrics.value = null
-                    _lyricsProvider.value = null
-                    _isLoadingLyrics.value = false
+                    // Lyrics stay up while the same song is looked at again, and a new song shows nothing
+                    // until its lyrics are known, so neither the instrumental view nor stale text flashes.
+                    if (song?.id != lyricsSongId) {
+                        lyricsSongId = song?.id
+                        _syncedLyrics.value = null
+                        _fallbackLyrics.value = null
+                        _lyricsProvider.value = null
+                    }
+                    _isLoadingLyrics.value = true
                     // Lyrics files and tags are only read for songs stored on this phone.
                     val localSong = song?.takeIf { it.source == MusicSource.Local }
                     suspend fun loadLocalFile(): Boolean {
@@ -349,11 +356,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     } else {
                         loadEmbedded() || loadLocalFile()
                     }
-                    if (found || song == null || !request.lrcLibEnabled) return@collectLatest
                     // A song on the phone may carry its own lyrics, which are only known once the player has
                     // opened the file; this runs again then.
-                    if (localSong != null && !request.tracksLoaded) return@collectLatest
-                    _isLoadingLyrics.value = true
+                    if (!found && localSong != null && !request.tracksLoaded) return@collectLatest
+                    if (found || song == null || !request.lrcLibEnabled) {
+                        _isLoadingLyrics.value = false
+                        return@collectLatest
+                    }
                     try {
                         lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
                             _syncedLyrics.value = result.syncedLyrics

@@ -67,11 +67,15 @@ class PlaybackRepository(private val context: Context) {
     var onQueueLowWatermark: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
+    // The song the player's current tracks were reported for.
+    private var tracksSongId: String? = null
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
     suspend fun connect() {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         controller = MediaController.Builder(context, token).buildAsync().awaitController(context)
+        // Tracks already reported before the app connected belong to the song playing now.
+        tracksSongId = controller?.currentMediaItem?.mediaId
         controller?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateState()
@@ -138,6 +142,7 @@ class PlaybackRepository(private val context: Context) {
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
             // Lyrics become known only once container tags parse during load, not at transition time.
             override fun onTracksChanged(tracks: Tracks) {
+                tracksSongId = controller?.currentMediaItem?.mediaId
                 replayGainJob?.cancel()
                 replayGainJob = repositoryScope.launch {
                     val prefs = appPreferencesRepository.preferences.first()
@@ -644,6 +649,8 @@ class PlaybackRepository(private val context: Context) {
         val c = controller ?: return
         val index = c.currentMediaItemIndex
         val song = currentQueue.getOrNull(index)
+        // Just after a song change the player still reports the previous file's tracks, tags included.
+        val tracksCurrent = song != null && tracksSongId == song.id && !c.currentTracks.isEmpty
         _state.value = PlaybackUiState(
             currentSong = song,
             isPlaying = c.isPlaying,
@@ -656,8 +663,8 @@ class PlaybackRepository(private val context: Context) {
             upNext = currentQueue.drop(index + 1),
             previousInQueue = currentQueue.getOrNull(index - 1),
             history = history.toList(),
-            currentLyrics = extractLyrics(c.currentTracks),
-            tracksLoaded = !c.currentTracks.isEmpty,
+            currentLyrics = if (tracksCurrent) extractLyrics(c.currentTracks) else null,
+            tracksLoaded = tracksCurrent,
             audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }
