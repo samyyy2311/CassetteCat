@@ -305,6 +305,11 @@ class PlaybackRepository(private val context: Context) {
         c.pause()
     }
 
+    // Unlike pausing, stopping closes the open stream, so playing again has to reconnect and pass the blackout check.
+    fun stop() {
+        controller?.stop()
+    }
+
     fun togglePlayPause() {
         controller?.let { c ->
             if (c.isPlaying) {
@@ -550,7 +555,7 @@ class PlaybackRepository(private val context: Context) {
         val upNextIndex = currentQueue.drop(currentIndex + 1).indexOfFirst { it.id == songId }.takeIf { it >= 0 } ?: return null
         val absoluteIndex = currentIndex + 1 + upNextIndex
         val originalIndex = originalQueue.indexOfFirst { it.id == songId }
-        val removal = QueueRemoval(currentQueue[absoluteIndex], upNextIndex, originalIndex, queueGeneration)
+        val removal = QueueRemoval(currentQueue[absoluteIndex], absoluteIndex, originalIndex, queueGeneration)
         c.removeMediaItem(absoluteIndex)
         currentQueue = currentQueue.toMutableList().apply { removeAt(absoluteIndex) }
         // Only this copy goes, so a song queued twice keeps its other copy in the unshuffled order.
@@ -559,14 +564,14 @@ class PlaybackRepository(private val context: Context) {
         return removal
     }
 
-    // Puts a removed song back where it was in Up Next, counted from the song playing now.
+    // Puts a removed song back where it was, or next if playback has moved past that point.
     fun restoreToUpNext(removal: QueueRemoval) {
         // A queue started since then is a different queue, and the song doesn't belong in it.
         if (removal.queueGeneration != queueGeneration) return
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
         if (currentIndex == C.INDEX_UNSET) return
-        val index = (currentIndex + 1 + removal.upNextIndex).coerceAtMost(currentQueue.size)
+        val index = removal.queueIndex.coerceIn(currentIndex + 1, currentQueue.size)
         c.addMediaItem(index, removal.song.toMediaItem(context))
         currentQueue = currentQueue.toMutableList().apply { add(index, removal.song) }
         if (removal.originalIndex >= 0) {
@@ -845,7 +850,7 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
         .build()
 }
 
-data class QueueRemoval(val song: Song, val upNextIndex: Int, val originalIndex: Int, val queueGeneration: Int)
+data class QueueRemoval(val song: Song, val queueIndex: Int, val originalIndex: Int, val queueGeneration: Int)
 
 internal fun MediaItem.toSessionSong(): Song {
     val source = when {

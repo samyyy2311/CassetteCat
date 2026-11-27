@@ -174,9 +174,13 @@ internal object ScrobbleOutbox {
                     items.value
                 }
                 val now = System.currentTimeMillis()
+                // An earlier choice for the song may be mid-send and about to change the record, so it isn't trusted.
+                val pending = items.value.filter { it.kind == OutboxItem.Kind.LOVE }.mapTo(mutableSetOf()) {
+                    songMatchKey(it.title, it.artist)
+                }
                 items.value = kept + songs.mapNotNull { song ->
                     val key = songMatchKey(song.title, song.artist)
-                    val alreadyLoved = if (kind == OutboxItem.Kind.LOVE && loved) {
+                    val alreadyLoved = if (kind == OutboxItem.Kind.LOVE && loved && key !in pending) {
                         services.filterTo(mutableSetOf()) { lovedOn[records[it]]?.containsKey(key) == true }
                     } else {
                         emptySet()

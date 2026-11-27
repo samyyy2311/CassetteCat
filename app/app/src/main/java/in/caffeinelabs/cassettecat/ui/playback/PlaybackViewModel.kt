@@ -312,6 +312,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 .collect { (offline, song) ->
                     if (offline && song != null && song.source != MusicSource.Local) {
                         pause()
+                        repository.stop()
                     }
                 }
         }

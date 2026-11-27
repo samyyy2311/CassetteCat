@@ -184,7 +184,11 @@ internal fun LyricsView(
     val shown = if (target.sameContentAs(held)) target else held
     val lyricsAlpha = remember { Animatable(1f) }
     LaunchedEffect(target.isLoading, target.source, target.plain) {
-        if (target.sameContentAs(held)) return@LaunchedEffect
+        if (target.sameContentAs(held)) {
+            // A lookup that ends with the lyrics already held brings them back from the loading fade.
+            lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
+            return@LaunchedEffect
+        }
         lyricsAlpha.animateTo(0f, tween(LYRICS_FADE_MS))
         if (target.isLoading) return@LaunchedEffect
         held = target

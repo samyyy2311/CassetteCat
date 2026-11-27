@@ -82,7 +82,7 @@
 - **Volume limit**: Turns all playback down to a level you choose, whatever the
   system volume is.
 - **Synced lyrics**: From [LRCLIB](https://lrclib.net), tags in the song file,
-  or a `.lrc` file next to it. Each word lights up as it's sung. You can change
+  or a `.lrc` file next to it. The words light up across each line as it's sung. You can change
   the text size and keep the screen on while lyrics are open.
 - **Sleep timer**: Pauses playback after a set time. Playback also pauses when
   headphones or Bluetooth disconnect.
