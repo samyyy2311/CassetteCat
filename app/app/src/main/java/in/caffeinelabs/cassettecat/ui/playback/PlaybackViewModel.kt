@@ -332,9 +332,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _syncedLyrics.value = null
                         _fallbackLyrics.value = null
                         _lyricsProvider.value = null
+                        _isLoadingLyrics.value = true
                         _lyricsSongId.value = song?.id
                     }
-                    _isLoadingLyrics.value = true
                     // Lyrics files and tags are only read for songs stored on this phone.
                     val localSong = song?.takeIf { it.source == MusicSource.Local }
                     suspend fun loadLocalFile(): Boolean {
@@ -365,6 +365,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _isLoadingLyrics.value = false
                         return@collectLatest
                     }
+                    _isLoadingLyrics.value = _syncedLyrics.value == null && _fallbackLyrics.value == null
                     try {
                         lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
                             _syncedLyrics.value = result.syncedLyrics
