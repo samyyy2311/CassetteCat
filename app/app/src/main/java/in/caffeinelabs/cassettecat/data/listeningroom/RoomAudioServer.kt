@@ -11,6 +11,7 @@ import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.Semaphore
+import javax.net.ServerSocketFactory
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ private const val SOCKET_TIMEOUT_MS = 10_000
 class RoomAudioServer(
     private val context: Context,
     private val roomToken: String,
+    private val serverSockets: ServerSocketFactory,
     private val queueProvider: () -> List<Song>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -33,7 +35,7 @@ class RoomAudioServer(
     private val connections = Semaphore(MAX_LISTENING_ROOM_GUESTS)
 
     fun start(): Int {
-        val server = ServerSocket(0)
+        val server = serverSockets.createServerSocket(0)
         serverSocket = server
         scope.launch {
             while (!server.isClosed) {

@@ -12,6 +12,7 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.Inet4Address
 import java.net.InetSocketAddress
+import javax.net.ssl.SSLSocket
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
@@ -25,6 +26,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.DesktopCertificate
+import `in`.caffeinelabs.cassettecat.data.streaming.sha256Fingerprint
+import `in`.caffeinelabs.cassettecat.data.streaming.trustRoomHostCertificate
+import java.security.cert.X509Certificate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -41,6 +46,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private const val SERVICE_TYPE = "_cassettecat-room._tcp."
+// Rooms are encrypted from version 2; earlier rooms are plain text, so neither side can join the other's.
+private const val ROOM_VERSION = "2"
 // No look-alike characters (I, O, 0, 1), so codes are easy to read aloud and type.
 private const val ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 private const val MAX_WIRE_LINE_LENGTH = 65536
@@ -160,6 +167,8 @@ class LocalListeningRoomRepository(context: Context) {
     private var discoveryJob: Job? = null
     private var guestSocket: Socket? = null
     private var guestWriter: BufferedWriter? = null
+    // The certificate of the host joined, so a reconnect reaches the same host.
+    private var hostFingerprint: String? = null
     @Volatile private var hostClock = HostClock()
     private var audioServer: RoomAudioServer? = null
     private var audioPort: Int? = null
@@ -194,13 +203,14 @@ class LocalListeningRoomRepository(context: Context) {
                 return@launch
             }
             runCatching {
-                val server = ServerSocket(0)
+                val serverSockets = newRoomServerSocketFactory()
+                val server = serverSockets.createServerSocket(0)
                 serverSocket = server
                 val code = buildRoomCode()
                 val name = appContext.getString(R.string.listening_room_default_name, code)
                 registerHost(name, code, server.localPort)
                 val ip = localIpAddress()
-                val relay = RoomAudioServer(appContext, code, queueProvider)
+                val relay = RoomAudioServer(appContext, code, serverSockets, queueProvider)
                 audioServer = relay
                 audioPort = relay.start()
                 _state.value = ListeningRoomState(
@@ -247,7 +257,7 @@ class LocalListeningRoomRepository(context: Context) {
                             port = info.port,
                             roomCode = info.attributes["room"]?.toString(Charsets.UTF_8).orEmpty()
                         )
-                        if (room.roomCode.isBlank()) return
+                        if (room.roomCode.isBlank() || info.attributes["version"]?.toString(Charsets.UTF_8) != ROOM_VERSION) return
                         discovered[room.id] = room
                         _state.value = _state.value.copy(nearbyRooms = discovered.values.toList(), notice = null)
                     }
@@ -314,11 +324,20 @@ class LocalListeningRoomRepository(context: Context) {
     }
 
     private fun openGuestSocket(host: String, port: Int, roomName: String, roomCode: String) {
-        val socket = Socket()
+        val plain = Socket()
+        var socket: Socket = plain
         var writer: BufferedWriter? = null
         var joined = false
         try {
-            socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+            plain.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+            val secure = RoomTrustManager(hostFingerprint).socketFactory().createSocket(plain, host, port, true) as SSLSocket
+            socket = secure
+            secure.soTimeout = CONNECT_TIMEOUT_MS
+            secure.startHandshake()
+            secure.soTimeout = 0
+            val fingerprint = (secure.session.peerCertificates.first() as X509Certificate).sha256Fingerprint()
+            hostFingerprint = fingerprint
+            trustRoomHostCertificate(DesktopCertificate(secure.inetAddress.hostAddress ?: host, fingerprint))
             writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
             writer.write(roomCode)
             writer.newLine()
@@ -399,7 +418,7 @@ class LocalListeningRoomRepository(context: Context) {
             serviceType = SERVICE_TYPE
             this.port = port
             setAttribute("room", code)
-            setAttribute("version", "1")
+            setAttribute("version", ROOM_VERSION)
         }
         val listener = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(info: NsdServiceInfo) = Unit
@@ -480,6 +499,8 @@ class LocalListeningRoomRepository(context: Context) {
         guestWriter = null
         guestSocket?.let { runCatching { it.close() } }
         guestSocket = null
+        hostFingerprint = null
+        trustRoomHostCertificate(null)
         serverSocket?.let { runCatching { it.close() } }
         serverSocket = null
         discovered.clear()
