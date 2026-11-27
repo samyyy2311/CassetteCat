@@ -85,6 +85,7 @@ private val HOME_SECTION_ORDER = stringPreferencesKey("home_section_order")
 private val SHOW_MINI_PLAYER_PROGRESS = booleanPreferencesKey("show_mini_player_progress")
 private val MINI_PLAYER_ACTION = stringPreferencesKey("mini_player_action")
 private val PLAYER_CONTROLS_STYLE = stringPreferencesKey("player_controls_style")
+private val SEEK_BAR_STYLE = stringPreferencesKey("seek_bar_style")
 private val ARTWORK_ACCENT_ENABLED = booleanPreferencesKey("artwork_accent_enabled")
 private val AUTO_DRIVE_MODE_BLUETOOTH = booleanPreferencesKey("auto_drive_mode_bluetooth")
 
@@ -120,6 +121,8 @@ enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOT
 enum class MiniPlayerAction { NEXT, PREVIOUS, FAVORITE, QUEUE, REPEAT }
 
 enum class PlayerControlsStyle { CLASSIC, CLICK_WHEEL }
+
+enum class SeekBarStyle { FADER, LINE }
 
 enum class AlbumArtCornerStyle(val radiusDp: Int) {
     CURVED(16),
@@ -223,6 +226,7 @@ data class AppPreferences(
     val showMiniPlayerProgress: Boolean = true,
     val miniPlayerAction: MiniPlayerAction = MiniPlayerAction.NEXT,
     val playerControlsStyle: PlayerControlsStyle = PlayerControlsStyle.CLASSIC,
+    val seekBarStyle: SeekBarStyle = SeekBarStyle.FADER,
     val artworkAccentEnabled: Boolean = false,
     val autoDriveModeBluetooth: Boolean = false,
     val radioSortOrder: String = "POPULARITY",
@@ -338,6 +342,7 @@ class AppPreferencesRepository(private val context: Context) {
             showMiniPlayerProgress = prefs[SHOW_MINI_PLAYER_PROGRESS] ?: true,
             miniPlayerAction = enumValueOrDefault(prefs[MINI_PLAYER_ACTION], MiniPlayerAction.NEXT),
             playerControlsStyle = enumValueOrDefault(prefs[PLAYER_CONTROLS_STYLE], PlayerControlsStyle.CLASSIC),
+            seekBarStyle = enumValueOrDefault(prefs[SEEK_BAR_STYLE], SeekBarStyle.FADER),
             artworkAccentEnabled = prefs[ARTWORK_ACCENT_ENABLED] ?: false,
             radioSortOrder = prefs[RADIO_SORT_ORDER] ?: "POPULARITY",
             radioSortDirection = prefs[RADIO_SORT_DIRECTION] ?: "DESCENDING",
@@ -627,6 +632,10 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[PLAYER_CONTROLS_STYLE] = style.name }
     }
 
+    suspend fun setSeekBarStyle(style: SeekBarStyle) {
+        context.appPreferencesDataStore.edit { it[SEEK_BAR_STYLE] = style.name }
+    }
+
     suspend fun setArtworkAccentEnabled(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[ARTWORK_ACCENT_ENABLED] = enabled }
     }
@@ -739,6 +748,7 @@ class AppPreferencesRepository(private val context: Context) {
             showMiniPlayerProgress = current.showMiniPlayerProgress,
             miniPlayerAction = current.miniPlayerAction.name,
             playerControlsStyle = current.playerControlsStyle.name,
+            seekBarStyle = current.seekBarStyle.name,
             artworkAccentEnabled = current.artworkAccentEnabled,
             autoDriveModeBluetooth = current.autoDriveModeBluetooth,
             radioSortOrder = current.radioSortOrder,
@@ -826,6 +836,7 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[SHOW_MINI_PLAYER_PROGRESS] = backup.showMiniPlayerProgress
             prefs[MINI_PLAYER_ACTION] = backup.miniPlayerAction
             prefs[PLAYER_CONTROLS_STYLE] = backup.playerControlsStyle
+            prefs[SEEK_BAR_STYLE] = backup.seekBarStyle
             prefs[ARTWORK_ACCENT_ENABLED] = backup.artworkAccentEnabled
             prefs[AUTO_DRIVE_MODE_BLUETOOTH] = backup.autoDriveModeBluetooth
             prefs[RADIO_SORT_ORDER] = backup.radioSortOrder

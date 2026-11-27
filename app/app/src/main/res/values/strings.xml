@@ -566,6 +566,12 @@
     <string name="customization_player_controls_classic">Classic</string>
     <string name="customization_player_controls_classic_description">The original tape-deck fader and buttons</string>
     <string name="customization_player_controls_click_wheel">Click Wheel</string>
+    <string name="customization_seek_bar">Seek Bar</string>
+    <string name="customization_seek_bar_description">Choose how the song’s progress looks</string>
+    <string name="customization_seek_bar_fader">Fader</string>
+    <string name="customization_seek_bar_fader_description">A ridged groove with a fader cap you slide</string>
+    <string name="customization_seek_bar_line">Line</string>
+    <string name="customization_seek_bar_line_description">A thin line in the accent colour, as on the desktop app. The handle shows while you drag.</string>
     <string name="customization_player_controls_click_wheel_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
     <string name="customization_app_typography">App Typography</string>
     <string name="customization_app_typography_description">Choose the font family used throughout the app</string>

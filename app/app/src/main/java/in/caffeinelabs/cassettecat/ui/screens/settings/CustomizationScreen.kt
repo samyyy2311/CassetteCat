@@ -74,6 +74,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
+import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
@@ -542,6 +543,17 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
                 label = { playerControlsStyleLabel(it) },
                 sheetSubtitle = { playerControlsStyleDescription(it) },
                 onSelect = viewModel::setPlayerControlsStyle
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_seek_bar),
+                subtitle = stringResource(AppR.string.customization_seek_bar_description),
+                iconRes = R.drawable.lucide_ic_git_commit_horizontal,
+                options = SeekBarStyle.entries,
+                selected = prefs.seekBarStyle,
+                label = { seekBarStyleLabel(it) },
+                sheetSubtitle = { seekBarStyleDescription(it) },
+                onSelect = viewModel::setSeekBarStyle
             )
             SettingsDivider()
             SheetPickerRow(
@@ -1516,6 +1528,22 @@ private fun playerControlsStyleLabel(style: PlayerControlsStyle): String = strin
     when (style) {
         PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic
         PlayerControlsStyle.CLICK_WHEEL -> AppR.string.customization_player_controls_click_wheel
+    }
+)
+
+@Composable
+private fun seekBarStyleLabel(style: SeekBarStyle): String = stringResource(
+    when (style) {
+        SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader
+        SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line
+    }
+)
+
+@Composable
+private fun seekBarStyleDescription(style: SeekBarStyle): String = stringResource(
+    when (style) {
+        SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader_description
+        SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line_description
     }
 )
 

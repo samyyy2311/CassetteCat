@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -43,10 +44,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -57,6 +60,7 @@ import androidx.media3.common.Player
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -276,8 +280,18 @@ internal fun ScrubberControl(
                 lastHapticTickMs = null
             },
             valueRange = 0f..safeDuration.coerceAtLeast(1f),
-            track = { sliderState -> FaderTrack(sliderState, isActive = isDragging) },
-            thumb = { FaderThumb(isActive = isDragging) }
+            track = { sliderState ->
+                when (preferences.seekBarStyle) {
+                    SeekBarStyle.FADER -> FaderTrack(sliderState, isActive = isDragging)
+                    SeekBarStyle.LINE -> LineTrack(sliderState, isActive = isDragging)
+                }
+            },
+            thumb = {
+                when (preferences.seekBarStyle) {
+                    SeekBarStyle.FADER -> FaderThumb(isActive = isDragging)
+                    SeekBarStyle.LINE -> LineThumb(isActive = isDragging)
+                }
+            }
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -381,6 +395,40 @@ private fun FaderTrack(sliderState: SliderState, isActive: Boolean) {
                 .fillMaxWidth(fraction)
                 .fillMaxHeight()
                 .background(filledColor, RoundedCornerShape(2.dp))
+        )
+    }
+}
+
+// The desktop app's seek bar: a thin line that thickens while dragged.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LineTrack(sliderState: SliderState, isActive: Boolean) {
+    val height by animateDpAsState(if (isActive) 5.dp else 3.dp, tween(100), label = "lineTrackHeight")
+    val range = (sliderState.valueRange.endInclusive - sliderState.valueRange.start).coerceAtLeast(1f)
+    val fraction = ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
+    val shape = RoundedCornerShape(50)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f))
+    ) {
+        Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary, shape))
+    }
+}
+
+// Shown only while dragging, as on the desktop. Its width stays fixed, as the slider insets the track by it.
+@Composable
+private fun LineThumb(isActive: Boolean) {
+    val alpha by animateFloatAsState(if (isActive) 1f else 0f, tween(100), label = "lineThumbAlpha")
+    Box(Modifier.size(width = 10.dp, height = 18.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { this.alpha = alpha }
+                .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(5.dp))
+                .border(1.5.dp, MaterialTheme.colorScheme.tertiary, RoundedCornerShape(5.dp))
         )
     }
 }

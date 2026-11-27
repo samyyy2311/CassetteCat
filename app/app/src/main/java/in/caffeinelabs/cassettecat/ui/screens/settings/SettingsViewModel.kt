@@ -23,6 +23,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
+import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettings
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
@@ -176,6 +177,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setPlayerControlsStyle(style: PlayerControlsStyle) {
         viewModelScope.launch { appPreferencesRepository.setPlayerControlsStyle(style) }
+    }
+
+    fun setSeekBarStyle(style: SeekBarStyle) {
+        viewModelScope.launch { appPreferencesRepository.setSeekBarStyle(style) }
     }
 
     fun setArtworkAccentEnabled(enabled: Boolean) {
