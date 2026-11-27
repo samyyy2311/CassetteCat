@@ -37,7 +37,9 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -78,6 +80,8 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
+private const val POSITION_EASE_MS = 250
+private const val POSITION_JUMP_MS = 1_000f
 
 internal fun isSeekablePlayback(durationMs: Long): Boolean = durationMs > 0L
 
@@ -263,9 +267,18 @@ internal fun ScrubberControl(
     val safeDuration = durationMs.coerceAtLeast(0L).toFloat()
 
     val targetSliderValue = effectivePositionMs.toFloat().coerceIn(0f, safeDuration.coerceAtLeast(1f))
+    // The position arrives every quarter second, so easing over the same time keeps the bar moving
+    // steadily. A new song or a seek jumps straight there instead of sweeping across the bar.
+    var previousTarget by remember { mutableFloatStateOf(targetSliderValue) }
+    val jumped = abs(targetSliderValue - previousTarget) > POSITION_JUMP_MS
+    SideEffect { previousTarget = targetSliderValue }
     val animatedSliderValue by animateFloatAsState(
         targetValue = targetSliderValue,
-        animationSpec = if (isDragging || pendingSeekMs != null) snap() else tween(durationMillis = 100, easing = LinearEasing),
+        animationSpec = if (isDragging || pendingSeekMs != null || jumped) {
+            snap()
+        } else {
+            tween(durationMillis = POSITION_EASE_MS, easing = LinearEasing)
+        },
         label = "scrubberSliderPosition"
     )
 

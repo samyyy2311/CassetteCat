@@ -1322,11 +1322,6 @@ fun <T> SheetPickerRow(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .then(
-                                        if (isSelected) Modifier.background(
-                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
-                                        ) else Modifier
-                                    )
                                     .clickable(onClick = hapticClick {
                                         onSelect(option)
                                         open = false
