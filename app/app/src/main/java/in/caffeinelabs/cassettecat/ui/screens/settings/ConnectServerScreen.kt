@@ -55,6 +55,7 @@ import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
+import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 @Composable
@@ -77,10 +78,7 @@ fun ConnectServerScreen(
     var pendingQuickConnect by rememberSaveable { mutableStateOf(false) }
     var signedInWithPassword by rememberSaveable { mutableStateOf(false) }
 
-    fun normalizedServerUrl(): String {
-        val trimmed = serverUrl.trim()
-        return if (trimmed.toUri().scheme == null) "https://$trimmed" else trimmed
-    }
+    fun normalizedServerUrl(): String = completeServerUrl(serverUrl)
 
     val autofill = LocalAutofillManager.current
     // Lets the password manager offer to save the sign-in once the server accepts it. Quick Connect has no password.

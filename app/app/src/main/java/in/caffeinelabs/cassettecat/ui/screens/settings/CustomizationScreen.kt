@@ -615,14 +615,6 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
             )
             SettingsDivider()
             ToggleRow(
-                title = stringResource(AppR.string.customization_gapless),
-                subtitle = stringResource(AppR.string.customization_gapless_description),
-                checked = prefs.gaplessPlayback,
-                onCheckedChange = viewModel::setGaplessPlayback,
-                iconRes = R.drawable.lucide_ic_disc,
-            )
-            SettingsDivider()
-            ToggleRow(
                 title = stringResource(AppR.string.customization_skip_silence),
                 subtitle = stringResource(AppR.string.customization_skip_silence_description),
                 checked = prefs.skipSilence,

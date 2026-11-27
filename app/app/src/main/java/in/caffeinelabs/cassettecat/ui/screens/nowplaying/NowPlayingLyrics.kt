@@ -55,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -562,6 +563,7 @@ internal fun LyricsView(
             InstrumentalWaveformView(
                 artist = artist,
                 isPlaying = isPlaying,
+                positionMs = positionMs,
                 onReturnToPlayer = onReturnToPlayer,
                 onSearchLyrics = onSearchLyrics,
                 modifier = modifier
@@ -845,14 +847,34 @@ private fun WaveformBar(
 internal fun InstrumentalWaveformView(
     artist: String?,
     isPlaying: Boolean,
+    positionMs: Long,
     onReturnToPlayer: () -> Unit,
     onSearchLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val barWeights = remember { floatArrayOf(0.42f, 0.72f, 0.56f, 1.0f, 0.62f, 0.82f, 0.46f) }
-    val musicAmplitudes by AudioWaveformHolder.amplitudes.collectAsStateWithLifecycle()
-    val hasAudioSignal = remember(musicAmplitudes) {
-        musicAmplitudes.any { it > 0.02f }
+    var musicAmplitudes by remember { mutableStateOf<FloatArray?>(null) }
+    val hasAudioSignal = musicAmplitudes?.any { it > 0.02f } == true
+    DisposableEffect(Unit) {
+        AudioWaveformHolder.watch()
+        onDispose { AudioWaveformHolder.unwatch() }
+    }
+    // The position arrives a few times a second, so it is run forward between updates to pick
+    // the bands for each frame.
+    val currentPositionMs by rememberUpdatedState(positionMs)
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) return@LaunchedEffect
+        var anchorPositionMs = currentPositionMs
+        var anchorFrameMs = withFrameMillis { it }
+        while (true) {
+            withFrameMillis { frameMs ->
+                if (currentPositionMs != anchorPositionMs) {
+                    anchorPositionMs = currentPositionMs
+                    anchorFrameMs = frameMs
+                }
+                musicAmplitudes = AudioWaveformHolder.bandsAt(anchorPositionMs + frameMs - anchorFrameMs)
+            }
+        }
     }
 
     val transition = rememberInfiniteTransition(label = "waveformPulse")
@@ -916,7 +938,7 @@ internal fun InstrumentalWaveformView(
         ) {
             barWeights.forEachIndexed { index, weight ->
                 val amp = if (isPlaying) {
-                    if (hasAudioSignal) musicAmplitudes.getOrElse(index) { 0.15f }
+                    if (hasAudioSignal) musicAmplitudes?.getOrNull(index) ?: 0.15f
                     else fallbackAmplitudes[index]
                 } else {
                     0f
