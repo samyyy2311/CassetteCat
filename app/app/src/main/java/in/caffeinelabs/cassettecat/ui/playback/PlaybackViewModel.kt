@@ -203,6 +203,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
     val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
+    // The song the lyrics above belong to; for a moment after a change they're still the previous song's.
+    private val _lyricsSongId = MutableStateFlow<String?>(null)
+    val lyricsSongId: StateFlow<String?> = _lyricsSongId.asStateFlow()
     private val _fallbackLyrics = MutableStateFlow<String?>(null)
     val fallbackLyrics: StateFlow<String?> = _fallbackLyrics.asStateFlow()
     private val _lyricsProvider = MutableStateFlow<String?>(null)
@@ -314,7 +317,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         // only when there's no embedded lyrics for the current song
         viewModelScope.launch {
-            var lyricsSongId: String? = null
             playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
                 .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
                     // Only a song on the phone waits for its file's tags before going online.
@@ -326,11 +328,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     val embedded = request.embeddedLyrics
                     // Lyrics stay up while the same song is looked at again, and a new song shows nothing
                     // until its lyrics are known, so neither the instrumental view nor stale text flashes.
-                    if (song?.id != lyricsSongId) {
-                        lyricsSongId = song?.id
+                    if (song?.id != _lyricsSongId.value) {
                         _syncedLyrics.value = null
                         _fallbackLyrics.value = null
                         _lyricsProvider.value = null
+                        _lyricsSongId.value = song?.id
                     }
                     _isLoadingLyrics.value = true
                     // Lyrics files and tags are only read for songs stored on this phone.
