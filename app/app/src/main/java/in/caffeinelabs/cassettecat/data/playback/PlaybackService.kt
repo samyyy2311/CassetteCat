@@ -50,8 +50,6 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
-import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.text.TextOutput
@@ -869,18 +867,6 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
         ) = Unit
 
         override fun buildImageRenderers(context: Context, out: ArrayList<Renderer>) = Unit
-
-        override fun buildAudioSink(
-            context: Context,
-            enableFloatOutput: Boolean,
-            enableAudioTrackPlaybackParams: Boolean
-        ): AudioSink? {
-            return DefaultAudioSink.Builder(context)
-                .setAudioProcessors(arrayOf(AudioWaveformProcessor.instance))
-                .setEnableFloatOutput(enableFloatOutput)
-                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .build()
-        }
     }
 
 // Keeps hardware and notification navigation sequential through the playlist timeline.
