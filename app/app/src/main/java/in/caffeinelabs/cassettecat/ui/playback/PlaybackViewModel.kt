@@ -38,6 +38,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackStateRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
+import `in`.caffeinelabs.cassettecat.data.playback.QueueRemoval
 import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
@@ -79,6 +80,7 @@ private const val SAVE_EVERY_N_TICKS = 40 // ~10s at POSITION_TICK_ACTIVE_MS
 private const val PLAY_COUNT_SHARE = 0.9
 private const val UNKNOWN_LENGTH_PLAY_MS = 30_000L
 private const val SCROBBLE_MAX_WAIT_MS = 4 * 60 * 1000L
+private const val QUEUE_UNDO_MS = 5_000L
 private const val SCROBBLE_MIN_LENGTH_MS = 30_000L
 private const val REPLAY_START_MS = 5_000L
 
@@ -671,7 +673,26 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun removeFromUpNext(songId: String) {
         val song = playbackState.value.upNext.firstOrNull { it.id == songId }
         if (song != null && desktop.removeFromQueue(song)) return
-        if (!isFollowingRoomHost()) repository.removeFromUpNext(songId)
+        if (isFollowingRoomHost()) return
+        val removal = repository.removeFromUpNext(songId) ?: return
+        _queueRemoval.value = removal
+        queueUndoExpiry?.cancel()
+        queueUndoExpiry = viewModelScope.launch {
+            delay(QUEUE_UNDO_MS)
+            _queueRemoval.value = null
+        }
+    }
+
+    // The last song removed from Up Next, while it can still be put back.
+    private val _queueRemoval = MutableStateFlow<QueueRemoval?>(null)
+    val queueRemoval: StateFlow<QueueRemoval?> = _queueRemoval.asStateFlow()
+    private var queueUndoExpiry: Job? = null
+
+    fun undoQueueRemoval() {
+        val removal = _queueRemoval.value ?: return
+        _queueRemoval.value = null
+        queueUndoExpiry?.cancel()
+        repository.restoreToUpNext(removal)
     }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {

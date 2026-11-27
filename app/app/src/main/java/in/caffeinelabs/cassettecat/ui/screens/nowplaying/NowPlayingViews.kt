@@ -6,6 +6,8 @@ import `in`.caffeinelabs.cassettecat.ui.navigation.AppBackHandler
 import `in`.caffeinelabs.cassettecat.ui.navigation.BackLayer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -55,6 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
@@ -70,6 +74,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
+import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 @Composable
 internal fun NowPlayingPlayerView(
@@ -310,6 +315,40 @@ internal fun NowPlayingQueueView(
                 onSkipNext = onSkipNext,
                 onSkipPrevious = onSkipPrevious
             )
+            val removal by playbackViewModel.queueRemoval.collectAsStateWithLifecycle()
+            // Called by its full name: the Column around this Box would otherwise pick ColumnScope's version.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = removal != null,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
+            ) {
+                removal?.let { QueueUndoBar(it.song.title, onUndo = { playbackViewModel.undoQueueRemoval() }) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QueueUndoBar(title: String, onUndo: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+            .padding(start = 16.dp, end = 4.dp)
+    ) {
+        Text(
+            stringResource(AppR.string.queue_removed, title),
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        TextButton(onClick = hapticClick(onUndo)) {
+            Text(stringResource(AppR.string.queue_undo), color = MaterialTheme.colorScheme.tertiary)
         }
     }
 }
