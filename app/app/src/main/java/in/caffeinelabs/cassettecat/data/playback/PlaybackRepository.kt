@@ -15,6 +15,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.id3.BinaryFrame
+import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -656,6 +657,7 @@ class PlaybackRepository(private val context: Context) {
             previousInQueue = currentQueue.getOrNull(index - 1),
             history = history.toList(),
             currentLyrics = extractLyrics(c.currentTracks),
+            tracksLoaded = !c.currentTracks.isEmpty,
             audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }
@@ -754,6 +756,11 @@ private fun extractLyrics(tracks: Tracks): String? {
             for (j in 0 until metadata.length()) {
                 when (val entry = metadata.get(j)) {
                     is BinaryFrame -> if (entry.id == "USLT") parseUsltFrame(entry.data)?.let { return it }
+                    // MP4 files, such as Apple Music's, keep lyrics in a ©lyr atom that Media3 reads as text.
+                    is TextInformationFrame -> if (entry.id == "USLT") {
+                        entry.values.joinToString("
+").trim().ifEmpty { null }?.let { return it }
+                    }
                     is VorbisComment -> if (entry.key == "LYRICS" || entry.key == "UNSYNCEDLYRICS") {
                         return entry.value.trim().ifEmpty { null }
                     }

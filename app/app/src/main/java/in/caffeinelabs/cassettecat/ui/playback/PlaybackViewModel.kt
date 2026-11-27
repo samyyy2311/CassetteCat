@@ -103,7 +103,7 @@ private class CurrentListen(val song: Song) {
     var scrobbled = false
     var positionMs = 0L
 }
-private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
+private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean, val tracksLoaded: Boolean)
 
 internal fun instantMixAffinity(
     seedArtist: String,
@@ -313,9 +313,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
         // only when there's no embedded lyrics for the current song
         viewModelScope.launch {
-            playbackState.map { it.currentSong to it.currentLyrics }
-                .combine(serviceSettingsRepository.settings) { (song, embedded), settings ->
-                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB))
+            playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
+                .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
+                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB), tracksLoaded)
                 }
                 .distinctUntilChanged()
                 .collectLatest { request ->
@@ -348,6 +348,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         loadEmbedded() || loadLocalFile()
                     }
                     if (found || song == null || !request.lrcLibEnabled) return@collectLatest
+                    // A song on the phone may carry its own lyrics, which are only known once the player has
+                    // opened the file; this runs again then.
+                    if (localSong != null && !request.tracksLoaded) return@collectLatest
                     _isLoadingLyrics.value = true
                     try {
                         lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
