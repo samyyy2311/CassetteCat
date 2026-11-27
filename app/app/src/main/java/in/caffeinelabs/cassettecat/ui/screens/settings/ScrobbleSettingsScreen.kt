@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccount
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccountConfig
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleSettings
@@ -177,6 +178,16 @@ fun ScrobbleSettingsScreen(
                 onEnabledChange = { enabled -> scope.launch { repository.setAccountEnabled(account, enabled) } },
                 onDisconnect = { scope.launch { repository.disconnectAccount(account) } },
                 onConnect = { signingInTo = account }
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+        // Builds without the project's Last.fm API account, such as F-Droid's, leave Last.fm out.
+        if (AudioscrobblerClient.lastFm == null) {
+            Text(
+                stringResource(AppR.string.scrobbling_lastfm_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp)
             )
             Spacer(Modifier.height(24.dp))
         }

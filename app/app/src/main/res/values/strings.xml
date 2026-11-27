@@ -1531,6 +1531,7 @@
     <string name="scrobbling_lastfm_section" translatable="false">LAST.FM</string>
     <string name="queue_removed">Removed %1$s</string>
     <string name="queue_undo">Undo</string>
+    <string name="scrobbling_lastfm_unavailable">Last.fm isn’t included in this version of the app. ListenBrainz and Libre.fm work as usual.</string>
     <string name="scrobbling_loves_section">Loves</string>
     <string name="scrobbling_sync_likes">Sync Likes</string>
     <string name="scrobbling_sync_likes_description">Songs you like are marked as loved on your accounts. Sync adds the ones you liked before</string>
