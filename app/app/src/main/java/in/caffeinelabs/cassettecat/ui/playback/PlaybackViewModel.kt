@@ -39,6 +39,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.PlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackStateRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.QueueRemoval
+import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
@@ -334,11 +335,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         return true
                     }
                     suspend fun loadEmbedded(): Boolean {
-                        if (embedded.isNullOrBlank()) {
-                            val tagged = localSong?.let { embeddedLyricsLoader.loadFor(it) }
-                            if (tagged.isNullOrBlank()) return false
-                            _fallbackLyrics.value = tagged
-                        }
+                        val text = embedded?.takeIf { it.isNotBlank() }
+                            ?: localSong?.let { embeddedLyricsLoader.loadFor(it) }?.takeIf { it.isNotBlank() }
+                            ?: return false
+                        // Files often carry timed LRC text rather than plain lyrics; those follow the song.
+                        val timed = parseLrc(text)
+                        if (timed.isNotEmpty()) _syncedLyrics.value = timed
+                        else if (embedded.isNullOrBlank()) _fallbackLyrics.value = text
                         _lyricsProvider.value = "Embedded metadata"
                         return true
                     }
