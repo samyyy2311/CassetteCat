@@ -189,8 +189,10 @@ internal fun LyricsView(
             lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
             return@LaunchedEffect
         }
-        lyricsAlpha.animateTo(0f, tween(LYRICS_FADE_MS))
-        if (target.isLoading) return@LaunchedEffect
+        // The loading view starts blank, so fading it out would only hold the lyrics back.
+        if (held.isLoading) lyricsAlpha.snapTo(0f) else lyricsAlpha.animateTo(0f, tween(LYRICS_FADE_MS))
+        // Once the old lyrics have gone, the loading view takes their place, so they can't be tapped and the
+        // loading hint can appear.
         held = target
         lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
     }

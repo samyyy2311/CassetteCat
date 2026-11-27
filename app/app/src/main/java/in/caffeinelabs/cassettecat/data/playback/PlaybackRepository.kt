@@ -683,7 +683,9 @@ class PlaybackRepository(private val context: Context) {
             history = history.toList(),
             currentLyrics = if (tracksCurrent) extractLyrics(c.currentTracks) else null,
             // A file the player can't open never reports tracks, so its error counts as having looked.
-            tracksLoaded = tracksCurrent || c.playerError != null,
+            // An idle player isn't opening the file, after an error or with a restored queue not yet played, so
+            // no tags are coming.
+            tracksLoaded = tracksCurrent || c.playbackState == Player.STATE_IDLE,
             audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }

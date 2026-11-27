@@ -174,16 +174,19 @@ internal object ScrobbleOutbox {
                     items.value
                 }
                 val now = System.currentTimeMillis()
-                // An earlier choice for the song may be mid-send and about to change the record, so it isn't trusted.
-                val pending = items.value.filter { it.kind == OutboxItem.Kind.LOVE }.mapTo(mutableSetOf()) {
+                val waiting = items.value.filter { it.kind == OutboxItem.Kind.LOVE }.associateBy {
                     songMatchKey(it.title, it.artist)
                 }
                 items.value = kept + songs.mapNotNull { song ->
                     val key = songMatchKey(song.title, song.artist)
-                    val alreadyLoved = if (kind == OutboxItem.Kind.LOVE && loved && key !in pending) {
-                        services.filterTo(mutableSetOf()) { lovedOn[records[it]]?.containsKey(key) == true }
-                    } else {
-                        emptySet()
+                    val earlier = waiting[key]
+                    val alreadyLoved = when {
+                        kind != OutboxItem.Kind.LOVE -> emptySet()
+                        // The same choice keeps the accounts that already took it.
+                        earlier != null && earlier.loved == loved -> earlier.delivered
+                        // The opposite choice may be mid-send and about to change the record, so it isn't trusted.
+                        earlier != null || !loved -> emptySet()
+                        else -> services.filterTo(mutableSetOf()) { lovedOn[records[it]]?.containsKey(key) == true }
                     }
                     // Every connected service has it already; a service connected later still gets it from Sync Likes.
                     if (services.isNotEmpty() && alreadyLoved.containsAll(services)) return@mapNotNull null
