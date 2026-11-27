@@ -886,6 +886,16 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
                 onCheckedChange = viewModel::setLyricsForSearch,
                 iconRes = R.drawable.lucide_ic_text_search,
             )
+            if (prefs.lyricsForSearch) {
+                SettingsDivider()
+                ToggleRow(
+                    title = stringResource(AppR.string.customization_lyrics_for_search_mobile_data),
+                    subtitle = stringResource(AppR.string.customization_lyrics_for_search_mobile_data_description),
+                    checked = prefs.lyricsForSearchOnMobileData,
+                    onCheckedChange = viewModel::setLyricsForSearchOnMobileData,
+                    iconRes = R.drawable.lucide_ic_signal,
+                )
+            }
         }
     }
 }

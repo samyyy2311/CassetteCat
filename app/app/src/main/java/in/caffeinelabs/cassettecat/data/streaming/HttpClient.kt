@@ -13,6 +13,15 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+// Follows the blackout setting. While it's on, nothing leaves the home network, whichever part
+// of the app asks, so a feature that forgets to check the setting still can't reach the internet.
+@Volatile
+var blackoutActive = false
+
+fun checkBlackout(host: String) {
+    if (blackoutActive && !isHomeNetworkHost(host)) throw IOException("Blackout mode is on")
+}
+
 val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     .sslSocketFactory(tofuSslSocketFactory, tofuTrustManager)
     .hostnameVerifier(pinnedHostnameVerifier)
@@ -20,6 +29,7 @@ val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
     // Hard ceiling on total duration; per-read timeouts reset when servers trickle bytes.
     .callTimeout(45, TimeUnit.SECONDS)
     .addInterceptor { chain ->
+        checkBlackout(chain.request().url.host)
         val request = chain.request().newBuilder()
             .header("User-Agent", "CassetteCat/${BuildConfig.VERSION_NAME} (https://github.com/samyyy2311/CassetteCat)")
             .build()

@@ -282,13 +282,16 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             combine(
                 _uiState.mapNotNull { (it as? LibraryUiState.Loaded)?.songs },
-                appPreferencesRepository.preferences.map { it.lyricsForSearch },
+                appPreferencesRepository.preferences.map { it.lyricsForSearch to it.lyricsForSearchOnMobileData },
                 serviceSettingsRepository.settings.map { it.isEnabled(ExternalService.LRCLIB) }
-            ) { songs, wanted, lrcLibOn -> songs to (wanted && lrcLibOn) }
+            ) { songs, (wanted, onMobileData), lrcLibOn -> Triple(songs, wanted && lrcLibOn, onMobileData) }
                 .distinctUntilChanged { old, new ->
-                    old.second == new.second && old.first.map(Song::id).toSet() == new.first.map(Song::id).toSet()
+                    old.second == new.second && old.third == new.third &&
+                        old.first.map(Song::id).toSet() == new.first.map(Song::id).toSet()
                 }
-                .collect { (songs, enabled) -> LibraryLyricsFetcher.update(getApplication(), songs, enabled) }
+                .collect { (songs, enabled, onMobileData) ->
+                    LibraryLyricsFetcher.update(getApplication(), songs, enabled, onMobileData)
+                }
         }
         viewModelScope.launch {
             metadataOverridesRepo.overrides.collect {

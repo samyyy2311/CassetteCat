@@ -44,6 +44,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -81,6 +82,7 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
+import `in`.caffeinelabs.cassettecat.data.streaming.checkBlackout
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -157,7 +159,11 @@ class PlaybackService : MediaLibraryService() {
         favoritesRepository = FavoritesRepository(this)
         libraryTree = MediaLibraryTree(this)
 
-        val directFactory = DefaultDataSource.Factory(this)
+        // Streams are refused in blackout like every other request, whatever started the playback.
+        val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
+            if (spec.uri.scheme == "http" || spec.uri.scheme == "https") checkBlackout(spec.uri.host.orEmpty())
+            spec
+        }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent
         // write from playback stalls the download instead of erroring.
         val cacheDataSourceFactory = CacheDataSource.Factory()

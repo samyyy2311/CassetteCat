@@ -137,6 +137,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setLyricsForSearch(enabled) }
     }
 
+    fun setLyricsForSearchOnMobileData(enabled: Boolean) {
+        viewModelScope.launch { appPreferencesRepository.setLyricsForSearchOnMobileData(enabled) }
+    }
+
     fun setIgnoreShortAudioClips(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setIgnoreShortAudioClips(enabled) }
     }

@@ -683,6 +683,8 @@
     <string name="customization_lyrics_for_search_paused">Paused while LRCLIB is off or Offline mode is on</string>
     <string name="customization_lyrics_for_search_starting">Looking up lyrics…</string>
     <string name="customization_lyrics_for_search_wifi">Waiting for Wi-Fi</string>
+    <string name="customization_lyrics_for_search_mobile_data">Use Mobile Data Too</string>
+    <string name="customization_lyrics_for_search_mobile_data_description">Also look lyrics up on mobile data and metered Wi-Fi, such as a phone’s hotspot</string>
     <string name="customization_lyrics_for_search_done">%1$d of %2$d songs have lyrics</string>
 
     <string name="customization_streaming_cache">Streaming Cache Quota</string>
