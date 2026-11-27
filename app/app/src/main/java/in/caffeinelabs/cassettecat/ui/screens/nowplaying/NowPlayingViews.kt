@@ -65,6 +65,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
 import `in`.caffeinelabs.cassettecat.data.playback.adjustLyricsSync
+import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.ui.components.QueueList
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
@@ -93,6 +94,8 @@ internal fun NowPlayingPlayerView(
 ) {
     val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // The click wheel only replaces the player view's controls; lyrics and queue keep the compact classic row.
+    val isClickWheel = preferences.playerControlsStyle == PlayerControlsStyle.CLICK_WHEEL
 
     val art: @Composable (Modifier) -> Unit = { modifier ->
         AlbumArtCarousel(
@@ -131,10 +134,29 @@ internal fun NowPlayingPlayerView(
         Spacer(Modifier.height(8.dp))
         val chromeDragAlpha = ((expandFraction - CHROME_DRAG_FADE_FLOOR) / (1f - CHROME_DRAG_FADE_FLOOR))
             .coerceIn(0f, 1f)
-        PlaybackControls(
-            state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious,
-            modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
-        )
+        if (isClickWheel) {
+            ClickWheelControlsRow(
+                positionMs = positionMs,
+                durationMs = state.durationMs,
+                onSeek = { playbackViewModel.seekTo(it) },
+                onSkipPrevious = onSkipPrevious,
+                isPlaying = state.isPlaying,
+                playWhenReady = state.playWhenReady,
+                onTogglePlayPause = { playbackViewModel.togglePlayPause() },
+                onSkipNext = onSkipNext,
+                onMenu = onShowMenu,
+                isShuffleEnabled = state.isShuffleEnabled,
+                onToggleShuffle = { playbackViewModel.toggleShuffle() },
+                repeatMode = state.repeatMode,
+                onCycleRepeatMode = { playbackViewModel.cycleRepeatMode() },
+                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
+            )
+        } else {
+            PlaybackControls(
+                state, positionMs, playbackViewModel, onSkipNext, onSkipPrevious,
+                modifier = Modifier.graphicsLayer { alpha = chromeDragAlpha }
+            )
+        }
     }
 
     if (isLandscape) {
@@ -166,15 +188,28 @@ internal fun NowPlayingPlayerView(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.weight(4f))
-            art(
-                Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .aspectRatio(1f)
-            )
-            Spacer(Modifier.weight(3f))
+            if (isClickWheel) {
+                // The wheel needs a fixed height, so the artwork gives up room instead of the gaps.
+                Spacer(Modifier.height(16.dp))
+                art(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .weight(1f, fill = false)
+                        .aspectRatio(1f, matchHeightConstraintsFirst = true)
+                )
+                Spacer(Modifier.height(24.dp))
+            } else {
+                Spacer(Modifier.weight(4f))
+                art(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .aspectRatio(1f)
+                )
+                Spacer(Modifier.weight(3f))
+            }
             info()
-            Spacer(Modifier.height(64.dp))
+            // The bottom row's touch targets already add 12 dp, so this evens the wheel's gaps above and below.
+            Spacer(Modifier.height(if (isClickWheel) 8.dp else 64.dp))
             LyricsQueueToggleRow(activeView, onActiveViewChange, onOpenDevices, deviceName)
         }
     }
