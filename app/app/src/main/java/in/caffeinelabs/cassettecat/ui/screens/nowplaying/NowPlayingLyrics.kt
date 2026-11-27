@@ -176,12 +176,18 @@ internal fun LyricsView(
         if (syncedLyrics == null || syncOffsetMs == 0L) syncedLyrics else adjustLyricsSync(syncedLyrics, syncOffsetMs)
     }
 
-    // New lyrics fade in, so a new song, a lookup finishing or the instrumental view never pops in. Only the
-    // incoming lyrics are drawn, which keeps a song change light. The sync offset only moves timings, so it doesn't fade.
-    val shown = ShownLyrics(effectiveSyncedLyrics, syncedLyrics, lyrics, isLoading)
+    // On a song change the old lyrics fade out while the new ones load, then the new ones fade in, so nothing
+    // pops or blanks. Only one set is drawn at a time, which keeps the change light. A new sync offset only
+    // moves the timings, so it shows straight away.
+    val target = ShownLyrics(effectiveSyncedLyrics, syncedLyrics, lyrics, isLoading)
+    var held by remember { mutableStateOf(target) }
+    val shown = if (target.sameContentAs(held)) target else held
     val lyricsAlpha = remember { Animatable(1f) }
-    LaunchedEffect(shown.isLoading, shown.source, shown.plain) {
-        lyricsAlpha.snapTo(0f)
+    LaunchedEffect(target.isLoading, target.source, target.plain) {
+        if (target.sameContentAs(held)) return@LaunchedEffect
+        lyricsAlpha.animateTo(0f, tween(LYRICS_FADE_MS))
+        if (target.isLoading) return@LaunchedEffect
+        held = target
         lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
     }
     Box(Modifier.graphicsLayer { alpha = lyricsAlpha.value }) {
@@ -594,7 +600,9 @@ private data class ShownLyrics(
     val source: List<LyricLine>?,
     val plain: String?,
     val isLoading: Boolean
-)
+) {
+    fun sameContentAs(other: ShownLyrics) = isLoading == other.isLoading && source == other.source && plain == other.plain
+}
 
 private const val LYRICS_FADE_MS = 200
 private const val LOADING_HINT_DELAY_MS = 1_000L
