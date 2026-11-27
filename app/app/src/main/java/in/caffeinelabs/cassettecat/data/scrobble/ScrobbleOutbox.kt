@@ -98,7 +98,8 @@ internal object ScrobbleOutbox {
     private var lovedChanged = false
     private lateinit var file: AtomicFile
     private lateinit var lovedFile: AtomicFile
-    // The songs each service has loved through the app, so Sync Likes only sends what a service lacks.
+    // The songs each signed-in account has loved through the app, by service and username, so Sync Likes only
+    // sends what an account lacks, and a different account on the same service starts afresh.
     private var lovedOn: Map<String, Map<String, LovedSong>> = emptyMap()
 
     val lovesLeft: StateFlow<Int> =
@@ -142,7 +143,7 @@ internal object ScrobbleOutbox {
         scope.launch {
             ScrobbleSettingsRepository(app).settings.distinctUntilChanged().collect { settings ->
                 loaded.await()
-                val signedIn = signedInServices(settings)
+                val signedIn = accountRecords(settings).values
                 mutex.withLock {
                     if (!signedIn.containsAll(lovedOn.keys)) {
                         lovedOn = lovedOn.filterKeys { it in signedIn }
@@ -162,7 +163,9 @@ internal object ScrobbleOutbox {
         scope.launch {
             loaded.await()
             if (songs.isEmpty()) return@launch
-            val services = connectedServices(ScrobbleSettingsRepository(context).settings.first())
+            val settings = ScrobbleSettingsRepository(context).settings.first()
+            val services = connectedServices(settings)
+            val records = accountRecords(settings)
             mutex.withLock {
                 val keys = songs.map { songMatchKey(it.title, it.artist) }.toSet()
                 val kept = if (kind == OutboxItem.Kind.LOVE) {
@@ -174,7 +177,7 @@ internal object ScrobbleOutbox {
                 items.value = kept + songs.mapNotNull { song ->
                     val key = songMatchKey(song.title, song.artist)
                     val alreadyLoved = if (kind == OutboxItem.Kind.LOVE && loved) {
-                        lovedOn.filterValues { key in it }.keys
+                        services.filterTo(mutableSetOf()) { lovedOn[records[it]]?.containsKey(key) == true }
                     } else {
                         emptySet()
                     }
@@ -235,10 +238,11 @@ internal object ScrobbleOutbox {
             mutex.withLock {
                 if (next.kind == OutboxItem.Kind.LOVE && accepted.isNotEmpty()) {
                     val key = songMatchKey(next.title, next.artist)
-                    lovedOn = (lovedOn.keys + accepted).associateWith { service ->
-                        val songs = lovedOn[service].orEmpty()
+                    val acceptedRecords = accountRecords(settings).filterKeys { it in accepted }.values
+                    lovedOn = (lovedOn.keys + acceptedRecords).associateWith { record ->
+                        val songs = lovedOn[record].orEmpty()
                         when {
-                            service !in accepted -> songs
+                            record !in acceptedRecords -> songs
                             next.loved -> songs + (key to LovedSong(next.artist, next.title, next.album))
                             else -> songs - key
                         }
@@ -293,11 +297,14 @@ internal object ScrobbleOutbox {
         }
     }
 
-    // Signed in, whether or not switched on, as switching an account off keeps its loves.
-    private fun signedInServices(settings: ScrobbleSettings): Set<String> =
-        buildSet {
-            if (settings.listenBrainz.userToken.isNotBlank()) add(LISTENBRAINZ)
-            ScrobbleAccount.entries.forEach { if (settings.account(it).sessionKey.isNotBlank()) add(it.id) }
+    // Each signed-in account's record name: its service and username. Switching an account off keeps its loves.
+    private fun accountRecords(settings: ScrobbleSettings): Map<String, String> =
+        buildMap {
+            if (settings.listenBrainz.userToken.isNotBlank()) put(LISTENBRAINZ, "$LISTENBRAINZ/${settings.listenBrainz.userName}")
+            ScrobbleAccount.entries.forEach { account ->
+                val config = settings.account(account)
+                if (config.sessionKey.isNotBlank()) put(account.id, "${account.id}/${config.username}")
+            }
         }
 
     private fun connectedServices(settings: ScrobbleSettings): Set<String> =
