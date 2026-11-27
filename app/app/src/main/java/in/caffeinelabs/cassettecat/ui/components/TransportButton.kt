@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -64,6 +66,14 @@ fun TransportButton(
             .clip(CircleShape)
             .background(capBrush)
             .border(if (accented) 1.5.dp else 1.dp, borderColor, CircleShape)
+            // Without an icon to carry the description, the button itself is labelled.
+            .then(
+                if (iconRes == null && contentDescription != null) {
+                    Modifier.semantics { this.contentDescription = contentDescription }
+                } else {
+                    Modifier
+                }
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

@@ -54,6 +54,7 @@ import `in`.caffeinelabs.cassettecat.ui.components.TransportButton
 import `in`.caffeinelabs.cassettecat.ui.util.LocalAppPreferences
 import com.composables.icons.lucide.R
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.min
@@ -186,9 +187,10 @@ private fun ClickWheel(
                 )
             }
             .pointerInput(Unit) {
-                val radius = this.size.width / 2f
-                val center = Offset(radius, radius)
                 awaitEachGesture {
+                    // Read each gesture, as the wheel resizes in place.
+                    val radius = this.size.width / 2f
+                    val center = Offset(radius, radius)
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val zone = zoneAt(down.position, center, radius) ?: return@awaitEachGesture
                     down.consume()
@@ -196,28 +198,31 @@ private fun ClickWheel(
 
                     var spinning = false
                     var lastAngle = angleOf(down.position, center)
+                    var lastPosition = down.position
                     var accumulated = 0f
                     var steps = 0
                     val startPosition = currentPosition
+                    val touchRadius = (down.position - center).getDistance()
                     while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) break
                         change.consume()
-                        // Once a finger travels far enough it's a spin, not a tap.
+                        lastPosition = change.position
+                        val angle = angleOf(change.position, center)
+                        var delta = angle - lastAngle
+                        if (delta > 180f) delta -= 360f
+                        if (delta < -180f) delta += 360f
+                        lastAngle = angle
+                        accumulated += delta
+                        // Only travel around the ring makes a spin, so a finger slipping inwards or outwards still taps.
                         if (!spinning && currentOnSpinSeek != null &&
-                            (change.position - down.position).getDistance() > touchSlop
+                            abs(accumulated) * PI.toFloat() / 180f * touchRadius > touchSlop
                         ) {
                             spinning = true
                             pressedZone = null
                         }
                         if (spinning) {
-                            val angle = angleOf(change.position, center)
-                            var delta = angle - lastAngle
-                            if (delta > 180f) delta -= 360f
-                            if (delta < -180f) delta += 360f
-                            lastAngle = angle
-                            accumulated += delta
                             val newSteps = (accumulated / WHEEL_TICK_DEGREES).toInt()
                             if (newSteps != steps) {
                                 steps = newSteps
@@ -226,7 +231,8 @@ private fun ClickWheel(
                             }
                         }
                     }
-                    if (!spinning && pressedZone == zone) {
+                    // A press counts only when the finger lifts over the quarter it went down on.
+                    if (!spinning && pressedZone == zone && zoneAt(lastPosition, center, radius) == zone) {
                         press()
                         when (zone) {
                             WheelZone.MENU -> currentOnMenu()
