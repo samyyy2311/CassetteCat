@@ -39,6 +39,8 @@ object AppShortcutAction {
     const val PLAY_FAVORITES = "in.caffeinelabs.cassettecat.action.PLAY_FAVORITES"
     const val PLAY_RADIO_FAVORITES = "in.caffeinelabs.cassettecat.action.PLAY_RADIO_FAVORITES"
     const val PLAY_MEDIA = "in.caffeinelabs.cassettecat.action.PLAY_MEDIA"
+    // Set only from an Open with request, never accepted from an incoming intent's action.
+    const val PLAY_FILE = "in.caffeinelabs.cassettecat.action.PLAY_FILE"
     val all = setOf(SHUFFLE_ALL, PLAY_FAVORITES, PLAY_RADIO_FAVORITES, PLAY_MEDIA)
 }
 
@@ -111,6 +113,14 @@ class MainActivity : ComponentActivity() {
 
     private fun handleShortcutIntent(intent: Intent?) {
         // "Play ... on CassetteCat" from voice assistants arrives as a media search with the words in SearchManager.QUERY.
+        val openedFile = intent?.data?.takeIf { intent.action == Intent.ACTION_VIEW }
+        if (openedFile != null) {
+            shortcutAction.value = AppShortcutAction.PLAY_FILE
+            shortcutQuery.value = openedFile.toString()
+            shortcutMediaType.value = null
+            shortcutArtist.value = null
+            return
+        }
         if (intent?.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
             val artist = intent.getStringExtra(MediaStore.EXTRA_MEDIA_ARTIST)
             // The focus says whether the words name a song, album, artist or playlist, with that name in its own extra.
