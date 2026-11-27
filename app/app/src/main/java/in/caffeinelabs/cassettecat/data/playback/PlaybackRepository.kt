@@ -10,11 +10,13 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.id3.BinaryFrame
+import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -66,11 +68,17 @@ class PlaybackRepository(private val context: Context) {
     var onQueueLowWatermark: (() -> Unit)? = null
 
     private val _state = MutableStateFlow(PlaybackUiState())
+    // Counts queues replaced wholesale, so an undo can tell it's still the queue a song came from.
+    private var queueGeneration = 0
+    // The song the player's current tracks were reported for.
+    private var tracksSongId: String? = null
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
     suspend fun connect() {
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         controller = MediaController.Builder(context, token).buildAsync().awaitController(context)
+        // Tracks already reported before the app connected belong to the song playing now.
+        tracksSongId = controller?.currentMediaItem?.mediaId
         controller?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateState()
@@ -114,6 +122,7 @@ class PlaybackRepository(private val context: Context) {
                                     skippedIds = skipTracker.skippedSongIds()
                                 )
                                 currentQueue = freshShuffle
+                                queueGeneration++
                                 val mediaItems = freshShuffle.map { it.toMediaItem(context) }
                                 c.setMediaItems(mediaItems, 0, 0L)
                                 c.prepare()
@@ -130,6 +139,7 @@ class PlaybackRepository(private val context: Context) {
                 updateState()
             }
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = updateState()
+            override fun onPlayerErrorChanged(error: PlaybackException?) = updateState()
             override fun onRepeatModeChanged(repeatMode: Int) = updateState()
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                 applyShuffleMode(shuffleModeEnabled)
@@ -137,6 +147,7 @@ class PlaybackRepository(private val context: Context) {
             override fun onAudioSessionIdChanged(audioSessionId: Int) = updateState()
             // Lyrics become known only once container tags parse during load, not at transition time.
             override fun onTracksChanged(tracks: Tracks) {
+                tracksSongId = controller?.currentMediaItem?.mediaId
                 replayGainJob?.cancel()
                 replayGainJob = repositoryScope.launch {
                     val prefs = appPreferencesRepository.preferences.first()
@@ -184,6 +195,7 @@ class PlaybackRepository(private val context: Context) {
         }
 
         currentQueue = finalQueue
+        queueGeneration++
         shuffleEnabled = shuffle
         resetHistoryTracking(finalQueue.getOrNull(targetIndex))
         val mediaItems = withContext(Dispatchers.Default) { finalQueue.map { it.toMediaItem(context) } }
@@ -210,6 +222,7 @@ class PlaybackRepository(private val context: Context) {
         }
         currentQueue = songs
         originalQueue = songs
+        queueGeneration++
         shuffleEnabled = c.shuffleModeEnabled
         updateState()
         resetHistoryTracking(_state.value.currentSong)
@@ -221,6 +234,7 @@ class PlaybackRepository(private val context: Context) {
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return
         currentQueue = songs
+        queueGeneration++
         originalQueue = songs
         val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
         controller?.apply {
@@ -238,6 +252,7 @@ class PlaybackRepository(private val context: Context) {
         var catchUp = 0f
         if (!sameQueue) {
             currentQueue = songs
+            queueGeneration++
             originalQueue = songs
             shuffleEnabled = false
             val mediaItems = withContext(Dispatchers.Default) { songs.map { it.toMediaItem(context) } }
@@ -288,6 +303,11 @@ class PlaybackRepository(private val context: Context) {
     fun pause() {
         val c = controller ?: return
         c.pause()
+    }
+
+    // Unlike pausing, stopping closes the open stream, so playing again has to reconnect and pass the blackout check.
+    fun stop() {
+        controller?.stop()
     }
 
     fun togglePlayPause() {
@@ -528,19 +548,35 @@ class PlaybackRepository(private val context: Context) {
         updateState()
     }
 
-    fun removeFromUpNext(songId: String) {
+    fun removeFromUpNext(songId: String): QueueRemoval? {
+        val c = controller ?: return null
+        val currentIndex = c.currentMediaItemIndex
+        if (currentIndex == C.INDEX_UNSET) return null
+        val upNextIndex = currentQueue.drop(currentIndex + 1).indexOfFirst { it.id == songId }.takeIf { it >= 0 } ?: return null
+        val absoluteIndex = currentIndex + 1 + upNextIndex
+        val originalIndex = originalQueue.indexOfFirst { it.id == songId }
+        val removal = QueueRemoval(currentQueue[absoluteIndex], absoluteIndex, originalIndex, queueGeneration)
+        c.removeMediaItem(absoluteIndex)
+        currentQueue = currentQueue.toMutableList().apply { removeAt(absoluteIndex) }
+        // Only this copy goes, so a song queued twice keeps its other copy in the unshuffled order.
+        if (originalIndex >= 0) originalQueue = originalQueue.toMutableList().apply { removeAt(originalIndex) }
+        updateState()
+        return removal
+    }
+
+    // Puts a removed song back where it was, or next if playback has moved past that point.
+    fun restoreToUpNext(removal: QueueRemoval) {
+        // A queue started since then is a different queue, and the song doesn't belong in it.
+        if (removal.queueGeneration != queueGeneration) return
         val c = controller ?: return
         val currentIndex = c.currentMediaItemIndex
         if (currentIndex == C.INDEX_UNSET) return
-        val absoluteIndex = currentQueue
-            .drop(currentIndex + 1)
-            .indexOfFirst { it.id == songId }
-            .takeIf { it >= 0 }
-            ?.plus(currentIndex + 1)
-            ?: return
-        c.removeMediaItem(absoluteIndex)
-        currentQueue = currentQueue.toMutableList().apply { removeAt(absoluteIndex) }
-        originalQueue = originalQueue.filter { it.id != songId }
+        val index = removal.queueIndex.coerceIn(currentIndex + 1, currentQueue.size)
+        c.addMediaItem(index, removal.song.toMediaItem(context))
+        currentQueue = currentQueue.toMutableList().apply { add(index, removal.song) }
+        if (removal.originalIndex >= 0) {
+            originalQueue = originalQueue.toMutableList().apply { add(removal.originalIndex.coerceAtMost(size), removal.song) }
+        }
         updateState()
     }
 
@@ -631,6 +667,8 @@ class PlaybackRepository(private val context: Context) {
         val c = controller ?: return
         val index = c.currentMediaItemIndex
         val song = currentQueue.getOrNull(index)
+        // Just after a song change the player still reports the previous file's tracks, tags included.
+        val tracksCurrent = song != null && tracksSongId == song.id && !c.currentTracks.isEmpty
         _state.value = PlaybackUiState(
             currentSong = song,
             isPlaying = c.isPlaying,
@@ -643,7 +681,11 @@ class PlaybackRepository(private val context: Context) {
             upNext = currentQueue.drop(index + 1),
             previousInQueue = currentQueue.getOrNull(index - 1),
             history = history.toList(),
-            currentLyrics = extractLyrics(c.currentTracks),
+            currentLyrics = if (tracksCurrent) extractLyrics(c.currentTracks) else null,
+            // A file the player can't open never reports tracks, so its error counts as having looked.
+            // An idle player isn't opening the file, after an error or with a restored queue not yet played, so
+            // no tags are coming.
+            tracksLoaded = tracksCurrent || c.playbackState == Player.STATE_IDLE,
             audioFormat = extractAudioFormat(c.currentTracks, song)
         )
     }
@@ -742,6 +784,10 @@ private fun extractLyrics(tracks: Tracks): String? {
             for (j in 0 until metadata.length()) {
                 when (val entry = metadata.get(j)) {
                     is BinaryFrame -> if (entry.id == "USLT") parseUsltFrame(entry.data)?.let { return it }
+                    // MP4 files, such as Apple Music's, keep lyrics in a ©lyr atom that Media3 reads as text.
+                    is TextInformationFrame -> if (entry.id == "USLT") {
+                        entry.values.joinToString("\n").trim().ifEmpty { null }?.let { return it }
+                    }
                     is VorbisComment -> if (entry.key == "LYRICS" || entry.key == "UNSYNCEDLYRICS") {
                         return entry.value.trim().ifEmpty { null }
                     }
@@ -806,7 +852,9 @@ internal fun Song.toMediaItem(context: Context? = null): MediaItem {
         .build()
 }
 
-private fun MediaItem.toSessionSong(): Song {
+data class QueueRemoval(val song: Song, val queueIndex: Int, val originalIndex: Int, val queueGeneration: Int)
+
+internal fun MediaItem.toSessionSong(): Song {
     val source = when {
         mediaId.startsWith("radio:") -> MusicSource.Radio
         mediaId.startsWith("subsonic:") -> MusicSource.Subsonic

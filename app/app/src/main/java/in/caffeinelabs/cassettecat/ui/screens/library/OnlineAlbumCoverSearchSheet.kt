@@ -66,6 +66,7 @@ import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverRepository
 import `in`.caffeinelabs.cassettecat.data.library.AlbumCoverStorage
 import `in`.caffeinelabs.cassettecat.data.library.OnlineAlbumCoverClient
 import `in`.caffeinelabs.cassettecat.data.library.OnlineCoverResult
+import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
@@ -363,15 +364,19 @@ internal fun OnlineAlbumCoverSearchSheet(
                         )
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            stringResource(AppR.string.cover_no_covers_found),
+                            stringResource(
+                                if (blackoutActive) AppR.string.offline_blackout_search else AppR.string.cover_no_covers_found
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            stringResource(AppR.string.cover_no_covers_suggestion),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                        if (!blackoutActive) {
+                            Text(
+                                stringResource(AppR.string.cover_no_covers_suggestion),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             } else {

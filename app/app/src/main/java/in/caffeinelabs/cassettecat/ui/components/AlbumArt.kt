@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -132,6 +133,9 @@ fun AlbumArt(
     }
     // Until the lookup finishes the cover is a plain tile, so the vinyl only shows for songs without art.
     var loading by remember(song.id, thumbnail, customCoverPath) { mutableStateOf(bitmap == null) }
+    // The last cover shown here stays up while the next one loads, so a song change never blanks it.
+    var lastShown by remember { mutableStateOf<Bitmap?>(null) }
+    bitmap?.let { shownNow -> SideEffect { lastShown = shownNow } }
     LaunchedEffect(song.id, thumbnail, customCoverPath) {
         if (customCoverPath != null) {
             val file = java.io.File(customCoverPath)
@@ -161,7 +165,17 @@ fun AlbumArt(
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Crossfade(targetState = bitmap to loading, animationSpec = tween(100), label = "albumArtCrossfade") { (current, isLoading) ->
             if (isLoading && current == null) {
-                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
+                val previous = lastShown
+                if (previous != null) {
+                    Image(
+                        bitmap = previous.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh))
+                }
             } else if (current != null) {
                 val imageAspectRatio = if (current.height > 0) current.width.toFloat() / current.height.toFloat() else 1f
                 val isNonSquare = imageAspectRatio < 0.94f || imageAspectRatio > 1.06f

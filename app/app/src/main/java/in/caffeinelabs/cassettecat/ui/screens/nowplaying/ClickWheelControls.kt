@@ -87,11 +87,12 @@ internal fun ClickWheelControlsRow(
     onToggleShuffle: () -> Unit,
     repeatMode: Int,
     onCycleRepeatMode: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    waveform: FloatArray? = null
 ) {
     val seekable = isSeekablePlayback(durationMs)
     Column(modifier) {
-        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady) {
+        ProgressReadout(positionMs, durationMs, onSeek, isPlaying, playWhenReady, waveform) {
             Row {
                 ShuffleButton(isShuffleEnabled, onToggleShuffle)
                 RepeatButton(repeatMode, onCycleRepeatMode)

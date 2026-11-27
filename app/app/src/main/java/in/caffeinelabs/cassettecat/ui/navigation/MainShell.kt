@@ -18,6 +18,9 @@ import `in`.caffeinelabs.cassettecat.ui.components.LoadingBar
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
 import androidx.compose.material3.Text
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.media.MediaMetadataRetriever
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -80,6 +83,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.caffeinelabs.cassettecat.AppShortcutAction
 import `in`.caffeinelabs.cassettecat.R as AppR
+import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Playlist
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
@@ -229,6 +233,39 @@ private fun resolvePlaylistMatch(q: String, songs: List<Song>, playlists: List<P
     val playlist = playlists.firstOrNull { it.name.equals(q, ignoreCase = true) } ?: return null
     val byId = songs.associateBy { it.id }
     return playlist.songIds.mapNotNull { byId[it] }
+}
+
+// A file opened from another app plays as the library's song when the library has it, or else as it is.
+private suspend fun songForOpenedFile(context: Context, uri: Uri, librarySongs: List<Song>): Song? {
+    // A file manager may hand over the file's path rather than the library's content address.
+    librarySongs.firstOrNull { it.contentUri == uri || (uri.scheme == "file" && it.filePath == uri.path) }?.let { return it }
+    return withContext(Dispatchers.IO) {
+        val name = runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(context, uri)
+            fun tag(key: Int) = retriever.extractMetadata(key)?.takeIf { it.isNotBlank() }
+            Song(
+                id = uri.toString(),
+                title = tag(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: name?.substringBeforeLast('.').orEmpty(),
+                artist = tag(MediaMetadataRetriever.METADATA_KEY_ARTIST).orEmpty(),
+                album = tag(MediaMetadataRetriever.METADATA_KEY_ALBUM).orEmpty(),
+                albumId = "",
+                durationMs = tag(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L,
+                contentUri = uri,
+                source = MusicSource.Local
+            )
+        } catch (e: RuntimeException) {
+            // Not a file the system can read; the player can't play it either.
+            null
+        } finally {
+            retriever.release()
+        }
+    }
 }
 
 private fun resolvePlayMediaQueue(
@@ -446,6 +483,7 @@ fun MainShell(
             AppShortcutAction.PLAY_FAVORITES -> librarySongs.filter { it.isFavorite } to false
             AppShortcutAction.PLAY_RADIO_FAVORITES -> radioFavoritesRepository.favoriteStations.first().shuffled().take(1).map { it.toSong(radioArtist) } to false
             AppShortcutAction.PLAY_MEDIA -> resolvePlayMediaQueue(shortcutQuery, librarySongs, playlists, shortcutMediaType, shortcutArtist) to false
+            AppShortcutAction.PLAY_FILE -> listOfNotNull(shortcutQuery?.let { songForOpenedFile(context, it.toUri(), librarySongs) }) to false
             else -> emptyList<Song>() to false
         }
         onShortcutHandled()
@@ -857,7 +895,10 @@ fun MainShell(
                         )
                     }
                     composable(MainRoute.SCROBBLING) {
+                        val lovesLeft by playbackViewModel.lovesLeft.collectAsStateWithLifecycle()
                         ScrobbleSettingsScreen(
+                            lovesLeft = lovesLeft,
+                            onSyncLikes = { playbackViewModel.syncLikes(librarySongs) },
                             onBack = { navController.popBackStack() },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )

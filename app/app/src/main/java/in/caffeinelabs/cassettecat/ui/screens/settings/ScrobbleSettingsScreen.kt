@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -59,6 +60,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ScrobbleSettingsScreen(
     onBack: () -> Unit,
+    lovesLeft: Int,
+    onSyncLikes: () -> Unit,
     modifier: Modifier = Modifier,
     listBottomPadding: Dp = 0.dp
 ) {
@@ -174,6 +177,24 @@ fun ScrobbleSettingsScreen(
                 onDisconnect = { scope.launch { repository.disconnectAccount(account) } },
                 onConnect = { signingInTo = account }
             )
+            Spacer(Modifier.height(24.dp))
+        }
+
+        val anyConnected = settings.listenBrainz.userToken.isNotBlank() ||
+            ScrobbleAccount.entries.any { settings.account(it).sessionKey.isNotBlank() }
+        if (anyConnected) {
+            SettingsSection(title = stringResource(AppR.string.scrobbling_loves_section)) {
+                ActionRow(
+                    title = stringResource(AppR.string.scrobbling_sync_likes),
+                    subtitle = if (lovesLeft > 0) {
+                        pluralStringResource(AppR.plurals.scrobbling_loves_left, lovesLeft, lovesLeft)
+                    } else {
+                        stringResource(AppR.string.scrobbling_sync_likes_description)
+                    },
+                    iconRes = R.drawable.lucide_ic_heart,
+                    onClick = { if (lovesLeft == 0) onSyncLikes() }
+                )
+            }
             Spacer(Modifier.height(24.dp))
         }
 

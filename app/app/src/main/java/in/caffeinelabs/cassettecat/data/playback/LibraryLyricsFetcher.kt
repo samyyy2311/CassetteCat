@@ -2,6 +2,8 @@ package `in`.caffeinelabs.cassettecat.data.playback
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,12 +13,15 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/** Fetches lyrics for the whole library, for search. Unmetered networks only; resumes on the next start. */
+/** Fetches lyrics for the whole library, for search. Unmetered networks unless mobile data is allowed; resumes on the next start. */
 object LibraryLyricsFetcher {
     data class Progress(val found: Int = 0, val total: Int = 0, val left: Int = 0, val waitingForWifi: Boolean = false)
 
@@ -26,17 +31,17 @@ object LibraryLyricsFetcher {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
 
-    fun update(context: Context, songs: List<Song>, enabled: Boolean) {
+    fun update(context: Context, songs: List<Song>, enabled: Boolean, onMobileData: Boolean) {
         val previous = job
         val appContext = context.applicationContext
         job = scope.launch {
             // The old run must be gone before progress is reset or a new run starts.
             previous?.cancelAndJoin()
-            if (enabled) fetch(appContext, songs) else _progress.value = Progress()
+            if (enabled) fetch(appContext, songs, onMobileData) else _progress.value = Progress()
         }
     }
 
-    private suspend fun fetch(context: Context, songs: List<Song>) {
+    private suspend fun fetch(context: Context, songs: List<Song>, onMobileData: Boolean) {
         val client = LrcLibClient(context)
         val (withLyrics, without) = songs.partition { client.storedLyrics(it.artist, it.title, it.album) != null }
         val pending = without.filter { it.artist.isNotBlank() && !client.missingRecently(it.artist, it.title, it.album) }
@@ -46,7 +51,7 @@ object LibraryLyricsFetcher {
         pending.forEachIndexed { index, song ->
             var tries = 0
             while (true) {
-                waitForUnmeteredNetwork(connectivity)
+                waitForAllowedNetwork(connectivity, onMobileData)
                 val result = client.lookUpForLibrary(song.artist, song.title, song.album)
                 // The request itself can't be cancelled, so don't report it after a cancel.
                 currentCoroutineContext().ensureActive()
@@ -61,10 +66,23 @@ object LibraryLyricsFetcher {
         }
     }
 
-    private suspend fun waitForUnmeteredNetwork(connectivity: ConnectivityManager) {
-        if (!connectivity.isActiveNetworkMetered) return
+    // Waits for a usable connection, carrying on the moment one appears. Metered networks, such as
+    // mobile data or a phone's hotspot, count only when mobile data is allowed.
+    private suspend fun waitForAllowedNetwork(connectivity: ConnectivityManager, onMobileData: Boolean) {
+        fun allowed(capabilities: NetworkCapabilities?) = capabilities != null &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            (onMobileData || capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+        if (allowed(connectivity.getNetworkCapabilities(connectivity.activeNetwork))) return
         _progress.value = _progress.value.copy(waitingForWifi = true)
-        while (connectivity.isActiveNetworkMetered) delay(60_000)
+        callbackFlow {
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    trySend(capabilities)
+                }
+            }
+            connectivity.registerDefaultNetworkCallback(callback)
+            awaitClose { connectivity.unregisterNetworkCallback(callback) }
+        }.first(::allowed)
         _progress.value = _progress.value.copy(waitingForWifi = false)
     }
 }

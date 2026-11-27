@@ -61,6 +61,16 @@ class AudioscrobblerClient private constructor(
         sessionKey.isNotBlank() &&
             post(trackParams("track.scrobble", sessionKey, song) + ("timestamp" to timestampSec.toString())) != null
 
+    suspend fun love(sessionKey: String, song: Song, loved: Boolean): Boolean =
+        sessionKey.isNotBlank() && post(
+            mapOf(
+                "method" to if (loved) "track.love" else "track.unlove",
+                "artist" to song.artist,
+                "track" to song.title,
+                "sk" to sessionKey
+            )
+        ) != null
+
     private fun trackParams(method: String, sessionKey: String, song: Song): Map<String, String> = buildMap {
         put("method", method)
         put("artist", song.artist)

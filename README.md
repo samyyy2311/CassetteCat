@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <strong>A privacy-first Android music player for local media ownership and self-hosted streaming.</strong>
+  <strong>An Android music player for the music on your phone and on your own server. No ads, no tracking.</strong>
 </p>
 
 <p align="center">
-  Desktop app: <a href="https://github.com/samyyy2311/CassetteCat-Desktop">CassetteCat Desktop</a> (Windows, macOS, Linux)
+  Desktop app: <a href="https://github.com/samyyy2311/CassetteCat-Desktop">CassetteCat Desktop</a> (Windows and Linux)
 </p>
 
 <p align="center">
@@ -74,39 +74,37 @@
 
 ### Audio & Playback
 
-- **Media3 Playback Engine**: Background audio playback with lock screen
-  controls, system media notifications, and state restoration on launch.
-- **Hardware Equalizer & DSP**: 5-band graphic EQ, bass boost, virtualizer, and
-  loudness enhancer. Includes calibrated headphone presets powered by
-  [AutoEq](https://github.com/jaakkopasanen/AutoEq).
-- **Volume Normalization (ReplayGain)**: Automatic track volume balancing to
-  avoid sudden loudness spikes.
-- **Volume Limit (Ear Protection)**: Optional hard cap on maximum output level,
-  independent of system volume.
-- **Synchronized Lyrics**: Real-time karaoke-style lyrics via
-  [LRCLIB](https://lrclib.net), embedded ID3 tags, and local `.lrc` sidecars
-  with configurable typography scaling and keep-screen-awake mode.
-- **Sleep Timer & Smart Disconnect**: Sleep timer to pause playback, plus
-  instant pause when headphones or Bluetooth disconnect.
+- **Background playback**: Lock screen and notification controls, and the app
+  picks up where you left off when you open it.
+- **Equalizer**: 5-band EQ, bass boost, virtualizer and loudness, with
+  headphone presets from [AutoEq](https://github.com/jaakkopasanen/AutoEq).
+- **ReplayGain**: Evens out the volume between songs.
+- **Volume limit**: Turns all playback down to a level you choose, whatever the
+  system volume is.
+- **Synced lyrics**: From [LRCLIB](https://lrclib.net), tags in the song file,
+  or a `.lrc` file next to it. The words light up across each line as it's sung. You can change
+  the text size and keep the screen on while lyrics are open.
+- **Sleep timer**: Pauses playback after a set time. Playback also pauses when
+  headphones or Bluetooth disconnect.
 
 ### Library & Streaming
 
-- **Local Audio Scanning**: Scans device audio with configurable folder
-  whitelists, blacklists, and short audio clip filtering.
+- **Your music files**: Scans the phone's music, with folders you can include
+  or leave out, and an option to hide short clips.
 - **A–Z Rail**: Jump through long lists with a letter badge and a light tick as
   you pass each letter.
-- **Search**: Finds songs, artists, and albums as you type, matching several
-  words at once.
-- **Subsonic API**: Connects to Navidrome, Gonic, and Airsonic with token
-  authentication.
-- **Jellyfin**: Direct streaming and music library browsing from your Jellyfin
-  server, with Quick Connect sign-in support.
+- **Search**: Finds songs, artists and albums as you type, matching several
+  words at once. Turn on Find Songs by Their Lyrics and it also finds a song
+  from a line of its lyrics.
+- **Subsonic**: Plays from Navidrome, Gonic and Airsonic servers.
+- **Jellyfin**: Plays and browses the music on your Jellyfin server, with Quick
+  Connect sign-in.
 - **Internet Radio**: Search and browse tens of thousands of live stations from
   [Radio Browser](https://www.radio-browser.info) by name, tag, or country, with
   favorites and Android Auto support.
-- **Offline Cache**: Download and cache streaming tracks for offline playback.
-- **Scrobbling**: Track your listening on [Last.fm](https://www.last.fm),
-  [ListenBrainz](https://listenbrainz.org), and [Libre.fm](https://libre.fm).
+- **Downloads**: Save songs from your server to play offline.
+- **Scrobbling**: Sends what you play to [Last.fm](https://www.last.fm),
+  [ListenBrainz](https://listenbrainz.org) and [Libre.fm](https://libre.fm).
 - **Listening Record**: Your top songs, artists, and albums by month or year,
   your listening history, and a Rewind poster to share.
 - **Listening Room**: Sync playback with nearby devices over your local Wi-Fi.
@@ -135,18 +133,18 @@
   the same Wi-Fi, move your song, queue and position between the two, and
   browse the computer's music from your phone.
 
-### Design & Customization
+### Look & Customisation
 
-- **Curated Theme Accents**: 6 dynamic color palettes: _Record Red_, _Cassette
-  Amber_, _Electric Cyan_, _Neon Emerald_, _Tape Magenta_, and _Monochrome
-  Silver_.
-- **Pure Black AMOLED Mode**: Pitch black `#000000` surface backgrounds for true
-  OLED blacks and maximum battery efficiency.
-- **Now Playing & Artwork Styling**: Configurable album art corner radii (Curved
-  16dp, Soft 8dp, Vinyl Square 0dp) and interactive remaining time countdown
-  toggle (`-02:45`).
-- **Navigation & Startup Preferences**: Configurable default landing screen
-  (_Home_, _Library_, or _Last active tab_) and default Library section.
+Customisation is grouped by what each setting changes: Look & Feel, Navigation,
+Home Feed, Now Playing & Mini-Player, Gestures, Sound, Playback and Lyrics.
+
+- **Accent colours**: Six to choose from: Record Red, Cassette Amber, Electric
+  Cyan, Neon Emerald, Tape Magenta and Monochrome Silver.
+- **AMOLED black**: A pure black background for OLED screens.
+- **Now Playing**: Choose the corner roundness of album art, and show time
+  left (`-02:45`) instead of the song's length.
+- **Navigation**: Choose the screen the app opens on, the Library section it
+  starts in, and which tabs sit on the bottom bar and in what order.
 - **Share Cards**: Share a song or a few lines of its lyrics as a 2160×2700
   image.
 - **Home Screen Widget**: Resizable, with the current song and artwork, play
@@ -155,12 +153,10 @@
 
 ### Privacy
 
-- Local-first architecture: no analytics, no third-party tracking, zero Google
-  Play Services dependencies.
-- Streaming server credentials encrypted with AES-256 via the hardware-backed
+- No analytics, no tracking, and no Google Play Services.
+- Server passwords are encrypted with AES-256 using the phone's
   `AndroidKeyStore`.
-- Fully open source under GPL-3.0.
-- F-Droid submission pending.
+- Open source under GPL-3.0.
 
 ---
 
@@ -203,7 +199,7 @@ request, and [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for how AI assistance is used 
 
 Translate the app in your browser on Weblate, with no coding needed. Weblate sends your work here as a pull request,
 and anything not translated yet shows in English. See [TRANSLATING.md](TRANSLATING.md) for a few guidelines. The
-desktop app is English only for now ([CassetteCat-Desktop#56](https://github.com/samyyy2311/CassetteCat-Desktop/issues/56)).
+desktop app is translated in the same Weblate project.
 
 ---
 
@@ -250,7 +246,7 @@ CassetteCat is free, with no ads and no tracking. If it's useful to you, you can
 
 ## Desktop
 
-CassetteCat is also available for Windows, macOS, and Linux at
+CassetteCat is also available for Windows and Linux at
 [CassetteCat-Desktop](https://github.com/samyyy2311/CassetteCat-Desktop).
 
 ---

@@ -38,6 +38,8 @@ import `in`.caffeinelabs.cassettecat.data.playback.LyricLine
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackStateRepository
 import `in`.caffeinelabs.cassettecat.data.playback.PlaybackUiState
+import `in`.caffeinelabs.cassettecat.data.playback.QueueRemoval
+import `in`.caffeinelabs.cassettecat.data.playback.parseLrc
 import `in`.caffeinelabs.cassettecat.data.radio.toRadioStation
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
@@ -79,6 +81,7 @@ private const val SAVE_EVERY_N_TICKS = 40 // ~10s at POSITION_TICK_ACTIVE_MS
 private const val PLAY_COUNT_SHARE = 0.9
 private const val UNKNOWN_LENGTH_PLAY_MS = 30_000L
 private const val SCROBBLE_MAX_WAIT_MS = 4 * 60 * 1000L
+private const val QUEUE_UNDO_MS = 5_000L
 private const val SCROBBLE_MIN_LENGTH_MS = 30_000L
 private const val REPLAY_START_MS = 5_000L
 
@@ -101,7 +104,7 @@ private class CurrentListen(val song: Song) {
     var scrobbled = false
     var positionMs = 0L
 }
-private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean)
+private data class LyricsRequest(val song: Song?, val embeddedLyrics: String?, val lrcLibEnabled: Boolean, val tracksLoaded: Boolean)
 
 internal fun instantMixAffinity(
     seedArtist: String,
@@ -200,6 +203,9 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
     val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
+    // The song the lyrics above belong to; for a moment after a change they're still the previous song's.
+    private val _lyricsSongId = MutableStateFlow<String?>(null)
+    val lyricsSongId: StateFlow<String?> = _lyricsSongId.asStateFlow()
     private val _fallbackLyrics = MutableStateFlow<String?>(null)
     val fallbackLyrics: StateFlow<String?> = _fallbackLyrics.asStateFlow()
     private val _lyricsProvider = MutableStateFlow<String?>(null)
@@ -306,23 +312,30 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 .collect { (offline, song) ->
                     if (offline && song != null && song.source != MusicSource.Local) {
                         pause()
+                        repository.stop()
                     }
                 }
         }
         // only when there's no embedded lyrics for the current song
         viewModelScope.launch {
-            playbackState.map { it.currentSong to it.currentLyrics }
-                .combine(serviceSettingsRepository.settings) { (song, embedded), settings ->
-                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB))
+            playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
+                .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
+                    // Only a song on the phone waits for its file's tags before going online.
+                    LyricsRequest(song, embedded, settings.isEnabled(ExternalService.LRCLIB), tracksLoaded || song?.source != MusicSource.Local)
                 }
                 .distinctUntilChanged()
                 .collectLatest { request ->
                     val song = request.song
                     val embedded = request.embeddedLyrics
-                    _syncedLyrics.value = null
-                    _fallbackLyrics.value = null
-                    _lyricsProvider.value = null
-                    _isLoadingLyrics.value = false
+                    // Lyrics stay up while the same song is looked at again, and a new song shows nothing
+                    // until its lyrics are known, so neither the instrumental view nor stale text flashes.
+                    if (song?.id != _lyricsSongId.value) {
+                        _syncedLyrics.value = null
+                        _fallbackLyrics.value = null
+                        _lyricsProvider.value = null
+                        _isLoadingLyrics.value = true
+                        _lyricsSongId.value = song?.id
+                    }
                     // Lyrics files and tags are only read for songs stored on this phone.
                     val localSong = song?.takeIf { it.source == MusicSource.Local }
                     suspend fun loadLocalFile(): Boolean {
@@ -332,11 +345,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         return true
                     }
                     suspend fun loadEmbedded(): Boolean {
-                        if (embedded.isNullOrBlank()) {
-                            val tagged = localSong?.let { embeddedLyricsLoader.loadFor(it) }
-                            if (tagged.isNullOrBlank()) return false
-                            _fallbackLyrics.value = tagged
-                        }
+                        val text = embedded?.takeIf { it.isNotBlank() }
+                            ?: localSong?.let { embeddedLyricsLoader.loadFor(it) }?.takeIf { it.isNotBlank() }
+                            ?: return false
+                        // Files often carry timed LRC text rather than plain lyrics; those follow the song.
+                        val timed = parseLrc(text)
+                        if (timed.isNotEmpty()) _syncedLyrics.value = timed else _fallbackLyrics.value = text
                         _lyricsProvider.value = "Embedded metadata"
                         return true
                     }
@@ -345,8 +359,14 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     } else {
                         loadEmbedded() || loadLocalFile()
                     }
-                    if (found || song == null || !request.lrcLibEnabled) return@collectLatest
-                    _isLoadingLyrics.value = true
+                    // A song on the phone may carry its own lyrics, which are only known once the player has
+                    // opened the file; this runs again then.
+                    if (!found && localSong != null && !request.tracksLoaded) return@collectLatest
+                    if (found || song == null || !request.lrcLibEnabled) {
+                        _isLoadingLyrics.value = false
+                        return@collectLatest
+                    }
+                    _isLoadingLyrics.value = _syncedLyrics.value == null && _fallbackLyrics.value == null
                     try {
                         lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
                             _syncedLyrics.value = result.syncedLyrics
@@ -382,6 +402,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (isFollowingRoomHost()) return
         val picked = if (shuffle) songs.shuffled() else songs.drop(startIndex)
         viewModelScope.launch {
+            // On a cold start, such as Open with, the queue can arrive before the player is connected.
+            connection.join()
             if (!playOnControlledDesktop(picked)) repository.playQueue(songs, startIndex, shuffle)
         }
     }
@@ -394,13 +416,27 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (wasIdle) onFirstPlay()
     }
 
-    fun setFavorite(songId: String, favorite: Boolean) {
-        viewModelScope.launch { favoritesRepository.setFavorite(songId, favorite) }
+    fun setFavorite(song: Song, favorite: Boolean) {
+        viewModelScope.launch { favoritesRepository.setFavorite(song.id, favorite) }
+        // Stations aren't songs, and the computer's songs are loved by the computer.
+        if (song.source != MusicSource.Radio && song.source != MusicSource.Desktop) scrobbleManager.love(listOf(song), favorite)
+    }
+
+    val lovesLeft = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager.lovesLeft
+
+    // Loves the library's liked songs on the connected accounts and takes back loves for songs no longer liked,
+    // sending only what each account doesn't have yet.
+    fun syncLikes(songs: List<Song>) {
+        viewModelScope.launch {
+            val liked = favoritesRepository.favoriteIds.first()
+            scrobbleManager.syncLikes(songs.filter { it.source != MusicSource.Desktop && it.source != MusicSource.Radio }, liked)
+        }
     }
 
     fun shuffleAll(songs: List<Song>) {
         if (isFollowingRoomHost() || songs.isEmpty()) return
         viewModelScope.launch {
+            connection.join()
             if (!playOnControlledDesktop(songs.shuffled())) repository.shuffleAll(songs)
         }
     }
@@ -660,7 +696,27 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     fun removeFromUpNext(songId: String) {
         val song = playbackState.value.upNext.firstOrNull { it.id == songId }
         if (song != null && desktop.removeFromQueue(song)) return
-        if (!isFollowingRoomHost()) repository.removeFromUpNext(songId)
+        if (isFollowingRoomHost()) return
+        val removal = repository.removeFromUpNext(songId) ?: return
+        _queueRemoval.value = removal
+        queueUndoExpiry?.cancel()
+        queueUndoExpiry = viewModelScope.launch {
+            delay(QUEUE_UNDO_MS)
+            _queueRemoval.value = null
+        }
+    }
+
+    // The last song removed from Up Next, while it can still be put back.
+    private val _queueRemoval = MutableStateFlow<QueueRemoval?>(null)
+    val queueRemoval: StateFlow<QueueRemoval?> = _queueRemoval.asStateFlow()
+    private var queueUndoExpiry: Job? = null
+
+    fun undoQueueRemoval() {
+        val removal = _queueRemoval.value ?: return
+        _queueRemoval.value = null
+        queueUndoExpiry?.cancel()
+        // A guest's queue belongs to the host.
+        if (!isFollowingRoomHost()) repository.restoreToUpNext(removal)
     }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
     fun seekTo(positionMs: Long) {
@@ -697,6 +753,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     librariesBySource[song.source]?.setFavorite(song.id, newValue)
                     favoritesRepository.setFavorite(song.id, newValue)
+                    scrobbleManager.love(listOf(song), newValue)
                     if (newValue && autoDownloadFavorites.value && song.source != MusicSource.Local) {
                         `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository.getInstance(getApplication()).download(song)
                     }

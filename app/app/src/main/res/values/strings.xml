@@ -566,6 +566,19 @@
     <string name="customization_player_controls_classic">Classic</string>
     <string name="customization_player_controls_classic_description">The original tape-deck fader and buttons</string>
     <string name="customization_player_controls_click_wheel">Click Wheel</string>
+    <string name="customization_section_player">Player</string>
+    <string name="customization_section_background">Background</string>
+    <string name="customization_section_mini_player">Mini-Player</string>
+    <string name="customization_seek_bar">Seek Bar</string>
+    <string name="customization_seek_bar_description">Choose how the song’s progress looks</string>
+    <string name="customization_seek_bar_fader">Fader</string>
+    <string name="customization_seek_bar_fader_description">A ridged groove with a fader cap you slide</string>
+    <string name="customization_seek_bar_line">Line</string>
+    <string name="customization_seek_bar_line_description">A thin line in the accent colour, as on the desktop app. The handle shows while you drag.</string>
+    <string name="customization_seek_bar_wavy">Wavy</string>
+    <string name="customization_seek_bar_wavy_description">Ripples while music plays, like the system media controls</string>
+    <string name="customization_seek_bar_waveform">Waveform</string>
+    <string name="customization_seek_bar_waveform_description">Shows the song’s loud and quiet parts. Songs on this phone only; others show a line.</string>
     <string name="customization_player_controls_click_wheel_description">A round click wheel: Menu, skip, play and pause. Spin it to scrub.</string>
     <string name="customization_app_typography">App Typography</string>
     <string name="customization_app_typography_description">Choose the font family used throughout the app</string>
@@ -670,6 +683,8 @@
     <string name="customization_lyrics_for_search_paused">Paused while LRCLIB is off or Offline mode is on</string>
     <string name="customization_lyrics_for_search_starting">Looking up lyrics…</string>
     <string name="customization_lyrics_for_search_wifi">Waiting for Wi-Fi</string>
+    <string name="customization_lyrics_for_search_mobile_data">Use Mobile Data Too</string>
+    <string name="customization_lyrics_for_search_mobile_data_description">Also look lyrics up on mobile data and metered Wi-Fi, such as a phone’s hotspot</string>
     <string name="customization_lyrics_for_search_done">%1$d of %2$d songs have lyrics</string>
 
     <string name="customization_streaming_cache">Streaming Cache Quota</string>
@@ -1437,6 +1452,7 @@
     <string name="lrclib_add_custom">Add Custom</string>
     <string name="lrclib_track_title_hint">Track title…</string>
     <string name="lrclib_no_results">No lyrics found for this query</string>
+    <string name="offline_blackout_search">Offline Blackout Mode is on. Turn it off in Settings to search online.</string>
     <string name="lrclib_add_contribute">Add &amp; Contribute Lyrics</string>
     <string name="lrclib_result_artist_album">%1$s • %2$s</string>
     <string name="lrclib_badge_synced">SYNCED</string>
@@ -1513,6 +1529,15 @@
     <string name="scrobbling_librefm_section" translatable="false">LIBRE.FM</string>
     <string name="scrobbling_lastfm_name" translatable="false">Last.fm</string>
     <string name="scrobbling_lastfm_section" translatable="false">LAST.FM</string>
+    <string name="queue_removed">Removed %1$s</string>
+    <string name="queue_undo">Undo</string>
+    <string name="scrobbling_loves_section">Loves</string>
+    <string name="scrobbling_sync_likes">Sync Likes</string>
+    <string name="scrobbling_sync_likes_description">Songs you like are marked as loved on your accounts. Sync adds the ones you liked before</string>
+    <plurals name="scrobbling_loves_left">
+        <item quantity="one">%d love left to send</item>
+        <item quantity="other">%d loves left to send</item>
+    </plurals>
     <string name="scrobbling_connected">Connected</string>
     <string name="scrobbling_connected_as">Connected as %1$s</string>
     <string name="scrobbling_not_connected">Not connected</string>

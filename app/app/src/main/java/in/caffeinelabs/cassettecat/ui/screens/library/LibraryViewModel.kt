@@ -9,6 +9,7 @@ import `in`.caffeinelabs.cassettecat.data.library.LibraryRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.playback.LibraryLyricsFetcher
+import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.library.SongMetadataOverridesRepository
 import `in`.caffeinelabs.cassettecat.data.library.local.LocalLibraryRepository
@@ -154,6 +155,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val appPreferencesRepository = AppPreferencesRepository(app)
     private val metadataOverridesRepo = SongMetadataOverridesRepository.getInstance(app)
     private val favoritesRepository = FavoritesRepository(app)
+    private val scrobbleManager = ScrobbleManager(app, viewModelScope)
     private var favoriteIds: Set<String>? = null
     private var refreshJob: Job? = null
 
@@ -282,13 +284,16 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             combine(
                 _uiState.mapNotNull { (it as? LibraryUiState.Loaded)?.songs },
-                appPreferencesRepository.preferences.map { it.lyricsForSearch },
+                appPreferencesRepository.preferences.map { it.lyricsForSearch to it.lyricsForSearchOnMobileData },
                 serviceSettingsRepository.settings.map { it.isEnabled(ExternalService.LRCLIB) }
-            ) { songs, wanted, lrcLibOn -> songs to (wanted && lrcLibOn) }
+            ) { songs, (wanted, onMobileData), lrcLibOn -> Triple(songs, wanted && lrcLibOn, onMobileData) }
                 .distinctUntilChanged { old, new ->
-                    old.second == new.second && old.first.map(Song::id).toSet() == new.first.map(Song::id).toSet()
+                    old.second == new.second && old.third == new.third &&
+                        old.first.map(Song::id).toSet() == new.first.map(Song::id).toSet()
                 }
-                .collect { (songs, enabled) -> LibraryLyricsFetcher.update(getApplication(), songs, enabled) }
+                .collect { (songs, enabled, onMobileData) ->
+                    LibraryLyricsFetcher.update(getApplication(), songs, enabled, onMobileData)
+                }
         }
         viewModelScope.launch {
             metadataOverridesRepo.overrides.collect {
@@ -348,7 +353,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             val songs = result.getOrNull()
             if (label != "Local" && songs != null) {
                 runCatching {
-                    favoritesRepository.mirror(songs.mapTo(HashSet()) { it.id }, songs.filter { it.isFavorite }.mapTo(HashSet()) { it.id })
+                    val liked = songs.filter { it.isFavorite }.mapTo(HashSet()) { it.id }
+                    // Likes changed in the server's own app become loves and unloves too.
+                    val before = favoritesRepository.favoriteIds.first()
+                    scrobbleManager.love(songs.filter { it.id in liked && it.id !in before }, loved = true)
+                    scrobbleManager.love(songs.filter { it.id !in liked && it.id in before }, loved = false)
+                    favoritesRepository.mirror(songs.mapTo(HashSet()) { it.id }, liked)
                 }.onFailure {
                     if (it is CancellationException) throw it
                     Log.w("LibraryViewModel", "Couldn't save $label likes", it)

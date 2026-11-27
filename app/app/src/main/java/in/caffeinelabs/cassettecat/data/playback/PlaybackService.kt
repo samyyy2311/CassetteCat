@@ -6,6 +6,7 @@ import android.util.Log
 import `in`.caffeinelabs.cassettecat.data.library.decodeLocalArtwork
 import `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.radio.RadioStation
+import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager
 import `in`.caffeinelabs.cassettecat.data.streaming.CredentialStore
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.jellyfin.JellyfinLibraryRepository
@@ -43,14 +44,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
-import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.text.TextOutput
@@ -82,6 +82,7 @@ import `in`.caffeinelabs.cassettecat.data.library.FavoritesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
+import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,12 +99,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
     private var mediaSession: MediaLibrarySession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scrobbleManager by lazy { ScrobbleManager(this, serviceScope) }
     private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var libraryTree: MediaLibraryTree
     private var currentFavoriteIds: Set<String> = emptySet()
@@ -157,7 +160,14 @@ class PlaybackService : MediaLibraryService() {
         favoritesRepository = FavoritesRepository(this)
         libraryTree = MediaLibraryTree(this)
 
-        val directFactory = DefaultDataSource.Factory(this)
+        // Blackout pauses every song that isn't on the phone, so the player takes nothing from the network then,
+        // whatever started the playback; the player follows redirects itself, so no host is trusted.
+        val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
+            if (blackoutActive && (spec.uri.scheme == "http" || spec.uri.scheme == "https")) {
+                throw IOException("Blackout mode is on")
+            }
+            spec
+        }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent
         // write from playback stalls the download instead of erroring.
         val cacheDataSourceFactory = CacheDataSource.Factory()
@@ -470,7 +480,10 @@ class PlaybackService : MediaLibraryService() {
             val streamingLibrary = streamingLibraries.entries.firstOrNull { currentMediaId.startsWith(it.key) }?.value
             serviceScope.launch {
                 runCatching { streamingLibrary?.setFavorite(currentMediaId, favorite) }
-                    .onSuccess { favoritesRepository.setFavorite(currentMediaId, favorite) }
+                    .onSuccess {
+                        favoritesRepository.setFavorite(currentMediaId, favorite)
+                        scrobbleManager.love(listOf(currentItem.toSessionSong()), favorite)
+                    }
                     .onFailure { Log.w("PlaybackService", "Couldn't update the like on the server", it) }
             }
         }
@@ -864,18 +877,6 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
         ) = Unit
 
         override fun buildImageRenderers(context: Context, out: ArrayList<Renderer>) = Unit
-
-        override fun buildAudioSink(
-            context: Context,
-            enableFloatOutput: Boolean,
-            enableAudioTrackPlaybackParams: Boolean
-        ): AudioSink? {
-            return DefaultAudioSink.Builder(context)
-                .setAudioProcessors(arrayOf(AudioWaveformProcessor.instance))
-                .setEnableFloatOutput(enableFloatOutput)
-                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .build()
-        }
     }
 
 // Keeps hardware and notification navigation sequential through the playlist timeline.

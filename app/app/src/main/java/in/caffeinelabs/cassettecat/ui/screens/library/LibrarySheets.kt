@@ -469,7 +469,7 @@ internal fun SongOptionsSheet(
                     iconRes = R.drawable.lucide_ic_heart,
                     label = stringResource(if (isFavorite) AppR.string.library_liked else AppR.string.library_favorite),
                     highlighted = isFavorite,
-                    onClick = { playbackViewModel.setFavorite(song.id, !isFavorite); onDismiss() }
+                    onClick = { playbackViewModel.setFavorite(song, !isFavorite); onDismiss() }
                 )
                 SongActionPill(R.drawable.lucide_ic_play, stringResource(AppR.string.library_play_next)) {
                     playbackViewModel.addToUpNext(listOf(song))

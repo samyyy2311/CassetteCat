@@ -74,6 +74,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.LyricsFontSize
 import `in`.caffeinelabs.cassettecat.data.settings.MiniPlayerAction
 import `in`.caffeinelabs.cassettecat.data.settings.NowPlayingBackdropStyle
 import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
+import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
 import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
@@ -532,7 +533,7 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
     Column(modifier = modifier.categoryModifier(listBottomPadding)) {
         PageHeader(stringResource(AppR.string.customization_now_playing), onBack)
         Spacer(Modifier.height(16.dp))
-        SettingsSection {
+        SettingsSection(title = stringResource(AppR.string.customization_section_player)) {
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_player_controls),
                 subtitle = stringResource(AppR.string.customization_player_controls_description),
@@ -544,6 +545,27 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
                 onSelect = viewModel::setPlayerControlsStyle
             )
             SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_seek_bar),
+                subtitle = stringResource(AppR.string.customization_seek_bar_description),
+                iconRes = R.drawable.lucide_ic_git_commit_horizontal,
+                options = SeekBarStyle.entries,
+                selected = prefs.seekBarStyle,
+                label = { seekBarStyleLabel(it) },
+                sheetSubtitle = { seekBarStyleDescription(it) },
+                onSelect = viewModel::setSeekBarStyle
+            )
+            SettingsDivider()
+            ToggleRow(
+                title = stringResource(AppR.string.customization_remaining_time),
+                subtitle = stringResource(AppR.string.customization_remaining_time_description),
+                checked = prefs.showRemainingTime,
+                onCheckedChange = viewModel::setShowRemainingTime,
+                iconRes = R.drawable.lucide_ic_timer,
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        SettingsSection(title = stringResource(AppR.string.customization_section_background)) {
             SheetPickerRow(
                 title = stringResource(AppR.string.customization_backdrop),
                 subtitle = stringResource(AppR.string.customization_backdrop_description),
@@ -563,15 +585,9 @@ fun CustomizationNowPlayingScreen(viewModel: SettingsViewModel, onBack: () -> Un
                 onCheckedChange = viewModel::setShowNowPlayingBlur,
                 iconRes = R.drawable.lucide_ic_layers,
             )
-            SettingsDivider()
-            ToggleRow(
-                title = stringResource(AppR.string.customization_remaining_time),
-                subtitle = stringResource(AppR.string.customization_remaining_time_description),
-                checked = prefs.showRemainingTime,
-                onCheckedChange = viewModel::setShowRemainingTime,
-                iconRes = R.drawable.lucide_ic_timer,
-            )
-            SettingsDivider()
+        }
+        Spacer(Modifier.height(24.dp))
+        SettingsSection(title = stringResource(AppR.string.customization_section_mini_player)) {
             ToggleRow(
                 title = stringResource(AppR.string.customization_mini_progress),
                 subtitle = stringResource(AppR.string.customization_mini_progress_description),
@@ -870,6 +886,16 @@ fun CustomizationLyricsScreen(viewModel: SettingsViewModel, onBack: () -> Unit, 
                 onCheckedChange = viewModel::setLyricsForSearch,
                 iconRes = R.drawable.lucide_ic_text_search,
             )
+            if (prefs.lyricsForSearch) {
+                SettingsDivider()
+                ToggleRow(
+                    title = stringResource(AppR.string.customization_lyrics_for_search_mobile_data),
+                    subtitle = stringResource(AppR.string.customization_lyrics_for_search_mobile_data_description),
+                    checked = prefs.lyricsForSearchOnMobileData,
+                    onCheckedChange = viewModel::setLyricsForSearchOnMobileData,
+                    iconRes = R.drawable.lucide_ic_signal,
+                )
+            }
         }
     }
 }
@@ -1306,11 +1332,6 @@ fun <T> SheetPickerRow(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .then(
-                                        if (isSelected) Modifier.background(
-                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
-                                        ) else Modifier
-                                    )
                                     .clickable(onClick = hapticClick {
                                         onSelect(option)
                                         open = false
@@ -1516,6 +1537,26 @@ private fun playerControlsStyleLabel(style: PlayerControlsStyle): String = strin
     when (style) {
         PlayerControlsStyle.CLASSIC -> AppR.string.customization_player_controls_classic
         PlayerControlsStyle.CLICK_WHEEL -> AppR.string.customization_player_controls_click_wheel
+    }
+)
+
+@Composable
+private fun seekBarStyleLabel(style: SeekBarStyle): String = stringResource(
+    when (style) {
+        SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader
+        SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line
+        SeekBarStyle.WAVY -> AppR.string.customization_seek_bar_wavy
+        SeekBarStyle.WAVEFORM -> AppR.string.customization_seek_bar_waveform
+    }
+)
+
+@Composable
+private fun seekBarStyleDescription(style: SeekBarStyle): String = stringResource(
+    when (style) {
+        SeekBarStyle.FADER -> AppR.string.customization_seek_bar_fader_description
+        SeekBarStyle.LINE -> AppR.string.customization_seek_bar_line_description
+        SeekBarStyle.WAVY -> AppR.string.customization_seek_bar_wavy_description
+        SeekBarStyle.WAVEFORM -> AppR.string.customization_seek_bar_waveform_description
     }
 )
 

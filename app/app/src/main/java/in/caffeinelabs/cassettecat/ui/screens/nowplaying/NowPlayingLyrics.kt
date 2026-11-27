@@ -17,7 +17,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import `in`.caffeinelabs.cassettecat.data.playback.AudioWaveformHolder
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -55,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -178,401 +176,443 @@ internal fun LyricsView(
         if (syncedLyrics == null || syncOffsetMs == 0L) syncedLyrics else adjustLyricsSync(syncedLyrics, syncOffsetMs)
     }
 
-    when {
-        !effectiveSyncedLyrics.isNullOrEmpty() -> {
-            val displayItems: List<LyricDisplayItem> = remember(effectiveSyncedLyrics, durationMs) {
-                buildList {
-                    val firstMs = effectiveSyncedLyrics.first().timestampMs
-                    if (firstMs >= 4_500L) {
-                        add(LyricDisplayItem.Gap(fromMs = 0L, toMs = (firstMs - 150L).coerceAtLeast(0L)))
-                    }
+    // On a song change the old lyrics fade out while the new ones load, then the new ones fade in, so nothing
+    // pops or blanks. Only one set is drawn at a time, which keeps the change light. A new sync offset only
+    // moves the timings, so it shows straight away.
+    val target = ShownLyrics(effectiveSyncedLyrics, syncedLyrics, lyrics, isLoading)
+    var held by remember { mutableStateOf(target) }
+    val shown = if (target.sameContentAs(held)) target else held
+    val lyricsAlpha = remember { Animatable(1f) }
+    LaunchedEffect(target.isLoading, target.source, target.plain) {
+        if (target.sameContentAs(held)) {
+            // A lookup that ends with the lyrics already held brings them back from the loading fade.
+            lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
+            return@LaunchedEffect
+        }
+        // The loading view starts blank, so fading it out would only hold the lyrics back.
+        if (held.isLoading) lyricsAlpha.snapTo(0f) else lyricsAlpha.animateTo(0f, tween(LYRICS_FADE_MS))
+        // Once the old lyrics have gone, the loading view takes their place, so they can't be tapped and the
+        // loading hint can appear.
+        held = target
+        lyricsAlpha.animateTo(1f, tween(LYRICS_FADE_MS))
+    }
+    Box(Modifier.graphicsLayer { alpha = lyricsAlpha.value }) {
+        when {
+            !shown.synced.isNullOrEmpty() -> {
+                val displayItems: List<LyricDisplayItem> = remember(shown.synced, durationMs) {
+                    buildList {
+                        val firstMs = shown.synced.first().timestampMs
+                        if (firstMs >= 4_500L) {
+                            add(LyricDisplayItem.Gap(fromMs = 0L, toMs = (firstMs - 150L).coerceAtLeast(0L)))
+                        }
 
-                    effectiveSyncedLyrics.forEachIndexed { i, line ->
-                        val nextMs = effectiveSyncedLyrics.getOrNull(i + 1)?.timestampMs
-                        val words = line.text.split(" ").filter { it.isNotBlank() }
-                        // How long a line is sung is only a guess, so it's generous: slow singers hold words, and a
-                        // break shown while they're still singing is worse than one shown a little late.
-                        val sungMs = (words.size * 500L + 1_000L).coerceIn(2_500L, 8_000L)
-                        if (nextMs != null) {
-                            val lineInterval = (nextMs - line.timestampMs).coerceAtLeast(100L)
-                            if (lineInterval >= sungMs + 5_000L) {
-                                add(LyricDisplayItem.Line(line, i, sungMs))
+                        shown.synced.forEachIndexed { i, line ->
+                            val nextMs = shown.synced.getOrNull(i + 1)?.timestampMs
+                            val words = line.text.split(" ").filter { it.isNotBlank() }
+                            // How long a line is sung is only a guess, so it's generous: slow singers hold words, and a
+                            // break shown while they're still singing is worse than one shown a little late.
+                            val sungMs = (words.size * 500L + 1_000L).coerceIn(2_500L, 8_000L)
+                            if (nextMs != null) {
+                                val lineInterval = (nextMs - line.timestampMs).coerceAtLeast(100L)
+                                if (lineInterval >= sungMs + 5_000L) {
+                                    add(LyricDisplayItem.Line(line, i, sungMs))
 
-                                val gapStart = line.timestampMs + sungMs
-                                val gapEnd = nextMs - 150L
-                                if (gapEnd - gapStart >= 4_000L) {
-                                    add(LyricDisplayItem.Gap(fromMs = gapStart, toMs = gapEnd))
+                                    val gapStart = line.timestampMs + sungMs
+                                    val gapEnd = nextMs - 150L
+                                    if (gapEnd - gapStart >= 4_000L) {
+                                        add(LyricDisplayItem.Gap(fromMs = gapStart, toMs = gapEnd))
+                                    }
+                                } else {
+                                    val maxAllowed = maxOf(400L, lineInterval - 120L)
+                                    val minTarget = (words.size * 180L).coerceAtLeast(250L)
+                                    val rawCalculated = (lineInterval * 0.84f).toLong()
+                                    val vocalDuration = if (maxAllowed >= minTarget) {
+                                        rawCalculated.coerceIn(minTarget, maxAllowed)
+                                    } else {
+                                        maxAllowed
+                                    }
+                                    add(LyricDisplayItem.Line(line, i, vocalDuration))
                                 }
                             } else {
-                                val maxAllowed = maxOf(400L, lineInterval - 120L)
-                                val minTarget = (words.size * 180L).coerceAtLeast(250L)
-                                val rawCalculated = (lineInterval * 0.84f).toLong()
-                                val vocalDuration = if (maxAllowed >= minTarget) {
-                                    rawCalculated.coerceIn(minTarget, maxAllowed)
-                                } else {
-                                    maxAllowed
-                                }
-                                add(LyricDisplayItem.Line(line, i, vocalDuration))
-                            }
-                        } else {
-                            add(LyricDisplayItem.Line(line, i, sungMs))
+                                add(LyricDisplayItem.Line(line, i, sungMs))
 
-                            if (durationMs > 0L) {
-                                val outroStart = line.timestampMs + sungMs
-                                val outroEnd = durationMs - 500L
-                                if (outroEnd - outroStart >= 6_000L) {
-                                    add(LyricDisplayItem.Gap(fromMs = outroStart, toMs = outroEnd))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            val effectivePositionMs = positionMs
-
-            val activeDisplayIndex by remember(displayItems, effectivePositionMs) {
-                derivedStateOf {
-                    displayItems.indexOfLast { item ->
-                        when (item) {
-                            is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
-                            is LyricDisplayItem.Gap -> item.fromMs <= effectivePositionMs
-                        }
-                    }.coerceAtLeast(0)
-                }
-            }
-            val currentActiveItem = displayItems.getOrNull(activeDisplayIndex)
-
-            val activeLineIndex by remember(effectiveSyncedLyrics, effectivePositionMs) {
-                derivedStateOf {
-                    // -1 during the intro, so the first line reads as the next one rather than a past one.
-                    effectiveSyncedLyrics.indexOfLast { it.timestampMs <= effectivePositionMs }
-                }
-            }
-
-            // Every line, the first one included, is held this far down while it's sung.
-            val activeLineTop = 124.dp
-            // Room below the lyrics for the last lines to reach that height too, so the credits only come into view
-            // once the song's lines are done.
-            val density = LocalDensity.current
-            var listHeightPx by remember { mutableIntStateOf(0) }
-            val endRoom = with(density) { (listHeightPx * 0.7f).toDp() }
-
-            var userScrollToken by remember { mutableIntStateOf(0) }
-            var userIsDragging by remember { mutableStateOf(false) }
-
-            LaunchedEffect(userScrollToken) {
-                if (userScrollToken > 0) {
-                    userIsDragging = true
-                    delay(3_500L)
-                    userIsDragging = false
-                }
-            }
-
-            LaunchedEffect(activeDisplayIndex, userIsDragging) {
-                if (userIsDragging) return@LaunchedEffect
-                val target = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }
-                if (target == null) {
-                    listState.animateScrollToItem(activeDisplayIndex)
-                } else {
-                    // An eased glide to the next line; the default spring snaps there. Each frame covers its share of
-                    // what's left, measured again, so a break collapsing on the way doesn't leave the line short.
-                    listState.scroll {
-                        var covered = 0f
-                        animate(0f, 1f, animationSpec = tween(700, easing = FastOutSlowInEasing)) { eased, _ ->
-                            val offset = listState.layoutInfo.visibleItemsInfo
-                                .firstOrNull { it.index == activeDisplayIndex }?.offset ?: return@animate
-                            if (covered < 1f) scrollBy(offset * (eased - covered) / (1f - covered))
-                            covered = eased
-                        }
-                    }
-                }
-            }
-
-            val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
-            val lyricsScrollHideConnection = remember {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        if (source == NestedScrollSource.UserInput && abs(available.y) > 0.5f) {
-                            userScrollToken++
-                            currentOnScrollDelta(available.y)
-                        }
-                        return Offset.Zero
-                    }
-                }
-            }
-
-            val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
-                TextAlign.Center
-            } else {
-                TextAlign.Start
-            }
-            val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
-                Alignment.CenterHorizontally
-            } else {
-                Alignment.Start
-            }
-            val fontScale = preferences.lyricsFontSize.scaleMultiplier
-            val lyricsFont = when (preferences.lyricsFontFamily) {
-                LyricsFontFamily.SPACE_GROTESK -> SpaceGroteskFontFamily
-                LyricsFontFamily.IBM_PLEX_SANS -> IbmPlexSansFontFamily
-                LyricsFontFamily.IBM_PLEX_MONO -> IbmPlexMonoFontFamily
-                LyricsFontFamily.SILKSCREEN -> SilkscreenFontFamily
-                LyricsFontFamily.VT323 -> VT323FontFamily
-                LyricsFontFamily.MONOCRAFT -> MonocraftFontFamily
-                LyricsFontFamily.SYSTEM_DEFAULT -> FontFamily.SansSerif
-                LyricsFontFamily.SYSTEM_SERIF -> FontFamily.Serif
-                LyricsFontFamily.SYSTEM_MONO -> FontFamily.Monospace
-            }
-            val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = lyricsFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = (32 * fontScale).sp,
-                lineHeight = (40 * fontScale).sp,
-                letterSpacing = (-0.3).sp,
-                textAlign = lyricsTextAlign
-            )
-
-            val fadeStart by animateFloatAsState(
-                targetValue = if (controlsVisible) 0.48f else 0.85f,
-                animationSpec = tween(220, easing = SmoothEasing),
-                label = "lyricsFadeStart"
-            )
-            val fadeEnd by animateFloatAsState(
-                targetValue = if (controlsVisible) 0.65f else 0.98f,
-                animationSpec = tween(220, easing = SmoothEasing),
-                label = "lyricsFadeEnd"
-            )
-
-            val gradientBrush = remember(fadeStart, fadeEnd) {
-                Brush.verticalGradient(
-                    0.0f to Color.Transparent,
-                    0.04f to Color.Black.copy(alpha = 0.35f),
-                    0.09f to Color.Black,
-                    fadeStart to Color.Black,
-                    ((fadeStart + fadeEnd) / 2f) to Color.Black.copy(alpha = 0.35f),
-                    fadeEnd to Color.Transparent,
-                    1.0f to Color.Transparent
-                )
-            }
-
-            LazyColumn(
-                state = listState,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    top = activeLineTop,
-                    bottom = maxOf(lyricBottomPadDp, endRoom)
-                ),
-                horizontalAlignment = lyricsHorizontalAlignment,
-                modifier = modifier
-                    .fillMaxSize()
-                    .onSizeChanged { listHeightPx = it.height }
-                    .nestedScroll(lyricsScrollHideConnection)
-                    .clickable { onInteraction() }
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(
-                            brush = gradientBrush,
-                            blendMode = BlendMode.DstIn
-                        )
-                    }
-            ) {
-                itemsIndexed(
-                    items = displayItems,
-                    key = { idx, item ->
-                        when (item) {
-                            is LyricDisplayItem.Line -> "line_${item.lyricLine.timestampMs}_${idx}"
-                            is LyricDisplayItem.Gap -> "gap_${item.fromMs}_${idx}"
-                        }
-                    }
-                ) { displayIdx, item ->
-                    when (item) {
-                        is LyricDisplayItem.Gap -> {
-                            val isInGap = effectivePositionMs in item.fromMs..item.toMs
-                            // A break only takes space while it's on, so lines keep even spacing around it.
-                            AnimatedVisibility(
-                                visible = isInGap,
-                                enter = expandVertically(tween(220, easing = SmoothEasing)),
-                                exit = shrinkVertically(tween(220, easing = SmoothEasing))
-                            ) {
-                                GapItemView(
-                                    isInGap = isInGap,
-                                    isPlaying = isPlaying,
-                                    progress = ((effectivePositionMs - item.fromMs).toFloat() /
-                                        (item.toMs - item.fromMs).coerceAtLeast(1L)).coerceIn(0f, 1f),
-                                    isCenterAligned = lyricsTextAlign == TextAlign.Center,
-                                    onClick = {
-                                        userIsDragging = false
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onSeekToLine(item.fromMs)
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(displayIdx, 0)
-                                        }
+                                if (durationMs > 0L) {
+                                    val outroStart = line.timestampMs + sungMs
+                                    val outroEnd = durationMs - 500L
+                                    if (outroEnd - outroStart >= 6_000L) {
+                                        add(LyricDisplayItem.Gap(fromMs = outroStart, toMs = outroEnd))
                                     }
-                                )
+                                }
                             }
                         }
+                    }
+                }
 
-                        is LyricDisplayItem.Line -> {
-                            val line = item.lyricLine
-                            val index = item.originalIndex
-                            val isSelected = selectedIndices.contains(index)
-                            val ahead = index - activeLineIndex
-                            // A short intro has no break before it, so the first line is in place but not lit until it starts.
-                            val isActive = !selectionMode &&
-                                currentActiveItem is LyricDisplayItem.Line &&
-                                currentActiveItem.originalIndex == index &&
-                                line.timestampMs <= effectivePositionMs
+                val effectivePositionMs = positionMs
 
-                            val lineScale by animateFloatAsState(
-                                targetValue = if (isActive || isSelected) 1f else 0.98f,
-                                animationSpec = tween(400, easing = SmoothEasing),
-                                label = "lyricLineScale"
+                val activeDisplayIndex by remember(displayItems, effectivePositionMs) {
+                    derivedStateOf {
+                        displayItems.indexOfLast { item ->
+                            when (item) {
+                                is LyricDisplayItem.Line -> item.lyricLine.timestampMs <= effectivePositionMs
+                                is LyricDisplayItem.Gap -> item.fromMs <= effectivePositionMs
+                            }
+                        }.coerceAtLeast(0)
+                    }
+                }
+                val currentActiveItem = displayItems.getOrNull(activeDisplayIndex)
+
+                val activeLineIndex by remember(shown.synced, effectivePositionMs) {
+                    derivedStateOf {
+                        // -1 during the intro, so the first line reads as the next one rather than a past one.
+                        shown.synced.indexOfLast { it.timestampMs <= effectivePositionMs }
+                    }
+                }
+
+                // Every line, the first one included, is held this far down while it's sung.
+                val activeLineTop = 124.dp
+                // Room below the lyrics for the last lines to reach that height too, so the credits only come into view
+                // once the song's lines are done.
+                val density = LocalDensity.current
+                var listHeightPx by remember { mutableIntStateOf(0) }
+                val endRoom = with(density) { (listHeightPx * 0.7f).toDp() }
+
+                var userScrollToken by remember { mutableIntStateOf(0) }
+                var userIsDragging by remember { mutableStateOf(false) }
+
+                LaunchedEffect(userScrollToken) {
+                    if (userScrollToken > 0) {
+                        userIsDragging = true
+                        delay(3_500L)
+                        userIsDragging = false
+                    }
+                }
+
+                LaunchedEffect(activeDisplayIndex, userIsDragging) {
+                    if (userIsDragging) return@LaunchedEffect
+                    val target = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == activeDisplayIndex }
+                    if (target == null) {
+                        listState.animateScrollToItem(activeDisplayIndex)
+                    } else {
+                        // An eased glide to the next line; the default spring snaps there. Each frame covers its share of
+                        // what's left, measured again, so a break collapsing on the way doesn't leave the line short.
+                        listState.scroll {
+                            var covered = 0f
+                            animate(0f, 1f, animationSpec = tween(700, easing = FastOutSlowInEasing)) { eased, _ ->
+                                val offset = listState.layoutInfo.visibleItemsInfo
+                                    .firstOrNull { it.index == activeDisplayIndex }?.offset ?: return@animate
+                                if (covered < 1f) scrollBy(offset * (eased - covered) / (1f - covered))
+                                covered = eased
+                            }
+                        }
+                    }
+                }
+
+                val currentOnScrollDelta by rememberUpdatedState(onScrollDelta)
+                val lyricsScrollHideConnection = remember {
+                    object : NestedScrollConnection {
+                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                            if (source == NestedScrollSource.UserInput && abs(available.y) > 0.5f) {
+                                userScrollToken++
+                                currentOnScrollDelta(available.y)
+                            }
+                            return Offset.Zero
+                        }
+                    }
+                }
+
+                val lyricsTextAlign = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
+                    TextAlign.Center
+                } else {
+                    TextAlign.Start
+                }
+                val lyricsHorizontalAlignment = if (preferences.lyricsAlignment == `in`.caffeinelabs.cassettecat.data.settings.LyricsAlignment.CENTER) {
+                    Alignment.CenterHorizontally
+                } else {
+                    Alignment.Start
+                }
+                val fontScale = preferences.lyricsFontSize.scaleMultiplier
+                val lyricsFont = when (preferences.lyricsFontFamily) {
+                    LyricsFontFamily.SPACE_GROTESK -> SpaceGroteskFontFamily
+                    LyricsFontFamily.IBM_PLEX_SANS -> IbmPlexSansFontFamily
+                    LyricsFontFamily.IBM_PLEX_MONO -> IbmPlexMonoFontFamily
+                    LyricsFontFamily.SILKSCREEN -> SilkscreenFontFamily
+                    LyricsFontFamily.VT323 -> VT323FontFamily
+                    LyricsFontFamily.MONOCRAFT -> MonocraftFontFamily
+                    LyricsFontFamily.SYSTEM_DEFAULT -> FontFamily.SansSerif
+                    LyricsFontFamily.SYSTEM_SERIF -> FontFamily.Serif
+                    LyricsFontFamily.SYSTEM_MONO -> FontFamily.Monospace
+                }
+                val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontFamily = lyricsFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (32 * fontScale).sp,
+                    lineHeight = (40 * fontScale).sp,
+                    letterSpacing = (-0.3).sp,
+                    textAlign = lyricsTextAlign
+                )
+
+                val fadeStart by animateFloatAsState(
+                    targetValue = if (controlsVisible) 0.48f else 0.85f,
+                    animationSpec = tween(220, easing = SmoothEasing),
+                    label = "lyricsFadeStart"
+                )
+                val fadeEnd by animateFloatAsState(
+                    targetValue = if (controlsVisible) 0.65f else 0.98f,
+                    animationSpec = tween(220, easing = SmoothEasing),
+                    label = "lyricsFadeEnd"
+                )
+
+                val gradientBrush = remember(fadeStart, fadeEnd) {
+                    Brush.verticalGradient(
+                        0.0f to Color.Transparent,
+                        0.04f to Color.Black.copy(alpha = 0.35f),
+                        0.09f to Color.Black,
+                        fadeStart to Color.Black,
+                        ((fadeStart + fadeEnd) / 2f) to Color.Black.copy(alpha = 0.35f),
+                        fadeEnd to Color.Transparent,
+                        1.0f to Color.Transparent
+                    )
+                }
+
+                LazyColumn(
+                    state = listState,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        top = activeLineTop,
+                        bottom = maxOf(lyricBottomPadDp, endRoom)
+                    ),
+                    horizontalAlignment = lyricsHorizontalAlignment,
+                    modifier = modifier
+                        .fillMaxSize()
+                        .onSizeChanged { listHeightPx = it.height }
+                        .nestedScroll(lyricsScrollHideConnection)
+                        .clickable { onInteraction() }
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(
+                                brush = gradientBrush,
+                                blendMode = BlendMode.DstIn
                             )
-
-                            val lyricOpacity by animateFloatAsState(
-                                targetValue = when {
-                                    selectionMode -> if (isSelected) 1.00f else 0.35f
-                                    isActive -> 1.00f
-                                    userIsDragging -> 0.45f
-                                    // The ones to come fade the further away they are. Lines just sung stay dim as they move
-                                    // up and out under the top edge, rather than vanishing at once.
-                                    ahead > 0 -> maxOf(0.12f, 0.45f - (ahead - 1) * 0.1f)
-                                    else -> maxOf(0f, 0.3f + (ahead + 1) * 0.15f)
-                                },
-                                animationSpec = tween(280, easing = SmoothEasing),
-                                label = "lyricLineOpacity"
-                            )
-
-                            // Lines further ahead soften. Android draws the blur from version 12; earlier ones skip it.
-                            val lineBlur by animateDpAsState(
-                                targetValue = if (isActive || selectionMode || userIsDragging || ahead < 3) 0.dp
-                                    else minOf(6, (ahead - 2) * 2).dp,
-                                animationSpec = tween(280, easing = SmoothEasing),
-                                label = "lyricLineBlur"
-                            )
-
-                            val lineModifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
-                                    else Color.Transparent
-                                )
-                                .combinedClickable(
-                                    onClick = {
-                                        if (selectionMode) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onToggleLineSelection(index)
-                                        } else {
+                        }
+                ) {
+                    itemsIndexed(
+                        items = displayItems,
+                        key = { idx, item ->
+                            when (item) {
+                                is LyricDisplayItem.Line -> "line_${item.lyricLine.timestampMs}_${idx}"
+                                is LyricDisplayItem.Gap -> "gap_${item.fromMs}_${idx}"
+                            }
+                        }
+                    ) { displayIdx, item ->
+                        when (item) {
+                            is LyricDisplayItem.Gap -> {
+                                val isInGap = effectivePositionMs in item.fromMs..item.toMs
+                                // A break only takes space while it's on, so lines keep even spacing around it.
+                                AnimatedVisibility(
+                                    visible = isInGap,
+                                    enter = expandVertically(tween(220, easing = SmoothEasing)),
+                                    exit = shrinkVertically(tween(220, easing = SmoothEasing))
+                                ) {
+                                    GapItemView(
+                                        isInGap = isInGap,
+                                        isPlaying = isPlaying,
+                                        progress = ((effectivePositionMs - item.fromMs).toFloat() /
+                                            (item.toMs - item.fromMs).coerceAtLeast(1L)).coerceIn(0f, 1f),
+                                        isCenterAligned = lyricsTextAlign == TextAlign.Center,
+                                        onClick = {
                                             userIsDragging = false
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onSeekToLine(line.timestampMs)
+                                            onSeekToLine(item.fromMs)
                                             coroutineScope.launch {
                                                 listState.animateScrollToItem(displayIdx, 0)
                                             }
                                         }
-                                    },
-                                    onLongClick = {
-                                        if (!selectionMode) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onStartSelection(index)
-                                        }
-                                    }
-                                )
-                                .graphicsLayer {
-                                    alpha = lyricOpacity
-                                    scaleX = lineScale
-                                    scaleY = lineScale
-                                    transformOrigin = TransformOrigin(if (lyricsTextAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
+                                    )
                                 }
-                                .blur(lineBlur, BlurredEdgeTreatment.Unbounded)
-                                .padding(horizontal = 24.dp, vertical = 13.dp)
+                            }
 
-                            if (isActive) {
-                                ActiveLyricLine(
-                                    item = item,
-                                    positionMs = positionMs,
-                                    isPlaying = isPlaying,
-                                    lyricStyle = lyricStyle,
-                                    modifier = lineModifier
+                            is LyricDisplayItem.Line -> {
+                                val line = item.lyricLine
+                                val index = item.originalIndex
+                                val isSelected = selectedIndices.contains(index)
+                                val ahead = index - activeLineIndex
+                                // A short intro has no break before it, so the first line is in place but not lit until it starts.
+                                val isActive = !selectionMode &&
+                                    currentActiveItem is LyricDisplayItem.Line &&
+                                    currentActiveItem.originalIndex == index &&
+                                    line.timestampMs <= effectivePositionMs
+
+                                val lineScale by animateFloatAsState(
+                                    targetValue = if (isActive || isSelected) 1f else 0.98f,
+                                    animationSpec = tween(400, easing = SmoothEasing),
+                                    label = "lyricLineScale"
                                 )
-                            } else {
-                                Text(
-                                    text = line.text,
-                                    style = lyricStyle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = lyricsTextAlign,
-                                    modifier = lineModifier
+
+                                val lyricOpacity by animateFloatAsState(
+                                    targetValue = when {
+                                        selectionMode -> if (isSelected) 1.00f else 0.35f
+                                        isActive -> 1.00f
+                                        userIsDragging -> 0.45f
+                                        // The ones to come fade the further away they are. Lines just sung stay dim as they move
+                                        // up and out under the top edge, rather than vanishing at once.
+                                        ahead > 0 -> maxOf(0.12f, 0.45f - (ahead - 1) * 0.1f)
+                                        else -> maxOf(0f, 0.3f + (ahead + 1) * 0.15f)
+                                    },
+                                    animationSpec = tween(280, easing = SmoothEasing),
+                                    label = "lyricLineOpacity"
                                 )
+
+                                // Lines further ahead soften. Android draws the blur from version 12; earlier ones skip it.
+                                val lineBlur by animateDpAsState(
+                                    targetValue = if (isActive || selectionMode || userIsDragging || ahead < 3) 0.dp
+                                        else minOf(6, (ahead - 2) * 2).dp,
+                                    animationSpec = tween(280, easing = SmoothEasing),
+                                    label = "lyricLineBlur"
+                                )
+
+                                val lineModifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
+                                        else Color.Transparent
+                                    )
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (selectionMode) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onToggleLineSelection(index)
+                                            } else {
+                                                userIsDragging = false
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onSeekToLine(line.timestampMs)
+                                                coroutineScope.launch {
+                                                    listState.animateScrollToItem(displayIdx, 0)
+                                                }
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!selectionMode) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onStartSelection(index)
+                                            }
+                                        }
+                                    )
+                                    .graphicsLayer {
+                                        alpha = lyricOpacity
+                                        scaleX = lineScale
+                                        scaleY = lineScale
+                                        transformOrigin = TransformOrigin(if (lyricsTextAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
+                                    }
+                                    .blur(lineBlur, BlurredEdgeTreatment.Unbounded)
+                                    .padding(horizontal = 24.dp, vertical = 13.dp)
+
+                                if (isActive) {
+                                    ActiveLyricLine(
+                                        item = item,
+                                        positionMs = positionMs,
+                                        isPlaying = isPlaying,
+                                        lyricStyle = lyricStyle,
+                                        modifier = lineModifier
+                                    )
+                                } else {
+                                    Text(
+                                        text = line.text,
+                                        style = lyricStyle,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = lyricsTextAlign,
+                                        modifier = lineModifier
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                item(key = "lyrics_credits_footer") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 48.dp)
-                    ) {
-                        LyricsCredits(artist, providerCredit, onSearchLyrics)
+                    item(key = "lyrics_credits_footer") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 48.dp)
+                        ) {
+                            LyricsCredits(artist, providerCredit, onSearchLyrics)
+                        }
                     }
                 }
             }
-        }
 
-        lyrics != null -> {
-            LaunchedEffect(scrollState.isScrollInProgress) {
-                if (scrollState.isScrollInProgress) onScrollDelta(-10f)
+            shown.plain != null -> {
+                LaunchedEffect(scrollState.isScrollInProgress) {
+                    if (scrollState.isScrollInProgress) onScrollDelta(-10f)
+                }
+                Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 24.dp)
+                        .clickable { onInteraction() }
+                ) {
+                    Spacer(Modifier.height(48.dp))
+                    Text(
+                        text = shown.plain,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontFamily = IbmPlexSansFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(36.dp))
+                    LyricsCredits(artist, providerCredit, onSearchLyrics)
+                    Spacer(Modifier.height(lyricBottomPadDp))
+                }
             }
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 24.dp)
-                    .clickable { onInteraction() }
-            ) {
-                Spacer(Modifier.height(48.dp))
-                Text(
-                    text = lyrics,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontFamily = IbmPlexSansFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth()
+
+            shown.isLoading -> {
+                // Most lyrics are known within a moment, so the hint only appears for a slow lookup.
+                var showHint by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay(LOADING_HINT_DELAY_MS)
+                    showHint = true
+                }
+                Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (showHint) {
+                        Text(
+                            stringResource(AppR.string.lyrics_loading),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                InstrumentalWaveformView(
+                    artist = artist,
+                    isPlaying = isPlaying,
+                    onReturnToPlayer = onReturnToPlayer,
+                    onSearchLyrics = onSearchLyrics,
+                    modifier = modifier
                 )
-                Spacer(Modifier.height(36.dp))
-                LyricsCredits(artist, providerCredit, onSearchLyrics)
-                Spacer(Modifier.height(lyricBottomPadDp))
             }
-        }
-
-        isLoading -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    stringResource(AppR.string.lyrics_loading),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        else -> {
-            InstrumentalWaveformView(
-                artist = artist,
-                isPlaying = isPlaying,
-                positionMs = positionMs,
-                onReturnToPlayer = onReturnToPlayer,
-                onSearchLyrics = onSearchLyrics,
-                modifier = modifier
-            )
         }
     }
 }
 
 // A break between lines: the dots light up one by one as it passes, and gently pulse while playing.
+// [source] is the lyrics as loaded; [synced] has the sync offset applied.
+private data class ShownLyrics(
+    val synced: List<LyricLine>?,
+    val source: List<LyricLine>?,
+    val plain: String?,
+    val isLoading: Boolean
+) {
+    fun sameContentAs(other: ShownLyrics) = isLoading == other.isLoading && source == other.source && plain == other.plain
+}
+
+private const val LYRICS_FADE_MS = 200
+private const val LOADING_HINT_DELAY_MS = 1_000L
+
 @Composable
 private fun GapItemView(
     isInGap: Boolean,
@@ -847,36 +887,11 @@ private fun WaveformBar(
 internal fun InstrumentalWaveformView(
     artist: String?,
     isPlaying: Boolean,
-    positionMs: Long,
     onReturnToPlayer: () -> Unit,
     onSearchLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val barWeights = remember { floatArrayOf(0.42f, 0.72f, 0.56f, 1.0f, 0.62f, 0.82f, 0.46f) }
-    var musicAmplitudes by remember { mutableStateOf<FloatArray?>(null) }
-    val hasAudioSignal = musicAmplitudes?.any { it > 0.02f } == true
-    DisposableEffect(Unit) {
-        AudioWaveformHolder.watch()
-        onDispose { AudioWaveformHolder.unwatch() }
-    }
-    // The position arrives a few times a second, so it is run forward between updates to pick
-    // the bands for each frame.
-    val currentPositionMs by rememberUpdatedState(positionMs)
-    LaunchedEffect(isPlaying) {
-        if (!isPlaying) return@LaunchedEffect
-        var anchorPositionMs = currentPositionMs
-        var anchorFrameMs = withFrameMillis { it }
-        while (true) {
-            withFrameMillis { frameMs ->
-                if (currentPositionMs != anchorPositionMs) {
-                    anchorPositionMs = currentPositionMs
-                    anchorFrameMs = frameMs
-                }
-                musicAmplitudes = AudioWaveformHolder.bandsAt(anchorPositionMs + frameMs - anchorFrameMs)
-            }
-        }
-    }
-
     val transition = rememberInfiniteTransition(label = "waveformPulse")
 
     val b1 by transition.animateFloat(
@@ -922,7 +937,7 @@ internal fun InstrumentalWaveformView(
         label = "b7"
     )
 
-    val fallbackAmplitudes = listOf(b1, b2, b3, b4, b5, b6, b7)
+    val amplitudes = listOf(b1, b2, b3, b4, b5, b6, b7)
 
     Column(
         modifier = modifier
@@ -937,15 +952,9 @@ internal fun InstrumentalWaveformView(
             modifier = Modifier.height(64.dp)
         ) {
             barWeights.forEachIndexed { index, weight ->
-                val amp = if (isPlaying) {
-                    if (hasAudioSignal) musicAmplitudes?.getOrNull(index) ?: 0.15f
-                    else fallbackAmplitudes[index]
-                } else {
-                    0f
-                }
                 WaveformBar(
                     weight = weight,
-                    amplitude = amp,
+                    amplitude = if (isPlaying) amplitudes[index] else 0f,
                     isPlaying = isPlaying,
                     index = index
                 )

@@ -88,6 +88,7 @@ fun NowPlayingContent(
     val fallbackLyrics by playbackViewModel.fallbackLyrics.collectAsStateWithLifecycle()
     val lyricsProvider by playbackViewModel.lyricsProvider.collectAsStateWithLifecycle()
     val isLoadingLyrics by playbackViewModel.isLoadingLyrics.collectAsStateWithLifecycle()
+    val lyricsSongId by playbackViewModel.lyricsSongId.collectAsStateWithLifecycle()
     val sleepTimerEndMs by playbackViewModel.sleepTimerEndMs.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val controlledDesktop by playbackViewModel.controlledDesktop.collectAsStateWithLifecycle()
@@ -290,10 +291,11 @@ fun NowPlayingContent(
                         song = song,
                         state = state,
                         positionMs = positionMs,
-                        syncedLyrics = syncedLyrics,
-                        fallbackLyrics = fallbackLyrics,
+                        // Lyrics left from the previous song are hidden until the new song's are known.
+                        syncedLyrics = syncedLyrics.takeIf { lyricsSongId == song.id },
+                        fallbackLyrics = fallbackLyrics.takeIf { lyricsSongId == song.id },
                         lyricsProvider = lyricsProvider,
-                        isLoadingLyrics = isLoadingLyrics,
+                        isLoadingLyrics = isLoadingLyrics || lyricsSongId != song.id,
                         isFavorite = isFavorite,
                         chromeVisible = chromeVisible,
                         lyricsScrollState = lyricsScrollState,

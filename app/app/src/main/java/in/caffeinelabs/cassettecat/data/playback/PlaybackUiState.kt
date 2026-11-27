@@ -33,5 +33,7 @@ data class PlaybackUiState(
     val history: List<Song> = emptyList(),
     // Embedded ID3/Vorbis lyrics, if present.
     val currentLyrics: String? = null,
+    // Whether the file has been opened, so tags such as embedded lyrics are known.
+    val tracksLoaded: Boolean = false,
     val audioFormat: AudioTrackFormat? = null
 )
