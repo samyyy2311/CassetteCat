@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat
 
+import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
@@ -71,6 +72,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CoreLogicTest {
+    @Test
+    fun audioscrobblerRefusalsSettleButOutagesRetry() {
+        assertEquals(6, AudioscrobblerClient.errorCode("""{"error":6,"message":"Track not found"}"""))
+        assertEquals(29, AudioscrobblerClient.errorCode("""{"error": 29, "message":"Rate limit"}"""))
+        assertNull(AudioscrobblerClient.errorCode("""{"lovetrack":{}}"""))
+        assertFalse(AudioscrobblerClient.isTemporaryError(6))
+        assertTrue(AudioscrobblerClient.isTemporaryError(29))
+        assertTrue(AudioscrobblerClient.isTemporaryError(9))
+    }
+
     @Test
     fun serverAddressGetsHttpOnlyOnTheHomeNetwork() {
         assertEquals("http://192.168.1.10:8096", completeServerUrl(" 192.168.1.10:8096 "))
