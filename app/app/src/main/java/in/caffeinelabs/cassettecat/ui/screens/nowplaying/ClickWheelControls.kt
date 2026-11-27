@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -156,7 +157,6 @@ private fun ClickWheel(
     val currentOnNext by rememberUpdatedState(onSkipNext)
     val currentOnPlayPause by rememberUpdatedState(onTogglePlayPause)
     val currentOnSpinSeek by rememberUpdatedState(onSpinSeek)
-    // Each spin seeks relative to where the song was when the finger landed.
     val currentPosition by rememberUpdatedState(positionMs)
 
     val menuLabel = stringResource(AppR.string.now_playing_menu)
@@ -188,71 +188,29 @@ private fun ClickWheel(
             }
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    // Read each gesture, as the wheel resizes in place.
-                    val radius = this.size.width / 2f
-                    val center = Offset(radius, radius)
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val zone = zoneAt(down.position, center, radius) ?: return@awaitEachGesture
-                    down.consume()
-                    pressedZone = zone
-
-                    var spinning = false
-                    var lastAngle = angleOf(down.position, center)
-                    var lastPosition = down.position
-                    var offRing = false
-                    var accumulated = 0f
-                    var steps = 0
-                    val startPosition = currentPosition
-                    val touchRadius = (down.position - center).getDistance()
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!change.pressed) break
-                        change.consume()
-                        lastPosition = change.position
-                        val angle = angleOf(change.position, center)
-                        // Crossing the centre swings the angle without going round the ring, so it isn't counted,
-                        // and tracking picks up again from where the finger comes back onto the ring.
-                        if ((change.position - center).getDistance() <= radius * CENTER_FRACTION) {
-                            offRing = true
-                            continue
+                    var startPosition = 0L
+                    val tapped = trackWheelGesture(
+                        touchSlop = touchSlop,
+                        canSpin = currentOnSpinSeek != null,
+                        onPressedChange = { zone ->
+                            // Each spin seeks relative to where the song was when the finger landed.
+                            if (zone != null && pressedZone == null) startPosition = currentPosition
+                            pressedZone = zone
+                        },
+                        onStep = { steps ->
+                            tick()
+                            currentOnSpinSeek?.invoke(startPosition + steps * WHEEL_SEEK_STEP_MS)
                         }
-                        if (offRing) {
-                            offRing = false
-                            lastAngle = angle
-                        }
-                        var delta = angle - lastAngle
-                        if (delta > 180f) delta -= 360f
-                        if (delta < -180f) delta += 360f
-                        lastAngle = angle
-                        accumulated += delta
-                        // Only travel around the ring makes a spin, so a finger slipping inwards or outwards still taps.
-                        if (!spinning && currentOnSpinSeek != null &&
-                            abs(accumulated) * PI.toFloat() / 180f * touchRadius > touchSlop
-                        ) {
-                            spinning = true
-                            pressedZone = null
-                        }
-                        if (spinning) {
-                            val newSteps = (accumulated / WHEEL_TICK_DEGREES).toInt()
-                            if (newSteps != steps) {
-                                steps = newSteps
-                                tick()
-                                currentOnSpinSeek?.invoke(startPosition + steps * WHEEL_SEEK_STEP_MS)
-                            }
-                        }
-                    }
-                    // A press counts only when the finger lifts over the quarter it went down on.
-                    if (!spinning && pressedZone == zone && zoneAt(lastPosition, center, radius) == zone) {
-                        press()
-                        when (zone) {
-                            WheelZone.MENU -> currentOnMenu()
-                            WheelZone.PREVIOUS -> currentOnPrevious()
-                            WheelZone.NEXT -> currentOnNext()
-                            WheelZone.PLAY_PAUSE -> currentOnPlayPause()
-                        }
-                    }
+                    )
                     pressedZone = null
+                    if (tapped != null) press()
+                    when (tapped) {
+                        WheelZone.MENU -> currentOnMenu()
+                        WheelZone.PREVIOUS -> currentOnPrevious()
+                        WheelZone.NEXT -> currentOnNext()
+                        WheelZone.PLAY_PAUSE -> currentOnPlayPause()
+                        null -> Unit
+                    }
                 }
             },
         contentAlignment = Alignment.Center
@@ -326,6 +284,65 @@ private fun ClickWheel(
             modifier = Modifier.offset(x = iconSize * 0.45f, y = labelInset).size(iconSize * 0.8f)
         )
     }
+}
+
+// Follows one touch on the wheel and returns the quarter it tapped, or null for a spin or a press
+// that slid off. Only travel around the ring makes a spin, so a finger slipping inwards or outwards
+// still taps, and crossing the centre swings the angle without going round, so it isn't counted.
+private suspend fun AwaitPointerEventScope.trackWheelGesture(
+    touchSlop: Float,
+    canSpin: Boolean,
+    onPressedChange: (WheelZone?) -> Unit,
+    onStep: (Int) -> Unit
+): WheelZone? {
+    // Read for each gesture, as the wheel resizes in place.
+    val radius = size.width / 2f
+    val center = Offset(radius, radius)
+    val down = awaitFirstDown(requireUnconsumed = false)
+    val zone = zoneAt(down.position, center, radius) ?: return null
+    down.consume()
+    onPressedChange(zone)
+
+    var spinning = false
+    var lastAngle = angleOf(down.position, center)
+    var lastPosition = down.position
+    var offRing = false
+    var accumulated = 0f
+    var steps = 0
+    val touchRadius = (down.position - center).getDistance()
+    while (true) {
+        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+        if (!change.pressed) break
+        change.consume()
+        lastPosition = change.position
+        val angle = angleOf(change.position, center)
+        if ((change.position - center).getDistance() <= radius * CENTER_FRACTION) {
+            offRing = true
+            continue
+        }
+        if (offRing) {
+            offRing = false
+            lastAngle = angle
+        }
+        var delta = angle - lastAngle
+        if (delta > 180f) delta -= 360f
+        if (delta < -180f) delta += 360f
+        lastAngle = angle
+        accumulated += delta
+        if (!spinning && canSpin && abs(accumulated) * PI.toFloat() / 180f * touchRadius > touchSlop) {
+            spinning = true
+            onPressedChange(null)
+        }
+        if (spinning) {
+            val newSteps = (accumulated / WHEEL_TICK_DEGREES).toInt()
+            if (newSteps != steps) {
+                steps = newSteps
+                onStep(steps)
+            }
+        }
+    }
+    // A press counts only when the finger lifts over the quarter it went down on.
+    return zone.takeIf { !spinning && zoneAt(lastPosition, center, radius) == zone }
 }
 
 // Degrees clockwise from the positive x-axis, 0..360, in screen coordinates (y down).
