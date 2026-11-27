@@ -152,6 +152,7 @@ private const val DESKTOP_ARTWORK_MAX_CHARS = 48_000
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = PlaybackRepository(app)
+    private val connection: Job
     private val listeningRoomRepository = LocalListeningRoomRepository(app)
     private val desktop = DesktopRemoteRepository.getInstance(app)
 
@@ -221,7 +222,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     init {
         repository.onQueueExhausted = { viewModelScope.launch { maybeAutoplay() } }
         repository.onQueueLowWatermark = { viewModelScope.launch { maybeAutoplay() } }
-        viewModelScope.launch {
+        connection = viewModelScope.launch {
             repository.connect()
         }
         viewModelScope.launch {
@@ -422,20 +423,25 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         playQueue(buildInstantMix(seed, library), 0)
     }
 
-    // once per process, and only into an idle session
+    // Once per process: takes on a queue that's already playing, or restores the saved one into an idle session.
     fun restoreIfNeeded(allSongs: List<Song>) {
-        if (!appPreferences.value.resumeQueueOnLaunch || allSongs.isEmpty() || hasAttemptedRestore) return
+        if (allSongs.isEmpty() || hasAttemptedRestore) return
         hasAttemptedRestore = true
         viewModelScope.launch {
-            val saved = stateRepository.load() ?: return@launch
+            // The player may already be playing, started from the notification while the app was closed.
+            connection.join()
             val songsById = allSongs.associateBy { it.id }
-            if (saved.historySongIds.isNotEmpty()) {
+            val resume = appPreferences.value.resumeQueueOnLaunch
+            // History is restored before a queue is taken on: a paused one saves the playback state, history included.
+            val saved = if (resume) stateRepository.load() else null
+            if (saved != null && saved.historySongIds.isNotEmpty()) {
                 val resolvedHistory = saved.historySongIds.mapNotNull { songsById[it] }
                 if (resolvedHistory.isNotEmpty()) {
                     repository.restoreHistory(resolvedHistory)
                 }
             }
-            if (localState.value.currentSong != null) return@launch
+            repository.adoptSessionQueue(songsById)
+            if (saved == null || localState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
             // Skip songs deleted from storage while keeping relative queue ordering.

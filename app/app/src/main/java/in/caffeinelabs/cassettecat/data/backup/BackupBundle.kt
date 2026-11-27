@@ -39,7 +39,6 @@ data class BackupAppPreferences(
     val showRemainingTime: Boolean = false,
     val hapticFeedbackEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
-    val gaplessPlayback: Boolean = true,
     val skipSilence: Boolean = false,
     val replayGainPreAmpDb: Int = 0,
     val monoAudio: Boolean = false,

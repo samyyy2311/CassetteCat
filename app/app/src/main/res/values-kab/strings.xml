@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="empty_state_cat_taps">
+        <item>(=^･ω･^=) Meow!</item>
+        <item>🐾 Purrrrr…</item>
+        <item>CassetteCat loves music 🎵</item>
+        <item>🎧 Turn up the tape deck!</item>
+        <item>✨ Secret Cat Lounge unlocked!</item>
+    </string-array>
+    <string-array name="empty_state_cat_more">
+        <item>(=^･ω･^=)</item>
+        <item>Purr… 🐾</item>
+        <item>Meow! 🐱</item>
+        <item>CassetteCat 🎵</item>
+        <item>Hi friend! 🐾</item>
+    </string-array>
+</resources>
