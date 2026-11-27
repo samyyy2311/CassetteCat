@@ -1534,6 +1534,7 @@
     <string name="scrobbling_loves_section">Loves</string>
     <string name="scrobbling_sync_likes">Sync Likes</string>
     <string name="scrobbling_sync_likes_description">Songs you like are marked as loved on your accounts. Sync adds the ones you liked before</string>
+    <string name="scrobbling_sync_likes_done">All likes are synced</string>
     <plurals name="scrobbling_loves_left">
         <item quantity="one">%d love left to send</item>
         <item quantity="other">%d loves left to send</item>

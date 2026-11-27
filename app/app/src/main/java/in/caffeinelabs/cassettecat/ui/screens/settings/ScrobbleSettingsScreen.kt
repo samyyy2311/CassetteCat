@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -182,14 +183,17 @@ fun ScrobbleSettingsScreen(
 
         val anyConnected = settings.listenBrainz.userToken.isNotBlank() ||
             ScrobbleAccount.entries.any { settings.account(it).sessionKey.isNotBlank() }
+        // Once the count runs out while the screen is open, the row says the sync finished.
+        var sawLovesLeft by remember { mutableStateOf(false) }
+        LaunchedEffect(lovesLeft) { if (lovesLeft > 0) sawLovesLeft = true }
         if (anyConnected) {
             SettingsSection(title = stringResource(AppR.string.scrobbling_loves_section)) {
                 ActionRow(
                     title = stringResource(AppR.string.scrobbling_sync_likes),
-                    subtitle = if (lovesLeft > 0) {
-                        pluralStringResource(AppR.plurals.scrobbling_loves_left, lovesLeft, lovesLeft)
-                    } else {
-                        stringResource(AppR.string.scrobbling_sync_likes_description)
+                    subtitle = when {
+                        lovesLeft > 0 -> pluralStringResource(AppR.plurals.scrobbling_loves_left, lovesLeft, lovesLeft)
+                        sawLovesLeft -> stringResource(AppR.string.scrobbling_sync_likes_done)
+                        else -> stringResource(AppR.string.scrobbling_sync_likes_description)
                     },
                     iconRes = R.drawable.lucide_ic_heart,
                     onClick = { if (lovesLeft == 0) onSyncLikes() }

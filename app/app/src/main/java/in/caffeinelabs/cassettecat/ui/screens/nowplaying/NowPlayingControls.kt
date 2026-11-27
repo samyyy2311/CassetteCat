@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -81,7 +82,6 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 private const val SEEK_HAPTIC_TICK_INTERVAL_MS = 250L
-private const val POSITION_EASE_MS = 250
 private const val POSITION_JUMP_MS = 1_000f
 
 internal fun isSeekablePlayback(durationMs: Long): Boolean = durationMs > 0L
@@ -280,24 +280,28 @@ internal fun ScrubberControl(
     val safeDuration = durationMs.coerceAtLeast(0L).toFloat()
 
     val targetSliderValue = effectivePositionMs.toFloat().coerceIn(0f, safeDuration.coerceAtLeast(1f))
-    // The position arrives every quarter second, so easing over the same time keeps the bar moving
-    // steadily. A new song or a seek jumps straight there instead of sweeping across the bar.
-    var previousTarget by remember { mutableFloatStateOf(targetSliderValue) }
-    val jumped = abs(targetSliderValue - previousTarget) > POSITION_JUMP_MS
-    SideEffect { previousTarget = targetSliderValue }
-    val animatedSliderValue by animateFloatAsState(
-        targetValue = targetSliderValue,
-        animationSpec = if (isDragging || pendingSeekMs != null || jumped) {
-            snap()
-        } else {
-            tween(durationMillis = POSITION_EASE_MS, easing = LinearEasing)
-        },
-        label = "scrubberSliderPosition"
-    )
+    // Position updates come every quarter second, a little early or late. Between them the bar moves on with the
+    // clock every frame, and each update nudges it halfway to the reported position, so it never stops and starts.
+    // A seek, a new song or a pause puts it at the reported position at once.
+    var shownPositionMs by remember { mutableFloatStateOf(targetSliderValue) }
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) return@LaunchedEffect
+        var lastFrameMs = withFrameMillis { it }
+        while (true) {
+            withFrameMillis { frameMs ->
+                shownPositionMs = (shownPositionMs + (frameMs - lastFrameMs)).coerceAtMost(safeDuration.coerceAtLeast(1f))
+                lastFrameMs = frameMs
+            }
+        }
+    }
+    LaunchedEffect(targetSliderValue, isPlaying) {
+        val drift = targetSliderValue - shownPositionMs
+        shownPositionMs = if (!isPlaying || abs(drift) > POSITION_JUMP_MS) targetSliderValue else shownPositionMs + drift / 2
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
-            value = if (isDragging || pendingSeekMs != null) targetSliderValue else animatedSliderValue,
+            value = if (isDragging || pendingSeekMs != null) targetSliderValue else shownPositionMs,
             onValueChange = { value ->
                 val newPositionMs = value.toLong()
                 val lastTick = lastHapticTickMs
