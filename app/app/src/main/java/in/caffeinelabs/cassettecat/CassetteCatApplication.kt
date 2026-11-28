@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
 
 class CassetteCatApplication : Application() {
     override fun onCreate() {
@@ -33,6 +34,7 @@ class CassetteCatApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { blackout.collect { blackoutActive = it } }
         listDesktopInOutputSwitcher(this)
         ServerAddresses.start(this)
+        RemoteAlbumArtLoader.diskDir = java.io.File(cacheDir, "server_covers")
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             AppPreferencesRepository(this@CassetteCatApplication).preferences.collect {
                 StreamQuality.wifiKbps = it.streamQualityWifiKbps

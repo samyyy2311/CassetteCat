@@ -4,7 +4,9 @@ import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
 import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.ui.screens.search.nameMatchRank
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
@@ -75,6 +77,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -259,6 +262,25 @@ class CoreLogicTest {
         assertEquals(3, stats.songPlayCounts["a"])
         assertEquals(2, stats.songPlayCounts["song:twobo"])
         assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun savedServerCoversIgnoreSignInAndAddress() {
+        // The same cover from home or away, signed in with a fresh salt, is one file; a different cover isn't.
+        val home = RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=aa&s=11")
+        val away = RemoteAlbumArtLoader.savedName("https://music.example.com/rest/getCoverArt.view?id=al-1&u=me&t=bb&s=22")
+        assertEquals(home, away)
+        assertNotEquals(home, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-2&u=me"))
+    }
+
+    @Test
+    fun searchRanksAnArtistsOwnNameFirst() {
+        assertEquals(0, nameMatchRank("Reble", "reble"))
+        assertEquals(1, nameMatchRank("Travis Scott", "travis"))
+        assertEquals(2, nameMatchRank("King Chip", "chip"))
+        assertEquals(3, nameMatchRank("Skrillex", "rill"))
+        // A collaborator is matched by their own name only, never by a song they share.
+        assertNull(nameMatchRank("Amit Kumar", "reble"))
     }
 
     @Test

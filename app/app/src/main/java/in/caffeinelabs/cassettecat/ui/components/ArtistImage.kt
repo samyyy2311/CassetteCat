@@ -23,11 +23,17 @@ import `in`.caffeinelabs.cassettecat.data.library.ArtistImageLoader
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import kotlinx.coroutines.flow.first
+import java.io.File
 
 // Shared LRU cache across composable callers.
 @Suppress("StaticFieldLeak")
 private object ArtistImageLoaderHolder {
-    val loader = ArtistImageLoader()
+    @Volatile var loaded: ArtistImageLoader? = null
+
+    fun loader(context: Context): ArtistImageLoader =
+        loaded ?: synchronized(this) {
+            loaded ?: ArtistImageLoader(File(context.applicationContext.cacheDir, "artist_images")).also { loaded = it }
+        }
     @Volatile private var settingsRepo: ServiceSettingsRepository? = null
 
     fun settingsRepository(context: Context): ServiceSettingsRepository =
@@ -37,7 +43,7 @@ private object ArtistImageLoaderHolder {
 }
 
 fun trimArtistImageCaches(level: Int) {
-    ArtistImageLoaderHolder.loader.trimCaches(level)
+    ArtistImageLoaderHolder.loaded?.trimCaches(level)
 }
 
 @Composable
@@ -48,11 +54,12 @@ fun ArtistImage(
     thumbnail: Boolean = true
 ) {
     val context = LocalContext.current
-    var bitmap by remember(artist, thumbnail) { mutableStateOf(ArtistImageLoaderHolder.loader.peek(artist, thumbnail)) }
+    val loader = remember { ArtistImageLoaderHolder.loader(context) }
+    var bitmap by remember(artist, thumbnail) { mutableStateOf(loader.peek(artist, thumbnail)) }
     LaunchedEffect(artist, thumbnail) {
         if (bitmap == null) {
             val settings = ArtistImageLoaderHolder.settingsRepository(context).settings.first()
-            bitmap = ArtistImageLoaderHolder.loader.load(
+            bitmap = loader.load(
                 artist,
                 settings.isEnabled(ExternalService.DEEZER),
                 settings.isEnabled(ExternalService.AUDIODB),
