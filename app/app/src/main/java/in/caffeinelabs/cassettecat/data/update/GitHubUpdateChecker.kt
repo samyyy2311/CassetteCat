@@ -24,14 +24,16 @@ private val SEEN_VERSION = stringPreferencesKey("seen_version")
 @Serializable
 private data class GitHubRelease(
     val tag_name: String,
-    val html_url: String
+    val html_url: String,
+    val body: String = ""
 )
 
 sealed interface UpdateCheckResult {
     data object UpToDate : UpdateCheckResult
     data class UpdateAvailable(
         val version: String,
-        val url: String
+        val url: String,
+        val notes: List<String> = emptyList()
     ) : UpdateCheckResult
     data object Error : UpdateCheckResult
 }
@@ -51,7 +53,9 @@ class GitHubUpdateChecker {
             if (isNewer(latestVersion, currentVersion)) {
                 UpdateCheckResult.UpdateAvailable(
                     version = latestVersion,
-                    url = release.html_url
+                    url = release.html_url,
+                    // The release text is the version's changelog section, so it reads like What's New.
+                    notes = releaseNotesFrom(release.body, latestVersion)
                 )
             } else {
                 UpdateCheckResult.UpToDate
@@ -92,7 +96,7 @@ fun releaseNotesFrom(changelog: String, version: String): List<String> =
         .drop(1)
         .takeWhile { !it.startsWith("## [") }
         .filter { it.startsWith("* ") }
-        .map { it.removePrefix("* ").replace("**", "").trim() }
+        .map { it.removePrefix("* ").replace("**", "").replace("`", "").trim() }
         .toList()
 
 fun releaseNotes(context: Context, version: String): List<String> =

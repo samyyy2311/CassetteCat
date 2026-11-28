@@ -13,6 +13,7 @@ import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
 import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
 import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.UpdateSheet
 import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.ui.components.LoadingBar
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
@@ -1112,17 +1113,14 @@ fun MainShell(
                 updatePrompt = null
                 scope.launch { markUpdatePrompted(context, update.version) }
             }
-            AlertDialog(
-                onDismissRequest = ::close,
-                title = { Text(stringResource(AppR.string.update_prompt_title)) },
-                text = { Text(stringResource(AppR.string.update_prompt_message, update.version)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, update.url.toUri()))
-                        close()
-                    }) { Text(stringResource(AppR.string.action_download)) }
+            UpdateSheet(
+                version = update.version,
+                notes = update.notes,
+                onDownload = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, update.url.toUri()))
+                    close()
                 },
-                dismissButton = { TextButton(onClick = ::close) { Text(stringResource(AppR.string.action_later)) } }
+                onDismiss = ::close
             )
         }
 
