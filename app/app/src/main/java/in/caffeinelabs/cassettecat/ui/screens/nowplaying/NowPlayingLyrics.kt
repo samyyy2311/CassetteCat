@@ -14,10 +14,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -523,14 +519,28 @@ internal fun LyricsView(
                                         modifier = lineModifier
                                     )
                                 } else {
-                                    // A backing vocal only shows on the line being sung.
-                                    Text(
-                                        text = splitBacking(line.text).first,
-                                        style = lyricStyle,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        textAlign = lyricsTextAlign,
-                                        modifier = lineModifier
-                                    )
+                                    // A backing vocal only shows on the line being sung, but its room is kept on every
+                                    // line, so the lines around it never move when it comes and goes.
+                                    val (sung, backing) = splitBacking(line.text)
+                                    Column(lineModifier) {
+                                        Text(
+                                            text = sung,
+                                            style = lyricStyle,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            textAlign = lyricsTextAlign,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        backing?.let {
+                                            BackingLine(
+                                                text = it,
+                                                lyricStyle = lyricStyle,
+                                                litColor = MaterialTheme.colorScheme.onSurface,
+                                                dimColor = MaterialTheme.colorScheme.onSurface,
+                                                brightness = { 0f },
+                                                modifier = Modifier.graphicsLayer { alpha = 0f }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -797,22 +807,25 @@ private fun ActiveLyricLine(
         val lastWordStart = wordWeights.lastOrNull()?.first ?: 0f
         val opensAt = lastWordStart - ECHO_LEAD_MS.toFloat() / safeDuration
         val answering by remember(opensAt) { derivedStateOf { progressAnim.value >= opensAt } }
-        AnimatedVisibility(
-            visible = backing != null && answering,
-            enter = fadeIn(tween(ECHO_OPEN_MS, easing = SmoothEasing)) +
-                expandVertically(tween(ECHO_OPEN_MS, easing = SmoothEasing)) +
-                slideInVertically(tween(ECHO_OPEN_MS, easing = SmoothEasing)) { it / 5 } +
-                scaleIn(tween(ECHO_OPEN_MS, easing = SmoothEasing), initialScale = 0.94f),
-            exit = fadeOut(tween(ECHO_CLOSE_MS, easing = SmoothEasing)) +
-                shrinkVertically(tween(ECHO_CLOSE_MS, easing = SmoothEasing))
-        ) {
+        val open by animateFloatAsState(
+            targetValue = if (answering) 1f else 0f,
+            animationSpec = tween(if (answering) ECHO_OPEN_MS else ECHO_CLOSE_MS, easing = SmoothEasing),
+            label = "echoOpen"
+        )
+        backing?.let {
             BackingLine(
-                text = backing.orEmpty(),
+                text = it,
                 lyricStyle = lyricStyle,
                 litColor = activeWordColor,
                 dimColor = onSurface,
                 brightness = {
                     ((progressAnim.value - lastWordStart) / (1f - lastWordStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                },
+                modifier = Modifier.graphicsLayer {
+                    alpha = open
+                    translationY = (1f - open) * ECHO_RISE.toPx()
+                    scaleX = 0.94f + 0.06f * open
+                    scaleY = scaleX
                 }
             )
         }
@@ -834,15 +847,23 @@ private fun splitBacking(text: String): Pair<String, String?> {
 private const val ECHO_LEAD_MS = 250L
 private const val ECHO_OPEN_MS = 400
 private const val ECHO_CLOSE_MS = 450
+private val ECHO_RISE = 6.dp
 
 // The echo's brightness is read while drawing, so it changes every frame without rebuilding the text.
 @Composable
-private fun BackingLine(text: String, lyricStyle: TextStyle, litColor: Color, dimColor: Color, brightness: () -> Float) {
+private fun BackingLine(
+    text: String,
+    lyricStyle: TextStyle,
+    litColor: Color,
+    dimColor: Color,
+    brightness: () -> Float,
+    modifier: Modifier = Modifier
+) {
     val style = lyricStyle.copy(
         fontSize = lyricStyle.fontSize * 0.72f,
         lineHeight = if (lyricStyle.lineHeight.isSpecified) lyricStyle.lineHeight * 0.72f else lyricStyle.lineHeight
     )
-    Box(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+    Box(modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(
             text = text,
             style = style,

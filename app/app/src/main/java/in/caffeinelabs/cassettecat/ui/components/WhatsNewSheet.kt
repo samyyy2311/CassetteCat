@@ -31,6 +31,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.caffeinelabs.cassettecat.BuildConfig
@@ -117,8 +124,9 @@ private fun ReleaseSheet(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
                         .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.45f)
+                        .fadingBottomEdge()
                         .verticalScroll(rememberScrollState())
-                        .padding(vertical = 8.dp)
+                        .padding(top = 8.dp, bottom = 24.dp)
                 ) {
                     notes.forEach { section ->
                         // Labelled like the sections in Settings.
@@ -157,3 +165,15 @@ private fun ReleaseSheet(
         }
     }
 }
+
+// The list fades out at its bottom edge instead of being cut off, which also hints that there's more below.
+private fun Modifier.fadingBottomEdge(): Modifier = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val fade = 32.dp.toPx().coerceAtMost(size.height)
+        drawRect(
+            brush = Brush.verticalGradient(listOf(Color.Black, Color.Transparent), startY = size.height - fade, endY = size.height),
+            topLeft = Offset(0f, size.height - fade),
+            blendMode = BlendMode.DstIn
+        )
+    }
