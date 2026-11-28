@@ -20,7 +20,9 @@ data class StreamingServerConfig(
     val serverUrl: String = "",
     val username: String = "",
     val userId: String? = null,
-    val connected: Boolean = false
+    val connected: Boolean = false,
+    // Used instead of serverUrl when that doesn't answer, such as a domain name for when you're away from home.
+    val awayUrl: String = ""
 )
 
 class StreamingServerRepository(private val context: Context) {
@@ -28,6 +30,7 @@ class StreamingServerRepository(private val context: Context) {
     private fun usernameKey(protocol: StreamingProtocol) = stringPreferencesKey("${protocol.name}_username")
     private fun userIdKey(protocol: StreamingProtocol) = stringPreferencesKey("${protocol.name}_user_id")
     private fun connectedKey(protocol: StreamingProtocol) = booleanPreferencesKey("${protocol.name}_connected")
+    private fun awayUrlKey(protocol: StreamingProtocol) = stringPreferencesKey("${protocol.name}_away_url")
 
     fun config(protocol: StreamingProtocol): Flow<StreamingServerConfig> =
         context.streamingDataStore.data.map { prefs ->
@@ -35,7 +38,8 @@ class StreamingServerRepository(private val context: Context) {
                 serverUrl = prefs[urlKey(protocol)] ?: "",
                 username = prefs[usernameKey(protocol)] ?: "",
                 userId = prefs[userIdKey(protocol)],
-                connected = prefs[connectedKey(protocol)] ?: false
+                connected = prefs[connectedKey(protocol)] ?: false,
+                awayUrl = prefs[awayUrlKey(protocol)] ?: ""
             )
         }
 
@@ -45,6 +49,7 @@ class StreamingServerRepository(private val context: Context) {
             prefs[usernameKey(protocol)] = config.username
             if (config.userId != null) prefs[userIdKey(protocol)] = config.userId
             prefs[connectedKey(protocol)] = config.connected
+            if (config.awayUrl.isBlank()) prefs.remove(awayUrlKey(protocol)) else prefs[awayUrlKey(protocol)] = config.awayUrl
         }
     }
 

@@ -84,6 +84,7 @@ import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -163,10 +164,12 @@ class PlaybackService : MediaLibraryService() {
         // Blackout pauses every song that isn't on the phone, so the player takes nothing from the network then,
         // whatever started the playback; the player follows redirects itself, so no host is trusted.
         val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
-            if (blackoutActive && (spec.uri.scheme == "http" || spec.uri.scheme == "https")) {
-                throw IOException("Blackout mode is on")
-            }
-            spec
+            if (spec.uri.scheme != "http" && spec.uri.scheme != "https") return@Factory spec
+            if (blackoutActive) throw IOException("Blackout mode is on")
+            // A song from your server streams from whichever of its addresses answers where you are now.
+            val url = spec.uri.toString()
+            val rewritten = ServerAddresses.rewrite(url)
+            if (rewritten == url) spec else spec.withUri(Uri.parse(rewritten))
         }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent
         // write from playback stalls the download instead of erroring.

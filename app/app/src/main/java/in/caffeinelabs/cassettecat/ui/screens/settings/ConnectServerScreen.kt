@@ -71,6 +71,7 @@ fun ConnectServerScreen(
     val savedConfig by viewModel.savedConfig(protocol).collectAsStateWithLifecycle(initialValue = StreamingServerConfig())
 
     var serverUrl by rememberSaveable { mutableStateOf("") }
+    var awayUrl by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -79,6 +80,7 @@ fun ConnectServerScreen(
     var signedInWithPassword by rememberSaveable { mutableStateOf(false) }
 
     fun normalizedServerUrl(): String = completeServerUrl(serverUrl)
+    fun normalizedAwayUrl(): String = if (awayUrl.isBlank()) "" else completeServerUrl(awayUrl)
 
     val autofill = LocalAutofillManager.current
     // Lets the password manager offer to save the sign-in once the server accepts it. Quick Connect has no password.
@@ -89,6 +91,9 @@ fun ConnectServerScreen(
     LaunchedEffect(savedConfig) {
         if (serverUrl.isBlank() && savedConfig.serverUrl.isNotBlank()) {
             serverUrl = savedConfig.serverUrl
+        }
+        if (awayUrl.isBlank() && savedConfig.awayUrl.isNotBlank()) {
+            awayUrl = savedConfig.awayUrl
         }
         if (username.isBlank() && savedConfig.username.isNotBlank()) {
             username = savedConfig.username
@@ -186,6 +191,19 @@ fun ConnectServerScreen(
                     )
 
                     ServerTextField(
+                        value = awayUrl,
+                        onValueChange = { awayUrl = it },
+                        label = stringResource(AppR.string.server_away_url),
+                        placeholder = stringResource(AppR.string.server_away_url_placeholder),
+                        icon = R.drawable.lucide_ic_globe
+                    )
+                    Text(
+                        stringResource(AppR.string.server_away_url_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    ServerTextField(
                         value = username,
                         onValueChange = { username = it },
                         label = stringResource(AppR.string.server_username),
@@ -261,7 +279,7 @@ fun ConnectServerScreen(
                             showHttpWarning = true
                         } else {
                             signedInWithPassword = true
-                            viewModel.connect(protocol, normalizedServerUrl(), username.trim(), password)
+                            viewModel.connect(protocol, normalizedServerUrl(), normalizedAwayUrl(), username.trim(), password)
                         }
                     },
                     enabled = current != ConnectionState.Connecting &&
@@ -288,7 +306,7 @@ fun ConnectServerScreen(
                                 showHttpWarning = true
                             } else {
                                 signedInWithPassword = false
-                                viewModel.startQuickConnect(normalizedServerUrl())
+                                viewModel.startQuickConnect(normalizedServerUrl(), normalizedAwayUrl())
                             }
                         },
                         enabled = current != ConnectionState.Connecting && serverUrl.isNotBlank(),
@@ -361,10 +379,10 @@ fun ConnectServerScreen(
                     if (pendingQuickConnect) {
                         pendingQuickConnect = false
                         signedInWithPassword = false
-                        viewModel.startQuickConnect(normalizedServerUrl())
+                        viewModel.startQuickConnect(normalizedServerUrl(), normalizedAwayUrl())
                     } else {
                         signedInWithPassword = true
-                        viewModel.connect(protocol, normalizedServerUrl(), username.trim(), password)
+                        viewModel.connect(protocol, normalizedServerUrl(), normalizedAwayUrl(), username.trim(), password)
                     }
                 }) { Text(stringResource(AppR.string.action_connect)) }
             },

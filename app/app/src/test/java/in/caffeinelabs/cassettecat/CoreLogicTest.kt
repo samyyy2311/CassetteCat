@@ -4,6 +4,7 @@ import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
@@ -257,6 +258,19 @@ class CoreLogicTest {
         assertEquals(3, stats.songPlayCounts["a"])
         assertEquals(2, stats.songPlayCounts["song:twobo"])
         assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun serverAddressesAreMatchedWholeAndTriedHomeFirst() {
+        // A server's address only matches up to a path or the end, so :4533 isn't taken for :45330.
+        assertTrue(ServerAddresses.startsWithBase("http://192.168.1.5:4533/rest/stream.view?id=1", "http://192.168.1.5:4533"))
+        assertTrue(ServerAddresses.startsWithBase("http://192.168.1.5:4533", "http://192.168.1.5:4533"))
+        assertFalse(ServerAddresses.startsWithBase("http://192.168.1.5:45330/rest", "http://192.168.1.5:4533"))
+        // The home network address is tried first, whichever order they were typed in.
+        assertEquals(
+            listOf("http://192.168.1.5:4533", "https://music.example.com"),
+            ServerAddresses.byHomeNetworkFirst(listOf("https://music.example.com", "http://192.168.1.5:4533"))
+        )
     }
 
     @Test

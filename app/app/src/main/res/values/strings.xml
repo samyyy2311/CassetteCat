@@ -245,6 +245,9 @@
     <string name="server_connected_as">Connected as %1$s</string>
     <string name="server_connected_description">Your library is synchronized and ready for streaming.</string>
     <string name="server_url">Server URL</string>
+    <string name="server_away_url">Away address (optional)</string>
+    <string name="server_away_url_placeholder">https://music.example.com</string>
+    <string name="server_away_url_description">Used when the address above doesn’t answer, such as when you’re away from home. CassetteCat switches between them by itself.</string>
     <string name="server_username">Username</string>
     <string name="server_username_placeholder">Your username</string>
     <string name="server_password">Password</string>

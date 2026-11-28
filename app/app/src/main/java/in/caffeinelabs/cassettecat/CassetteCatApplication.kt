@@ -8,6 +8,7 @@ import `in`.caffeinelabs.cassettecat.data.streaming.CertificatePinRepository
 import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.pinnedHostnameVerifier
 import `in`.caffeinelabs.cassettecat.data.streaming.tofuSslSocketFactory
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
 import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ class CassetteCatApplication : Application() {
         blackoutActive = runBlocking { blackout.first() }
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { blackout.collect { blackoutActive = it } }
         listDesktopInOutputSwitcher(this)
+        ServerAddresses.start(this)
     }
 
     @Suppress("DEPRECATION")
