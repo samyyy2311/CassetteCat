@@ -1,5 +1,6 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -83,6 +84,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
@@ -518,13 +520,17 @@ internal fun LyricsView(
                                         modifier = lineModifier
                                     )
                                 } else {
-                                    Text(
-                                        text = line.text,
-                                        style = lyricStyle,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        textAlign = lyricsTextAlign,
-                                        modifier = lineModifier
-                                    )
+                                    val (sung, backing) = splitBacking(line.text)
+                                    Column(lineModifier) {
+                                        Text(
+                                            text = sung,
+                                            style = lyricStyle,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            textAlign = lyricsTextAlign,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        backing?.let { BackingLine(it, lyricStyle, MaterialTheme.colorScheme.onSurface) }
+                                    }
                                 }
                             }
                         }
@@ -679,7 +685,8 @@ private fun ActiveLyricLine(
     modifier: Modifier
 ) {
     val line = item.lyricLine
-    val words = remember(line.text) { line.text.split(" ").filter { it.isNotBlank() } }
+    val (sung, backing) = remember(line.text) { splitBacking(line.text) }
+    val words = remember(sung) { sung.split(" ").filter { it.isNotBlank() } }
     val wordWeights = remember(words) {
         val total = words.sumOf { it.length + 1 }.toFloat().coerceAtLeast(1f)
         var acc = 0f
@@ -741,48 +748,83 @@ private fun ActiveLyricLine(
         layout?.let { result -> wordTiles(result, wordRanges) }
     }
 
-    Box(modifier = modifier) {
-        Text(
-            text = text,
-            style = lyricStyle,
-            color = onSurface.copy(alpha = 0.5f),
-            textAlign = lyricStyle.textAlign,
-            onTextLayout = { layout = it },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = text,
-            style = lyricStyle,
-            color = activeWordColor,
-            textAlign = lyricStyle.textAlign,
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    val bounds = wordBounds ?: return@drawWithContent
-                    val progress = progressAnim.value
-                    bounds.forEachIndexed { wordIdx, rect ->
-                        val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
-                        // Each word lights over its own share of the line, as it's sung; a short word still takes a
-                        // quarter of a second, so it fades rather than blinks.
-                        // The last words start earlier when that quarter-second would outlast the line.
-                        val span = maxOf(slotEnd - slotStart, 250f / safeDuration).coerceAtMost(1f)
-                        val start = minOf(slotStart, 1f - span)
-                        val linear = ((progress - start) / span).coerceIn(0f, 1f)
-                        val lit = linear * linear * (3f - 2f * linear)
-                        if (lit < 1f) {
-                            drawRect(
-                                color = Color.Black.copy(alpha = 1f - lit),
-                                topLeft = rect.topLeft,
-                                size = rect.size,
-                                blendMode = BlendMode.DstOut
-                            )
+    Column(modifier = modifier) {
+        Box {
+            Text(
+                text = text,
+                style = lyricStyle,
+                color = onSurface.copy(alpha = 0.5f),
+                textAlign = lyricStyle.textAlign,
+                onTextLayout = { layout = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = text,
+                style = lyricStyle,
+                color = activeWordColor,
+                textAlign = lyricStyle.textAlign,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        val bounds = wordBounds ?: return@drawWithContent
+                        val progress = progressAnim.value
+                        bounds.forEachIndexed { wordIdx, rect ->
+                            val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
+                            // Each word lights over its own share of the line, as it's sung; a short word still takes a
+                            // quarter of a second, so it fades rather than blinks.
+                            // The last words start earlier when that quarter-second would outlast the line.
+                            val span = maxOf(slotEnd - slotStart, 250f / safeDuration).coerceAtMost(1f)
+                            val start = minOf(slotStart, 1f - span)
+                            val linear = ((progress - start) / span).coerceIn(0f, 1f)
+                            val lit = linear * linear * (3f - 2f * linear)
+                            if (lit < 1f) {
+                                drawRect(
+                                    color = Color.Black.copy(alpha = 1f - lit),
+                                    topLeft = rect.topLeft,
+                                    size = rect.size,
+                                    blendMode = BlendMode.DstOut
+                                )
+                            }
                         }
                     }
-                }
-        )
+            )
+        }
+        // The answering voice lights once the line it answers has been sung.
+        backing?.let {
+            val color by animateColorAsState(
+                if (progressAnim.value >= 1f) activeWordColor else onSurface.copy(alpha = 0.5f),
+                label = "backingColor"
+            )
+            BackingLine(it, lyricStyle, color)
+        }
     }
+}
+
+// A backing vocal written at the end of a line in brackets, as in "I give all of me (All of me)", sits under the line
+// in smaller type, so the line reads as what's sung and the echo as an echo.
+private fun splitBacking(text: String): Pair<String, String?> {
+    val trimmed = text.trimEnd()
+    if (!trimmed.endsWith(")")) return trimmed to null
+    val open = trimmed.lastIndexOf(" (")
+    if (open <= 0 || trimmed.indexOf(')', open) != trimmed.length - 1) return trimmed to null
+    val echo = trimmed.substring(open + 2, trimmed.length - 1).trim()
+    return if (echo.isEmpty()) trimmed to null else trimmed.substring(0, open).trimEnd() to echo
+}
+
+@Composable
+private fun BackingLine(text: String, lyricStyle: TextStyle, color: Color) {
+    Text(
+        text = text,
+        style = lyricStyle.copy(
+            fontSize = lyricStyle.fontSize * 0.7f,
+            lineHeight = if (lyricStyle.lineHeight.isSpecified) lyricStyle.lineHeight * 0.7f else lyricStyle.lineHeight
+        ),
+        color = color.copy(alpha = color.alpha * 0.75f),
+        textAlign = lyricStyle.textAlign,
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+    )
 }
 
 private fun wordTiles(layout: TextLayoutResult, wordRanges: List<IntRange>): List<Rect> {
