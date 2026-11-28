@@ -92,8 +92,8 @@ class ListenBrainzClient {
 
     // Feedback is given for a MusicBrainz recording, which the files don't name, so it's looked up first.
     // True once sent, and also when MusicBrainz has no such recording, as there's then nothing to love.
-    // A 4xx answer other than a bad token or the rate limit won't change if the same request is sent again.
-    private fun isRefusal(code: Int) = code in 400..499 && code != 401 && code != 429
+    // A 4xx answer other than a bad token, a timeout or the rate limit won't change if the same request is sent again.
+    private fun isRefusal(code: Int) = code in 400..499 && code != 401 && code != 408 && code != 429
 
     suspend fun sendFeedback(token: String, song: Song, loved: Boolean): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
@@ -109,7 +109,10 @@ class ListenBrainzClient {
                 val request = Request.Builder().url(url).header("Authorization", "Token ${token.trim()}").get().build()
                 return sharedHttpClient.newCall(request).execute().use { response ->
                     // A lookup turned down for good counts as no match, so the love isn't asked again for weeks.
-                    if (isRefusal(response.code)) return null
+                    if (isRefusal(response.code)) {
+                        Log.w("ListenBrainz", "Lookup refused: ${response.code}")
+                        return null
+                    }
                     if (!response.isSuccessful) throw IOException("Lookup failed: ${response.code}")
                     sharedJson.decodeFromString<LookupResponse>(response.body.string()).recordingMbid
                 }
@@ -121,7 +124,10 @@ class ListenBrainzClient {
                 .header("Authorization", "Token ${token.trim()}")
                 .post(body.toRequestBody(JSON_MEDIA_TYPE))
                 .build()
-            sharedHttpClient.newCall(feedback).execute().use { it.isSuccessful || isRefusal(it.code) }
+            sharedHttpClient.newCall(feedback).execute().use {
+                if (isRefusal(it.code)) Log.w("ListenBrainz", "Feedback refused: ${it.code}")
+                it.isSuccessful || isRefusal(it.code)
+            }
         }.onFailure { Log.w("ListenBrainz", "Couldn't send feedback", it) }.getOrDefault(false)
     }
 

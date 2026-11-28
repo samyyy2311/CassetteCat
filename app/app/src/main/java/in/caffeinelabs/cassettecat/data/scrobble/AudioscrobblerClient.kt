@@ -71,7 +71,7 @@ class AudioscrobblerClient private constructor(
     }
 
     suspend fun updateNowPlaying(sessionKey: String, song: Song): Boolean =
-        sessionKey.isNotBlank() && post(trackParams("track.updateNowPlaying", sessionKey, song))?.error == null
+        sessionKey.isNotBlank() && post(trackParams("track.updateNowPlaying", sessionKey, song))?.let { it.error == null } == true
 
     /** Whether the scrobble is done with: taken, or turned down for good. */
     suspend fun scrobble(sessionKey: String, song: Song, timestampSec: Long): Boolean =

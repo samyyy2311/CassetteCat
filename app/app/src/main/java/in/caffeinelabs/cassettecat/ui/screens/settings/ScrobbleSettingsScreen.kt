@@ -194,9 +194,13 @@ fun ScrobbleSettingsScreen(
 
         val anyConnected = settings.listenBrainz.userToken.isNotBlank() ||
             ScrobbleAccount.entries.any { settings.account(it).sessionKey.isNotBlank() }
-        // Once the count runs out while the screen is open, the row says the sync finished.
-        var sawLovesLeft by remember { mutableStateOf(false) }
-        LaunchedEffect(lovesLeft) { if (lovesLeft > 0) sawLovesLeft = true }
+        // The row says the sync finished only once a sync started from it has sent its loves, and starts over when
+        // an account is connected or removed, as that account hasn't had them yet. Loves from single likes don't count.
+        val connectedAccounts = listOf(settings.listenBrainz.userToken) +
+            ScrobbleAccount.entries.map { settings.account(it).sessionKey }
+        var syncStarted by remember(connectedAccounts) { mutableStateOf(false) }
+        var sawLovesLeft by remember(connectedAccounts) { mutableStateOf(false) }
+        LaunchedEffect(lovesLeft, syncStarted) { if (syncStarted && lovesLeft > 0) sawLovesLeft = true }
         if (anyConnected) {
             SettingsSection(title = stringResource(AppR.string.scrobbling_loves_section)) {
                 ActionRow(
@@ -207,7 +211,13 @@ fun ScrobbleSettingsScreen(
                         else -> stringResource(AppR.string.scrobbling_sync_likes_description)
                     },
                     iconRes = R.drawable.lucide_ic_heart,
-                    onClick = { if (lovesLeft == 0) onSyncLikes() }
+                    onClick = {
+                        if (lovesLeft == 0) {
+                            syncStarted = true
+                            sawLovesLeft = false
+                            onSyncLikes()
+                        }
+                    }
                 )
             }
             Spacer(Modifier.height(24.dp))

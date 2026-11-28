@@ -290,6 +290,8 @@ internal fun ScrubberControl(
     // puts it at the reported position at once.
     var shownPositionMs by remember { mutableFloatStateOf(targetSliderValue) }
     val latestTarget by rememberUpdatedState(targetSliderValue)
+    // The next song can start without a pause, so the loop reads its length afresh rather than keeping the old one.
+    val latestDuration by rememberUpdatedState(safeDuration)
     LaunchedEffect(isPlaying) {
         if (!isPlaying) {
             snapshotFlow { latestTarget }.collect { shownPositionMs = it }
@@ -306,7 +308,7 @@ internal fun ScrubberControl(
                 }
                 val elapsedMs = (frameMs - lastFrameMs).toFloat()
                 lastFrameMs = frameMs
-                val expectedMs = (reported + (frameMs - reportedAtMs)).coerceAtMost(safeDuration.coerceAtLeast(1f))
+                val expectedMs = (reported + (frameMs - reportedAtMs)).coerceAtMost(latestDuration.coerceAtLeast(1f))
                 val errorMs = expectedMs - shownPositionMs
                 shownPositionMs = if (abs(errorMs) > POSITION_JUMP_MS) {
                     expectedMs
