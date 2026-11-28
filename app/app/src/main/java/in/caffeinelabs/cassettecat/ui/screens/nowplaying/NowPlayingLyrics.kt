@@ -16,6 +16,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,9 +83,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -792,23 +791,30 @@ private fun ActiveLyricLine(
                     }
             )
         }
-        // The answering voice comes in dim as the last words of the line are sung, lights word by word over what's
-        // left of the line, and goes with the line.
+        // The answering voice is a second voice, so it stays quieter than the line: it opens a moment before the
+        // line's last words, rising slightly into place, brightens gently over what's left of the line rather than word
+        // by word, never fully, and folds away a little slower than it came.
         val lastWordStart = wordWeights.lastOrNull()?.first ?: 0f
-        val answering by remember(lastWordStart) { derivedStateOf { progressAnim.value >= lastWordStart } }
-        val echoWords = remember(backing) { backing?.split(" ")?.filter { it.isNotBlank() }.orEmpty() }
-        val echoLit by remember(lastWordStart, echoWords) {
-            derivedStateOf {
-                val share = ((progressAnim.value - lastWordStart) / (1f - lastWordStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-                (share * echoWords.size + 0.5f).toInt().coerceAtMost(echoWords.size)
-            }
-        }
+        val opensAt = lastWordStart - ECHO_LEAD_MS.toFloat() / safeDuration
+        val answering by remember(opensAt) { derivedStateOf { progressAnim.value >= opensAt } }
         AnimatedVisibility(
             visible = backing != null && answering,
-            enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-            exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+            enter = fadeIn(tween(ECHO_OPEN_MS, easing = SmoothEasing)) +
+                expandVertically(tween(ECHO_OPEN_MS, easing = SmoothEasing)) +
+                slideInVertically(tween(ECHO_OPEN_MS, easing = SmoothEasing)) { it / 5 } +
+                scaleIn(tween(ECHO_OPEN_MS, easing = SmoothEasing), initialScale = 0.94f),
+            exit = fadeOut(tween(ECHO_CLOSE_MS, easing = SmoothEasing)) +
+                shrinkVertically(tween(ECHO_CLOSE_MS, easing = SmoothEasing))
         ) {
-            BackingLine(echoWords, echoLit, lyricStyle, activeWordColor, onSurface.copy(alpha = 0.5f))
+            BackingLine(
+                text = backing.orEmpty(),
+                lyricStyle = lyricStyle,
+                litColor = activeWordColor,
+                dimColor = onSurface,
+                brightness = {
+                    ((progressAnim.value - lastWordStart) / (1f - lastWordStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                }
+            )
         }
     }
 }
@@ -824,23 +830,34 @@ private fun splitBacking(text: String): Pair<String, String?> {
     return if (echo.isEmpty()) trimmed to null else trimmed.substring(0, open).trimEnd() to echo
 }
 
+// How the answering voice comes and goes.
+private const val ECHO_LEAD_MS = 250L
+private const val ECHO_OPEN_MS = 400
+private const val ECHO_CLOSE_MS = 450
+
+// The echo's brightness is read while drawing, so it changes every frame without rebuilding the text.
 @Composable
-private fun BackingLine(words: List<String>, lit: Int, lyricStyle: TextStyle, litColor: Color, dimColor: Color) {
-    val text = buildAnnotatedString {
-        words.forEachIndexed { index, word ->
-            if (index > 0) append(" ")
-            withStyle(SpanStyle(color = if (index < lit) litColor else dimColor)) { append(word) }
-        }
-    }
-    Text(
-        text = text,
-        style = lyricStyle.copy(
-            fontSize = lyricStyle.fontSize * 0.7f,
-            lineHeight = if (lyricStyle.lineHeight.isSpecified) lyricStyle.lineHeight * 0.7f else lyricStyle.lineHeight
-        ),
-        textAlign = lyricStyle.textAlign,
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+private fun BackingLine(text: String, lyricStyle: TextStyle, litColor: Color, dimColor: Color, brightness: () -> Float) {
+    val style = lyricStyle.copy(
+        fontSize = lyricStyle.fontSize * 0.72f,
+        lineHeight = if (lyricStyle.lineHeight.isSpecified) lyricStyle.lineHeight * 0.72f else lyricStyle.lineHeight
     )
+    Box(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Text(
+            text = text,
+            style = style,
+            color = dimColor.copy(alpha = 0.35f),
+            textAlign = lyricStyle.textAlign,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = text,
+            style = style,
+            color = litColor.copy(alpha = 0.7f),
+            textAlign = lyricStyle.textAlign,
+            modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = brightness() }
+        )
+    }
 }
 
 private fun wordTiles(layout: TextLayoutResult, wordRanges: List<IntRange>): List<Rect> {

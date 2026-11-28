@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R
 import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
@@ -111,23 +111,23 @@ private fun ReleaseSheet(
                 }
             }
             if (notes.isNotEmpty()) {
-                Spacer(Modifier.height(20.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.height(16.dp))
                 // A long release scrolls within half the screen, so the sheet stays compact and its buttons in reach.
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
                         .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.45f)
                         .verticalScroll(rememberScrollState())
-                        .padding(vertical = 16.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     notes.forEach { section ->
+                        // Labelled like the sections in Settings.
                         section.title?.let { title ->
                             Text(
-                                title,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(top = if (section == notes.first()) 0.dp else 10.dp)
+                                title.uppercase(),
+                                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(top = if (section == notes.first()) 0.dp else 12.dp)
                             )
                         }
                         section.notes.forEach { note ->
@@ -149,7 +149,6 @@ private fun ReleaseSheet(
                         }
                     }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
             if (actions != null) {
                 Spacer(Modifier.height(20.dp))
