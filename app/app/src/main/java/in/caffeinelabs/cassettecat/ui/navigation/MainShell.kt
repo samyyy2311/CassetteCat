@@ -144,6 +144,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationAudioEngineScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedScreen
 import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
@@ -1024,11 +1025,14 @@ fun MainShell(
                         PrivacyScreen(onBack = { navController.popBackStack() })
                     }
                     composable(MainRoute.STATS) {
+                        // Opened from the bar it's a tab, straight after the start tab, with nothing to go back to.
+                        val openedAsTab = NavTab.STATS in visibleNavTabs &&
+                            navController.previousBackStackEntry?.destination?.route == startTab
                         StatsScreen(
                             libraryViewModel = libraryViewModel,
                             playlistViewModel = playlistViewModel,
                             playbackViewModel = playbackViewModel,
-                            onBack = { navController.popBackStack() },
+                            onBack = if (openedAsTab) null else { { navController.popBackStack() } },
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },

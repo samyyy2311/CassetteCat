@@ -44,7 +44,7 @@ fun parentTabRoute(currentRoute: String?): String? = when {
     currentRoute == MainRoute.SEARCH || currentRoute?.startsWith("${MainRoute.SEARCH}/") == true -> MainRoute.SEARCH
     currentRoute == MainRoute.LIBRARY || currentRoute?.startsWith("${MainRoute.LIBRARY}/") == true -> MainRoute.LIBRARY
     currentRoute == MainRoute.RADIO || currentRoute?.startsWith("${MainRoute.RADIO}/") == true -> MainRoute.RADIO
-    currentRoute == MainRoute.SETTINGS || currentRoute == MainRoute.STATS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
+    currentRoute == MainRoute.SETTINGS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
     else -> currentRoute
 }
 @Composable
@@ -55,7 +55,9 @@ fun BottomNavBar(
     onNavigate: (String) -> Unit,
     onSearchLongPress: () -> Unit = {}
 ) {
+    // Listening Record is its own tab when it's on the bar, and otherwise a page of Settings.
     val activeTabRoute = parentTabRoute(currentRoute)
+        .let { if (it == MainRoute.STATS && NavTab.STATS !in tabs) MainRoute.SETTINGS else it }
     Row(
         modifier = Modifier
             .fillMaxSize()
