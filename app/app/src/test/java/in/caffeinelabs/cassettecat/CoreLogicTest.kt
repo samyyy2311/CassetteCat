@@ -1,6 +1,8 @@
 package `in`.caffeinelabs.cassettecat
 
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
+import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
@@ -78,6 +80,25 @@ class CoreLogicTest {
         assertEquals(29, AudioscrobblerClient.errorCode("""{"error": 29, "message":"Rate limit"}"""))
         assertNull(AudioscrobblerClient.errorCode("""{"lovetrack":{}}"""))
         assertFalse(AudioscrobblerClient.isTemporaryError(6))
+
+        // A loved-tracks page lists its songs, except that a page of one gives the song on its own.
+        val (two, pages) = AudioscrobblerClient.lovedPage(
+            """{"lovedtracks":{"track":[{"name":"One","artist":{"name":"A"}},{"name":"Two","artist":{"name":"B"}}],"@attr":{"totalPages":"3"}}}"""
+        )!!
+        assertEquals(setOf(songMatchKey("One", "A"), songMatchKey("Two", "B")), two)
+        assertEquals(3, pages)
+        assertEquals(
+            setOf(songMatchKey("Solo", "C")),
+            AudioscrobblerClient.lovedPage("""{"lovedtracks":{"track":{"name":"Solo","artist":{"name":"C"}},"@attr":{"totalPages":"1"}}}""")!!.first
+        )
+        assertNull(AudioscrobblerClient.lovedPage("""{"error":6,"message":"User not found"}"""))
+
+        // ListenBrainz feedback names the song when it has the recording's details, and skips it when it doesn't.
+        val (loved, total) = ListenBrainzClient.feedbackPage(
+            """{"feedback":[{"track_metadata":{"artist_name":"A","track_name":"One"}},{"track_metadata":null}],"total_count":1500}"""
+        )
+        assertEquals(setOf(songMatchKey("One", "A")), loved)
+        assertEquals(1500, total)
         assertTrue(AudioscrobblerClient.isTemporaryError(29))
         assertTrue(AudioscrobblerClient.isTemporaryError(9))
     }

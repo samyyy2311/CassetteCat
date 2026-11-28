@@ -4,6 +4,7 @@ import android.util.Log
 import java.io.IOException
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -131,6 +137,33 @@ class ListenBrainzClient {
         }.onFailure { Log.w("ListenBrainz", "Couldn't send feedback", it) }.getOrDefault(false)
     }
 
+    /** The match keys of every recording [userName] has loved, or null when the list couldn't be read whole. */
+    suspend fun lovedSongs(userName: String): Set<String>? = withContext(Dispatchers.IO) {
+        if (userName.isBlank()) return@withContext null
+        runCatching {
+            val keys = mutableSetOf<String>()
+            var offset = 0
+            do {
+                val url = "$API_BASE/feedback/user/".toHttpUrl().newBuilder()
+                    .addPathSegment(userName)
+                    .addPathSegment("get-feedback")
+                    .addQueryParameter("score", "1")
+                    .addQueryParameter("count", FEEDBACK_PAGE.toString())
+                    .addQueryParameter("offset", offset.toString())
+                    .addQueryParameter("metadata", "true")
+                    .build()
+                val body = sharedHttpClient.newCall(Request.Builder().url(url).get().build()).execute().use {
+                    if (!it.isSuccessful) return@runCatching null
+                    it.body.string()
+                }
+                val (songs, total) = feedbackPage(body)
+                keys += songs
+                offset += FEEDBACK_PAGE
+            } while (offset < total)
+            keys
+        }.onFailure { Log.w("ListenBrainz", "Couldn't read the loved recordings", it) }.getOrNull()
+    }
+
     /**
      * Empty when ListenBrainz took the listen, the first sentence of its reason when it refused, or null when it
      * couldn't be reached or gave no reason.
@@ -163,4 +196,20 @@ class ListenBrainzClient {
             reason.substringBefore(". ").takeIf { it.isNotBlank() }?.let { if (it.endsWith(".")) it else "$it." }
         }
     }.onFailure { Log.w("ListenBrainz", "Couldn't submit $listenType", it) }.getOrNull()
+
+    companion object {
+        private const val FEEDBACK_PAGE = 1000
+
+        /** The songs in one page of a user's feedback, and how many loves there are in all. */
+        internal fun feedbackPage(body: String): Pair<Set<String>, Int> {
+            val page = sharedJson.parseToJsonElement(body).jsonObject
+            val songs = page["feedback"]?.jsonArray.orEmpty().mapNotNullTo(mutableSetOf()) { item ->
+                val track = item.jsonObject["track_metadata"] as? JsonObject ?: return@mapNotNullTo null
+                val title = track["track_name"]?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                val artist = track["artist_name"]?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                songMatchKey(title, artist)
+            }
+            return songs to (page["total_count"]?.jsonPrimitive?.int ?: 0)
+        }
+    }
 }

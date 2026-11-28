@@ -157,8 +157,15 @@ internal object ScrobbleOutbox {
 
     // Queued in the outbox's own scope, so it outlives the screen or service that asked. A love replaces one
     // still waiting for the same song, so only the latest choice is sent, and a love skips the services that
-    // already have it.
-    fun add(context: Context, kind: OutboxItem.Kind, songs: List<Song>, loved: Boolean = false, listenedAtSec: Long = 0L) {
+    // already have it: by what the account itself says when [onAccounts] has read it, else by the app's record.
+    fun add(
+        context: Context,
+        kind: OutboxItem.Kind,
+        songs: List<Song>,
+        loved: Boolean = false,
+        listenedAtSec: Long = 0L,
+        onAccounts: Map<String, Set<String>> = emptyMap()
+    ) {
         start(context)
         scope.launch {
             loaded.await()
@@ -186,7 +193,9 @@ internal object ScrobbleOutbox {
                         earlier != null && earlier.loved == loved -> earlier.delivered
                         // The opposite choice may be mid-send and about to change the record, so it isn't trusted.
                         earlier != null || !loved -> emptySet()
-                        else -> services.filterTo(mutableSetOf()) { lovedOn[records[it]]?.containsKey(key) == true }
+                        else -> services.filterTo(mutableSetOf()) {
+                            onAccounts[it]?.contains(key) ?: (lovedOn[records[it]]?.containsKey(key) == true)
+                        }
                     }
                     // Every connected service has it already; a service connected later still gets it from Sync Likes.
                     if (services.isNotEmpty() && alreadyLoved.containsAll(services)) return@mapNotNull null
@@ -207,7 +216,7 @@ internal object ScrobbleOutbox {
             loaded.await()
             val (liked, notLiked) = library.partition { it.id in likedIds }
             val lovedKeys = mutex.withLock { lovedOn.values.flatMapTo(mutableSetOf()) { it.keys } }
-            add(context, OutboxItem.Kind.LOVE, liked, loved = true)
+            add(context, OutboxItem.Kind.LOVE, liked, loved = true, onAccounts = lovedOnAccounts(context))
             add(context, OutboxItem.Kind.LOVE, notLiked.filter { songMatchKey(it.title, it.artist) in lovedKeys }, loved = false)
         }
     }
@@ -302,6 +311,23 @@ internal object ScrobbleOutbox {
             OutboxItem.Kind.SCROBBLE -> client.scrobble(config.sessionKey, song, item.listenedAtSec)
             OutboxItem.Kind.LOVE -> client.love(config.sessionKey, song, item.loved)
         }
+    }
+
+    // What each connected account already has loved, whether from this app, another device or the website, so
+    // Sync Likes sends only what's missing. An account whose list can't be read is left to the app's own record,
+    // and nothing is asked in blackout mode.
+    private suspend fun lovedOnAccounts(context: Context): Map<String, Set<String>> {
+        if (ServiceSettingsRepository(context).settings.first().offlineBlackoutMode) return emptyMap()
+        val settings = ScrobbleSettingsRepository(context).settings.first()
+        return connectedServices(settings).mapNotNull { service ->
+            val songs = if (service == LISTENBRAINZ) {
+                ListenBrainzClient().lovedSongs(settings.listenBrainz.userName)
+            } else {
+                val account = ScrobbleAccount.entries.first { it.id == service }
+                account.client?.lovedSongs(settings.account(account).username)
+            }
+            songs?.let { service to it }
+        }.toMap()
     }
 
     // Each signed-in account's record name: its service and username. Switching an account off keeps its loves.

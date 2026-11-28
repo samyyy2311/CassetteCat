@@ -2,12 +2,19 @@ package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
 import android.util.Log
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 
 // Libre.fm and Last.fm speak the same Audioscrobbler 2.0 API.
@@ -87,6 +94,31 @@ class AudioscrobblerClient private constructor(
             settled(method, post(mapOf("method" to method, "artist" to song.artist, "track" to song.title, "sk" to sessionKey)))
     }
 
+    /** The match keys of every song [username] has loved, or null when the list couldn't be read whole. */
+    suspend fun lovedSongs(username: String): Set<String>? = withContext(Dispatchers.IO) {
+        runCatching {
+            val keys = mutableSetOf<String>()
+            var page = 1
+            do {
+                val url = apiUrl.toHttpUrl().newBuilder()
+                    .addQueryParameter("method", "user.getLovedTracks")
+                    .addQueryParameter("user", username)
+                    .addQueryParameter("api_key", apiKey)
+                    .addQueryParameter("limit", "1000")
+                    .addQueryParameter("page", page.toString())
+                    .addQueryParameter("format", "json")
+                    .build()
+                val body = sharedHttpClient.newCall(Request.Builder().url(url).get().build()).execute().use {
+                    if (!it.isSuccessful) return@runCatching null
+                    it.body.string()
+                }
+                val (songs, pages) = lovedPage(body) ?: return@runCatching null
+                keys += songs
+            } while (page++ < pages)
+            keys
+        }.onFailure { Log.w("Audioscrobbler", "Couldn't read the loved songs from $apiUrl", it) }.getOrNull()
+    }
+
     private fun trackParams(method: String, sessionKey: String, song: Song): Map<String, String> = buildMap {
         put("method", method)
         put("artist", song.artist)
@@ -105,6 +137,24 @@ class AudioscrobblerClient private constructor(
          * limit (29), or a session key that needs signing in again (9), after which the queue goes out.
          */
         internal fun isTemporaryError(code: Int): Boolean = code in setOf(8, 9, 11, 16, 29)
+
+        /** The songs on one page of user.getLovedTracks and how many pages there are, or null for an error. */
+        internal fun lovedPage(body: String): Pair<Set<String>, Int>? {
+            val loved = sharedJson.parseToJsonElement(body).jsonObject["lovedtracks"]?.jsonObject ?: return null
+            // A page holding a single song gives it as an object rather than a list of one.
+            val tracks = when (val track = loved["track"]) {
+                is JsonArray -> track.map { it.jsonObject }
+                is JsonObject -> listOf(track)
+                else -> emptyList()
+            }
+            val songs = tracks.mapNotNullTo(mutableSetOf()) { track ->
+                val title = track["name"]?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                val artist = track["artist"]?.jsonObject?.get("name")?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                songMatchKey(title, artist)
+            }
+            val pages = loved["@attr"]?.jsonObject?.get("totalPages")?.jsonPrimitive?.content?.toIntOrNull() ?: 1
+            return songs to pages
+        }
 
         val libreFm = AudioscrobblerClient("https://libre.fm/2.0/", "cassettecat", "cassettecat_secret", signsInWithToken = true)
 
