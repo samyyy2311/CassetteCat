@@ -16,7 +16,6 @@ private const val POLL_INTERVAL_MS = 2000L
 // A phone's Wi-Fi can nap for a moment, as when the screen locks; a device counts as gone after this many misses.
 private const val MISSED_POLLS_BEFORE_GONE = 3
 
-// token is the desktop app's pairing code; the hardware player has none.
 class DevicePlaybackRepository(private val apiClient: DeviceControlApiClient = DeviceControlApiClient()) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollJob: Job? = null

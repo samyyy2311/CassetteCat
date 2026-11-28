@@ -415,7 +415,6 @@ internal fun GenresTabContent(
     }
 }
 
-// A library group tab's grid or list with the A-Z rail; [card] and [row] draw one group in each layout.
 @Composable
 private fun <T> GroupCollection(
     groups: List<T>,
@@ -478,7 +477,6 @@ private fun <T> GroupCollection(
         )
     }
 }
-
 
 @Composable
 internal fun FoldersTab(

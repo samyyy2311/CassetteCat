@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-// Scale-down press feedback without ripple bounds.
 fun Modifier.tapScale(onClick: () -> Unit): Modifier = pressScale(onClick = onClick)
 
 fun Modifier.tapScaleSelectable(onClick: () -> Unit, onLongClick: () -> Unit): Modifier =

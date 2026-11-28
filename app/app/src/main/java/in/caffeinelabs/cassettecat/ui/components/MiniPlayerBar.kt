@@ -68,7 +68,6 @@ fun MiniPlayerRow(
     onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
     onOpenDevices: (() -> Unit)? = null,
-    // Reports thumbnail bounds in window coordinates during collapse transitions.
     onThumbnailBoundsChange: (Rect) -> Unit = {}
 ) {
     val state by playbackViewModel.playbackState.collectAsStateWithLifecycle()
@@ -209,7 +208,6 @@ private fun MiniPlayerProgressBar(
     )
 }
 
-// Sliding window [previousSong, currentSong, nextSong] matching AlbumArtCarousel.
 @Composable
 private fun MiniPlayerArtRow(
     currentSong: Song,
@@ -259,7 +257,6 @@ private fun MiniPlayerSongRow(
     song: Song,
     modifier: Modifier = Modifier,
     onThumbnailBoundsChange: (Rect) -> Unit = {},
-    // Set while the song plays on another device; shown in place of the artist.
     deviceName: String? = null
 ) {
     val isRadio = song.source == MusicSource.Radio

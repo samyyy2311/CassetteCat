@@ -74,7 +74,6 @@ class MediaLibraryTree(private val context: Context) {
         else -> localLibrary.getSongs().firstOrNull { it.id == mediaId }?.toMediaItem(context)
     }
 
-    /** The local songs among [ids], read from the library once, keyed by id. */
     suspend fun localSongItems(ids: Collection<String>): Map<String, MediaItem> {
         val wanted = ids.toSet()
         return localLibrary.getSongs().filter { it.id in wanted }.associate { it.id to it.toMediaItem(context) }
@@ -147,7 +146,6 @@ class MediaLibraryTree(private val context: Context) {
         }
     }
 
-    // Resolves search queries against local library and live Radio Browser.
     suspend fun search(query: String): List<MediaItem> {
         if (query.isBlank()) return emptyList()
         val librarySongs = localLibrary.getSongs()

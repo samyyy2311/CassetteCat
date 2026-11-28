@@ -222,7 +222,6 @@ fun SearchScreen(
             .map { it.first }
     }
 
-    // Albums named like the search come first, then ones by an artist named like it.
     val matchedAlbums = remember(trimmed, allSongs) {
         if (trimmed.isBlank()) emptyList()
         else allAlbums.mapNotNull { album ->

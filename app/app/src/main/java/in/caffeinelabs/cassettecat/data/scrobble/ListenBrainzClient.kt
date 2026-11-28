@@ -137,7 +137,6 @@ class ListenBrainzClient {
         }.onFailure { Log.w("ListenBrainz", "Couldn't send feedback", it) }.getOrDefault(false)
     }
 
-    /** The match keys of every recording [userName] has loved, or null when the list couldn't be read whole. */
     suspend fun lovedSongs(userName: String): Set<String>? = withContext(Dispatchers.IO) {
         if (userName.isBlank()) return@withContext null
         runCatching {
@@ -200,7 +199,6 @@ class ListenBrainzClient {
     companion object {
         private const val FEEDBACK_PAGE = 1000
 
-        /** The songs in one page of a user's feedback, and how many loves there are in all. */
         internal fun feedbackPage(body: String): Pair<Set<String>, Int> {
             val page = sharedJson.parseToJsonElement(body).jsonObject
             val songs = page["feedback"]?.jsonArray.orEmpty().mapNotNullTo(mutableSetOf()) { item ->

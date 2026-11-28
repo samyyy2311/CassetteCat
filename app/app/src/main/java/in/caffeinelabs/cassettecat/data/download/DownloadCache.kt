@@ -19,7 +19,6 @@ object DownloadCache {
 
     fun get(context: Context): SimpleCache = cache ?: synchronized(this) {
         cache ?: run {
-            // Synchronous read to configure evictor limit on initialization.
             val maxBytes = runBlocking { DownloadSettingsRepository(context).maxCacheBytes.first() }
             SimpleCache(
                 File(context.filesDir, "song_downloads"),

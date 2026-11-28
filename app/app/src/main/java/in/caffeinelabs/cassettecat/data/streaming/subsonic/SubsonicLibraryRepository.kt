@@ -27,7 +27,6 @@ class SubsonicLibraryRepository(
         if (favorite) client.star(rawId) else client.unstar(rawId)
     }
 
-    /** Saves the queue from [current] on, at [positionMs] into it; songs from elsewhere are left out. */
     suspend fun saveQueue(current: Song, upNext: List<Song>, positionMs: Long) {
         val client = client() ?: return
         val ids = (listOf(current) + upNext).filter { it.source == MusicSource.Subsonic }.take(MAX_SAVED_QUEUE)
@@ -36,7 +35,6 @@ class SubsonicLibraryRepository(
         runCatching { client.savePlayQueue(ids, current.id.removePrefix("subsonic:"), positionMs) }
     }
 
-    /** The queue another player left on the server, or null when this app saved it last or there is none. */
     suspend fun queueFromElsewhere(): SubsonicPlayQueue? {
         val client = client() ?: return null
         val queue = runCatching { client.getPlayQueue() }.getOrNull() ?: return null

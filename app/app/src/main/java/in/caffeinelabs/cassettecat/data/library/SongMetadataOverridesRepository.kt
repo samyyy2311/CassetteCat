@@ -135,7 +135,6 @@ internal fun applyTagEdits(song: Song, existing: SongMetadataOverride?, edits: T
         originalTitle = existing?.originalTitle ?: song.title,
         originalArtist = existing?.originalArtist ?: song.artist,
         originalAlbum = existing?.originalAlbum ?: song.album,
-        // A song with no year keeps "no year" as its original.
         originalReleaseYear = if (existing != null) existing.originalReleaseYear else song.releaseYear,
         originalGenres = existing?.originalGenres ?: song.genres
     )

@@ -167,7 +167,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         remote?.copy(history = local.history) ?: local
     }.stateIn(viewModelScope, SharingStarted.Eagerly, repository.state.value)
 
-    /** The computer being controlled, or null while the phone plays itself. */
     val controlledDesktop: StateFlow<DesktopRemoteState?> = combine(desktop.state, desktop.controlledState) { state, remote ->
         state.takeIf { remote != null }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -187,7 +186,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
     private val favoritesRepository = FavoritesRepository(app)
-    // Radio favorites store station objects rather than song IDs.
     private val radioFavoritesRepository = `in`.caffeinelabs.cassettecat.data.radio.RadioFavoritesRepository(app)
 
     private val _isCurrentSongFavorite = MutableStateFlow(false)
@@ -280,7 +278,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 if (!guest) repository.endRoomCatchUp()
             }
         }
-        // Refresh position immediately on song transition when ticker is idle.
         viewModelScope.launch {
             localState.map { it.currentSong?.id }.distinctUntilChanged().collect {
                 _positionMs.value = repository.currentPositionMs()
@@ -317,7 +314,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
         }
-        // Lyrics for the playing song: picked ones first, then the file's own, then your server's, then LRCLIB.
         viewModelScope.launch {
             playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
                 .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
@@ -337,7 +333,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _isLoadingLyrics.value = true
                         _lyricsSongId.value = song?.id
                     }
-                    // Lyrics files and tags are only read for songs stored on this phone.
                     val localSong = song?.takeIf { it.source == MusicSource.Local }
                     suspend fun loadLocalFile(): Boolean {
                         val lrc = localSong?.let { localLrcLoader.loadFor(it) } ?: return false
@@ -368,7 +363,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _lyricsProvider.value = provider
                         return true
                     }
-                    // A song from your own server can have lyrics there, which come before an online search.
                     suspend fun loadFromServer(): Boolean {
                         val server = song?.takeIf { it.source == MusicSource.Subsonic || it.source == MusicSource.Jellyfin }
                             ?: return false
@@ -405,8 +399,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
         }
-        // The queue is kept on your Navidrome or Subsonic server while its songs play, so CassetteCat on another
-        // device can carry on from here.
         viewModelScope.launch {
             localState.map { Triple(it.currentSong, it.isPlaying, it.upNext) }
                 .distinctUntilChanged { old, new -> old.first?.id == new.first?.id && old.second == new.second && old.third == new.third }
@@ -465,8 +457,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     val lovesLeft = `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleManager.lovesLeft
 
-    // Loves the library's liked songs on the connected accounts and takes back loves for songs no longer liked,
-    // sending only what each account doesn't have yet.
     fun syncLikes(songs: List<Song>) {
         viewModelScope.launch {
             val liked = favoritesRepository.favoriteIds.first()
@@ -525,7 +515,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             if (saved == null || localState.value.currentSong != null) return@launch
             val resolvedSongs = saved.queueSongIds.mapNotNull { songsById[it] }
             if (resolvedSongs.isEmpty()) return@launch
-            // Skip songs deleted from storage while keeping relative queue ordering.
             val adjustedIndex = saved.queueSongIds.take(saved.currentIndex).count { it in songsById }
             repository.restoreQueue(resolvedSongs, adjustedIndex.coerceIn(0, resolvedSongs.size - 1), saved.positionMs)
         }
@@ -630,7 +619,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerEndMs.value = null
     }
 
-    /** Continues this phone's song and queue on the computer, then controls the computer from here; returns whether it took them. */
     suspend fun transferToDesktop(): Boolean {
         val local = localState.value
         val current = local.currentSong
@@ -641,7 +629,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         return handedOver
     }
 
-    /** Continues the computer's song and queue on this phone with the matching songs in [library]. */
     fun transferToPhone(library: List<Song>) {
         val remote = desktop.controlledState.value
         val matched = remote?.currentSong?.let { matchInLibrary(listOf(it) + remote.upNext, library) }.orEmpty()
@@ -713,7 +700,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         return encoded
     }
 
-    // Sends [action] to the computer when it is the device being controlled; returns whether it did.
     private fun sentToDesktop(action: String): Boolean {
         if (controlledDesktop.value == null) return false
         desktop.sendAction(action)
@@ -751,7 +737,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // The last song removed from Up Next, while it can still be put back.
     private val _queueRemoval = MutableStateFlow<QueueRemoval?>(null)
     val queueRemoval: StateFlow<QueueRemoval?> = _queueRemoval.asStateFlow()
     private var queueUndoExpiry: Job? = null
@@ -760,7 +745,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         val removal = _queueRemoval.value ?: return
         _queueRemoval.value = null
         queueUndoExpiry?.cancel()
-        // A guest's queue belongs to the host.
         if (!isFollowingRoomHost()) repository.restoreToUpNext(removal)
     }
     fun clearHistory() { if (!isFollowingRoomHost()) repository.clearHistory() }
@@ -854,7 +838,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // Minimum listening duration required to count as an intentional play.
     private fun maybeRecordPlay() {
         if (!appPreferences.value.listeningStatsEnabled) return
         val listen = currentListen ?: return
@@ -1018,7 +1001,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSongMetadata(updatedSong: Song) = repository.updateSongMetadata(updatedSong)
 
-    /** A queue CassetteCat on another device left on your server, offered on Home to carry on here. */
     data class QueueElsewhere(val from: String, val songs: List<Song>, val startIndex: Int, val positionMs: Long)
 
     private val _queueElsewhere = MutableStateFlow<QueueElsewhere?>(null)
@@ -1035,7 +1017,6 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             val byId = library.associateBy { it.id }
             val songs = saved.entry.mapNotNull { byId["subsonic:${it.id}"] }
             val startIndex = songs.indexOfFirst { it.id == "subsonic:${saved.current}" }
-            // Already playing that song here: there's nothing to carry on.
             if (startIndex < 0 || songs[startIndex].id == localState.value.currentSong?.id) {
                 _queueElsewhere.value = null
                 return@launch

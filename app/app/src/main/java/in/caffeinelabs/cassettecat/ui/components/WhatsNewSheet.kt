@@ -55,7 +55,6 @@ fun WhatsNewSheet(notes: List<ReleaseSection>, onDismiss: () -> Unit) {
     )
 }
 
-/** Offers [version], listing what's new in it, with a button to download it. */
 @Composable
 fun UpdateSheet(version: String, notes: List<ReleaseSection>, onDownload: () -> Unit, onDismiss: () -> Unit) {
     ReleaseSheet(
@@ -79,7 +78,6 @@ fun UpdateSheet(version: String, notes: List<ReleaseSection>, onDownload: () -> 
     }
 }
 
-// The app icon and a version over a list of changes, shared by What's New and the update offer.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReleaseSheet(
@@ -131,7 +129,6 @@ private fun ReleaseSheet(
                         .padding(top = 8.dp, bottom = 24.dp)
                 ) {
                     notes.forEach { section ->
-                        // Labelled like the sections in Settings.
                         section.title?.let { title ->
                             Text(
                                 title.uppercase(),
@@ -168,7 +165,6 @@ private fun ReleaseSheet(
     }
 }
 
-// The list fades out at its bottom edge instead of being cut off, which also hints that there's more below.
 private fun Modifier.fadingBottomEdge(): Modifier = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     .drawWithContent {
         drawContent()

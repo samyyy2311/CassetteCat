@@ -84,7 +84,6 @@ class MainActivity : ComponentActivity() {
                     isAmoled = preferences.amoledDarkTheme,
                     appFontFamily = preferences.appFontFamily
                 ) {
-                    // Screens handle their own insets so immersive views can draw behind system bars.
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         CassetteCatNavHost(
                             shortcutAction = shortcutAction.value,
@@ -123,7 +122,6 @@ class MainActivity : ComponentActivity() {
         }
         if (intent?.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
             val artist = intent.getStringExtra(MediaStore.EXTRA_MEDIA_ARTIST)
-            // The focus says whether the words name a song, album, artist or playlist, with that name in its own extra.
             val (mediaType, query) = when (intent.getStringExtra(MediaStore.EXTRA_MEDIA_FOCUS)) {
                 MediaStore.Audio.Media.ENTRY_CONTENT_TYPE -> "SONG" to intent.getStringExtra(MediaStore.EXTRA_MEDIA_TITLE)
                 MediaStore.Audio.Albums.ENTRY_CONTENT_TYPE -> "ALBUM" to intent.getStringExtra(MediaStore.EXTRA_MEDIA_ALBUM)

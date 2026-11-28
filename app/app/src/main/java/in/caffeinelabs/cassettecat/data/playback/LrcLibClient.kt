@@ -109,7 +109,6 @@ class LrcLibClient(context: Context) {
         writeToCache(keyFor(artist, title, album), CachedLyrics(syncedLyrics, plainLyrics, chosenFrom = provider))
     }
 
-    /** Lyrics picked or written by hand for the song, with where they came from, or null when there are none. */
     fun chosenLyrics(artist: String, title: String, album: String): Pair<LyricsLookupResult, String>? {
         val cacheKey = keyFor(artist, title, album)
         // Read under the lock, so the lyrics and where they came from are from the same save.
@@ -126,7 +125,6 @@ class LrcLibClient(context: Context) {
             runCatching { lookUp(artist, title, album, cacheKey) }.getOrNull()
         }
 
-    /** Stored lyrics as saved, synced or plain. */
     fun storedLyrics(artist: String, title: String, album: String): String? =
         readCached(keyFor(artist, title, album))?.let { it.syncedLyrics ?: it.plainLyrics }?.ifBlank { null }
 
@@ -361,7 +359,6 @@ fun parseLrc(lrc: String): List<LyricLine> =
         .sortedBy { it.timestampMs }
         .toList()
 
-/** Lyric lines as LRC when they have start times, or as plain lines when they don't. Null when there are none. */
 fun lyricsText(lines: List<Pair<Long?, String>>, timed: Boolean): String? {
     val shown = lines.filter { it.second.isNotBlank() }
     // A line without a time would be dropped from LRC, so then they're all kept as plain lines.

@@ -25,7 +25,6 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import kotlinx.coroutines.flow.first
 import java.io.File
 
-// Shared LRU cache across composable callers.
 @Suppress("StaticFieldLeak")
 private object ArtistImageLoaderHolder {
     @Volatile var loaded: ArtistImageLoader? = null
