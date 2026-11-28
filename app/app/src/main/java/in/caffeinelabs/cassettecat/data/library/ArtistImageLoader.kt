@@ -38,7 +38,7 @@ private data class AudioDbArtist(
     val strArtistThumb: String? = null
 )
 
-// Remote artist image fetching with Deezer and TheAudioDB backends. A picture found is also kept on the phone, in
+// Artist pictures from Deezer and TheAudioDB. A picture found is also kept on the phone, in
 // [diskDir], so it isn't downloaded again each time the app starts; so is a miss, for a week, as artists the
 // services don't know rarely appear there soon after.
 class ArtistImageLoader(private val diskDir: File) {
@@ -103,7 +103,7 @@ class ArtistImageLoader(private val diskDir: File) {
 
     private fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")
 
-    // Alphanumeric canonical comparison prevents partial search false-positives.
+    // Names are compared by their letters and digits only, so a search's near misses don't count as the artist.
     private fun String.isSameArtistAs(other: String): Boolean =
         canonicalArtistName() == other.canonicalArtistName()
 

@@ -317,7 +317,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
         }
-        // only when there's no embedded lyrics for the current song
+        // Lyrics for the playing song: picked ones first, then the file's own, then your server's, then LRCLIB.
         viewModelScope.launch {
             playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
                 .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->

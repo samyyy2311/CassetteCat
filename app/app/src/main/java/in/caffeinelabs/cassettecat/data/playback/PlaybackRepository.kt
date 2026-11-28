@@ -230,7 +230,7 @@ class PlaybackRepository(private val context: Context) {
         return true
     }
 
-    // no play(): loads and seeks without auto-starting audio; no-ops if something's already loaded
+    // Loads and seeks without starting playback, and does nothing when something is already loaded.
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return
         currentQueue = songs

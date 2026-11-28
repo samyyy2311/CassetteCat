@@ -318,6 +318,8 @@ class CoreLogicTest {
             lyricsText(listOf(62_500L to "Hello", 0L to "World", 3_000L to " "), timed = true)
         )
         assertEquals("Hello\nWorld", lyricsText(listOf(null to "Hello", 5L to "World"), timed = false))
+        // One line without a time would be dropped from LRC, so then every line stays plain.
+        assertEquals("Hello\nWorld", lyricsText(listOf(1_000L to "Hello", null to "World"), timed = true))
         assertEquals(null, lyricsText(emptyList(), timed = true))
     }
 

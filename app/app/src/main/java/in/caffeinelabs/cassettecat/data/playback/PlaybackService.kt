@@ -171,8 +171,8 @@ class PlaybackService : MediaLibraryService() {
         val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
             if (spec.uri.scheme != "http" && spec.uri.scheme != "https") return@Factory spec
             if (blackoutActive) throw IOException("Blackout mode is on")
-            // A song from your server streams from whichever of its addresses answers where you are now.
-            // and at the quality chosen for the connection in use.
+            // A song from your server streams from whichever of its addresses answers where you are now, at the
+            // quality chosen for the connection in use.
             val url = spec.uri.toString()
             val rewritten = StreamQuality.limit(ServerAddresses.rewrite(url), StreamQuality.currentKbps(this))
             if (rewritten == url) spec else spec.withUri(Uri.parse(rewritten))
