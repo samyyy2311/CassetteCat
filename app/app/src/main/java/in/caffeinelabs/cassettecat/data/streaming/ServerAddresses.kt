@@ -8,6 +8,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -20,6 +23,10 @@ import java.util.concurrent.TimeUnit
  * Which of a server's addresses to use right now. A server can have an away address beside its home one, such as a
  * domain name or a Tailscale address for when you're out. Whichever answers is used, home network addresses first,
  * and every request, stream and cover for either address goes there. Checked again whenever the network changes.
+ *
+ * A server that doesn't answer twice in a row, at either address, counts as offline, so a moment's gap while the
+ * phone changes network isn't mistaken for it. While one is offline it's asked again every half minute, so its songs
+ * come back as soon as it does.
  */
 object ServerAddresses {
     private class Server(val protocol: StreamingProtocol, val home: String, val away: String, val active: String)
@@ -29,6 +36,11 @@ object ServerAddresses {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recheck = Channel<Unit>(Channel.CONFLATED)
     private var started = false
+    private val misses = mutableMapOf<StreamingProtocol, Int>()
+    private val _offline = MutableStateFlow<Set<StreamingProtocol>>(emptySet())
+
+    /** Servers that can't be reached now, whose songs only play if they're downloaded. */
+    val offline: StateFlow<Set<StreamingProtocol>> = _offline.asStateFlow()
 
     /** [url] sent to the address in use, when it starts with either of a server's addresses. */
     fun rewrite(url: String): String {
@@ -73,16 +85,37 @@ object ServerAddresses {
     }
 
     private suspend fun refresh(repository: StreamingServerRepository) {
+        // Blackout keeps everything outside the home network away on purpose, which isn't a server being down.
+        if (blackoutActive) {
+            misses.clear()
+            _offline.value = emptySet()
+            return
+        }
+        val answered = mutableMapOf<StreamingProtocol, String?>()
         servers = StreamingProtocol.entries.mapNotNull { protocol ->
             val config = repository.config(protocol).first()
             val home = config.serverUrl.trimEnd('/')
             val away = config.awayUrl.trimEnd('/')
-            if (!config.connected || home.isBlank() || away.isBlank()) return@mapNotNull null
+            if (!config.connected || home.isBlank()) return@mapNotNull null
+            val found = byHomeNetworkFirst(listOfNotNull(home, away.ifBlank { null })).firstOrNull { answers(protocol, it) }
+            answered[protocol] = found
+            if (away.isBlank()) return@mapNotNull null
             // Nothing answering, as on a train between networks, keeps the address already in use.
             val previous = servers.firstOrNull { it.protocol == protocol && it.home == home && it.away == away }
-            val active = byHomeNetworkFirst(listOf(home, away)).firstOrNull { answers(protocol, it) }
-                ?: previous?.active ?: home
-            Server(protocol, home, away, active)
+            Server(protocol, home, away, found ?: previous?.active ?: home)
+        }
+        misses.keys.retainAll(answered.keys)
+        answered.forEach { (protocol, found) -> misses[protocol] = if (found != null) 0 else (misses[protocol] ?: 0) + 1 }
+        _offline.value = misses.filterValues { it >= OFFLINE_AFTER_MISSES }.keys
+        // A first miss is checked again soon, and an offline server every half minute, until it answers.
+        val retryMs = when {
+            _offline.value.isNotEmpty() -> OFFLINE_RETRY_MS
+            misses.values.any { it > 0 } -> CONFIRM_MS
+            else -> return
+        }
+        scope.launch {
+            delay(retryMs)
+            recheck.trySend(Unit)
         }
     }
 
@@ -123,5 +156,8 @@ object ServerAddresses {
     }
 
     private const val SETTLE_MS = 1_000L
+    private const val OFFLINE_AFTER_MISSES = 2
+    private const val CONFIRM_MS = 10_000L
+    private const val OFFLINE_RETRY_MS = 30_000L
     private const val PROBE_TIMEOUT_S = 4L
 }

@@ -103,6 +103,8 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
+import androidx.media3.common.PlaybackException
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -275,6 +277,27 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         )
+
+        // A song from a server that's offline, and not downloaded, can't load, so the next song plays instead. It stops
+        // once every song in the queue has been tried, rather than going round for ever.
+        player.addListener(object : Player.Listener {
+            private var skipped = 0
+
+            override fun onPlayerError(error: PlaybackException) {
+                val id = player.currentMediaItem?.mediaId.orEmpty()
+                val offline = ServerAddresses.offline.value
+                val fromOfflineServer = (id.startsWith("subsonic:") && StreamingProtocol.SUBSONIC in offline) ||
+                    (id.startsWith("jellyfin:") && StreamingProtocol.JELLYFIN in offline)
+                if (!fromOfflineServer || !player.hasNextMediaItem() || ++skipped >= player.mediaItemCount) return
+                player.seekToNextMediaItem()
+                player.prepare()
+                player.play()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) skipped = 0
+            }
+        })
 
         navigationPlayer.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {

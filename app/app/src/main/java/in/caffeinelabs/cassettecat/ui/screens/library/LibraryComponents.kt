@@ -89,6 +89,8 @@ import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
+import androidx.compose.ui.draw.alpha
+import `in`.caffeinelabs.cassettecat.ui.components.isSongUnavailable
 
 /** Removes the custom cover on [song]'s album and its file, then redraws artwork showing it. */
 internal suspend fun resetAlbumCover(context: Context, song: Song) {
@@ -346,6 +348,8 @@ fun LibrarySongRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            // A song that can't play while its server is offline stays listed, dimmed.
+            .alpha(if (isSongUnavailable(song)) UNAVAILABLE_ALPHA else 1f)
             .tapScale(onClick)
             .padding(horizontal = 20.dp, vertical = 4.dp)
     ) {
@@ -406,6 +410,7 @@ internal fun SelectableSongRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (isSongUnavailable(song)) UNAVAILABLE_ALPHA else 1f)
             .tapScaleSelectable(onClick = onClick, onLongClick = onLongClick)
             .padding(start = 24.dp, end = 20.dp, top = 4.dp, bottom = 4.dp)
     ) {
@@ -1242,3 +1247,5 @@ fun SourceFilterRow(
         }
     }
 }
+
+private const val UNAVAILABLE_ALPHA = 0.4f
