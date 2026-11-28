@@ -360,3 +360,15 @@ fun parseLrc(lrc: String): List<LyricLine> =
         }
         .sortedBy { it.timestampMs }
         .toList()
+
+/** Lyric lines as LRC when they have start times, or as plain lines when they don't. Null when there are none. */
+fun lyricsText(lines: List<Pair<Long?, String>>, timed: Boolean): String? {
+    val text = lines.filter { it.second.isNotBlank() }.joinToString("\n") { (startMs, line) ->
+        if (!timed || startMs == null) {
+            line
+        } else {
+            "[%02d:%02d.%02d]%s".format(java.util.Locale.US, startMs / 60_000, (startMs / 1000) % 60, (startMs % 1000) / 10, line)
+        }
+    }
+    return text.ifBlank { null }
+}

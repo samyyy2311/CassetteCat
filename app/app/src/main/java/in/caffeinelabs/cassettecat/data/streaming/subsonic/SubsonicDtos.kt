@@ -11,8 +11,23 @@ data class SubsonicResponse(
     val status: String,
     val error: SubsonicError? = null,
     val albumList2: SubsonicAlbumList2? = null,
-    val album: SubsonicAlbum? = null
+    val album: SubsonicAlbum? = null,
+    val lyricsList: SubsonicLyricsList? = null
 )
+
+// OpenSubsonic's getLyricsBySongId: a song can carry lyrics in several languages, timed or not.
+@Serializable
+data class SubsonicLyricsList(val structuredLyrics: List<SubsonicStructuredLyrics> = emptyList())
+
+@Serializable
+data class SubsonicStructuredLyrics(
+    val synced: Boolean = false,
+    val offset: Long = 0L,
+    val line: List<SubsonicLyricLine> = emptyList()
+)
+
+@Serializable
+data class SubsonicLyricLine(val start: Long? = null, val value: String = "")
 
 @Serializable
 data class SubsonicError(val code: Int, val message: String)

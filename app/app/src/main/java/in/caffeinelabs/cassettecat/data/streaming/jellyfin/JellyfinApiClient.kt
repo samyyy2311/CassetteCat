@@ -4,6 +4,7 @@ import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -131,6 +132,22 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             throw JellyfinApiException("Failed to update favorite (${response.code})")
         }
         response.close()
+    }
+
+    /** The song's lyrics from Jellyfin, timed when its lines have start times; null when it has none. */
+    suspend fun getLyrics(itemId: String, accessToken: String): String? = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl/Audio/$itemId/Lyrics")
+            .header("Authorization", authorizationHeader(accessToken))
+            .build()
+        val body = sharedHttpClient.newCall(request).await().use { response ->
+            // Jellyfin answers 404 for a song without lyrics.
+            if (!response.isSuccessful) return@withContext null
+            response.body.string()
+        }
+        val lyrics = sharedJson.decodeFromString(JellyfinLyrics.serializer(), body)
+        // Start times are in ticks of 100 nanoseconds.
+        lyricsText(lyrics.Lyrics.map { (it.Start?.div(10_000)) to it.Text }, lyrics.Metadata.IsSynced)
     }
 
     // The universal stream sends a song as it is when the player reads its format, and otherwise has the server

@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.subsonic
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -53,6 +54,15 @@ class SubsonicApiClient(
 
     suspend fun unstar(songId: String) {
         get("unstar.view") { addQueryParameter("id", songId) }
+    }
+
+    /** The song's lyrics from an OpenSubsonic server such as Navidrome, timed ones first; null when it has none. */
+    suspend fun getLyrics(songId: String): String? {
+        val all = get("getLyricsBySongId.view") { addQueryParameter("id", songId) }.lyricsList?.structuredLyrics.orEmpty()
+        val lyrics = all.firstOrNull { it.synced && it.line.isNotEmpty() } ?: all.firstOrNull { it.line.isNotEmpty() }
+            ?: return null
+        // The offset is how much later the lyrics should show than their times say.
+        return lyricsText(lyrics.line.map { line -> line.start?.let { it + lyrics.offset } to line.value }, lyrics.synced)
     }
 
     fun streamUrl(songId: String): String =

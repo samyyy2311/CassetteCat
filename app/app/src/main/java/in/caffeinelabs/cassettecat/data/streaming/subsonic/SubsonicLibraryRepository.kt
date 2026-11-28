@@ -27,6 +27,10 @@ class SubsonicLibraryRepository(
         if (favorite) client.star(rawId) else client.unstar(rawId)
     }
 
+    // Servers without OpenSubsonic don't know the request, which counts as no lyrics.
+    override suspend fun lyrics(songId: String): String? =
+        client()?.let { client -> runCatching { client.getLyrics(songId.removePrefix("subsonic:")) }.getOrNull() }
+
     private suspend fun client(): SubsonicApiClient? {
         val config = serverRepository.config(StreamingProtocol.SUBSONIC).first()
         val password = credentialStore.getSubsonicPassword()

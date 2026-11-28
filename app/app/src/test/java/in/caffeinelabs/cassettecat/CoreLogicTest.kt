@@ -1,6 +1,7 @@
 package `in`.caffeinelabs.cassettecat
 
 import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
+import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
@@ -256,6 +257,17 @@ class CoreLogicTest {
         assertEquals(3, stats.songPlayCounts["a"])
         assertEquals(2, stats.songPlayCounts["song:twobo"])
         assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun serverLyricsBecomeLrcWhenTimed() {
+        // Timed lines get LRC times; plain ones, and blank lines, are kept as text or dropped.
+        assertEquals(
+            "[01:02.50]Hello\n[00:00.00]World",
+            lyricsText(listOf(62_500L to "Hello", 0L to "World", 3_000L to " "), timed = true)
+        )
+        assertEquals("Hello\nWorld", lyricsText(listOf(null to "Hello", 5L to "World"), timed = false))
+        assertEquals(null, lyricsText(emptyList(), timed = true))
     }
 
     @Test

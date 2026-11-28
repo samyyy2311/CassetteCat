@@ -367,11 +367,22 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _lyricsProvider.value = provider
                         return true
                     }
+                    // A song from your own server can have lyrics there, which come before an online search.
+                    suspend fun loadFromServer(): Boolean {
+                        val server = song?.takeIf { it.source == MusicSource.Subsonic || it.source == MusicSource.Jellyfin }
+                            ?: return false
+                        val text = librariesBySource[server.source]?.lyrics(server.id) ?: return false
+                        if (manualLyricsPicks != picksBefore) return true
+                        val timed = parseLrc(text)
+                        if (timed.isNotEmpty()) _syncedLyrics.value = timed else _fallbackLyrics.value = text
+                        _lyricsProvider.value = if (server.source == MusicSource.Jellyfin) "Jellyfin" else "Your server"
+                        return true
+                    }
                     val found = loadChosen() || if (appPreferences.value.localLrcPriority) {
                         loadLocalFile() || loadEmbedded()
                     } else {
                         loadEmbedded() || loadLocalFile()
-                    }
+                    } || loadFromServer()
                     // A song on the phone may carry its own lyrics, which are only known once the player has
                     // opened the file; this runs again then.
                     if (!found && localSong != null && !request.tracksLoaded) return@collectLatest
