@@ -35,10 +35,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.R
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.ui.util.hapticClick
 
 @Composable
-fun WhatsNewSheet(notes: List<String>, onDismiss: () -> Unit) {
+fun WhatsNewSheet(notes: List<ReleaseSection>, onDismiss: () -> Unit) {
     ReleaseSheet(
         title = stringResource(R.string.whats_new_title),
         version = BuildConfig.VERSION_NAME,
@@ -49,7 +50,7 @@ fun WhatsNewSheet(notes: List<String>, onDismiss: () -> Unit) {
 
 /** Offers [version], listing what's new in it, with a button to download it. */
 @Composable
-fun UpdateSheet(version: String, notes: List<String>, onDownload: () -> Unit, onDismiss: () -> Unit) {
+fun UpdateSheet(version: String, notes: List<ReleaseSection>, onDownload: () -> Unit, onDismiss: () -> Unit) {
     ReleaseSheet(
         title = stringResource(R.string.update_prompt_title),
         version = version,
@@ -77,7 +78,7 @@ fun UpdateSheet(version: String, notes: List<String>, onDownload: () -> Unit, on
 private fun ReleaseSheet(
     title: String,
     version: String,
-    notes: List<String>,
+    notes: List<ReleaseSection>,
     onDismiss: () -> Unit,
     actions: (@Composable () -> Unit)? = null
 ) {
@@ -120,21 +121,31 @@ private fun ReleaseSheet(
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
-                    notes.forEach { note ->
-                        Row {
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .size(4.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.tertiary)
-                            )
-                            Spacer(Modifier.width(12.dp))
+                    notes.forEach { section ->
+                        section.title?.let { title ->
                             Text(
-                                note,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                title,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(top = if (section == notes.first()) 0.dp else 10.dp)
                             )
+                        }
+                        section.notes.forEach { note ->
+                            Row {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 8.dp)
+                                        .size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.tertiary)
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    note,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }

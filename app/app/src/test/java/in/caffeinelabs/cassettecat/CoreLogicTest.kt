@@ -4,6 +4,8 @@ import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
+import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
 import `in`.caffeinelabs.cassettecat.data.library.MusicBrainzTags
@@ -260,8 +262,21 @@ class CoreLogicTest {
     fun releaseNotesComeFromTheVersionsSection() {
         val changelog = "# Changelog\n\n## [1.1.0]\n\n* **Lyrics** sync.\n* Faster.\n\n## [1.0.0]\n\n* Old.\n"
 
-        assertEquals(listOf("Lyrics sync.", "Faster."), releaseNotesFrom(changelog, "1.1.0"))
+        assertEquals(listOf(ReleaseSection(null, listOf("Lyrics sync.", "Faster."))), releaseNotesFrom(changelog, "1.1.0"))
         assertEquals(emptyList<String>(), releaseNotesFrom(changelog, "2.0.0"))
+
+        // Release notes keep their parts, and notes before any part go in an untitled one.
+        val notes = releaseNotesFrom(
+            "## [2.0]\n* Faster\n### Lyrics\n* Words light up\n* **Bold** `code`\n### Empty\n## [1.0]\n* Old",
+            "2.0"
+        )
+        assertEquals(
+            listOf(
+                ReleaseSection(null, listOf("Faster")),
+                ReleaseSection("Lyrics", listOf("Words light up", "Bold code"))
+            ),
+            notes
+        )
     }
 
     @Test

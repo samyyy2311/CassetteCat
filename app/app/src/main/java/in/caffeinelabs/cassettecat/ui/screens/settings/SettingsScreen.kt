@@ -46,6 +46,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
@@ -87,7 +88,7 @@ fun SettingsScreen(
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
+    var whatsNew by remember { mutableStateOf(emptyList<ReleaseSection>()) }
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()

@@ -81,6 +81,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -789,15 +792,23 @@ private fun ActiveLyricLine(
                     }
             )
         }
-        // The answering voice comes in as the last words of the line are sung, and goes with the line.
+        // The answering voice comes in dim as the last words of the line are sung, lights word by word over what's
+        // left of the line, and goes with the line.
         val lastWordStart = wordWeights.lastOrNull()?.first ?: 0f
         val answering by remember(lastWordStart) { derivedStateOf { progressAnim.value >= lastWordStart } }
+        val echoWords = remember(backing) { backing?.split(" ")?.filter { it.isNotBlank() }.orEmpty() }
+        val echoLit by remember(lastWordStart, echoWords) {
+            derivedStateOf {
+                val share = ((progressAnim.value - lastWordStart) / (1f - lastWordStart).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                (share * echoWords.size + 0.5f).toInt().coerceAtMost(echoWords.size)
+            }
+        }
         AnimatedVisibility(
             visible = backing != null && answering,
             enter = fadeIn(tween(300)) + expandVertically(tween(300)),
             exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
         ) {
-            backing?.let { BackingLine(it, lyricStyle, activeWordColor) }
+            BackingLine(echoWords, echoLit, lyricStyle, activeWordColor, onSurface.copy(alpha = 0.5f))
         }
     }
 }
@@ -814,14 +825,19 @@ private fun splitBacking(text: String): Pair<String, String?> {
 }
 
 @Composable
-private fun BackingLine(text: String, lyricStyle: TextStyle, color: Color) {
+private fun BackingLine(words: List<String>, lit: Int, lyricStyle: TextStyle, litColor: Color, dimColor: Color) {
+    val text = buildAnnotatedString {
+        words.forEachIndexed { index, word ->
+            if (index > 0) append(" ")
+            withStyle(SpanStyle(color = if (index < lit) litColor else dimColor)) { append(word) }
+        }
+    }
     Text(
         text = text,
         style = lyricStyle.copy(
             fontSize = lyricStyle.fontSize * 0.7f,
             lineHeight = if (lyricStyle.lineHeight.isSpecified) lyricStyle.lineHeight * 0.7f else lyricStyle.lineHeight
         ),
-        color = color.copy(alpha = color.alpha * 0.75f),
         textAlign = lyricStyle.textAlign,
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
     )
