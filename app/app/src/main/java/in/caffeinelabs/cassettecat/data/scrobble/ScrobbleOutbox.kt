@@ -158,6 +158,7 @@ internal object ScrobbleOutbox {
     // Queued in the outbox's own scope, so it outlives the screen or service that asked. A love replaces one
     // still waiting for the same song, so only the latest choice is sent, and a love skips the services that
     // already have it: by what the account itself says when [onAccounts] has read it, else by the app's record.
+    // [onAccounts] is keyed by account record, so a list read before someone else signed in isn't used for them.
     fun add(
         context: Context,
         kind: OutboxItem.Kind,
@@ -194,7 +195,7 @@ internal object ScrobbleOutbox {
                         // The opposite choice may be mid-send and about to change the record, so it isn't trusted.
                         earlier != null || !loved -> emptySet()
                         else -> services.filterTo(mutableSetOf()) {
-                            onAccounts[it]?.contains(key) ?: (lovedOn[records[it]]?.containsKey(key) == true)
+                            onAccounts[records[it]]?.contains(key) ?: (lovedOn[records[it]]?.containsKey(key) == true)
                         }
                     }
                     // Every connected service has it already; a service connected later still gets it from Sync Likes.
@@ -319,6 +320,7 @@ internal object ScrobbleOutbox {
     private suspend fun lovedOnAccounts(context: Context): Map<String, Set<String>> {
         if (ServiceSettingsRepository(context).settings.first().offlineBlackoutMode) return emptyMap()
         val settings = ScrobbleSettingsRepository(context).settings.first()
+        val records = accountRecords(settings)
         return connectedServices(settings).mapNotNull { service ->
             val songs = if (service == LISTENBRAINZ) {
                 ListenBrainzClient().lovedSongs(settings.listenBrainz.userName)
@@ -326,7 +328,8 @@ internal object ScrobbleOutbox {
                 val account = ScrobbleAccount.entries.first { it.id == service }
                 account.client?.lovedSongs(settings.account(account).username)
             }
-            songs?.let { service to it }
+            val record = records[service]
+            if (songs != null && record != null) record to songs else null
         }.toMap()
     }
 
