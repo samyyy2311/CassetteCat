@@ -180,9 +180,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private val streamingServerRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
+    private val subsonicLibrary = SubsonicLibraryRepository(streamingServerRepository, credentialStore)
     private val librariesBySource: Map<MusicSource, LibraryRepository> = mapOf(
         MusicSource.Local to LocalLibraryRepository(app),
-        MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
+        MusicSource.Subsonic to subsonicLibrary,
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
     private val favoritesRepository = FavoritesRepository(app)
@@ -402,6 +403,19 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     } finally {
                         _isLoadingLyrics.value = false
                     }
+                }
+        }
+        // The queue is kept on your Navidrome or Subsonic server while its songs play, so CassetteCat on another
+        // device can carry on from here.
+        viewModelScope.launch {
+            localState.map { Triple(it.currentSong, it.isPlaying, it.upNext) }
+                .distinctUntilChanged { old, new -> old.first?.id == new.first?.id && old.second == new.second && old.third == new.third }
+                .collectLatest { (current, playing, upNext) ->
+                    if (current?.source != MusicSource.Subsonic) return@collectLatest
+                    do {
+                        subsonicLibrary.saveQueue(current, upNext, _positionMs.value)
+                        if (playing) delay(QUEUE_SAVE_INTERVAL_MS)
+                    } while (playing)
                 }
         }
         viewModelScope.launch {
@@ -993,6 +1007,42 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSongMetadata(updatedSong: Song) = repository.updateSongMetadata(updatedSong)
 
+    /** A queue CassetteCat on another device left on your server, offered on Home to carry on here. */
+    data class QueueElsewhere(val from: String, val songs: List<Song>, val startIndex: Int, val positionMs: Long)
+
+    private val _queueElsewhere = MutableStateFlow<QueueElsewhere?>(null)
+    val queueElsewhere: StateFlow<QueueElsewhere?> = _queueElsewhere.asStateFlow()
+    // Each offer is made once: dismissing or taking it doesn't bring the same queue back.
+    private val answeredQueues = mutableSetOf<String>()
+
+    fun checkQueueElsewhere(library: List<Song>) {
+        viewModelScope.launch {
+            val saved = subsonicLibrary.queueFromElsewhere() ?: return@launch
+            val key = listOf(saved.changedBy, saved.current, saved.position).joinToString("|")
+            if (key in answeredQueues) return@launch
+            val byId = library.associateBy { it.id }
+            val songs = saved.entry.mapNotNull { byId["subsonic:${it.id}"] }
+            val startIndex = songs.indexOfFirst { it.id == "subsonic:${saved.current}" }
+            // Already playing that song here: there's nothing to carry on.
+            if (startIndex < 0 || songs[startIndex].id == localState.value.currentSong?.id) return@launch
+            _queueElsewhere.value = QueueElsewhere(saved.changedBy.orEmpty(), songs, startIndex, saved.position)
+            answeredQueues += key
+        }
+    }
+
+    fun continueQueueElsewhere() {
+        val offer = _queueElsewhere.value ?: return
+        _queueElsewhere.value = null
+        viewModelScope.launch {
+            connection.join()
+            repository.playQueue(offer.songs, offer.startIndex, startPositionMs = offer.positionMs)
+        }
+    }
+
+    fun dismissQueueElsewhere() {
+        _queueElsewhere.value = null
+    }
+
     // Counts lyrics picked by hand, so a lyrics load that started before a pick doesn't put older lyrics back.
     private var manualLyricsPicks = 0
 
@@ -1051,3 +1101,5 @@ private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int, roomToken: Str
         source = MusicSource.ListeningRoomHost
     )
 }
+
+private const val QUEUE_SAVE_INTERVAL_MS = 30_000L

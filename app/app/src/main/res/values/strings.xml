@@ -92,6 +92,8 @@
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="home_continue_from">Continue from %1$s</string>
+    <string name="home_continue_play_here">Play here</string>
     <string name="action_later">Later</string>
     <string name="action_download">Download</string>
 

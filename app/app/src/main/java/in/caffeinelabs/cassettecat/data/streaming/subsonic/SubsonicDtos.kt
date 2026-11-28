@@ -12,8 +12,21 @@ data class SubsonicResponse(
     val error: SubsonicError? = null,
     val albumList2: SubsonicAlbumList2? = null,
     val album: SubsonicAlbum? = null,
-    val lyricsList: SubsonicLyricsList? = null
+    val lyricsList: SubsonicLyricsList? = null,
+    val playQueue: SubsonicPlayQueue? = null
 )
+
+// The queue a player last saved on the server, and which player saved it.
+@Serializable
+data class SubsonicPlayQueue(
+    val entry: List<SubsonicPlayQueueEntry> = emptyList(),
+    val current: String? = null,
+    val position: Long = 0L,
+    val changedBy: String? = null
+)
+
+@Serializable
+data class SubsonicPlayQueueEntry(val id: String)
 
 // OpenSubsonic's getLyricsBySongId: a song can carry lyrics in several languages, timed or not.
 @Serializable

@@ -65,6 +65,17 @@ class SubsonicApiClient(
         return lyricsText(lyrics.line.map { line -> line.start?.let { it + lyrics.offset } to line.value }, lyrics.synced)
     }
 
+    /** Keeps the queue on the server, so CassetteCat on another device can carry on from it. */
+    suspend fun savePlayQueue(songIds: List<String>, currentId: String, positionMs: Long) {
+        get("savePlayQueue.view") {
+            songIds.forEach { addQueryParameter("id", it) }
+            addQueryParameter("current", currentId)
+            addQueryParameter("position", positionMs.toString())
+        }
+    }
+
+    suspend fun getPlayQueue(): SubsonicPlayQueue? = get("getPlayQueue.view").playQueue
+
     fun streamUrl(songId: String): String =
         urlBuilder("stream.view").addQueryParameter("id", songId).build().toString()
 
@@ -95,9 +106,9 @@ class SubsonicApiClient(
         MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 
-    private companion object {
-        const val API_VERSION = "1.16.1"
-        const val CLIENT_NAME = "CassetteCat"
-        const val PAGE_SIZE = 500
+    companion object {
+        private const val API_VERSION = "1.16.1"
+        const val CLIENT_NAME = "CassetteCat Android"
+        private const val PAGE_SIZE = 500
     }
 }
