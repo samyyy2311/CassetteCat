@@ -12,7 +12,9 @@ import `in`.caffeinelabs.cassettecat.data.settings.ServiceSettingsRepository
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.data.update.markUpdatePrompted
 import `in`.caffeinelabs.cassettecat.data.update.markReleaseNotesSeen
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.data.update.unseenReleaseNotes
+import `in`.caffeinelabs.cassettecat.ui.components.UpdateSheet
 import `in`.caffeinelabs.cassettecat.ui.components.WhatsNewSheet
 import `in`.caffeinelabs.cassettecat.ui.components.LoadingBar
 import `in`.caffeinelabs.cassettecat.data.update.updateToPrompt
@@ -142,6 +144,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.AppPreferences
 import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
 import `in`.caffeinelabs.cassettecat.data.settings.DefaultStartScreen
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
+import `in`.caffeinelabs.cassettecat.data.settings.NavTab
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationAudioEngineScreen
 import `in`.caffeinelabs.cassettecat.ui.screens.settings.CustomizationHomeFeedScreen
 import `in`.caffeinelabs.cassettecat.ui.util.isCarAudioDevice
@@ -185,7 +188,7 @@ object MainRoute {
     fun albumDetail(albumId: String) = "main/library/album/${Uri.encode(albumId)}"
     const val GENRE_DETAIL = "main/library/genre/{genre}"
     fun genreDetail(genre: String) = "main/library/genre/${Uri.encode(genre)}"
-    val BOTTOM_TABS = listOf(HOME, LIBRARY, RADIO, SEARCH, SETTINGS)
+    val BOTTOM_TABS = listOf(HOME, LIBRARY, RADIO, SEARCH, STATS, SETTINGS)
     const val FOLDER_DETAIL = "main/library/folder/{folderPath}"
     fun folderDetail(folderPath: String) = "main/library/folder/${Uri.encode(folderPath)}"
     const val PLAYLIST_DETAIL = "main/library/playlist/{playlistId}"
@@ -406,7 +409,7 @@ fun MainShell(
     }
     // Offered once per version; Settings keeps showing the update after "Later".
     var updatePrompt by remember { mutableStateOf<UpdateCheckResult.UpdateAvailable?>(null) }
-    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
+    var whatsNew by remember { mutableStateOf(emptyList<ReleaseSection>()) }
     LaunchedEffect(Unit) {
         whatsNew = unseenReleaseNotes(context, BuildConfig.VERSION_NAME)
         if (ServiceSettingsRepository(context).settings.first().isEnabled(ExternalService.GITHUB_UPDATES)) {
@@ -802,6 +805,7 @@ fun MainShell(
                             onNavigateToAboutLegal = { navController.navigate(MainRoute.ABOUT_LEGAL) },
                             onNavigateToCredits = { navController.navigate(MainRoute.CREDITS) },
                             onNavigateToScrobbling = { navController.navigate(MainRoute.SCROBBLING) },
+                            onOpenSetting = { route -> navController.navigate(route) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
@@ -1021,11 +1025,14 @@ fun MainShell(
                         PrivacyScreen(onBack = { navController.popBackStack() })
                     }
                     composable(MainRoute.STATS) {
+                        // From the bar it opens just above the start tab, or is the start tab, with nothing to go back to.
+                        val previous = navController.previousBackStackEntry?.destination?.route
+                        val openedAsTab = NavTab.STATS in visibleNavTabs && (previous == null || previous == startTab)
                         StatsScreen(
                             libraryViewModel = libraryViewModel,
                             playlistViewModel = playlistViewModel,
                             playbackViewModel = playbackViewModel,
-                            onBack = { navController.popBackStack() },
+                            onBack = if (openedAsTab) null else { { navController.popBackStack() } },
                             onNavigateToNowPlaying = { scope.launch { scaffoldState.bottomSheetState.expand() } },
                             onNavigateToArtist = { artist -> navController.navigate(MainRoute.artistDetail(artist)) },
                             onNavigateToAlbum = { albumId -> navController.navigate(MainRoute.albumDetail(albumId)) },
@@ -1112,17 +1119,14 @@ fun MainShell(
                 updatePrompt = null
                 scope.launch { markUpdatePrompted(context, update.version) }
             }
-            AlertDialog(
-                onDismissRequest = ::close,
-                title = { Text(stringResource(AppR.string.update_prompt_title)) },
-                text = { Text(stringResource(AppR.string.update_prompt_message, update.version)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, update.url.toUri()))
-                        close()
-                    }) { Text(stringResource(AppR.string.action_download)) }
+            UpdateSheet(
+                version = update.version,
+                notes = update.notes,
+                onDownload = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, update.url.toUri()))
+                    close()
                 },
-                dismissButton = { TextButton(onClick = ::close) { Text(stringResource(AppR.string.action_later)) } }
+                onDismiss = ::close
             )
         }
 

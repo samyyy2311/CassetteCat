@@ -88,11 +88,32 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByAlbum
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByArtist
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByFolder
 import `in`.caffeinelabs.cassettecat.ui.screens.library.groupedByGenre
+import `in`.caffeinelabs.cassettecat.ui.screens.library.splitArtists
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import kotlinx.coroutines.launch
+
+/**
+ * How well [name] matches [query], best first: the whole name, its start, the start of one of its words, then
+ * anywhere in it. Null when it doesn't match.
+ */
+internal fun nameMatchRank(name: String, query: String): Int? {
+    val n = name.trim().lowercase()
+    val q = query.trim().lowercase()
+    return when {
+        q.isEmpty() -> null
+        n == q -> 0
+        n.startsWith(q) -> 1
+        n.split(' ', '-', '_', '/', '(', '.').any { it.startsWith(q) } -> 2
+        n.contains(q) -> 3
+        else -> null
+    }
+}
+
+// An album only matched through its artist comes after every album matched by its own name.
+private const val ALBUM_BY_ARTIST = 10
 
 private fun scoreSongMatch(song: Song, query: String, tokens: List<String>): Int {
     val q = query.trim().lowercase()
@@ -193,20 +214,22 @@ fun SearchScreen(
     val allGenres = remember(allSongs) { allSongs.groupedByGenre() }
     val allFolders by remember(allSongs) { lazy { allSongs.groupedByFolder() } }
 
+    // An artist matches by their own name, so a collaborator credited beside them isn't listed in their place.
     val matchedArtists = remember(trimmed, allArtists) {
         if (trimmed.isBlank()) emptyList()
-        else allArtists.filter {
-            it.artist.contains(trimmed, ignoreCase = true) ||
-                it.songs.any { s -> s.artist.contains(trimmed, ignoreCase = true) }
-        }
+        else allArtists.mapNotNull { group -> nameMatchRank(group.artist, trimmed)?.let { group to it } }
+            .sortedWith(compareBy<Pair<ArtistGroup, Int>> { it.second }.thenByDescending { it.first.songs.size })
+            .map { it.first }
     }
 
+    // Albums named like the search come first, then ones by an artist named like it.
     val matchedAlbums = remember(trimmed, allSongs) {
         if (trimmed.isBlank()) emptyList()
-        else allAlbums.filter {
-            it.album.contains(trimmed, ignoreCase = true) ||
-                it.artist.contains(trimmed, ignoreCase = true)
-        }
+        else allAlbums.mapNotNull { album ->
+            val byName = nameMatchRank(album.album, trimmed)
+            val byArtist = (album.artist.splitArtists() + album.artist).mapNotNull { nameMatchRank(it, trimmed) }.minOrNull()
+            (byName ?: byArtist?.plus(ALBUM_BY_ARTIST))?.let { album to it }
+        }.sortedBy { it.second }.map { it.first }
     }
 
     val matchedGenres = remember(trimmed, allGenres) {

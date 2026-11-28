@@ -4,22 +4,46 @@ All notable changes to CassetteCat are documented in this file.
 
 ## [1.10.0]
 
-* Songs you like are marked as loved on Last.fm, Libre.fm and ListenBrainz. Sync Likes in Scrobbling sends the ones each account is missing, and takes back loves for songs you no longer like.
-* Scrobbles and loves made offline or in Offline Blackout Mode wait on the phone and are sent once you're back online, including to accounts you connect later.
-* A Click Wheel player style, in Customisation > Now Playing & Mini-Player > Player Style.
-* Four seek bar styles to choose from: Fader, Line, Wavy and Waveform, in Customisation > Now Playing & Mini-Player > Seek Bar.
-* A song removed from Up Next can be put back with Undo for a few seconds.
-* CassetteCat shows up under Open with for audio files.
-* Lyrics stored in M4A files show before any online search, and timed ones follow the song.
+### Now Playing
+
+* New Click Wheel player style. Find it in Customisation > Now Playing & Mini-Player > Player Style.
+* Four seek bar styles: Fader, Line, Wavy and Waveform. Find them in Customisation > Now Playing & Mini-Player > Seek Bar.
 * Lyrics, covers and the seek bar change smoothly from one song to the next.
-* Find Songs by Their Lyrics can also download over mobile data, with Use Mobile Data Too.
-* Offline Blackout Mode cuts every connection outside your home network, and the lyrics screen says when it stopped a search.
-* Jellyfin songs in any format play. The server converts the ones your phone can't decode.
-* Home servers connect without typing `http://`.
-* Songs run straight into the next one, with no pause between them, so the Gapless Playback setting is gone.
-* Reopening the app after swiping it away picks up whatever is already playing.
+
+### Queue
+
+* Removed a song from Up Next by mistake? Tap Undo to put it back.
+
+### Lyrics
+
+* Lyrics saved inside M4A files now show, and timed ones follow the song.
+* Find Songs by Their Lyrics can also download over mobile data. Turn on Use Mobile Data Too.
+
+### Scrobbling
+
+* Songs you like are now loved on Last.fm, Libre.fm and ListenBrainz too.
+* Sync Likes, in Settings > Scrobbling, sends each account the loves it's missing and takes back loves for songs you no longer like.
+* Scrobbles and loves made offline are kept and sent once you're back online. Scrobbles also reach accounts you connect later, and Sync Likes sends them your loves.
+
+### Playback
+
+* Songs play straight into the next one with no pause, so the Gapless Playback setting is gone.
+* Reopening the app after swiping it away carries on with whatever is playing.
+
+### Servers and offline
+
+* Jellyfin songs in any format play. The server converts the ones your phone can't.
+* Home servers connect without typing http://.
+* Offline Blackout Mode blocks every connection outside your home network, and the lyrics screen tells you when it stopped a search.
+
+### Other
+
+* CassetteCat shows up under Open with for audio files.
+
+### Fixes
+
 * The pause button no longer flicks back while the music fades out.
-* The instrumental bars on the lyrics screen pulse steadily for every song.
+* The bars between lyric lines pulse evenly on every song.
 
 ## [1.9.1]
 

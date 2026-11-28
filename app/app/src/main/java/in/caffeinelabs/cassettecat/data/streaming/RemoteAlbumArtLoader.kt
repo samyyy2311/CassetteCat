@@ -3,11 +3,14 @@ package `in`.caffeinelabs.cassettecat.data.streaming
 import android.graphics.Bitmap
 import android.net.Uri
 import okhttp3.Request
+import java.io.File
+import java.security.MessageDigest
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 private const val THUMBNAIL_CACHE_BYTES = 16 * 1024 * 1024
 private const val FULL_CACHE_BYTES = 24 * 1024 * 1024
 
-// In-memory two-tier cache (thumbnail and full-res) for remote artwork.
+// Covers from your server, kept in memory at two sizes and saved on the phone.
 class RemoteAlbumArtLoader {
     private val cache = ArtworkCache(THUMBNAIL_CACHE_BYTES, FULL_CACHE_BYTES)
 
@@ -23,13 +26,38 @@ class RemoteAlbumArtLoader {
     }
 
     private fun fetch(url: String, maxDimension: Int): Bitmap? = runCatching {
+        val saved = diskDir?.let { File(it, savedName(url)) }
+        saved?.let { decodeSavedBitmap(it, maxDimension) }?.let { return@runCatching it }
         sharedHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
             if (!response.isSuccessful) return@runCatching null
-            response.body.bytes().let { decodeSampledBitmap(it, maxDimension = maxDimension) }
+            val bytes = response.body.bytes()
+            saved?.let { saveWhole(it, bytes) }
+            decodeSampledBitmap(bytes, maxDimension = maxDimension)
         }
     }.getOrNull()
 
     companion object {
+        /**
+         * Where covers from your server are kept on the phone, so they aren't downloaded again each time the app
+         * starts. Set once when the app starts.
+         */
+        @Volatile
+        var diskDir: File? = null
+
+        // Named after the cover's address without the sign-in parts, which change between sign-ins. Covers are always
+        // asked for at the server's home address, so the same cover keeps its name when you're away.
+        internal fun savedName(url: String): String {
+            val parsed = url.toHttpUrlOrNull() ?: return sha256(url)
+            val kept = parsed.queryParameterNames.filterNot { it in SIGN_IN_PARAMETERS }.sorted()
+                .joinToString("&") { name -> "$name=${parsed.queryParameterValues(name).joinToString(",")}" }
+            return sha256("${parsed.host}:${parsed.port}${parsed.encodedPath}?$kept") + ".img"
+        }
+
+        private val SIGN_IN_PARAMETERS = setOf("u", "t", "s", "p", "v", "c", "f", "api_key", "apiKey")
+
+        private fun sha256(text: String): String =
+            MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }.take(40)
+
         @Volatile
         private var instance: RemoteAlbumArtLoader? = null
 

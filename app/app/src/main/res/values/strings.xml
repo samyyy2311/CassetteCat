@@ -92,6 +92,8 @@
     <string name="action_clear">Clear</string>
     <string name="action_restore">Restore</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="home_continue_from">Continue from %1$s</string>
+    <string name="home_continue_play_here">Play here</string>
     <string name="action_later">Later</string>
     <string name="action_download">Download</string>
 
@@ -245,6 +247,9 @@
     <string name="server_connected_as">Connected as %1$s</string>
     <string name="server_connected_description">Your library is synchronized and ready for streaming.</string>
     <string name="server_url">Server URL</string>
+    <string name="server_away_url">Away address (optional)</string>
+    <string name="server_away_url_placeholder">https://music.example.com</string>
+    <string name="server_away_url_description">Used when the address above doesn’t answer, such as when you’re away from home. CassetteCat switches between them by itself.</string>
     <string name="server_username">Username</string>
     <string name="server_username_placeholder">Your username</string>
     <string name="server_password">Password</string>
@@ -409,6 +414,7 @@
         <item>Hi friend! 🐾</item>
     </string-array>
     <string name="nav_home">Home</string>
+    <string name="nav_listening_record">Record</string>
     <string name="fast_scroll_none">none</string>
 
     <!-- Settings home -->
@@ -417,7 +423,9 @@
 
     <string name="settings_audio_playback_section">Audio &amp; Playback</string>
     <string name="settings_customisation">Customisation</string>
-    <string name="settings_customisation_description">Startup tab, home feed, audio, and display</string>
+    <string name="settings_customisation_description">Theme, bottom bar, home feed, sound and lyrics</string>
+    <string name="settings_search_placeholder">Search settings</string>
+    <string name="settings_search_empty">No settings match “%1$s”</string>
     <string name="settings_sleep_timer">Sleep timer</string>
     <string name="settings_sleep_timer_description">Stop playback after a set time</string>
     <string name="settings_equalizer">Equalizer</string>
@@ -530,7 +538,7 @@
     <string name="customization_title">Customisation</string>
     <string name="customization_theme">Look &amp; Feel</string>
     <string name="customization_theme_summary">%1$s · AMOLED %2$s</string>
-    <string name="customization_startup_library">Navigation</string>
+    <string name="customization_startup_library">Navigation &amp; Bottom Bar</string>
     <string name="customization_startup_summary">%1$s · %2$s tab</string>
     <string name="customization_now_playing">Now Playing &amp; Mini-Player</string>
     <string name="customization_audio_engine">Sound</string>
@@ -642,6 +650,12 @@
     <string name="customization_crossfade_duration">Crossfade Duration</string>
     <string name="customization_crossfade_duration_description">Fade between track transitions</string>
     <string name="customization_seconds_short">%1$ds</string>
+    <string name="customization_stream_quality_wifi">Stream Quality on Wi-Fi</string>
+    <string name="customization_stream_quality_wifi_description">How good songs from your server sound on Wi-Fi</string>
+    <string name="customization_stream_quality_mobile">Stream Quality on Mobile Data</string>
+    <string name="customization_stream_quality_mobile_description">A lower quality uses less data. Downloads keep the original</string>
+    <string name="customization_stream_quality_original">Original</string>
+    <string name="customization_stream_quality_kbps">%1$d kbps</string>
     <string name="customization_skip_silence">Skip Silence</string>
     <string name="customization_skip_silence_description">Skip quiet stretches, such as long pauses in live recordings and podcasts</string>
     <string name="customization_replaygain">Volume Normalisation (ReplayGain)</string>
@@ -1531,9 +1545,11 @@
     <string name="scrobbling_lastfm_section" translatable="false">LAST.FM</string>
     <string name="queue_removed">Removed %1$s</string>
     <string name="queue_undo">Undo</string>
+    <string name="scrobbling_lastfm_unavailable">Last.fm isn’t included in this version of the app. ListenBrainz and Libre.fm work as usual.</string>
     <string name="scrobbling_loves_section">Loves</string>
     <string name="scrobbling_sync_likes">Sync Likes</string>
     <string name="scrobbling_sync_likes_description">Songs you like are marked as loved on your accounts. Sync adds the ones you liked before</string>
+    <string name="scrobbling_sync_likes_done">All likes are synced</string>
     <plurals name="scrobbling_loves_left">
         <item quantity="one">%d love left to send</item>
         <item quantity="other">%d loves left to send</item>

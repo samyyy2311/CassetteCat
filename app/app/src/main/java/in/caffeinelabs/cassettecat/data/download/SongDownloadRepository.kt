@@ -5,6 +5,9 @@ package `in`.caffeinelabs.cassettecat.data.download
 import android.content.Context
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
+import androidx.core.net.toUri
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadRequest
@@ -31,7 +34,12 @@ class SongDownloadRepository private constructor(private val context: Context) {
         context,
         StandaloneDatabaseProvider(context),
         DownloadCache.get(context),
-        DefaultHttpDataSource.Factory(),
+        // Downloads, like playback, use whichever of the server's addresses answers.
+        ResolvingDataSource.Factory(DefaultHttpDataSource.Factory()) { spec ->
+            val url = spec.uri.toString()
+            val rewritten = ServerAddresses.rewrite(url)
+            if (rewritten == url) spec else spec.withUri(rewritten.toUri())
+        },
         Executor(Runnable::run)
     ).apply { maxParallelDownloads = 3 }
 

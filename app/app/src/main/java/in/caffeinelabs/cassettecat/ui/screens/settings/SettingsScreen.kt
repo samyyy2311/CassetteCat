@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import `in`.caffeinelabs.cassettecat.data.listeningroom.ListeningRoomState
 import `in`.caffeinelabs.cassettecat.data.settings.ExternalService
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingServerConfig
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.data.update.UpdateCheckResult
 import `in`.caffeinelabs.cassettecat.ui.playback.PlaybackViewModel
 import `in`.caffeinelabs.cassettecat.ui.screens.library.LibraryUiState
@@ -79,6 +81,7 @@ fun SettingsScreen(
     onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
     onNavigateToScrobbling: () -> Unit = {},
+    onOpenSetting: (String) -> Unit = {},
     listBottomPadding: Dp = 0.dp,
     viewModel: SettingsViewModel = viewModel()
 ) {
@@ -87,12 +90,13 @@ fun SettingsScreen(
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var whatsNew by remember { mutableStateOf(emptyList<String>()) }
+    var whatsNew by remember { mutableStateOf(emptyList<ReleaseSection>()) }
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     val listeningRoom by playbackViewModel.listeningRoom.collectAsStateWithLifecycle()
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val lastRefreshAtMs by libraryViewModel.lastRefreshAtMs.collectAsStateWithLifecycle()
     var showListeningRoom by remember { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -104,7 +108,19 @@ fun SettingsScreen(
 
         SettingsHeader()
         Spacer(Modifier.height(12.dp))
+        // Every setting can be found by name, wherever it sits.
+        SettingsSearchField(searchQuery) { searchQuery = it }
+        Spacer(Modifier.height(16.dp))
 
+        if (searchQuery.isNotBlank()) {
+            SettingsSearchResults(searchQuery) { route ->
+                when (route) {
+                    LISTENING_ROOM_SHEET -> showListeningRoom = true
+                    WHATS_NEW_SHEET -> whatsNew = releaseNotes(context, BuildConfig.VERSION_NAME)
+                    else -> onOpenSetting(route)
+                }
+            }
+        } else {
         SettingsSection(title = stringResource(AppR.string.settings_audio_playback_section)) {
             NavigationRow(
                 title = stringResource(AppR.string.settings_customisation),
@@ -365,6 +381,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
             )
+        }
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))

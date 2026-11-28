@@ -24,14 +24,16 @@ private val SEEN_VERSION = stringPreferencesKey("seen_version")
 @Serializable
 private data class GitHubRelease(
     val tag_name: String,
-    val html_url: String
+    val html_url: String,
+    val body: String? = null
 )
 
 sealed interface UpdateCheckResult {
     data object UpToDate : UpdateCheckResult
     data class UpdateAvailable(
         val version: String,
-        val url: String
+        val url: String,
+        val notes: List<ReleaseSection> = emptyList()
     ) : UpdateCheckResult
     data object Error : UpdateCheckResult
 }
@@ -51,7 +53,9 @@ class GitHubUpdateChecker {
             if (isNewer(latestVersion, currentVersion)) {
                 UpdateCheckResult.UpdateAvailable(
                     version = latestVersion,
-                    url = release.html_url
+                    url = release.html_url,
+                    // The release text is the version's changelog section, so it reads like What's New.
+                    notes = releaseNotesFrom(release.body.orEmpty(), latestVersion)
                 )
             } else {
                 UpdateCheckResult.UpToDate
@@ -85,21 +89,35 @@ suspend fun markUpdatePrompted(context: Context, version: String) {
     context.updateDataStore.edit { it[PROMPTED_VERSION] = version }
 }
 
-/** The changelog's points for [version]: the lines starting with "* " in its section. */
-fun releaseNotesFrom(changelog: String, version: String): List<String> =
+/** One part of a release's notes, such as Lyrics or Fixes, with its points. Untitled when the notes have no parts. */
+data class ReleaseSection(val title: String?, val notes: List<String>)
+
+/** The changelog's points for [version]: its "### " headings and the lines starting with "* " under them. */
+fun releaseNotesFrom(changelog: String, version: String): List<ReleaseSection> {
+    val sections = mutableListOf<ReleaseSection>()
     changelog.lineSequence()
         .dropWhile { !it.startsWith("## [$version]") }
         .drop(1)
         .takeWhile { !it.startsWith("## [") }
-        .filter { it.startsWith("* ") }
-        .map { it.removePrefix("* ").replace("**", "").trim() }
-        .toList()
+        .forEach { line ->
+            when {
+                line.startsWith("### ") -> sections += ReleaseSection(line.removePrefix("### ").trim(), emptyList())
+                line.startsWith("* ") -> {
+                    val note = line.removePrefix("* ").replace("**", "").replace("`", "").trim()
+                    val last = sections.lastOrNull() ?: ReleaseSection(null, emptyList()).also { sections += it }
+                    sections[sections.lastIndex] = last.copy(notes = last.notes + note)
+                }
+            }
+        }
+    return sections.filter { it.notes.isNotEmpty() }
+}
 
-fun releaseNotes(context: Context, version: String): List<String> =
-    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version)
+// A test build's "-debug" suffix isn't part of the release it's built from.
+fun releaseNotes(context: Context, version: String): List<ReleaseSection> =
+    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version.removeSuffix("-debug"))
 
 /** Release notes to show once after updating to [version]; empty when already seen. */
-suspend fun unseenReleaseNotes(context: Context, version: String): List<String> =
+suspend fun unseenReleaseNotes(context: Context, version: String): List<ReleaseSection> =
     if (context.updateDataStore.data.first()[SEEN_VERSION] == version) emptyList() else releaseNotes(context, version)
 
 suspend fun markReleaseNotesSeen(context: Context, version: String) {

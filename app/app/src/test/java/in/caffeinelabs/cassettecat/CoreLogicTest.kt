@@ -1,6 +1,16 @@
 package `in`.caffeinelabs.cassettecat
 
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
+import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
+import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
+import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.streaming.RemoteAlbumArtLoader
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.ui.screens.search.nameMatchRank
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
+import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
+import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
 import `in`.caffeinelabs.cassettecat.data.streaming.shouldClearArtworkThumbnails
 
 import `in`.caffeinelabs.cassettecat.data.library.MusicBrainzTags
@@ -67,10 +77,40 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CoreLogicTest {
+    @Test
+    fun audioscrobblerRefusalsSettleButOutagesRetry() {
+        assertEquals(6, AudioscrobblerClient.errorCode("""{"error":6,"message":"Track not found"}"""))
+        assertEquals(29, AudioscrobblerClient.errorCode("""{"error": 29, "message":"Rate limit"}"""))
+        assertNull(AudioscrobblerClient.errorCode("""{"lovetrack":{}}"""))
+        assertFalse(AudioscrobblerClient.isTemporaryError(6))
+
+        // A loved-tracks page lists its songs, except that a page of one gives the song on its own.
+        val (two, pages) = AudioscrobblerClient.lovedPage(
+            """{"lovedtracks":{"track":[{"name":"One","artist":{"name":"A"}},{"name":"Two","artist":{"name":"B"}}],"@attr":{"totalPages":"3"}}}"""
+        )!!
+        assertEquals(setOf(songMatchKey("One", "A"), songMatchKey("Two", "B")), two)
+        assertEquals(3, pages)
+        assertEquals(
+            setOf(songMatchKey("Solo", "C")),
+            AudioscrobblerClient.lovedPage("""{"lovedtracks":{"track":{"name":"Solo","artist":{"name":"C"}},"@attr":{"totalPages":"1"}}}""")!!.first
+        )
+        assertNull(AudioscrobblerClient.lovedPage("""{"error":6,"message":"User not found"}"""))
+
+        // ListenBrainz feedback names the song when it has the recording's details, and skips it when it doesn't.
+        val (loved, total) = ListenBrainzClient.feedbackPage(
+            """{"feedback":[{"track_metadata":{"artist_name":"A","track_name":"One"}},{"track_metadata":null}],"total_count":1500}"""
+        )
+        assertEquals(setOf(songMatchKey("One", "A")), loved)
+        assertEquals(1500, total)
+        assertTrue(AudioscrobblerClient.isTemporaryError(29))
+        assertTrue(AudioscrobblerClient.isTemporaryError(9))
+    }
+
     @Test
     fun serverAddressGetsHttpOnlyOnTheHomeNetwork() {
         assertEquals("http://192.168.1.10:8096", completeServerUrl(" 192.168.1.10:8096 "))
@@ -225,11 +265,83 @@ class CoreLogicTest {
     }
 
     @Test
+    fun savedServerCoversIgnoreSignIn() {
+        // The same cover signed in with a fresh salt is one file; another cover, or one from another server, isn't.
+        val first = RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=aa&s=11")
+        assertEquals(first, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=bb&s=22"))
+        assertNotEquals(first, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-2&u=me"))
+        assertNotEquals(first, RemoteAlbumArtLoader.savedName("https://music.example.com/rest/getCoverArt.view?id=al-1&u=me"))
+    }
+
+    @Test
+    fun searchRanksAnArtistsOwnNameFirst() {
+        assertEquals(0, nameMatchRank("Reble", "reble"))
+        assertEquals(1, nameMatchRank("Travis Scott", "travis"))
+        assertEquals(2, nameMatchRank("King Chip", "chip"))
+        assertEquals(3, nameMatchRank("Skrillex", "rill"))
+        // A collaborator is matched by their own name only, never by a song they share.
+        assertNull(nameMatchRank("Amit Kumar", "reble"))
+    }
+
+    @Test
+    fun streamQualityAsksTheServerForLess() {
+        val subsonic = "http://nas:4533/rest/stream.view?id=7&u=me"
+        assertEquals(subsonic, StreamQuality.limit(subsonic, 0))
+        assertEquals("http://nas:4533/rest/stream.view?id=7&u=me&maxBitRate=192&format=mp3", StreamQuality.limit(subsonic, 192))
+        val jellyfin = "https://jf.example.com/Audio/abc/universal?audioBitRate=320000&maxStreamingBitrate=140000000"
+        assertEquals(
+            "https://jf.example.com/Audio/abc/universal?maxStreamingBitrate=128000&audioBitRate=128000",
+            StreamQuality.limit(jellyfin, 128)
+        )
+        // Anything that isn't a server stream, such as a radio station, is left alone.
+        assertEquals("https://radio.example.com/live.mp3", StreamQuality.limit("https://radio.example.com/live.mp3", 128))
+    }
+
+    @Test
+    fun serverAddressesAreMatchedWholeAndTriedHomeFirst() {
+        // A server's address only matches up to a path or the end, so :4533 isn't taken for :45330.
+        assertTrue(ServerAddresses.startsWithBase("http://192.168.1.5:4533/rest/stream.view?id=1", "http://192.168.1.5:4533"))
+        assertTrue(ServerAddresses.startsWithBase("http://192.168.1.5:4533", "http://192.168.1.5:4533"))
+        assertFalse(ServerAddresses.startsWithBase("http://192.168.1.5:45330/rest", "http://192.168.1.5:4533"))
+        // The home network address is tried first, whichever order they were typed in.
+        assertEquals(
+            listOf("http://192.168.1.5:4533", "https://music.example.com"),
+            ServerAddresses.byHomeNetworkFirst(listOf("https://music.example.com", "http://192.168.1.5:4533"))
+        )
+    }
+
+    @Test
+    fun serverLyricsBecomeLrcWhenTimed() {
+        // Timed lines get LRC times; plain ones, and blank lines, are kept as text or dropped.
+        assertEquals(
+            "[01:02.50]Hello\n[00:00.00]World",
+            lyricsText(listOf(62_500L to "Hello", 0L to "World", 3_000L to " "), timed = true)
+        )
+        assertEquals("Hello\nWorld", lyricsText(listOf(null to "Hello", 5L to "World"), timed = false))
+        // One line without a time would be dropped from LRC, so then every line stays plain.
+        assertEquals("Hello\nWorld", lyricsText(listOf(1_000L to "Hello", null to "World"), timed = true))
+        assertEquals(null, lyricsText(emptyList(), timed = true))
+    }
+
+    @Test
     fun releaseNotesComeFromTheVersionsSection() {
         val changelog = "# Changelog\n\n## [1.1.0]\n\n* **Lyrics** sync.\n* Faster.\n\n## [1.0.0]\n\n* Old.\n"
 
-        assertEquals(listOf("Lyrics sync.", "Faster."), releaseNotesFrom(changelog, "1.1.0"))
+        assertEquals(listOf(ReleaseSection(null, listOf("Lyrics sync.", "Faster."))), releaseNotesFrom(changelog, "1.1.0"))
         assertEquals(emptyList<String>(), releaseNotesFrom(changelog, "2.0.0"))
+
+        // Release notes keep their parts, and notes before any part go in an untitled one.
+        val notes = releaseNotesFrom(
+            "## [2.0]\n* Faster\n### Lyrics\n* Words light up\n* **Bold** `code`\n### Empty\n## [1.0]\n* Old",
+            "2.0"
+        )
+        assertEquals(
+            listOf(
+                ReleaseSection(null, listOf("Faster")),
+                ReleaseSection("Lyrics", listOf("Words light up", "Bold code"))
+            ),
+            notes
+        )
     }
 
     @Test

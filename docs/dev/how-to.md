@@ -4,19 +4,19 @@ Step-by-step recipes for common changes. Paths are relative to `app/app/src/main
 
 ## Adding a setting
 
-The **Gapless Playback** switch is a complete small example to copy. A setting touches five places.
+The **Skip Silence** switch is a complete small example to copy. A setting touches five places.
 
 1. **Store it** in `data/settings/AppPreferencesRepository.kt`:
-   - add a DataStore key, for example `private val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_playback")`;
-   - add a field with its default to `data class AppPreferences`, for example `val gaplessPlayback: Boolean = true`;
-   - read it in the `preferences` flow: `gaplessPlayback = prefs[GAPLESS_PLAYBACK] ?: true`;
-   - add a setter: `suspend fun setGaplessPlayback(enabled: Boolean)`.
+   - add a DataStore key, for example `private val SKIP_SILENCE = booleanPreferencesKey("skip_silence")`;
+   - add a field with its default to `data class AppPreferences`, for example `val skipSilence: Boolean = false`;
+   - read it in the `preferences` flow: `skipSilence = prefs[SKIP_SILENCE] ?: false`;
+   - add a setter: `suspend fun setSkipSilence(enabled: Boolean)`.
 2. **Back it up**: add the same field to `BackupAppPreferences` in `data/backup/BackupBundle.kt`, copy it in `exportForBackup()` and write it back in `restoreFromBackup()`. Give the backup field a default, so backups made before your change still restore.
 3. **Expose it** in `ui/screens/settings/SettingsViewModel.kt` with a function that launches the setter:
 
    ```kotlin
-   fun setGaplessPlayback(enabled: Boolean) {
-       viewModelScope.launch { appPreferencesRepository.setGaplessPlayback(enabled) }
+   fun setSkipSilence(enabled: Boolean) {
+       viewModelScope.launch { appPreferencesRepository.setSkipSilence(enabled) }
    }
    ```
 
@@ -24,15 +24,15 @@ The **Gapless Playback** switch is a complete small example to copy. A setting t
 
    ```kotlin
    ToggleRow(
-       title = stringResource(AppR.string.customization_gapless),
-       subtitle = stringResource(AppR.string.customization_gapless_description),
-       checked = prefs.gaplessPlayback,
-       onCheckedChange = viewModel::setGaplessPlayback,
-       iconRes = R.drawable.lucide_ic_disc,
+       title = stringResource(AppR.string.customization_skip_silence),
+       subtitle = stringResource(AppR.string.customization_skip_silence_description),
+       checked = prefs.skipSilence,
+       onCheckedChange = viewModel::setSkipSilence,
+       iconRes = R.drawable.lucide_ic_skip_forward,
    )
    ```
 
-5. **Use it** where it takes effect, by collecting `AppPreferencesRepository.preferences`. Gapless is applied in `data/playback/PlaybackService.kt`.
+5. **Use it** where it takes effect, by collecting `AppPreferencesRepository.preferences`. Skip Silence is applied in `data/playback/PlaybackService.kt`, which sets `player.skipSilenceEnabled`.
 
 Add the title and description strings as described in [Adding text](#adding-text).
 

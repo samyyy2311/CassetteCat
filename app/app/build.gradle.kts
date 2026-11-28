@@ -20,9 +20,14 @@ android {
         includeInBundle = false
     }
 
+    // The current release, used when the build isn't told one. F-Droid reads its version from these two lines, so a
+    // release updates both.
+    val releaseVersionName = "1.10.0"
+    val releaseVersionCode = 31
+
     val appVersionName = System.getenv("GITHUB_REF_NAME")?.takeIf { it.startsWith("v") }?.removePrefix("v")
         ?: (project.findProperty("versionName") as? String)
-        ?: "1.10.0"
+        ?: releaseVersionName
 
     val isProductionRelease = System.getenv("REQUIRE_PRODUCTION_SIGNING") == "true" &&
         gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
@@ -32,10 +37,10 @@ android {
         if (isProductionRelease && (parsed == null || parsed !in 1..2_100_000_000)) {
             error("Production VERSION_CODE must be an integer from 1 through 2100000000")
         }
-        parsed ?: (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 25
+        parsed ?: (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: releaseVersionCode
     } else {
         if (isProductionRelease) error("Production VERSION_CODE is required")
-        (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 25
+        (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: releaseVersionCode
     }
 
     defaultConfig {
@@ -160,6 +165,9 @@ dependencies {
         add("androidLintTool", "org.bouncycastle:bcutil-jdk18on:1.86")
         add("androidLintTool", "org.apache.commons:commons-lang3:3.21.0")
         add("androidLintTool", "org.apache.httpcomponents:httpclient:4.5.14")
+        add("androidLintTool", "com.google.guava:guava:33.7.2-jre")
+        // Media3 brings in Guava; this version fixes a deserialization flaw that can exhaust memory.
+        implementation("com.google.guava:guava:33.7.2-android")
     }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

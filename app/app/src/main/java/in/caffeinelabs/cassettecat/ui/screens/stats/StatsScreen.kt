@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -82,7 +83,8 @@ fun StatsScreen(
     libraryViewModel: LibraryViewModel,
     playlistViewModel: PlaylistViewModel,
     playbackViewModel: PlaybackViewModel,
-    onBack: () -> Unit,
+    // Null when it's open as a tab of its own, which has nothing to go back to.
+    onBack: (() -> Unit)?,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: (String) -> Unit,
@@ -158,11 +160,15 @@ fun StatsScreen(
             modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp, end = 24.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PressDepthIconButton(
-                iconRes = R.drawable.lucide_ic_chevron_left,
-                contentDescription = stringResource(AppR.string.action_back),
-                onClick = onBack
-            )
+            if (onBack != null) {
+                PressDepthIconButton(
+                    iconRes = R.drawable.lucide_ic_chevron_left,
+                    contentDescription = stringResource(AppR.string.action_back),
+                    onClick = onBack
+                )
+            } else {
+                Spacer(Modifier.width(16.dp))
+            }
             Text(stringResource(AppR.string.stats_listening_record), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             if (desktopState.address != null) {
                 val computer = desktopState.name ?: stringResource(AppR.string.desktop_remote_your_computer)

@@ -39,6 +39,7 @@ import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -47,6 +48,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -84,6 +86,8 @@ import `in`.caffeinelabs.cassettecat.ui.widget.CassetteWidgetProvider
 import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -101,6 +105,8 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
+import androidx.media3.common.PlaybackException
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -163,10 +169,13 @@ class PlaybackService : MediaLibraryService() {
         // Blackout pauses every song that isn't on the phone, so the player takes nothing from the network then,
         // whatever started the playback; the player follows redirects itself, so no host is trusted.
         val directFactory = ResolvingDataSource.Factory(DefaultDataSource.Factory(this)) { spec ->
-            if (blackoutActive && (spec.uri.scheme == "http" || spec.uri.scheme == "https")) {
-                throw IOException("Blackout mode is on")
-            }
-            spec
+            if (spec.uri.scheme != "http" && spec.uri.scheme != "https") return@Factory spec
+            if (blackoutActive) throw IOException("Blackout mode is on")
+            // A song from your server streams from whichever of its addresses answers where you are now, at the
+            // quality chosen for the connection in use.
+            val url = spec.uri.toString()
+            val rewritten = StreamQuality.limit(ServerAddresses.rewrite(url), StreamQuality.currentKbps(this))
+            if (rewritten == url) spec else spec.withUri(Uri.parse(rewritten))
         }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent
         // write from playback stalls the download instead of erroring.
@@ -175,8 +184,15 @@ class PlaybackService : MediaLibraryService() {
             .setCacheKeyFactory(StreamCacheKeyFactory)
             .setUpstreamDataSourceFactory(directFactory)
             .setCacheWriteDataSinkFactory(null)
+        val downloads = DownloadCache.get(this)
         val routedFactory = DataSource.Factory {
-            StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
+            // A lower quality is a different file, so only a whole download of the original can stand in for it.
+            StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource()) { spec ->
+                StreamQuality.currentKbps(this) == 0 || StreamCacheKeyFactory.buildCacheKey(spec).let { key ->
+                    val length = ContentMetadata.getContentLength(downloads.getContentMetadata(key))
+                    length > 0 && downloads.isCached(key, 0, length)
+                }
+            }
         }
 
         val player = ExoPlayer.Builder(this, audioOnlyRenderersFactory(this))
@@ -270,6 +286,31 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         )
+
+        // A song from a server that's offline, and not downloaded, can't load, so the next song plays instead. It stops
+        // once every song in the queue has been tried, rather than going round for ever.
+        player.addListener(object : Player.Listener {
+            private var skipped = 0
+
+            override fun onPlayerError(error: PlaybackException) {
+                val id = player.currentMediaItem?.mediaId.orEmpty()
+                val offline = ServerAddresses.offline.value
+                val fromOfflineServer = (id.startsWith("subsonic:") && StreamingProtocol.SUBSONIC in offline) ||
+                    (id.startsWith("jellyfin:") && StreamingProtocol.JELLYFIN in offline)
+                if (!fromOfflineServer || !player.hasNextMediaItem() || ++skipped >= player.mediaItemCount) return
+                player.seekToNextMediaItem()
+                player.prepare()
+                player.play()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) skipped = 0
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) skipped = 0
+            }
+        })
 
         navigationPlayer.addListener(object : Player.Listener {
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -824,12 +865,14 @@ class PlaybackService : MediaLibraryService() {
 
 private class StreamOnlyCacheDataSource(
     private val cached: DataSource,
-    private val direct: DataSource
+    private val direct: DataSource,
+    private val canUseCache: (DataSpec) -> Boolean
 ) : DataSource {
     private var active: DataSource = direct
 
     override fun open(dataSpec: DataSpec): Long {
-        active = if (dataSpec.uri.scheme == "http" || dataSpec.uri.scheme == "https") cached else direct
+        val remote = dataSpec.uri.scheme == "http" || dataSpec.uri.scheme == "https"
+        active = if (remote && canUseCache(dataSpec)) cached else direct
         return active.open(dataSpec)
     }
 

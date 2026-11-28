@@ -180,9 +180,10 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     private val streamingServerRepository = StreamingServerRepository(app)
     private val credentialStore = CredentialStore(app)
+    private val subsonicLibrary = SubsonicLibraryRepository(streamingServerRepository, credentialStore)
     private val librariesBySource: Map<MusicSource, LibraryRepository> = mapOf(
         MusicSource.Local to LocalLibraryRepository(app),
-        MusicSource.Subsonic to SubsonicLibraryRepository(streamingServerRepository, credentialStore),
+        MusicSource.Subsonic to subsonicLibrary,
         MusicSource.Jellyfin to JellyfinLibraryRepository(streamingServerRepository, credentialStore)
     )
     private val favoritesRepository = FavoritesRepository(app)
@@ -316,7 +317,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
         }
-        // only when there's no embedded lyrics for the current song
+        // Lyrics for the playing song: picked ones first, then the file's own, then your server's, then LRCLIB.
         viewModelScope.launch {
             playbackState.map { Triple(it.currentSong, it.currentLyrics, it.tracksLoaded) }
                 .combine(serviceSettingsRepository.settings) { (song, embedded, tracksLoaded), settings ->
@@ -354,11 +355,35 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _lyricsProvider.value = "Embedded metadata"
                         return true
                     }
-                    val found = if (appPreferences.value.localLrcPriority) {
+                    // Lyrics picked by hand come first, so a pick isn't undone by the song's own lyrics next time.
+                    // Lyrics picked while this loads are newer than anything it finds, so they're left on screen.
+                    val picksBefore = manualLyricsPicks
+                    suspend fun loadChosen(): Boolean {
+                        val (chosen, provider) = song?.let {
+                            withContext(Dispatchers.IO) { lrcLibClient.chosenLyrics(it.artist, it.title, it.album) }
+                        } ?: return false
+                        if (manualLyricsPicks != picksBefore) return true
+                        _syncedLyrics.value = chosen.syncedLyrics
+                        _fallbackLyrics.value = chosen.plainLyrics
+                        _lyricsProvider.value = provider
+                        return true
+                    }
+                    // A song from your own server can have lyrics there, which come before an online search.
+                    suspend fun loadFromServer(): Boolean {
+                        val server = song?.takeIf { it.source == MusicSource.Subsonic || it.source == MusicSource.Jellyfin }
+                            ?: return false
+                        val text = librariesBySource[server.source]?.lyrics(server.id) ?: return false
+                        if (manualLyricsPicks != picksBefore) return true
+                        val timed = parseLrc(text)
+                        if (timed.isNotEmpty()) _syncedLyrics.value = timed else _fallbackLyrics.value = text
+                        _lyricsProvider.value = if (server.source == MusicSource.Jellyfin) "Jellyfin" else "Your server"
+                        return true
+                    }
+                    val found = loadChosen() || if (appPreferences.value.localLrcPriority) {
                         loadLocalFile() || loadEmbedded()
                     } else {
                         loadEmbedded() || loadLocalFile()
-                    }
+                    } || loadFromServer()
                     // A song on the phone may carry its own lyrics, which are only known once the player has
                     // opened the file; this runs again then.
                     if (!found && localSong != null && !request.tracksLoaded) return@collectLatest
@@ -368,14 +393,30 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                     _isLoadingLyrics.value = _syncedLyrics.value == null && _fallbackLyrics.value == null
                     try {
-                        lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
-                            _syncedLyrics.value = result.syncedLyrics
-                            _fallbackLyrics.value = result.plainLyrics
-                            _lyricsProvider.value = "LRCLIB"
-                        }
+                        lrcLibClient.fetchLyrics(song.artist, song.title, song.album)
+                            ?.takeIf { manualLyricsPicks == picksBefore }
+                            ?.let { result ->
+                                _syncedLyrics.value = result.syncedLyrics
+                                _fallbackLyrics.value = result.plainLyrics
+                                _lyricsProvider.value = "LRCLIB"
+                            }
                     } finally {
                         _isLoadingLyrics.value = false
                     }
+                }
+        }
+        // The queue is kept on your Navidrome or Subsonic server while its songs play, so CassetteCat on another
+        // device can carry on from here.
+        viewModelScope.launch {
+            localState.map { Triple(it.currentSong, it.isPlaying, it.upNext) }
+                .distinctUntilChanged { old, new -> old.first?.id == new.first?.id && old.second == new.second && old.third == new.third }
+                .collectLatest { (current, playing, upNext) ->
+                    playedSinceLaunch = playedSinceLaunch || playing
+                    if (!playedSinceLaunch || current?.source != MusicSource.Subsonic) return@collectLatest
+                    do {
+                        subsonicLibrary.saveQueue(current, upNext, _positionMs.value)
+                        if (playing) delay(QUEUE_SAVE_INTERVAL_MS)
+                    } while (playing)
                 }
         }
         viewModelScope.launch {
@@ -450,9 +491,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             return false
         }
         if (desktop.handOff(songs.take(HANDOFF_QUEUE_LIMIT), 0, true)) return true
+        stopControllingDesktop()
+        return false
+    }
+
+    private suspend fun stopControllingDesktop() {
         desktop.sendAction("pause")
         desktop.setControlling(false)
-        return false
     }
 
     fun playInstantMix(seed: Song, library: List<Song>) {
@@ -724,6 +769,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (isFollowingRoomHost()) return
         repository.seekTo(positionMs)
         _positionMs.value = positionMs
+        // While a song plays, the half-minute save picks up the new place.
+        val state = localState.value
+        val current = state.currentSong
+        if (playedSinceLaunch && !state.isPlaying && current?.source == MusicSource.Subsonic) {
+            viewModelScope.launch { subsonicLibrary.saveQueue(current, state.upNext, positionMs) }
+        }
     }
 
     fun startListeningRoom() = listeningRoomRepository.startRoom {
@@ -967,7 +1018,53 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSongMetadata(updatedSong: Song) = repository.updateSongMetadata(updatedSong)
 
+    /** A queue CassetteCat on another device left on your server, offered on Home to carry on here. */
+    data class QueueElsewhere(val from: String, val songs: List<Song>, val startIndex: Int, val positionMs: Long)
+
+    private val _queueElsewhere = MutableStateFlow<QueueElsewhere?>(null)
+    val queueElsewhere: StateFlow<QueueElsewhere?> = _queueElsewhere.asStateFlow()
+    // Each offer is made once: dismissing or taking it doesn't bring the same queue back.
+    private val answeredQueues = mutableSetOf<String>()
+    // A queue restored at launch isn't saved until it plays, so it can't replace one another device left.
+    private var playedSinceLaunch = false
+
+    fun checkQueueElsewhere(library: List<Song>) {
+        viewModelScope.launch {
+            val saved = subsonicLibrary.queueFromElsewhere() ?: return@launch
+            val key = listOf(saved.changedBy, saved.current, saved.position).joinToString("|")
+            val byId = library.associateBy { it.id }
+            val songs = saved.entry.mapNotNull { byId["subsonic:${it.id}"] }
+            val startIndex = songs.indexOfFirst { it.id == "subsonic:${saved.current}" }
+            // Already playing that song here: there's nothing to carry on.
+            if (startIndex < 0 || songs[startIndex].id == localState.value.currentSong?.id) {
+                _queueElsewhere.value = null
+                return@launch
+            }
+            if (key in answeredQueues) return@launch
+            _queueElsewhere.value = QueueElsewhere(saved.changedBy.orEmpty(), songs, startIndex, saved.position)
+            answeredQueues += key
+        }
+    }
+
+    fun continueQueueElsewhere() {
+        val offer = _queueElsewhere.value ?: return
+        _queueElsewhere.value = null
+        viewModelScope.launch {
+            connection.join()
+            if (controlledDesktop.value != null) stopControllingDesktop()
+            repository.playQueue(offer.songs, offer.startIndex, startPositionMs = offer.positionMs)
+        }
+    }
+
+    fun dismissQueueElsewhere() {
+        _queueElsewhere.value = null
+    }
+
+    // Counts lyrics picked by hand, so a lyrics load that started before a pick doesn't put older lyrics back.
+    private var manualLyricsPicks = 0
+
     fun applyManualLyrics(song: Song, synced: List<LyricLine>?, plain: String?, provider: String = "LRCLIB") {
+        manualLyricsPicks++
         if (playbackState.value.currentSong?.id == song.id) {
             _syncedLyrics.value = synced
             _fallbackLyrics.value = plain
@@ -980,7 +1077,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val ms = (line.timestampMs % 1000) / 10
                 "[%02d:%02d.%02d]%s".format(java.util.Locale.US, min, sec, ms, line.text)
             }
-            lrcLibClient.saveLyricsToCache(song.artist, song.title, song.album, lrcString, plain)
+            lrcLibClient.saveLyricsToCache(song.artist, song.title, song.album, lrcString, plain, provider)
         }
     }
 
@@ -1021,3 +1118,5 @@ private fun RoomTrack.toRelaySong(hostIp: String, audioPort: Int, roomToken: Str
         source = MusicSource.ListeningRoomHost
     )
 }
+
+private const val QUEUE_SAVE_INTERVAL_MS = 30_000L

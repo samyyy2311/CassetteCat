@@ -25,7 +25,10 @@ data class CachedLyrics(
     val syncedLyrics: String? = null,
     val plainLyrics: String? = null,
     // Set on a miss; the library fetch skips the song until MISSING_RETRY_MS has passed.
-    val missingAt: Long? = null
+    val missingAt: Long? = null,
+    // Where lyrics picked or written by hand came from. They're shown before the song's own lyrics and never
+    // replaced by a lookup.
+    val chosenFrom: String? = null
 )
 
 enum class LibraryLookup { FOUND, MISSING, FAILED }
@@ -95,8 +98,25 @@ class LrcLibClient(context: Context) {
         }.getOrDefault(emptyList())
     }
 
-    fun saveLyricsToCache(artist: String, title: String, album: String, syncedLyrics: String?, plainLyrics: String?) {
-        writeToCache(keyFor(artist, title, album), CachedLyrics(syncedLyrics, plainLyrics))
+    fun saveLyricsToCache(
+        artist: String,
+        title: String,
+        album: String,
+        syncedLyrics: String?,
+        plainLyrics: String?,
+        provider: String
+    ) {
+        writeToCache(keyFor(artist, title, album), CachedLyrics(syncedLyrics, plainLyrics, chosenFrom = provider))
+    }
+
+    /** Lyrics picked or written by hand for the song, with where they came from, or null when there are none. */
+    fun chosenLyrics(artist: String, title: String, album: String): Pair<LyricsLookupResult, String>? {
+        val cacheKey = keyFor(artist, title, album)
+        // Read under the lock, so the lyrics and where they came from are from the same save.
+        return synchronized(cacheLock) {
+            val provider = readCached(cacheKey)?.chosenFrom ?: return null
+            readFromCache(cacheKey)?.let { it to provider }
+        }
     }
 
     suspend fun fetchLyrics(artist: String, title: String, album: String): LyricsLookupResult? =
@@ -173,7 +193,10 @@ class LrcLibClient(context: Context) {
             )
 
         return best?.let { (result, raw) ->
-            writeToCache(cacheKey, CachedLyrics(raw.syncedLyrics, raw.plainLyrics))
+            synchronized(cacheLock) {
+                // Lyrics picked by hand while the lookup ran are kept.
+                if (readCached(cacheKey)?.chosenFrom == null) writeToCache(cacheKey, CachedLyrics(raw.syncedLyrics, raw.plainLyrics))
+            }
             result
         }
     }
@@ -337,3 +360,18 @@ fun parseLrc(lrc: String): List<LyricLine> =
         }
         .sortedBy { it.timestampMs }
         .toList()
+
+/** Lyric lines as LRC when they have start times, or as plain lines when they don't. Null when there are none. */
+fun lyricsText(lines: List<Pair<Long?, String>>, timed: Boolean): String? {
+    val shown = lines.filter { it.second.isNotBlank() }
+    // A line without a time would be dropped from LRC, so then they're all kept as plain lines.
+    val allTimed = timed && shown.all { it.first != null }
+    val text = shown.joinToString("\n") { (startMs, line) ->
+        if (!allTimed || startMs == null) {
+            line
+        } else {
+            "[%02d:%02d.%02d]%s".format(java.util.Locale.US, startMs / 60_000, (startMs / 1000) % 60, (startMs % 1000) / 10, line)
+        }
+    }
+    return text.ifBlank { null }
+}

@@ -39,6 +39,7 @@ private val LIBRARY_TAB_ORDER = stringPreferencesKey("library_tab_order")
 private val HIDDEN_LIBRARY_TABS = stringPreferencesKey("hidden_library_tabs")
 private val NAV_TAB_ORDER = stringPreferencesKey("nav_tab_order")
 private val HIDDEN_NAV_TABS = stringPreferencesKey("hidden_nav_tabs")
+private val SHOWN_OPTIONAL_NAV_TABS = stringPreferencesKey("shown_optional_nav_tabs")
 private val LAST_LIBRARY_TAB = stringPreferencesKey("last_library_tab")
 
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
@@ -77,6 +78,8 @@ private val LYRICS_FONT_SIZE = stringPreferencesKey("lyrics_font_size")
 private val LOCAL_LRC_PRIORITY = booleanPreferencesKey("local_lrc_priority")
 private val LYRICS_FOR_SEARCH = booleanPreferencesKey("lyrics_for_search")
 private val LYRICS_FOR_SEARCH_ON_MOBILE_DATA = booleanPreferencesKey("lyrics_for_search_on_mobile_data")
+private val STREAM_QUALITY_WIFI_KBPS = intPreferencesKey("stream_quality_wifi_kbps")
+private val STREAM_QUALITY_MOBILE_KBPS = intPreferencesKey("stream_quality_mobile_kbps")
 private val IGNORE_SHORT_AUDIO_CLIPS = booleanPreferencesKey("ignore_short_audio_clips")
 private val SHOW_HOME_RECENTLY_PLAYED = booleanPreferencesKey("show_home_recently_played")
 private val SHOW_HOME_HEAVY_ROTATION = booleanPreferencesKey("show_home_heavy_rotation")
@@ -111,10 +114,13 @@ enum class ThemeAccent(val colorValue: Long, val containerValue: Long) {
 enum class DefaultLibraryTab { SONGS, ARTISTS, ALBUMS, GENRES, PLAYLISTS, FOLDERS }
 
 enum class NavTab {
-    HOME, LIBRARY, RADIO, SEARCH, SETTINGS;
+    HOME, LIBRARY, RADIO, SEARCH, STATS, SETTINGS;
 
     // Back always returns to Library, and Settings is needed to undo this, so neither can be hidden.
     val canHide: Boolean get() = this != LIBRARY && this != SETTINGS
+
+    // Off until it's switched on, as a phone's bar has little room; the page is also in Settings.
+    val optional: Boolean get() = this == STATS
 }
 
 enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOTTEN_FAVORITES }
@@ -184,7 +190,7 @@ data class AppPreferences(
     val libraryTabOrder: List<DefaultLibraryTab> = DefaultLibraryTab.entries,
     val hiddenLibraryTabs: Set<DefaultLibraryTab> = emptySet(),
     val navTabOrder: List<NavTab> = NavTab.entries,
-    val hiddenNavTabs: Set<NavTab> = emptySet(),
+    val hiddenNavTabs: Set<NavTab> = NavTab.entries.filterTo(mutableSetOf()) { it.optional },
     val lastLibraryTab: DefaultLibraryTab? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
@@ -219,6 +225,9 @@ data class AppPreferences(
     val localLrcPriority: Boolean = true,
     val lyricsForSearch: Boolean = false,
     val lyricsForSearchOnMobileData: Boolean = false,
+    // The most a server stream may use, in kbps; 0 is the original file.
+    val streamQualityWifiKbps: Int = 0,
+    val streamQualityMobileKbps: Int = 0,
     val ignoreShortAudioClips: Boolean = false,
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,
@@ -284,7 +293,7 @@ class AppPreferencesRepository(private val context: Context) {
             libraryTabOrder = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries),
             hiddenLibraryTabs = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries),
             navTabOrder = orderedEnumValues(prefs[NAV_TAB_ORDER], NavTab.entries),
-            hiddenNavTabs = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).filterTo(mutableSetOf()) { it.canHide },
+            hiddenNavTabs = hiddenNavTabs(prefs[HIDDEN_NAV_TABS], prefs[SHOWN_OPTIONAL_NAV_TABS]),
             lastLibraryTab = prefs[LAST_LIBRARY_TAB]?.let { runCatching { DefaultLibraryTab.valueOf(it) }.getOrNull() },
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
@@ -336,6 +345,8 @@ class AppPreferencesRepository(private val context: Context) {
             localLrcPriority = prefs[LOCAL_LRC_PRIORITY] ?: true,
             lyricsForSearch = prefs[LYRICS_FOR_SEARCH] ?: false,
             lyricsForSearchOnMobileData = prefs[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] ?: false,
+            streamQualityWifiKbps = prefs[STREAM_QUALITY_WIFI_KBPS] ?: 0,
+            streamQualityMobileKbps = prefs[STREAM_QUALITY_MOBILE_KBPS] ?: 0,
             ignoreShortAudioClips = prefs[IGNORE_SHORT_AUDIO_CLIPS] ?: false,
             showHomeRecentlyPlayed = prefs[SHOW_HOME_RECENTLY_PLAYED] ?: true,
             showHomeHeavyRotation = prefs[SHOW_HOME_HEAVY_ROTATION] ?: true,
@@ -451,6 +462,11 @@ class AppPreferencesRepository(private val context: Context) {
             val hidden = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).toMutableSet()
             if (visible) hidden -= tab else hidden += tab
             prefs[HIDDEN_NAV_TABS] = hidden.joinToString(",") { it.name }
+            if (tab.optional) {
+                val shown = enumValueSet(prefs[SHOWN_OPTIONAL_NAV_TABS], NavTab.entries).toMutableSet()
+                if (visible) shown += tab else shown -= tab
+                prefs[SHOWN_OPTIONAL_NAV_TABS] = shown.joinToString(",") { it.name }
+            }
         }
     }
 
@@ -603,6 +619,14 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] = enabled }
     }
 
+    suspend fun setStreamQualityWifiKbps(kbps: Int) {
+        context.appPreferencesDataStore.edit { it[STREAM_QUALITY_WIFI_KBPS] = kbps }
+    }
+
+    suspend fun setStreamQualityMobileKbps(kbps: Int) {
+        context.appPreferencesDataStore.edit { it[STREAM_QUALITY_MOBILE_KBPS] = kbps }
+    }
+
     suspend fun setIgnoreShortAudioClips(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[IGNORE_SHORT_AUDIO_CLIPS] = enabled }
     }
@@ -714,6 +738,7 @@ class AppPreferencesRepository(private val context: Context) {
             hiddenLibraryTabs = current.hiddenLibraryTabs.map { it.name }.toSet(),
             navTabOrder = current.navTabOrder.map { it.name },
             hiddenNavTabs = current.hiddenNavTabs.map { it.name }.toSet(),
+            shownOptionalNavTabs = NavTab.entries.filter { it.optional && it !in current.hiddenNavTabs }.map { it.name }.toSet(),
             librarySortDirection = current.librarySortDirection,
             libraryCollectionLayout = current.libraryCollectionLayout,
             librarySongFilter = current.librarySongFilter,
@@ -747,6 +772,8 @@ class AppPreferencesRepository(private val context: Context) {
             localLrcPriority = current.localLrcPriority,
             lyricsForSearch = current.lyricsForSearch,
             lyricsForSearchOnMobileData = current.lyricsForSearchOnMobileData,
+            streamQualityWifiKbps = current.streamQualityWifiKbps,
+            streamQualityMobileKbps = current.streamQualityMobileKbps,
             ignoreShortAudioClips = current.ignoreShortAudioClips,
             showHomeRecentlyPlayed = current.showHomeRecentlyPlayed,
             showHomeHeavyRotation = current.showHomeHeavyRotation,
@@ -801,6 +828,7 @@ class AppPreferencesRepository(private val context: Context) {
                 prefs[NAV_TAB_ORDER] = backup.navTabOrder.joinToString(",")
             }
             backup.hiddenNavTabs?.let { prefs[HIDDEN_NAV_TABS] = it.joinToString(",") }
+            backup.shownOptionalNavTabs?.let { prefs[SHOWN_OPTIONAL_NAV_TABS] = it.joinToString(",") }
             prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
             prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
             prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter
@@ -834,6 +862,8 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[LOCAL_LRC_PRIORITY] = backup.localLrcPriority
             prefs[LYRICS_FOR_SEARCH] = backup.lyricsForSearch
             prefs[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] = backup.lyricsForSearchOnMobileData
+            prefs[STREAM_QUALITY_WIFI_KBPS] = backup.streamQualityWifiKbps
+            prefs[STREAM_QUALITY_MOBILE_KBPS] = backup.streamQualityMobileKbps
             prefs[IGNORE_SHORT_AUDIO_CLIPS] = backup.ignoreShortAudioClips
             prefs[SHOW_HOME_RECENTLY_PLAYED] = backup.showHomeRecentlyPlayed
             prefs[SHOW_HOME_HEAVY_ROTATION] = backup.showHomeHeavyRotation
@@ -862,6 +892,13 @@ class AppPreferencesRepository(private val context: Context) {
 internal fun <T : Enum<T>> orderedEnumValues(raw: String?, entries: List<T>): List<T> {
     val byName = entries.associateBy { it.name }
     return (raw.orEmpty().split(',').mapNotNull(byName::get) + entries).distinct()
+}
+
+// Tabs hidden by choice, and optional ones that were never switched on.
+private fun hiddenNavTabs(hiddenRaw: String?, shownOptionalRaw: String?): Set<NavTab> {
+    val shownOptional = enumValueSet(shownOptionalRaw, NavTab.entries)
+    return enumValueSet(hiddenRaw, NavTab.entries).filterTo(mutableSetOf()) { it.canHide } +
+        NavTab.entries.filter { it.optional && it !in shownOptional }
 }
 
 private fun <T : Enum<T>> enumValueSet(raw: String?, entries: List<T>): Set<T> {

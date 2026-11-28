@@ -21,6 +21,8 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.download.SongDownloadRepository
 import `in`.caffeinelabs.cassettecat.data.library.MusicSource
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 
 // Read-only indicator for remote track download status.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -52,4 +54,21 @@ fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
         )
         else -> Unit
     }
+}
+
+/** Whether [song] can't play now: its server is offline and it isn't downloaded. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@Composable
+fun isSongUnavailable(song: Song): Boolean {
+    val protocol = when (song.source) {
+        MusicSource.Subsonic -> StreamingProtocol.SUBSONIC
+        MusicSource.Jellyfin -> StreamingProtocol.JELLYFIN
+        else -> return false
+    }
+    val offline by ServerAddresses.offline.collectAsStateWithLifecycle()
+    if (protocol !in offline) return false
+    val context = LocalContext.current
+    val repository = remember { SongDownloadRepository.getInstance(context) }
+    val downloads by repository.downloads.collectAsStateWithLifecycle()
+    return downloads[song.id]?.state != Download.STATE_COMPLETED
 }

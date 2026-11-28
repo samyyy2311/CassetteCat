@@ -33,6 +33,7 @@ private fun NavTab.item() = when (this) {
     NavTab.LIBRARY -> NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, AppR.string.library_title)
     NavTab.RADIO -> NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, AppR.string.radio_title)
     NavTab.SEARCH -> NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, AppR.string.search_title)
+    NavTab.STATS -> NavItem(MainRoute.STATS, R.drawable.lucide_ic_disc_3, AppR.string.nav_listening_record)
     NavTab.SETTINGS -> NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, AppR.string.settings_title)
 }
 
@@ -43,7 +44,7 @@ fun parentTabRoute(currentRoute: String?): String? = when {
     currentRoute == MainRoute.SEARCH || currentRoute?.startsWith("${MainRoute.SEARCH}/") == true -> MainRoute.SEARCH
     currentRoute == MainRoute.LIBRARY || currentRoute?.startsWith("${MainRoute.LIBRARY}/") == true -> MainRoute.LIBRARY
     currentRoute == MainRoute.RADIO || currentRoute?.startsWith("${MainRoute.RADIO}/") == true -> MainRoute.RADIO
-    currentRoute == MainRoute.SETTINGS || currentRoute == MainRoute.STATS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
+    currentRoute == MainRoute.SETTINGS || currentRoute?.startsWith("${MainRoute.SETTINGS}/") == true -> MainRoute.SETTINGS
     else -> currentRoute
 }
 @Composable
@@ -54,7 +55,9 @@ fun BottomNavBar(
     onNavigate: (String) -> Unit,
     onSearchLongPress: () -> Unit = {}
 ) {
+    // Listening Record is its own tab when it's on the bar, and otherwise a page of Settings.
     val activeTabRoute = parentTabRoute(currentRoute)
+        .let { if (it == MainRoute.STATS && NavTab.STATS !in tabs) MainRoute.SETTINGS else it }
     Row(
         modifier = Modifier
             .fillMaxSize()

@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.composables.icons.lucide.R
 import `in`.caffeinelabs.cassettecat.R as AppR
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
+import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccount
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleAccountConfig
 import `in`.caffeinelabs.cassettecat.data.scrobble.ScrobbleSettings
@@ -179,20 +181,43 @@ fun ScrobbleSettingsScreen(
             )
             Spacer(Modifier.height(24.dp))
         }
+        // Builds without the project's Last.fm API account, such as F-Droid's, leave Last.fm out.
+        if (AudioscrobblerClient.lastFm == null) {
+            Text(
+                stringResource(AppR.string.scrobbling_lastfm_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Spacer(Modifier.height(24.dp))
+        }
 
         val anyConnected = settings.listenBrainz.userToken.isNotBlank() ||
             ScrobbleAccount.entries.any { settings.account(it).sessionKey.isNotBlank() }
+        // The row says the sync finished only once a sync started from it has sent its loves, and starts over when
+        // an account is connected or removed, as that account hasn't had them yet. Loves from single likes don't count.
+        val connectedAccounts = listOf(settings.listenBrainz.userToken) +
+            ScrobbleAccount.entries.map { settings.account(it).sessionKey }
+        var syncStarted by remember(connectedAccounts) { mutableStateOf(false) }
+        var sawLovesLeft by remember(connectedAccounts) { mutableStateOf(false) }
+        LaunchedEffect(lovesLeft, syncStarted) { if (syncStarted && lovesLeft > 0) sawLovesLeft = true }
         if (anyConnected) {
             SettingsSection(title = stringResource(AppR.string.scrobbling_loves_section)) {
                 ActionRow(
                     title = stringResource(AppR.string.scrobbling_sync_likes),
-                    subtitle = if (lovesLeft > 0) {
-                        pluralStringResource(AppR.plurals.scrobbling_loves_left, lovesLeft, lovesLeft)
-                    } else {
-                        stringResource(AppR.string.scrobbling_sync_likes_description)
+                    subtitle = when {
+                        lovesLeft > 0 -> pluralStringResource(AppR.plurals.scrobbling_loves_left, lovesLeft, lovesLeft)
+                        sawLovesLeft -> stringResource(AppR.string.scrobbling_sync_likes_done)
+                        else -> stringResource(AppR.string.scrobbling_sync_likes_description)
                     },
                     iconRes = R.drawable.lucide_ic_heart,
-                    onClick = { if (lovesLeft == 0) onSyncLikes() }
+                    onClick = {
+                        if (lovesLeft == 0) {
+                            syncStarted = true
+                            sawLovesLeft = false
+                            onSyncLikes()
+                        }
+                    }
                 )
             }
             Spacer(Modifier.height(24.dp))

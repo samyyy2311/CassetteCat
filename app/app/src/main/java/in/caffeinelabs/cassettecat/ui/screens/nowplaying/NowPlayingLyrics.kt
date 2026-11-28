@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -733,8 +734,11 @@ private fun ActiveLyricLine(
         words.map { word -> (start until start + word.length).also { start += word.length + 1 } }
     }
     var layout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
+    // Each word dims its own tile of the line: out to halfway to its neighbours and across its whole row. The tiles
+    // cover the line with no gaps, so ink outside a word's box, like a vowel mark below the line or the tail of a J,
+    // dims with its word instead of staying lit.
     val wordBounds = remember(layout, wordRanges) {
-        layout?.let { result -> wordRanges.map { range -> result.getPathForRange(range.first, range.last + 1).getBounds() } }
+        layout?.let { result -> wordTiles(result, wordRanges) }
     }
 
     Box(modifier = modifier) {
@@ -758,7 +762,7 @@ private fun ActiveLyricLine(
                     drawContent()
                     val bounds = wordBounds ?: return@drawWithContent
                     val progress = progressAnim.value
-                    bounds.forEachIndexed { wordIdx, rect ->
+                    bounds.forEachIndexed { wordIdx, rects ->
                         val (slotStart, slotEnd) = wordWeights.getOrElse(wordIdx) { 0f to 1f }
                         // Each word lights over its own share of the line, as it's sung; a short word still takes a
                         // quarter of a second, so it fades rather than blinks.
@@ -768,17 +772,46 @@ private fun ActiveLyricLine(
                         val linear = ((progress - start) / span).coerceIn(0f, 1f)
                         val lit = linear * linear * (3f - 2f * linear)
                         if (lit < 1f) {
-                            drawRect(
-                                color = Color.Black.copy(alpha = 1f - lit),
-                                topLeft = rect.topLeft,
-                                size = rect.size,
-                                blendMode = BlendMode.DstOut
-                            )
+                            rects.forEach { rect ->
+                                drawRect(
+                                    color = Color.Black.copy(alpha = 1f - lit),
+                                    topLeft = rect.topLeft,
+                                    size = rect.size,
+                                    blendMode = BlendMode.DstOut
+                                )
+                            }
                         }
                     }
                 }
         )
     }
+}
+
+// One tile per row a word covers, so a long word without spaces, as in Japanese, dims on every row it wraps onto.
+private fun wordTiles(layout: TextLayoutResult, wordRanges: List<IntRange>): List<List<Rect>> {
+    class Part(val word: Int, val row: Int, val box: Rect)
+    val parts = wordRanges.flatMapIndexed { word, range ->
+        (layout.getLineForOffset(range.first)..layout.getLineForOffset(range.last)).map { row ->
+            val start = maxOf(range.first, layout.getLineStart(row))
+            val end = minOf(range.last + 1, layout.getLineEnd(row))
+            Part(word, row, layout.getPathForRange(start, end).getBounds())
+        }
+    }
+    val lastRow = layout.lineCount - 1
+    val width = layout.size.width.toFloat()
+    val height = layout.size.height.toFloat()
+    val tiles = parts.map { part ->
+        val sameRow = parts.filter { it.row == part.row && it !== part }.map { it.box }
+        val before = sameRow.filter { it.right <= part.box.left }.maxOfOrNull { it.right }
+        val after = sameRow.filter { it.left >= part.box.right }.minOfOrNull { it.left }
+        part.word to Rect(
+            left = before?.let { (it + part.box.left) / 2f } ?: 0f,
+            top = if (part.row == 0) 0f else layout.getLineTop(part.row),
+            right = after?.let { (part.box.right + it) / 2f } ?: width,
+            bottom = if (part.row == lastRow) height else layout.getLineBottom(part.row)
+        )
+    }
+    return wordRanges.indices.map { word -> tiles.filter { it.first == word }.map { it.second } }
 }
 
 @Composable

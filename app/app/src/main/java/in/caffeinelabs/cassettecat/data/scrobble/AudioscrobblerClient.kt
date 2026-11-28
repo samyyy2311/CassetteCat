@@ -2,11 +2,19 @@ package `in`.caffeinelabs.cassettecat.data.scrobble
 
 import `in`.caffeinelabs.cassettecat.BuildConfig
 import `in`.caffeinelabs.cassettecat.data.library.Song
+import `in`.caffeinelabs.cassettecat.data.library.songMatchKey
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
+import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import android.util.Log
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 
 // Libre.fm and Last.fm speak the same Audioscrobbler 2.0 API.
@@ -22,7 +30,10 @@ class AudioscrobblerClient private constructor(
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
-    private suspend fun post(params: Map<String, String>): String? = withContext(Dispatchers.IO) {
+    // The service's answer, with the error code of a request it turned down. Null when it couldn't be reached.
+    private class Reply(val body: String, val error: Int?)
+
+    private suspend fun post(params: Map<String, String>): Reply? = withContext(Dispatchers.IO) {
         runCatching {
             val signed = params + ("api_key" to apiKey)
             val signature = md5(signed.toSortedMap().map { "${it.key}${it.value}" }.joinToString("") + sharedSecret)
@@ -32,9 +43,20 @@ class AudioscrobblerClient private constructor(
             form.add("format", "json")
             val request = Request.Builder().url(apiUrl).post(form.build()).build()
             sharedHttpClient.newCall(request).execute().use { response ->
-                response.body.string().takeIf { response.isSuccessful && !it.contains("\"error\"") }
+                val body = response.body.string()
+                val error = errorCode(body)
+                if (!response.isSuccessful && error == null) null else Reply(body, error)
             }
         }.getOrNull()
+    }
+
+    // A request the service turned down for good, such as a song it doesn't know, is finished with rather than
+    // sent again for weeks.
+    private fun settled(method: String, reply: Reply?): Boolean {
+        if (reply?.error != null && !isTemporaryError(reply.error)) {
+            Log.w("Audioscrobbler", "$apiUrl turned down $method with error ${reply.error}")
+        }
+        return reply != null && (reply.error == null || !isTemporaryError(reply.error))
     }
 
     suspend fun authenticate(username: String, password: String): String? {
@@ -46,7 +68,8 @@ class AudioscrobblerClient private constructor(
         } else {
             "password" to password
         }
-        val body = post(mapOf("method" to "auth.getMobileSession", "username" to user, credential)) ?: return null
+        val body = post(mapOf("method" to "auth.getMobileSession", "username" to user, credential))
+            ?.takeIf { it.error == null }?.body ?: return null
         return when {
             body.contains("\"key\":\"") -> body.substringAfter("\"key\":\"").substringBefore("\"")
             body.contains("<key>") -> body.substringAfter("<key>").substringBefore("</key>")
@@ -55,21 +78,46 @@ class AudioscrobblerClient private constructor(
     }
 
     suspend fun updateNowPlaying(sessionKey: String, song: Song): Boolean =
-        sessionKey.isNotBlank() && post(trackParams("track.updateNowPlaying", sessionKey, song)) != null
+        sessionKey.isNotBlank() && post(trackParams("track.updateNowPlaying", sessionKey, song))?.let { it.error == null } == true
 
+    /** Whether the scrobble is done with: taken, or turned down for good. */
     suspend fun scrobble(sessionKey: String, song: Song, timestampSec: Long): Boolean =
-        sessionKey.isNotBlank() &&
-            post(trackParams("track.scrobble", sessionKey, song) + ("timestamp" to timestampSec.toString())) != null
+        sessionKey.isNotBlank() && settled(
+            "track.scrobble",
+            post(trackParams("track.scrobble", sessionKey, song) + ("timestamp" to timestampSec.toString()))
+        )
 
-    suspend fun love(sessionKey: String, song: Song, loved: Boolean): Boolean =
-        sessionKey.isNotBlank() && post(
-            mapOf(
-                "method" to if (loved) "track.love" else "track.unlove",
-                "artist" to song.artist,
-                "track" to song.title,
-                "sk" to sessionKey
-            )
-        ) != null
+    /** Whether the love is done with: taken, or turned down for good. */
+    suspend fun love(sessionKey: String, song: Song, loved: Boolean): Boolean {
+        val method = if (loved) "track.love" else "track.unlove"
+        return sessionKey.isNotBlank() &&
+            settled(method, post(mapOf("method" to method, "artist" to song.artist, "track" to song.title, "sk" to sessionKey)))
+    }
+
+    /** The match keys of every song [username] has loved, or null when the list couldn't be read whole. */
+    suspend fun lovedSongs(username: String): Set<String>? = withContext(Dispatchers.IO) {
+        runCatching {
+            val keys = mutableSetOf<String>()
+            var page = 1
+            do {
+                val url = apiUrl.toHttpUrl().newBuilder()
+                    .addQueryParameter("method", "user.getLovedTracks")
+                    .addQueryParameter("user", username)
+                    .addQueryParameter("api_key", apiKey)
+                    .addQueryParameter("limit", "1000")
+                    .addQueryParameter("page", page.toString())
+                    .addQueryParameter("format", "json")
+                    .build()
+                val body = sharedHttpClient.newCall(Request.Builder().url(url).get().build()).execute().use {
+                    if (!it.isSuccessful) return@runCatching null
+                    it.body.string()
+                }
+                val (songs, pages) = lovedPage(body) ?: return@runCatching null
+                keys += songs
+            } while (page++ < pages)
+            keys
+        }.onFailure { Log.w("Audioscrobbler", "Couldn't read the loved songs from $apiUrl", it) }.getOrNull()
+    }
 
     private fun trackParams(method: String, sessionKey: String, song: Song): Map<String, String> = buildMap {
         put("method", method)
@@ -80,6 +128,34 @@ class AudioscrobblerClient private constructor(
     }
 
     companion object {
+        /** The Audioscrobbler error code in a reply, or null when it has none. */
+        internal fun errorCode(body: String): Int? =
+            Regex("\"error\"\\s*:\\s*(\\d+)").find(body)?.groupValues?.get(1)?.toIntOrNull()
+
+        /**
+         * Whether asking again later can succeed: a backend failure (8), a service that's down (11, 16), the rate
+         * limit (29), or a session key that needs signing in again (9), after which the queue goes out.
+         */
+        internal fun isTemporaryError(code: Int): Boolean = code in setOf(8, 9, 11, 16, 29)
+
+        /** The songs on one page of user.getLovedTracks and how many pages there are, or null for an error. */
+        internal fun lovedPage(body: String): Pair<Set<String>, Int>? {
+            val loved = sharedJson.parseToJsonElement(body).jsonObject["lovedtracks"]?.jsonObject ?: return null
+            // A page holding a single song gives it as an object rather than a list of one.
+            val tracks = when (val track = loved["track"]) {
+                is JsonArray -> track.map { it.jsonObject }
+                is JsonObject -> listOf(track)
+                else -> emptyList()
+            }
+            val songs = tracks.mapNotNullTo(mutableSetOf()) { track ->
+                val title = track["name"]?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                val artist = track["artist"]?.jsonObject?.get("name")?.jsonPrimitive?.content ?: return@mapNotNullTo null
+                songMatchKey(title, artist)
+            }
+            val pages = loved["@attr"]?.jsonObject?.get("totalPages")?.jsonPrimitive?.content?.toIntOrNull() ?: 1
+            return songs to pages
+        }
+
         val libreFm = AudioscrobblerClient("https://libre.fm/2.0/", "cassettecat", "cassettecat_secret", signsInWithToken = true)
 
         /** Null when this build has no Last.fm API account. */

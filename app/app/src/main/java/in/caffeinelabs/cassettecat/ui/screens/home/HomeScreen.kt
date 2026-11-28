@@ -73,6 +73,8 @@ import `in`.caffeinelabs.cassettecat.ui.screens.library.rememberSkeletonColor
 import `in`.caffeinelabs.cassettecat.ui.theme.IbmPlexMonoFontFamily
 import `in`.caffeinelabs.cassettecat.ui.util.tapScale
 import java.util.Calendar
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,6 +98,11 @@ fun HomeScreen(
     val preferences by appPreferencesRepository.preferences.collectAsStateWithLifecycle(initialValue = AppPreferences())
 
     val allSongs = (libraryState as? LibraryUiState.Loaded)?.songs.orEmpty()
+    val queueElsewhere by playbackViewModel.queueElsewhere.collectAsStateWithLifecycle()
+    // Asked each time Home opens with the library loaded, as the other device may have moved on since.
+    LaunchedEffect(allSongs.isNotEmpty()) {
+        if (allSongs.isNotEmpty()) playbackViewModel.checkQueueElsewhere(allSongs)
+    }
     val recentlyPlayed = playbackState.history
     val favorites = allSongs.filter { it.isFavorite }
     // The picks are dealt from a saved seed, so they stay put when coming back to this tab; pulling to refresh deals
@@ -199,6 +206,16 @@ fun HomeScreen(
                     item(key = "home_greeting") {
                         HomeGreetingHeader(greetingRes = greetingRes, onNavigateToDriveMode = onNavigateToDriveMode)
                         Spacer(Modifier.height(12.dp))
+                    }
+                    queueElsewhere?.let { offer ->
+                        item(key = "home_queue_elsewhere") {
+                            QueueElsewhereCard(
+                                offer = offer,
+                                onPlay = playbackViewModel::continueQueueElsewhere,
+                                onDismiss = playbackViewModel::dismissQueueElsewhere
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
                     }
                     item {
                         LibrarySnapshot(songs = allSongs, onClick = onNavigateToLibrary)
@@ -531,3 +548,36 @@ private fun getDynamicGreetingRes(random: Random): Int {
     return options.random(random)
 }
 
+// The song another device was on, with a button to carry on from there here.
+@Composable
+private fun QueueElsewhereCard(offer: PlaybackViewModel.QueueElsewhere, onPlay: () -> Unit, onDismiss: () -> Unit) {
+    val song = offer.songs[offer.startIndex]
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(horizontal = 24.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(AppR.string.home_continue_from, offer.from),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+            Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        TextButton(onClick = onPlay) { Text(stringResource(AppR.string.home_continue_play_here)) }
+        PressDepthIconButton(R.drawable.lucide_ic_x, stringResource(AppR.string.action_dismiss), onDismiss)
+    }
+}

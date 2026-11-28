@@ -77,6 +77,7 @@ import `in`.caffeinelabs.cassettecat.data.settings.PlayerControlsStyle
 import `in`.caffeinelabs.cassettecat.data.settings.SeekBarStyle
 import `in`.caffeinelabs.cassettecat.data.settings.ThemeAccent
 import `in`.caffeinelabs.cassettecat.data.settings.TrackRowDensity
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import `in`.caffeinelabs.cassettecat.ui.components.PageHeader
 import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.components.invalidateAlbumArtCache
@@ -628,6 +629,26 @@ fun CustomizationAudioEngineScreen(viewModel: SettingsViewModel, onBack: () -> U
                     else stringResource(AppR.string.customization_seconds_short, it)
                 },
                 onSelect = viewModel::setCrossfadeSeconds
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_stream_quality_wifi),
+                subtitle = stringResource(AppR.string.customization_stream_quality_wifi_description),
+                iconRes = R.drawable.lucide_ic_wifi,
+                options = StreamQuality.choicesKbps,
+                selected = prefs.streamQualityWifiKbps,
+                label = { streamQualityLabel(it) },
+                onSelect = viewModel::setStreamQualityWifiKbps
+            )
+            SettingsDivider()
+            SheetPickerRow(
+                title = stringResource(AppR.string.customization_stream_quality_mobile),
+                subtitle = stringResource(AppR.string.customization_stream_quality_mobile_description),
+                iconRes = R.drawable.lucide_ic_signal,
+                options = StreamQuality.choicesKbps,
+                selected = prefs.streamQualityMobileKbps,
+                label = { streamQualityLabel(it) },
+                onSelect = viewModel::setStreamQualityMobileKbps
             )
             SettingsDivider()
             ToggleRow(
@@ -1495,6 +1516,7 @@ private fun navTabLabel(tab: NavTab): String = stringResource(
         NavTab.LIBRARY -> AppR.string.library_title
         NavTab.RADIO -> AppR.string.radio_title
         NavTab.SEARCH -> AppR.string.search_title
+        NavTab.STATS -> AppR.string.settings_listening_record
         NavTab.SETTINGS -> AppR.string.settings_title
     }
 )
@@ -1721,3 +1743,8 @@ private fun shakeSensitivityLabel(value: Int): String = stringResource(
         else -> AppR.string.customization_shake_strong
     }
 )
+
+@Composable
+private fun streamQualityLabel(kbps: Int): String =
+    if (kbps == 0) stringResource(AppR.string.customization_stream_quality_original)
+    else stringResource(AppR.string.customization_stream_quality_kbps, kbps)

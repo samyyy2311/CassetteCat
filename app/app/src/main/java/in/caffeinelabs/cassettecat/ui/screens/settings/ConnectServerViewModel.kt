@@ -58,11 +58,11 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
     private var pendingAttempt: (suspend () -> ConnectionState)? = null
     private var quickConnectJob: Job? = null
 
-    fun connect(protocol: StreamingProtocol, serverUrl: String, username: String, password: String) {
+    fun connect(protocol: StreamingProtocol, serverUrl: String, awayUrl: String, username: String, password: String) {
         val attempt: suspend () -> ConnectionState = {
             when (protocol) {
-                StreamingProtocol.SUBSONIC -> connectSubsonic(serverUrl, username, password)
-                StreamingProtocol.JELLYFIN -> connectJellyfin(serverUrl, username, password)
+                StreamingProtocol.SUBSONIC -> connectSubsonic(serverUrl, awayUrl, username, password)
+                StreamingProtocol.JELLYFIN -> connectJellyfin(serverUrl, awayUrl, username, password)
             }
         }
         pendingAttempt = attempt
@@ -82,7 +82,7 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
         _connectionState.value = ConnectionState.Idle
     }
 
-    fun startQuickConnect(serverUrl: String) {
+    fun startQuickConnect(serverUrl: String, awayUrl: String) {
         val attempt: suspend () -> ConnectionState = {
             val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
             val initiate = client.initiateQuickConnect()
@@ -99,7 +99,7 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
                 delay(QUICK_CONNECT_POLL_INTERVAL_MS)
             }
             checkNotExpired()
-            finalizeJellyfinLogin(serverUrl, client.authenticateWithQuickConnect(initiate.Secret))
+            finalizeJellyfinLogin(serverUrl, awayUrl, client.authenticateWithQuickConnect(initiate.Secret))
         }
         pendingAttempt = attempt
         quickConnectJob?.cancel()
@@ -145,26 +145,32 @@ class ConnectServerViewModel(app: Application) : AndroidViewModel(app) {
         else -> getApplication<Application>().getString(AppR.string.connect_error_generic)
     }
 
-    private suspend fun connectSubsonic(serverUrl: String, username: String, password: String): ConnectionState {
+    private suspend fun connectSubsonic(serverUrl: String, awayUrl: String, username: String, password: String): ConnectionState {
         SubsonicApiClient(serverUrl, username, password).ping()
         credentialStore.saveSubsonicPassword(password)
         serverRepository.setConfig(
             StreamingProtocol.SUBSONIC,
-            StreamingServerConfig(serverUrl = serverUrl, username = username, connected = true)
+            StreamingServerConfig(serverUrl = serverUrl, username = username, connected = true, awayUrl = awayUrl)
         )
         return ConnectionState.Connected(username)
     }
 
-    private suspend fun connectJellyfin(serverUrl: String, username: String, password: String): ConnectionState {
+    private suspend fun connectJellyfin(serverUrl: String, awayUrl: String, username: String, password: String): ConnectionState {
         val client = JellyfinApiClient(serverUrl, serverRepository.deviceId())
-        return finalizeJellyfinLogin(serverUrl, client.authenticate(username, password))
+        return finalizeJellyfinLogin(serverUrl, awayUrl, client.authenticate(username, password))
     }
 
-    private suspend fun finalizeJellyfinLogin(serverUrl: String, result: JellyfinAuthResult): ConnectionState {
+    private suspend fun finalizeJellyfinLogin(serverUrl: String, awayUrl: String, result: JellyfinAuthResult): ConnectionState {
         credentialStore.saveJellyfinAccessToken(result.AccessToken)
         serverRepository.setConfig(
             StreamingProtocol.JELLYFIN,
-            StreamingServerConfig(serverUrl = serverUrl, username = result.User.Name, userId = result.User.Id, connected = true)
+            StreamingServerConfig(
+                serverUrl = serverUrl,
+                username = result.User.Name,
+                userId = result.User.Id,
+                connected = true,
+                awayUrl = awayUrl
+            )
         )
         return ConnectionState.Connected(result.User.Name)
     }

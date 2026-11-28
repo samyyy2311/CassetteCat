@@ -45,3 +45,12 @@ data class JellyfinImageTags(val Primary: String? = null)
 
 @Serializable
 data class JellyfinUserData(val IsFavorite: Boolean = false)
+
+@Serializable
+data class JellyfinLyrics(val Metadata: JellyfinLyricsMetadata = JellyfinLyricsMetadata(), val Lyrics: List<JellyfinLyricLine> = emptyList())
+
+@Serializable
+data class JellyfinLyricsMetadata(val IsSynced: Boolean = false)
+
+@Serializable
+data class JellyfinLyricLine(val Text: String = "", val Start: Long? = null)

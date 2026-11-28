@@ -3,6 +3,7 @@ package `in`.caffeinelabs.cassettecat.data.streaming.subsonic
 import `in`.caffeinelabs.cassettecat.data.streaming.await
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedJson
+import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -55,6 +56,26 @@ class SubsonicApiClient(
         get("unstar.view") { addQueryParameter("id", songId) }
     }
 
+    /** The song's lyrics from an OpenSubsonic server such as Navidrome, timed ones first; null when it has none. */
+    suspend fun getLyrics(songId: String): String? {
+        val all = get("getLyricsBySongId.view") { addQueryParameter("id", songId) }.lyricsList?.structuredLyrics.orEmpty()
+        val lyrics = all.firstOrNull { it.synced && it.line.isNotEmpty() } ?: all.firstOrNull { it.line.isNotEmpty() }
+            ?: return null
+        // A positive offset shows the lyrics sooner than their times say.
+        return lyricsText(lyrics.line.map { line -> line.start?.let { maxOf(0L, it - lyrics.offset) } to line.value }, lyrics.synced)
+    }
+
+    /** Keeps the queue on the server, so CassetteCat on another device can carry on from it. */
+    suspend fun savePlayQueue(songIds: List<String>, currentId: String, positionMs: Long) {
+        get("savePlayQueue.view") {
+            songIds.forEach { addQueryParameter("id", it) }
+            addQueryParameter("current", currentId)
+            addQueryParameter("position", positionMs.toString())
+        }
+    }
+
+    suspend fun getPlayQueue(): SubsonicPlayQueue? = get("getPlayQueue.view").playQueue
+
     fun streamUrl(songId: String): String =
         urlBuilder("stream.view").addQueryParameter("id", songId).build().toString()
 
@@ -85,9 +106,10 @@ class SubsonicApiClient(
         MessageDigest.getInstance("MD5").digest(input.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 
-    private companion object {
-        const val API_VERSION = "1.16.1"
-        const val CLIENT_NAME = "CassetteCat"
-        const val PAGE_SIZE = 500
+    companion object {
+        private const val API_VERSION = "1.16.1"
+        // The server records this as who saved a queue, so it names the phone too, telling two of them apart.
+        val CLIENT_NAME = "CassetteCat Android (${android.os.Build.MODEL})"
+        private const val PAGE_SIZE = 500
     }
 }
