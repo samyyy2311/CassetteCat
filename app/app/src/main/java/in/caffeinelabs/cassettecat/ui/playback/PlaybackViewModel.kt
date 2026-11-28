@@ -355,10 +355,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         return true
                     }
                     // Lyrics picked by hand come first, so a pick isn't undone by the song's own lyrics next time.
+                    // Lyrics picked while this loads are newer than anything it finds, so they're left on screen.
+                    val picksBefore = manualLyricsPicks
                     suspend fun loadChosen(): Boolean {
                         val (chosen, provider) = song?.let {
                             withContext(Dispatchers.IO) { lrcLibClient.chosenLyrics(it.artist, it.title, it.album) }
                         } ?: return false
+                        if (manualLyricsPicks != picksBefore) return true
                         _syncedLyrics.value = chosen.syncedLyrics
                         _fallbackLyrics.value = chosen.plainLyrics
                         _lyricsProvider.value = provider
@@ -378,11 +381,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                     }
                     _isLoadingLyrics.value = _syncedLyrics.value == null && _fallbackLyrics.value == null
                     try {
-                        lrcLibClient.fetchLyrics(song.artist, song.title, song.album)?.let { result ->
-                            _syncedLyrics.value = result.syncedLyrics
-                            _fallbackLyrics.value = result.plainLyrics
-                            _lyricsProvider.value = "LRCLIB"
-                        }
+                        lrcLibClient.fetchLyrics(song.artist, song.title, song.album)
+                            ?.takeIf { manualLyricsPicks == picksBefore }
+                            ?.let { result ->
+                                _syncedLyrics.value = result.syncedLyrics
+                                _fallbackLyrics.value = result.plainLyrics
+                                _lyricsProvider.value = "LRCLIB"
+                            }
                     } finally {
                         _isLoadingLyrics.value = false
                     }
@@ -977,7 +982,11 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSongMetadata(updatedSong: Song) = repository.updateSongMetadata(updatedSong)
 
+    // Counts lyrics picked by hand, so a lyrics load that started before a pick doesn't put older lyrics back.
+    private var manualLyricsPicks = 0
+
     fun applyManualLyrics(song: Song, synced: List<LyricLine>?, plain: String?, provider: String = "LRCLIB") {
+        manualLyricsPicks++
         if (playbackState.value.currentSong?.id == song.id) {
             _syncedLyrics.value = synced
             _fallbackLyrics.value = plain

@@ -309,11 +309,14 @@ internal fun ScrubberControl(
                 val elapsedMs = (frameMs - lastFrameMs).toFloat()
                 lastFrameMs = frameMs
                 val expectedMs = (reported + (frameMs - reportedAtMs)).coerceAtMost(latestDuration.coerceAtLeast(1f))
-                val errorMs = expectedMs - shownPositionMs
+                // The gap is measured from where the bar would be after this frame, so time that both the bar and the
+                // report have moved on by isn't counted twice after a late frame.
+                val predictedMs = shownPositionMs + elapsedMs
+                val errorMs = expectedMs - predictedMs
                 shownPositionMs = if (abs(errorMs) > POSITION_JUMP_MS) {
                     expectedMs
                 } else {
-                    shownPositionMs + elapsedMs + errorMs * (elapsedMs / POSITION_CATCH_UP_MS).coerceAtMost(1f)
+                    predictedMs + errorMs * (elapsedMs / POSITION_CATCH_UP_MS).coerceAtMost(1f)
                 }
             }
         }
@@ -337,6 +340,8 @@ internal fun ScrubberControl(
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
                 if (target != null) {
+                    // A seek, however short, puts the bar where it was let go, rather than easing there.
+                    shownPositionMs = target.toFloat()
                     pendingSeekMs = target
                     onSeek(target)
                 }

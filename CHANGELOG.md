@@ -23,7 +23,7 @@ All notable changes to CassetteCat are documented in this file.
 
 * Songs you like are now loved on Last.fm, Libre.fm and ListenBrainz too.
 * Sync Likes, in Settings > Scrobbling, sends each account the loves it's missing and takes back loves for songs you no longer like.
-* Scrobbles and loves made offline are kept and sent once you're back online, even to accounts you connect later.
+* Scrobbles and loves made offline are kept and sent once you're back online. Scrobbles also reach accounts you connect later, and Sync Likes sends them your loves.
 
 ### Playback
 

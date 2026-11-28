@@ -112,8 +112,11 @@ class LrcLibClient(context: Context) {
     /** Lyrics picked or written by hand for the song, with where they came from, or null when there are none. */
     fun chosenLyrics(artist: String, title: String, album: String): Pair<LyricsLookupResult, String>? {
         val cacheKey = keyFor(artist, title, album)
-        val provider = readCached(cacheKey)?.chosenFrom ?: return null
-        return readFromCache(cacheKey)?.let { it to provider }
+        // Read under the lock, so the lyrics and where they came from are from the same save.
+        return synchronized(cacheLock) {
+            val provider = readCached(cacheKey)?.chosenFrom ?: return null
+            readFromCache(cacheKey)?.let { it to provider }
+        }
     }
 
     suspend fun fetchLyrics(artist: String, title: String, album: String): LyricsLookupResult? =
