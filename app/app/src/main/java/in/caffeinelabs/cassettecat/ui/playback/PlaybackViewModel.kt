@@ -354,7 +354,17 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                         _lyricsProvider.value = "Embedded metadata"
                         return true
                     }
-                    val found = if (appPreferences.value.localLrcPriority) {
+                    // Lyrics picked by hand come first, so a pick isn't undone by the song's own lyrics next time.
+                    suspend fun loadChosen(): Boolean {
+                        val (chosen, provider) = song?.let {
+                            withContext(Dispatchers.IO) { lrcLibClient.chosenLyrics(it.artist, it.title, it.album) }
+                        } ?: return false
+                        _syncedLyrics.value = chosen.syncedLyrics
+                        _fallbackLyrics.value = chosen.plainLyrics
+                        _lyricsProvider.value = provider
+                        return true
+                    }
+                    val found = loadChosen() || if (appPreferences.value.localLrcPriority) {
                         loadLocalFile() || loadEmbedded()
                     } else {
                         loadEmbedded() || loadLocalFile()
@@ -980,7 +990,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
                 val ms = (line.timestampMs % 1000) / 10
                 "[%02d:%02d.%02d]%s".format(java.util.Locale.US, min, sec, ms, line.text)
             }
-            lrcLibClient.saveLyricsToCache(song.artist, song.title, song.album, lrcString, plain)
+            lrcLibClient.saveLyricsToCache(song.artist, song.title, song.album, lrcString, plain, provider)
         }
     }
 
