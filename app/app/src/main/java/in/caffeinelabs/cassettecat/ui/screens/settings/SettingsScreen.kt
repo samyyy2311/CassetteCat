@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +81,7 @@ fun SettingsScreen(
     onNavigateToAboutLegal: () -> Unit = {},
     onNavigateToCredits: () -> Unit = {},
     onNavigateToScrobbling: () -> Unit = {},
+    onOpenSetting: (String) -> Unit = {},
     listBottomPadding: Dp = 0.dp,
     viewModel: SettingsViewModel = viewModel()
 ) {
@@ -94,6 +96,7 @@ fun SettingsScreen(
     val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     val lastRefreshAtMs by libraryViewModel.lastRefreshAtMs.collectAsStateWithLifecycle()
     var showListeningRoom by remember { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -105,7 +108,13 @@ fun SettingsScreen(
 
         SettingsHeader()
         Spacer(Modifier.height(12.dp))
+        // Every setting can be found by name, wherever it sits.
+        SettingsSearchField(searchQuery) { searchQuery = it }
+        Spacer(Modifier.height(16.dp))
 
+        if (searchQuery.isNotBlank()) {
+            SettingsSearchResults(searchQuery, onOpenSetting)
+        } else {
         SettingsSection(title = stringResource(AppR.string.settings_audio_playback_section)) {
             NavigationRow(
                 title = stringResource(AppR.string.settings_customisation),
@@ -366,6 +375,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
             )
+        }
         }
 
         Spacer(Modifier.height(listBottomPadding + 24.dp))

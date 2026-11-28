@@ -804,6 +804,7 @@ fun MainShell(
                             onNavigateToAboutLegal = { navController.navigate(MainRoute.ABOUT_LEGAL) },
                             onNavigateToCredits = { navController.navigate(MainRoute.CREDITS) },
                             onNavigateToScrobbling = { navController.navigate(MainRoute.SCROBBLING) },
+                            onOpenSetting = { route -> navController.navigate(route) },
                             listBottomPadding = contentPadding.calculateBottomPadding()
                         )
                     }
