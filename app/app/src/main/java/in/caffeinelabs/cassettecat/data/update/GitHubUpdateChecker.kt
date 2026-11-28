@@ -99,8 +99,9 @@ fun releaseNotesFrom(changelog: String, version: String): List<String> =
         .map { it.removePrefix("* ").replace("**", "").replace("`", "").trim() }
         .toList()
 
+// A test build's "-debug" suffix isn't part of the release it's built from.
 fun releaseNotes(context: Context, version: String): List<String> =
-    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version)
+    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version.substringBefore("-"))
 
 /** Release notes to show once after updating to [version]; empty when already seen. */
 suspend fun unseenReleaseNotes(context: Context, version: String): List<String> =

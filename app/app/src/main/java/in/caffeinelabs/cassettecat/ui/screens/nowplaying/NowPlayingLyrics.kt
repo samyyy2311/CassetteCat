@@ -1,6 +1,5 @@
 package `in`.caffeinelabs.cassettecat.ui.screens.nowplaying
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -15,6 +14,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.shrinkVertically
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -520,17 +521,14 @@ internal fun LyricsView(
                                         modifier = lineModifier
                                     )
                                 } else {
-                                    val (sung, backing) = splitBacking(line.text)
-                                    Column(lineModifier) {
-                                        Text(
-                                            text = sung,
-                                            style = lyricStyle,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            textAlign = lyricsTextAlign,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        backing?.let { BackingLine(it, lyricStyle, MaterialTheme.colorScheme.onSurface) }
-                                    }
+                                    // A backing vocal only shows on the line being sung.
+                                    Text(
+                                        text = splitBacking(line.text).first,
+                                        style = lyricStyle,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = lyricsTextAlign,
+                                        modifier = lineModifier
+                                    )
                                 }
                             }
                         }
@@ -791,13 +789,15 @@ private fun ActiveLyricLine(
                     }
             )
         }
-        // The answering voice lights once the line it answers has been sung.
-        backing?.let {
-            val color by animateColorAsState(
-                if (progressAnim.value >= 1f) activeWordColor else onSurface.copy(alpha = 0.5f),
-                label = "backingColor"
-            )
-            BackingLine(it, lyricStyle, color)
+        // The answering voice comes in as the last words of the line are sung, and goes with the line.
+        val lastWordStart = wordWeights.lastOrNull()?.first ?: 0f
+        val answering by remember(lastWordStart) { derivedStateOf { progressAnim.value >= lastWordStart } }
+        AnimatedVisibility(
+            visible = backing != null && answering,
+            enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+            exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+        ) {
+            backing?.let { BackingLine(it, lyricStyle, activeWordColor) }
         }
     }
 }
