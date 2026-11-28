@@ -6,11 +6,9 @@ on:
     paths:
       - 'app/**'
       - '.github/workflows/codeql.yml'
+  # Every pull request is scanned, not only ones touching the app, so each change on main has had a scan.
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'app/**'
-      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '0 6 * * 1'
   workflow_dispatch:

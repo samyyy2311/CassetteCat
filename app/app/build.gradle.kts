@@ -165,6 +165,9 @@ dependencies {
         add("androidLintTool", "org.bouncycastle:bcutil-jdk18on:1.86")
         add("androidLintTool", "org.apache.commons:commons-lang3:3.21.0")
         add("androidLintTool", "org.apache.httpcomponents:httpclient:4.5.14")
+        add("androidLintTool", "com.google.guava:guava:33.7.2-jre")
+        // Media3 brings in Guava; this version fixes a deserialization flaw that can exhaust memory.
+        implementation("com.google.guava:guava:33.7.2-android")
     }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
