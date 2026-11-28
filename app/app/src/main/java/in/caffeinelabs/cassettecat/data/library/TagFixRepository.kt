@@ -23,7 +23,6 @@ import kotlinx.serialization.Serializable
 
 private const val BUSY_LIMIT = 3
 
-/** The details a check needs from a song, kept so a saved check can carry on without the library loaded. */
 @Serializable
 data class TagFixSong(
     val id: String,
@@ -44,7 +43,6 @@ data class TagFixState(
     val queue: List<TagFixSong> = emptyList(),
     val checked: Int = 0,
     val fixes: List<TagFix> = emptyList(),
-    // Fixes turned off in the review, by song id.
     val skipped: Set<String> = emptySet(),
     // Every song checked so far, so a new check of the whole library starts with the others.
     val checkedBefore: Set<String> = emptySet(),
@@ -99,7 +97,6 @@ class TagFixRepository private constructor(context: Context) {
         it.copy(skipped = if (skip) it.fixes.map { fix -> fix.song.id }.toSet() else emptySet())
     }
 
-    /** Saves the accepted fixes as tag edits, the way the tag editor does, and returns the songs as they now read. */
     suspend fun apply(songs: List<Song>, overrides: SongMetadataOverridesRepository): List<Song> {
         val byId = songs.associateBy { it.id }
         // A check can still be running, so only the fixes reviewed here leave the list; new ones stay.

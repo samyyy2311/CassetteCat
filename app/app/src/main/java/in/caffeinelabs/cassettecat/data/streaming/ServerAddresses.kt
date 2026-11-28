@@ -39,10 +39,8 @@ object ServerAddresses {
     private val misses = mutableMapOf<StreamingProtocol, Int>()
     private val _offline = MutableStateFlow<Set<StreamingProtocol>>(emptySet())
 
-    /** Servers that can't be reached now, whose songs only play if they're downloaded. */
     val offline: StateFlow<Set<StreamingProtocol>> = _offline.asStateFlow()
 
-    /** [url] sent to the address in use, when it starts with either of a server's addresses. */
     fun rewrite(url: String): String {
         for (server in servers) {
             for (base in listOf(server.home, server.away)) {
@@ -52,7 +50,6 @@ object ServerAddresses {
         return url
     }
 
-    /** Checks the addresses again, as when blackout ends. */
     fun checkAgain() {
         recheck.trySend(Unit)
     }

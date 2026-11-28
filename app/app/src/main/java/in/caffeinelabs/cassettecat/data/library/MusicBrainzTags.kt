@@ -81,7 +81,6 @@ internal fun musicBrainzTagsFrom(json: String, title: String, durationMs: Long, 
     )
 }
 
-/** Looks a song up on MusicBrainz; null without a confident match. Throws when MusicBrainz can't be reached. */
 suspend fun findMusicBrainzTags(title: String, artist: String, album: String, durationMs: Long): MusicBrainzTags? =
     withContext(Dispatchers.IO) {
         fun quoted(value: String) = "\"" + value.trim().replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -95,7 +94,6 @@ suspend fun findMusicBrainzTags(title: String, artist: String, album: String, du
         musicBrainzTagsFrom(body, title, durationMs, album)
     }
 
-/** A song detail a MusicBrainz match would change. */
 @Serializable
 data class TagChange(val field: TagField, val from: String, val to: String)
 

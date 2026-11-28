@@ -20,7 +20,6 @@ import kotlinx.coroutines.withContext
 
 private const val SHORT_CLIP_MAX_MS = 29_999L
 
-// The MediaStore-backed source, always available regardless of any streaming server.
 class LocalLibraryRepository(private val context: Context) : LibraryRepository {
     private val folderRepository = LibraryFolderRepository(context)
     private val favoritesRepository = FavoritesRepository(context)

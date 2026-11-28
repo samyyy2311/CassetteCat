@@ -225,7 +225,6 @@ data class AppPreferences(
     val localLrcPriority: Boolean = true,
     val lyricsForSearch: Boolean = false,
     val lyricsForSearchOnMobileData: Boolean = false,
-    // The most a server stream may use, in kbps; 0 is the original file.
     val streamQualityWifiKbps: Int = 0,
     val streamQualityMobileKbps: Int = 0,
     val ignoreShortAudioClips: Boolean = false,
@@ -711,7 +710,6 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[AUTO_DRIVE_MODE_BLUETOOTH] = enabled }
     }
 
-
     suspend fun exportForBackup(): BackupAppPreferences {
         val current = preferences.first()
         return BackupAppPreferences(
@@ -894,7 +892,6 @@ internal fun <T : Enum<T>> orderedEnumValues(raw: String?, entries: List<T>): Li
     return (raw.orEmpty().split(',').mapNotNull(byName::get) + entries).distinct()
 }
 
-// Tabs hidden by choice, and optional ones that were never switched on.
 private fun hiddenNavTabs(hiddenRaw: String?, shownOptionalRaw: String?): Set<NavTab> {
     val shownOptional = enumValueSet(shownOptionalRaw, NavTab.entries)
     return enumValueSet(hiddenRaw, NavTab.entries).filterTo(mutableSetOf()) { it.canHide } +

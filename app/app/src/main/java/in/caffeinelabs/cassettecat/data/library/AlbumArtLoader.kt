@@ -69,7 +69,6 @@ class AlbumArtLoader(private val context: Context) {
     private fun decode(song: Song, maxDimension: Int): Bitmap? = decodeLocalArtwork(context, song.contentUri, maxDimension)
 }
 
-/** A local song's embedded cover, or the thumbnail Android keeps for it. */
 internal fun decodeLocalArtwork(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
     val embedded = runCatching {
         MediaMetadataRetriever().use { retriever ->

@@ -922,12 +922,10 @@ private fun audioOnlyRenderersFactory(context: Context): DefaultRenderersFactory
         override fun buildImageRenderers(context: Context, out: ArrayList<Renderer>) = Unit
     }
 
-// Keeps hardware and notification navigation sequential through the playlist timeline.
 private const val FADE_MS = 150L
 private const val FADE_STEPS = 10
 
 private class SequentialNavigationPlayer(player: Player, private val scope: CoroutineScope) : ForwardingPlayer(player) {
-    // Exposes seek-to-next when Autoplay is active at queue end.
     var autoplayEnabled: Boolean = false
     private val listeners = CopyOnWriteArraySet<Player.Listener>()
     private var internalShuffleModeEnabled: Boolean = false
@@ -1062,7 +1060,6 @@ private class SequentialNavigationPlayer(player: Player, private val scope: Coro
         } else if (repeatMode == Player.REPEAT_MODE_ALL && mediaItemCount > 0) {
             seekTo(0, 0L)
         } else if (autoplayEnabled) {
-            // Seek to end to trigger STATE_ENDED and invoke Autoplay continuation.
             val dur = duration
             if (dur > 0 && dur != C.TIME_UNSET) seekTo(index, dur)
         }
@@ -1174,7 +1171,6 @@ private fun MediaItem.toRadioStation() = RadioStation(
     tags = mediaMetadata.artist?.toString().orEmpty()
 )
 
-/** The saved queue's songs still in [found] and where to start; songs deleted since are skipped, keeping the order. */
 internal fun <T> resumableQueue(ids: List<String>, currentIndex: Int, found: Map<String, T>): Pair<List<T>, Int>? {
     val items = ids.mapNotNull { found[it] }
     if (items.isEmpty()) return null

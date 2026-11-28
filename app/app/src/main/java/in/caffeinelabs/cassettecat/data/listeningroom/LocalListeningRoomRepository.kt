@@ -166,7 +166,6 @@ class LocalListeningRoomRepository(context: Context) {
 
     val guestHostAddress: String? get() = guestSocket?.inetAddress?.hostAddress
 
-    /** The host's elapsedRealtime now, once a ping has measured the offset. */
     fun hostElapsedRealtimeMs(): Long? = hostClock.offsetMs()?.let { SystemClock.elapsedRealtime() + it }
 
     init {

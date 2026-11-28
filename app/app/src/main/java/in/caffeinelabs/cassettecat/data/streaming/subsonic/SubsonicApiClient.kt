@@ -14,7 +14,6 @@ import java.util.UUID
 
 class SubsonicApiException(message: String) : Exception(message)
 
-// Subsonic auth tokens and salts are cached per instance according to the API spec.
 class SubsonicApiClient(
     serverUrl: String,
     private val username: String,
@@ -56,7 +55,6 @@ class SubsonicApiClient(
         get("unstar.view") { addQueryParameter("id", songId) }
     }
 
-    /** The song's lyrics from an OpenSubsonic server such as Navidrome, timed ones first; null when it has none. */
     suspend fun getLyrics(songId: String): String? {
         val all = get("getLyricsBySongId.view") { addQueryParameter("id", songId) }.lyricsList?.structuredLyrics.orEmpty()
         val lyrics = all.firstOrNull { it.synced && it.line.isNotEmpty() } ?: all.firstOrNull { it.line.isNotEmpty() }
@@ -65,7 +63,6 @@ class SubsonicApiClient(
         return lyricsText(lyrics.line.map { line -> line.start?.let { maxOf(0L, it - lyrics.offset) } to line.value }, lyrics.synced)
     }
 
-    /** Keeps the queue on the server, so CassetteCat on another device can carry on from it. */
     suspend fun savePlayQueue(songIds: List<String>, currentId: String, positionMs: Long) {
         get("savePlayQueue.view") {
             songIds.forEach { addQueryParameter("id", it) }

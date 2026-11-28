@@ -38,7 +38,6 @@ fun MusicSource.color(): Color = when (this) {
     MusicSource.ListeningRoomHost, MusicSource.Radio, MusicSource.Desktop, MusicSource.Computer -> MaterialTheme.colorScheme.tertiary
 }
 
-/** Names where a song comes from, next to its title in lists. */
 @Composable
 fun SourceTag(source: MusicSource, modifier: Modifier = Modifier) {
     val color = source.color()

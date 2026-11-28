@@ -265,7 +265,6 @@ class RadioViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { favoritesRepository.add(customRadioStation(name, url)) }
     }
 
-    // Radio Browser's click endpoint so its popularity ranking stays meaningful.
     fun recordPlay(station: RadioStation) {
         viewModelScope.launch { historyRepository.recordPlayed(station) }
         if (!station.uuid.startsWith("custom:")) {

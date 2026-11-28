@@ -14,7 +14,6 @@ sealed interface MusicSource {
     data object Computer : MusicSource
 }
 
-/** Shown for music whose file lives on another device, so this phone's library actions do not apply to it. */
 val Song.isFromAnotherDevice: Boolean
     get() = source == MusicSource.ListeningRoomHost || source == MusicSource.Desktop || source == MusicSource.Computer
 
@@ -38,5 +37,4 @@ data class Song(
     val country: String = ""
 )
 
-/** What makes two songs the same song, here and on the computer: title and artist, ignoring case. */
 fun songMatchKey(title: String, artist: String): String = title.trim().lowercase() + "\u001f" + artist.trim().lowercase()

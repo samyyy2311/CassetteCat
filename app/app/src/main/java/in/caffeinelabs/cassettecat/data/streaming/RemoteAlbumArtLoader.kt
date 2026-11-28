@@ -10,7 +10,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 private const val THUMBNAIL_CACHE_BYTES = 16 * 1024 * 1024
 private const val FULL_CACHE_BYTES = 24 * 1024 * 1024
 
-// Covers from your server, kept in memory at two sizes and saved on the phone.
 class RemoteAlbumArtLoader {
     private val cache = ArtworkCache(THUMBNAIL_CACHE_BYTES, FULL_CACHE_BYTES)
 
@@ -37,10 +36,6 @@ class RemoteAlbumArtLoader {
     }.getOrNull()
 
     companion object {
-        /**
-         * Where covers from your server are kept on the phone, so they aren't downloaded again each time the app
-         * starts. Set once when the app starts.
-         */
         @Volatile
         var diskDir: File? = null
 

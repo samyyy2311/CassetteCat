@@ -36,7 +36,6 @@ object EqualizerController {
             if (min < max) min..max else -1500..1500
         } ?: -1500..1500
 
-    // Device DSP-dependent band count.
     val numberOfBands: Int
         get() = equalizer?.numberOfBands?.toInt() ?: 0
 

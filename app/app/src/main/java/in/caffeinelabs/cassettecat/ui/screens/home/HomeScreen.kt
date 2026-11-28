@@ -548,7 +548,6 @@ private fun getDynamicGreetingRes(random: Random): Int {
     return options.random(random)
 }
 
-// The song another device was on, with a button to carry on from there here.
 @Composable
 private fun QueueElsewhereCard(offer: PlaybackViewModel.QueueElsewhere, onPlay: () -> Unit, onDismiss: () -> Unit) {
     val song = offer.songs[offer.startIndex]

@@ -43,7 +43,6 @@ class LibraryFolderRepository(private val context: Context) {
     }
 }
 
-// Resolves document tree URI to filesystem path for MediaStore DATA queries.
 fun resolveFolderPath(context: Context, treeUri: Uri): String? {
     val docId = DocumentsContract.getTreeDocumentId(treeUri)
     val parts = docId.split(":", limit = 2)

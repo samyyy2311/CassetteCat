@@ -50,7 +50,6 @@ private fun probeTargets(): List<InetAddress> {
     return targets.distinct()
 }
 
-/** Broadcasts on the local network and collects the computers running CassetteCat that answer. */
 suspend fun discoverDesktops(timeoutMs: Long = 1_500L): List<DiscoveredDesktop> = withContext(Dispatchers.IO) {
     runCatching {
         DatagramSocket().use { socket ->

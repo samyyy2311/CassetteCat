@@ -30,7 +30,6 @@ data class DevicePlaybackStatus(
     val volumePercent: Int,
     val shuffleEnabled: Boolean,
     val repeatMode: Int,
-    // Only the desktop app reports artwork and hand-off requests.
     val artworkKey: String? = null,
     val handoffRequested: Boolean = false,
     val disconnectRequested: Boolean = false,
@@ -65,7 +64,6 @@ data class DesktopLibraryPage(val total: Int, val tracks: List<DesktopLibraryTra
 
 sealed interface ComputerLibraryResult {
     data class Loaded(val page: DesktopLibraryPage) : ComputerLibraryResult
-    /** The computer runs a CassetteCat Desktop from before library browsing. */
     data object NeedsUpdate : ComputerLibraryResult
     data object Unreachable : ComputerLibraryResult
 }
@@ -90,7 +88,6 @@ data class PhoneCheckIn(
     val positionMs: Long = 0,
     val durationMs: Long = 0,
     val volumePercent: Int = -1,
-    /** Base64 JPEG cover, sent when the computer asks for it. */
     val artwork: String? = null
 )
 
@@ -217,7 +214,6 @@ class DeviceControlApiClient(
             }.getOrNull()
         }
 
-    /** Whether the desktop app accepts [token]; null when it did not answer or is refusing attempts for now. */
     suspend fun acceptsPairingCode(host: String, port: Int, token: String): Boolean? =
         withContext(Dispatchers.IO) {
             pinOnFirstContact(host) {
@@ -312,7 +308,6 @@ class DeviceControlApiClient(
                 .getOrDefault(false)
         }
 
-    /** Tells the desktop what this phone is playing; returns the commands and songs it queued for the phone. */
     suspend fun checkIn(host: String, port: Int, token: String, state: PhoneCheckIn): PhoneCheckInReply =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -327,7 +322,6 @@ class DeviceControlApiClient(
             }.getOrDefault(PhoneCheckInReply())
         }
 
-    /** Returns whether the computer plays the first song; it can't when its library doesn't have it. */
     suspend fun handOff(host: String, port: Int, token: String, tracks: List<HandoffTrack>, positionMs: Long, playing: Boolean): Boolean =
         withContext(Dispatchers.IO) {
             val handoff = HandoffRequest(tracks, index = 0, positionMs = positionMs, playing = playing)

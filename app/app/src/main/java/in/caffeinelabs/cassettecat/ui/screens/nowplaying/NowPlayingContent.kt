@@ -291,7 +291,6 @@ fun NowPlayingContent(
                         song = song,
                         state = state,
                         positionMs = positionMs,
-                        // Lyrics left from the previous song are hidden until the new song's are known.
                         syncedLyrics = syncedLyrics.takeIf { lyricsSongId == song.id },
                         fallbackLyrics = fallbackLyrics.takeIf { lyricsSongId == song.id },
                         lyricsProvider = lyricsProvider,

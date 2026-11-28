@@ -108,7 +108,6 @@ fun SettingsScreen(
 
         SettingsHeader()
         Spacer(Modifier.height(12.dp))
-        // Every setting can be found by name, wherever it sits.
         SettingsSearchField(searchQuery) { searchQuery = it }
         Spacer(Modifier.height(16.dp))
 

@@ -29,9 +29,7 @@ data class PlaybackUiState(
     val audioSessionId: Int = C.AUDIO_SESSION_ID_UNSET,
     val upNext: List<Song> = emptyList(),
     val previousInQueue: Song? = null,
-    // Most recently played first.
     val history: List<Song> = emptyList(),
-    // Embedded ID3/Vorbis lyrics, if present.
     val currentLyrics: String? = null,
     // Whether the file has been opened, so tags such as embedded lyrics are known.
     val tracksLoaded: Boolean = false,

@@ -480,7 +480,6 @@ internal fun ScrobbleAccountDialog(
                         val sessionKey = account.client?.authenticate(username.trim(), password)
                         isAuthenticating = false
                         if (sessionKey != null) {
-                            // Lets the password manager offer to save the sign-in.
                             autofill?.commit()
                             onConnect(username.trim(), sessionKey)
                         } else {

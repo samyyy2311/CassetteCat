@@ -14,7 +14,6 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 private const val NOTIFICATION_ID = 2
 private const val CHANNEL_ID = "cassettecat_downloads"
 
-// Separate foreground service from PlaybackService, per Media3's DownloadManager design.
 class SongDownloadService : DownloadService(
     NOTIFICATION_ID,
     DownloadService.DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,

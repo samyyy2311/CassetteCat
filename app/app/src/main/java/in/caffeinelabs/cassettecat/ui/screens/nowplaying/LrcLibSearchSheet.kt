@@ -595,7 +595,6 @@ internal fun LrcLibSearchSheet(
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                                    // A result with no lyrics has nothing to show, so it can't be picked.
                                     .clickable(enabled = hasSynced || hasPlain) {
                                         haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                         val parsedSynced = item.syncedLyrics?.let(::parseLrc)
