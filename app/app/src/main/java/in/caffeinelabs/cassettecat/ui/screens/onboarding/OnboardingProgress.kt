@@ -73,6 +73,7 @@ fun OnboardingHeroIcon(iconRes: Int, modifier: Modifier = Modifier, blobSize: Dp
     }
 }
 
+// Fades and grows in over a soft glow of [glow] when the step first shows.
 @Composable
 private fun OnboardingHero(glow: Color, blobSize: Dp, modifier: Modifier, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }

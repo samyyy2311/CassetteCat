@@ -30,6 +30,7 @@ class AudioscrobblerClient private constructor(
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
+    // The service's answer, with the error code of a request it turned down. Null when it couldn't be reached.
     private class Reply(val body: String, val error: Int?)
 
     private suspend fun post(params: Map<String, String>): Reply? = withContext(Dispatchers.IO) {
@@ -79,18 +80,21 @@ class AudioscrobblerClient private constructor(
     suspend fun updateNowPlaying(sessionKey: String, song: Song): Boolean =
         sessionKey.isNotBlank() && post(trackParams("track.updateNowPlaying", sessionKey, song))?.let { it.error == null } == true
 
+    /** Whether the scrobble is done with: taken, or turned down for good. */
     suspend fun scrobble(sessionKey: String, song: Song, timestampSec: Long): Boolean =
         sessionKey.isNotBlank() && settled(
             "track.scrobble",
             post(trackParams("track.scrobble", sessionKey, song) + ("timestamp" to timestampSec.toString()))
         )
 
+    /** Whether the love is done with: taken, or turned down for good. */
     suspend fun love(sessionKey: String, song: Song, loved: Boolean): Boolean {
         val method = if (loved) "track.love" else "track.unlove"
         return sessionKey.isNotBlank() &&
             settled(method, post(mapOf("method" to method, "artist" to song.artist, "track" to song.title, "sk" to sessionKey)))
     }
 
+    /** The match keys of every song [username] has loved, or null when the list couldn't be read whole. */
     suspend fun lovedSongs(username: String): Set<String>? = withContext(Dispatchers.IO) {
         runCatching {
             val keys = mutableSetOf<String>()
@@ -124,6 +128,7 @@ class AudioscrobblerClient private constructor(
     }
 
     companion object {
+        /** The Audioscrobbler error code in a reply, or null when it has none. */
         internal fun errorCode(body: String): Int? =
             Regex("\"error\"\\s*:\\s*(\\d+)").find(body)?.groupValues?.get(1)?.toIntOrNull()
 
@@ -133,6 +138,7 @@ class AudioscrobblerClient private constructor(
          */
         internal fun isTemporaryError(code: Int): Boolean = code in setOf(8, 9, 11, 16, 29)
 
+        /** The songs on one page of user.getLovedTracks and how many pages there are, or null for an error. */
         internal fun lovedPage(body: String): Pair<Set<String>, Int>? {
             val loved = sharedJson.parseToJsonElement(body).jsonObject["lovedtracks"]?.jsonObject ?: return null
             // A page holding a single song gives it as an object rather than a list of one.
@@ -152,6 +158,7 @@ class AudioscrobblerClient private constructor(
 
         val libreFm = AudioscrobblerClient("https://libre.fm/2.0/", "cassettecat", "cassettecat_secret", signsInWithToken = true)
 
+        /** Null when this build has no Last.fm API account. */
         val lastFm: AudioscrobblerClient? = BuildConfig.LASTFM_API_KEY
             .takeIf { it.isNotBlank() && BuildConfig.LASTFM_API_SECRET.isNotBlank() }
             ?.let { AudioscrobblerClient("https://ws.audioscrobbler.com/2.0/", it, BuildConfig.LASTFM_API_SECRET, signsInWithToken = false) }

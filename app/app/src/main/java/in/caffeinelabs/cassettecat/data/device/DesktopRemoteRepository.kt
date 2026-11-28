@@ -59,6 +59,7 @@ import java.time.ZoneId
 private val Context.desktopRemoteDataStore by preferencesDataStore(name = "desktop_remote")
 private val DESKTOP_ADDRESS = stringPreferencesKey("address")
 private val DESKTOP_NAME = stringPreferencesKey("name")
+// Whether this phone is controlling the desktop, as when a device is picked in Spotify Connect.
 private val DESKTOP_ACTIVE = booleanPreferencesKey("active")
 private val DESKTOP_DISCONNECTED = booleanPreferencesKey("disconnected")
 private val DESKTOP_CERTIFICATE = stringPreferencesKey("certificate")
@@ -83,6 +84,7 @@ private const val APPROVAL_MAX_MISSED_CHECKS = 5
 
 data class DesktopAddress(val host: String, val port: Int, val code: String)
 
+/** Parses the "ip:port#CODE" address shown in the desktop app's Phone Remote settings. */
 internal fun parseDesktopAddress(text: String): DesktopAddress? {
     val parts = text.trim().split("#", limit = 2)
     if (parts.size != 2) return null
@@ -139,6 +141,10 @@ data class DesktopRemoteState(
     val controlling: Boolean get() = active && address != null && !offlineBlackout
 }
 
+/**
+ * The paired CassetteCat desktop app. While the phone controls it, [controlledState] presents it as a player,
+ * so the app's own mini player and Now Playing screen show and drive the computer.
+ */
 class DesktopRemoteRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val dataStore = context.desktopRemoteDataStore
@@ -267,6 +273,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch {
             status.filterNotNull().collect { if (it.syncRequested) syncWithDesktop() }
         }
+        // A computer paired by typing its address is named once it answers.
         scope.launch {
             status.filterNotNull().map { it.deviceName }.distinctUntilChanged().collect { name ->
                 if (!name.isNullOrBlank() && name != state.value.name) dataStore.edit { it[DESKTOP_NAME] = name }
@@ -344,6 +351,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
+    /** Pairs with the "ip:port#CODE" address typed by hand. */
     suspend fun pair(text: String): PairingResult = pairing { pairAddress(text.trim(), name = null) }
 
     suspend fun pairWithApproval(desktop: DiscoveredDesktop): ApprovalResult = pairing {
@@ -436,6 +444,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         _transferRequest.value = toDesktop
     }
 
+    /** Marks the move to [toDesktop] as done, unless a newer request replaced it meanwhile. */
     fun transferDone(toDesktop: Boolean) {
         _transferRequest.compareAndSet(toDesktop, null)
     }
@@ -499,6 +508,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         playbackRepository.seek(desktop.host, desktop.port, positionMs, null, desktop.code)
     }
 
+    /** Reports what this phone plays to the paired computer; returns the commands and songs the computer sent back. */
     suspend fun checkIn(song: Song, isPlaying: Boolean, positionMs: Long, volumePercent: Int, artwork: String?): PhoneCheckInReply {
         val desktop = connectedDesktop() ?: return PhoneCheckInReply()
         val state = PhoneCheckIn(song.title, song.artist, isPlaying, positionMs, song.durationMs, volumePercent, artwork)
@@ -539,6 +549,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
+    /** Continues [songs] on the computer from [positionMs]; it plays the ones its own library has. Returns whether it accepted them. */
     suspend fun handOff(songs: List<Song>, positionMs: Long, playing: Boolean): Boolean {
         val desktop = connectedDesktop() ?: return false
         val tracks = songs.map { HandoffTrack(it.title, it.artist) }
@@ -575,6 +586,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
+    /** Syncs likes and the listening record with the computer; returns whether the computer was reached. */
     suspend fun syncWithDesktop(): Boolean {
         val reached = syncListens()
         syncLikes()
@@ -641,6 +653,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
             }
             val songs = known.map { (id, plays) ->
                 val song = songsById[id]
+                // A song not in the library is kept by its title and artist.
                 val named = id.removePrefix("song:").split('\u001f')
                 Listen(
                     at = at,
@@ -677,11 +690,13 @@ class DesktopRemoteRepository private constructor(context: Context) {
         scope.launch { onResult(apiClient.sendPlaylist(desktop.host, desktop.port, desktop.code, playlist)) }
     }
 
+    /** A page of the computer's library matching [query]. */
     suspend fun computerLibrary(query: String, offset: Int, limit: Int = COMPUTER_LIBRARY_PAGE): ComputerLibraryResult {
         val desktop = connectedDesktop() ?: return ComputerLibraryResult.Unreachable
         return apiClient.getLibrary(desktop.host, desktop.port, desktop.code, query, offset, limit)
     }
 
+    /** Plays [tracks] from the computer's library on the computer, starting at [index]. */
     fun playOnComputer(tracks: List<DesktopLibraryTrack>, index: Int, onResult: (Boolean) -> Unit) {
         val desktop = connectedDesktop() ?: return onResult(false)
         scope.launch { onResult(apiClient.playLibrary(desktop.host, desktop.port, desktop.code, tracks.map { it.id }, index)) }
@@ -718,6 +733,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
 
     private fun queueIndex(song: Song): Int? = song.id.removePrefix(QUEUE_SONG_PREFIX).takeIf { it != song.id }?.toIntOrNull()
 
+    /** Plays [song] from the desktop's queue; returns false for songs that are not from it. */
     fun playFromQueue(song: Song): Boolean {
         val index = queueIndex(song) ?: return false
         val desktop = connectedDesktop() ?: return true
@@ -725,6 +741,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         return true
     }
 
+    /** Moves the up-next song at [fromIndex] to [toIndex] on the desktop, showing the change at once. */
     fun moveInQueue(fromIndex: Int, toIndex: Int) {
         val queue = upNext.value
         val from = queue.getOrNull(fromIndex) ?: return
@@ -737,6 +754,7 @@ class DesktopRemoteRepository private constructor(context: Context) {
         }
     }
 
+    /** Removes [song] from the desktop's queue; returns false for songs that are not from it. */
     fun removeFromQueue(song: Song): Boolean {
         val index = queueIndex(song) ?: return false
         val desktop = connectedDesktop() ?: return true

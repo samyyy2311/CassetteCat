@@ -92,6 +92,7 @@ import `in`.caffeinelabs.cassettecat.ui.util.tapScaleSelectable
 import androidx.compose.ui.draw.alpha
 import `in`.caffeinelabs.cassettecat.ui.components.isSongUnavailable
 
+/** Removes the custom cover on [song]'s album and its file, then redraws artwork showing it. */
 internal suspend fun resetAlbumCover(context: Context, song: Song) {
     val repository = AlbumCoverRepository.getInstance(context)
     val path = repository.getCoverPath(song.album, song.artist, song.albumId)
@@ -100,6 +101,7 @@ internal suspend fun resetAlbumCover(context: Context, song: Song) {
     invalidateAlbumArtCache(context)
 }
 
+/** Back button, title, song count and length, then download, play and shuffle for a list of songs. */
 @Composable
 internal fun SongCollectionHeader(
     title: String,
@@ -156,6 +158,7 @@ internal fun SongCollectionHeader(
     }
 }
 
+// A collection's total length, such as "1h 5m" or "42 min"; empty when unknown.
 @Composable
 internal fun collectionDurationText(durationMs: Long): String {
     if (durationMs <= 0) return ""
@@ -345,6 +348,7 @@ fun LibrarySongRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            // A song that can't play while its server is offline stays listed, dimmed.
             .alpha(if (isSongUnavailable(song)) UNAVAILABLE_ALPHA else 1f)
             .tapScale(onClick)
             .padding(horizontal = 20.dp, vertical = 4.dp)

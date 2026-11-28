@@ -21,6 +21,7 @@ data class StreamingServerConfig(
     val username: String = "",
     val userId: String? = null,
     val connected: Boolean = false,
+    // Used instead of serverUrl when that doesn't answer, such as a domain name for when you're away from home.
     val awayUrl: String = ""
 )
 
@@ -56,6 +57,7 @@ class StreamingServerRepository(private val context: Context) {
         setConfig(protocol, StreamingServerConfig())
     }
 
+    // Persisted client identifier for media server device registries.
     suspend fun deviceId(): String {
         val existing = context.streamingDataStore.data.map { it[DEVICE_ID] }.first()
         if (existing != null) return existing

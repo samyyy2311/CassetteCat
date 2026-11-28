@@ -270,6 +270,7 @@ internal fun LyricsView(
                     }
                 }
 
+                // Every line, the first one included, is held this far down while it's sung.
                 val activeLineTop = 124.dp
                 // Room below the lyrics for the last lines to reach that height too, so the credits only come into view
                 // once the song's lines are done.
@@ -1088,6 +1089,7 @@ internal fun InstrumentalWaveformView(
     }
 }
 
+/** Who wrote the song, where the lyrics came from, and a way to look for a better match. */
 @Composable
 private fun LyricsCredits(artist: String?, providerCredit: String?, onSearchLyrics: () -> Unit) {
     Column {

@@ -266,6 +266,7 @@ private fun pairingError(result: PairingResult?): Int? = when (result) {
     PairingResult.PAIRED, null -> null
 }
 
+/** Picks which device this phone plays on and controls, like Spotify Connect. */
 @Composable
 fun DeviceConnectSheet(
     desktop: DesktopRemoteRepository,

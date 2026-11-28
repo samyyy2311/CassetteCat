@@ -74,8 +74,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         SettingsUiState(subsonic, jellyfin, services, folderFilter, preferences)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
+    // null = not checked yet this session
     private val _updateCheckResult = MutableStateFlow<UpdateCheckResult?>(null)
     val updateCheckResult: StateFlow<UpdateCheckResult?> = _updateCheckResult.asStateFlow()
+
 
     fun disconnect(protocol: StreamingProtocol) {
         viewModelScope.launch {

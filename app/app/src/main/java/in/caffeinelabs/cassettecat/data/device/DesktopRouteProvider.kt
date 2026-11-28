@@ -45,6 +45,7 @@ fun listDesktopInOutputSwitcher(context: Context) {
     }
 }
 
+/** Publishes the paired computer to Android's output switcher, next to the phone's speaker and Bluetooth. */
 class DesktopRouteProviderService : MediaRouteProviderService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 

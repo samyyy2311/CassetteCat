@@ -89,8 +89,10 @@ suspend fun markUpdatePrompted(context: Context, version: String) {
     context.updateDataStore.edit { it[PROMPTED_VERSION] = version }
 }
 
+/** One part of a release's notes, such as Lyrics or Fixes, with its points. Untitled when the notes have no parts. */
 data class ReleaseSection(val title: String?, val notes: List<String>)
 
+/** The changelog's points for [version]: its "### " headings and the lines starting with "* " under them. */
 fun releaseNotesFrom(changelog: String, version: String): List<ReleaseSection> {
     val sections = mutableListOf<ReleaseSection>()
     changelog.lineSequence()
@@ -114,6 +116,7 @@ fun releaseNotesFrom(changelog: String, version: String): List<ReleaseSection> {
 fun releaseNotes(context: Context, version: String): List<ReleaseSection> =
     releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version.removeSuffix("-debug"))
 
+/** Release notes to show once after updating to [version]; empty when already seen. */
 suspend fun unseenReleaseNotes(context: Context, version: String): List<ReleaseSection> =
     if (context.updateDataStore.data.first()[SEEN_VERSION] == version) emptyList() else releaseNotes(context, version)
 

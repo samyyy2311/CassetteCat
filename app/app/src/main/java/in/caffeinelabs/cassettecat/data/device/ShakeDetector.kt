@@ -83,6 +83,7 @@ class ShakeDetector(
 
         val now = System.currentTimeMillis()
 
+        // Ignore movement while the phone is in a pocket or bag.
         if (event.sensor.type == Sensor.TYPE_PROXIMITY) {
             val distance = event.values.firstOrNull() ?: Float.MAX_VALUE
             val maxRange = event.sensor.maximumRange
@@ -102,6 +103,7 @@ class ShakeDetector(
         if (now - lastUncoveredTimestamp < POCKET_UNCOVER_GRACE_MS) return
         if (now - lastShakeTimestamp < SHAKE_COOLDOWN_MS) return
 
+        // Remove gravity before measuring shake acceleration.
         val rawX = event.values[0]
         val rawY = event.values[1]
         val rawZ = event.values[2]

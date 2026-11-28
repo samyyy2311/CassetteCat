@@ -27,6 +27,7 @@ private data class RadioBrowserStationResponse(
 @Serializable
 private data class RadioBrowserNamedCountResponse(val name: String, val stationcount: Int = 0)
 
+// Picks a random mirror from the ones the discovery host lists, with a fallback when the lookup fails.
 private object RadioBrowserServers {
     @Volatile private var cached: List<String> = emptyList()
     private val mutex = Mutex()

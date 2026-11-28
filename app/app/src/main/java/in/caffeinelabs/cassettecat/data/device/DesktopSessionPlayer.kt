@@ -16,6 +16,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.flow.combine
 
+// Volume keys move the computer's volume in 5% steps.
 private const val VOLUME_STEPS = 20
 
 /**
@@ -59,6 +60,7 @@ internal class DesktopSessionPlayer(
             ?.id
     }
 
+    /** Keeps the session showing what the computer plays, until cancelled. */
     suspend fun follow() = combine(desktop.controlledState, desktop.status) { _, _ -> }.collect { invalidateState() }
 
     override fun getState(): State {
@@ -68,6 +70,7 @@ internal class DesktopSessionPlayer(
             .setDeviceInfo(deviceInfo())
             .setDeviceVolume((desktop.status.value?.volumePercent ?: 0) * VOLUME_STEPS / 100)
         val current = remote?.currentSong ?: return builder.setPlaybackState(Player.STATE_IDLE).build()
+        // The up-next songs follow the current one so next is available and the queue can be picked from.
         val playlist = (listOf(current) + remote.upNext).mapIndexed { index, song -> mediaItemData(index, song) }
         return builder
             .setPlaylist(playlist)

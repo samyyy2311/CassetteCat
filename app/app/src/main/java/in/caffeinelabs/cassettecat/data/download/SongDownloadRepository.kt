@@ -34,6 +34,7 @@ class SongDownloadRepository private constructor(private val context: Context) {
         context,
         StandaloneDatabaseProvider(context),
         DownloadCache.get(context),
+        // Downloads, like playback, use whichever of the server's addresses answers.
         ResolvingDataSource.Factory(DefaultHttpDataSource.Factory()) { spec ->
             val url = spec.uri.toString()
             val rewritten = ServerAddresses.rewrite(url)

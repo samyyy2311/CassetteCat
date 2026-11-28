@@ -134,6 +134,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
         response.close()
     }
 
+    /** The song's lyrics from Jellyfin, timed when its lines have start times; null when it has none. */
     suspend fun getLyrics(itemId: String, accessToken: String): String? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("$baseUrl/Audio/$itemId/Lyrics")
@@ -171,6 +172,7 @@ class JellyfinApiClient(serverUrl: String, private val deviceId: String) {
             .build()
             .toString()
 
+    // MediaBrowser authorization header format.
     private fun authorizationHeader(accessToken: String?): String {
         val tokenPart = accessToken?.let { ", Token=\"$it\"" }.orEmpty()
         return "MediaBrowser Client=\"CassetteCat\", Device=\"Android\", DeviceId=\"$deviceId\", Version=\"${BuildConfig.VERSION_NAME}\"$tokenPart"

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+/** Fetches lyrics for the whole library, for search. Unmetered networks unless mobile data is allowed; resumes on the next start. */
 object LibraryLyricsFetcher {
     data class Progress(val found: Int = 0, val total: Int = 0, val left: Int = 0, val waitingForWifi: Boolean = false)
 
@@ -55,10 +56,12 @@ object LibraryLyricsFetcher {
                 // The request itself can't be cancelled, so don't report it after a cancel.
                 currentCoroutineContext().ensureActive()
                 if (result == LibraryLookup.FOUND) found++
+                // Transient failure: retry in a minute, skip the song after three.
                 if (result != LibraryLookup.FAILED || ++tries >= 3) break
                 delay(60_000)
             }
             _progress.value = Progress(found, songs.size, pending.size - index - 1)
+            // Throttle: one request at a time, with a short gap.
             delay(300)
         }
     }

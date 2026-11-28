@@ -58,8 +58,10 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.min
 
+// Centre button diameter as a share of the whole wheel, matching the classic click-wheel proportions.
 private const val CENTER_FRACTION = 0.36f
 
+// One haptic "click" and one seek step for every this many degrees the wheel is spun.
 private const val WHEEL_TICK_DEGREES = 15f
 private const val WHEEL_SEEK_STEP_MS = 5_000L
 
@@ -68,6 +70,8 @@ private val WHEEL_MIN_SIZE = 160.dp
 
 private enum class WheelZone { MENU, PREVIOUS, NEXT, PLAY_PAUSE }
 
+// Scrubber on top with shuffle and repeat between its times, then the click wheel.
+// Menu opens the song menu; spinning the wheel scrubs.
 @Composable
 internal fun ClickWheelControlsRow(
     positionMs: Long,
@@ -96,6 +100,7 @@ internal fun ClickWheelControlsRow(
         }
         Spacer(Modifier.height(8.dp))
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            // Short screens get a smaller wheel, so the artwork keeps its room.
             val screenHeight = LocalConfiguration.current.screenHeightDp.dp
             val wheelSize = min(min(maxWidth.value * 0.68f, (screenHeight * 0.3f).value), WHEEL_MAX_SIZE.value)
                 .coerceAtLeast(WHEEL_MIN_SIZE.value).dp
@@ -199,6 +204,7 @@ private fun ClickWheel(
         fun zoneTint(zone: WheelZone) = if (pressedZone == zone) scheme.tertiary else labelColor
         val pressedShade = scheme.onSurface.copy(alpha = 0.08f)
 
+        // The ring has the transport buttons' cap, outline and shadow, and a press shades its quarter.
         val cap = Brush.linearGradient(listOf(scheme.surfaceContainerHigh, scheme.surfaceContainerLowest))
         Canvas(Modifier.fillMaxSize().shadow(5.dp, CircleShape)) {
             val hairline = 1.dp.toPx()
@@ -214,6 +220,7 @@ private fun ClickWheel(
             drawArc(pressedShade, startAngle = start, sweepAngle = 90f, useCenter = true)
         }
 
+        // The centre is the app's transport button, accented while playing like the classic play button.
         TransportButton(
             iconRes = null,
             size = size * CENTER_FRACTION,
@@ -223,6 +230,7 @@ private fun ClickWheel(
             accented = playWhenReady
         )
 
+        // Play and pause carry the accent, as the classic layout's play button does.
         val playPauseTint = if (pressedZone == WheelZone.PLAY_PAUSE) scheme.onSurface else scheme.tertiary
         val labelInset = size * ((1f - CENTER_FRACTION) / 4f + CENTER_FRACTION / 2f)
         val iconSize = (size.value * 0.1f).coerceIn(16f, 24f).dp

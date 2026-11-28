@@ -239,6 +239,7 @@ private fun shareCardModeLabel(mode: ShareCardMode): String = stringResource(
     }
 )
 
+/** What every share preview sits on: the theme's background, with the cover blurred behind it for Atmosphere. */
 @Composable
 private fun ShareCardBackground(
     song: Song,

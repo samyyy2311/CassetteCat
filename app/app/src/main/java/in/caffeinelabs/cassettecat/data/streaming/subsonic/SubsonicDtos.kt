@@ -16,6 +16,7 @@ data class SubsonicResponse(
     val playQueue: SubsonicPlayQueue? = null
 )
 
+// The queue a player last saved on the server, and which player saved it.
 @Serializable
 data class SubsonicPlayQueue(
     val entry: List<SubsonicPlayQueueEntry> = emptyList(),
@@ -66,6 +67,7 @@ data class SubsonicSong(
     val artist: String? = null,
     val duration: Long = 0,
     val coverArt: String? = null,
+    // Non-null timestamp indicates track is starred.
     val starred: String? = null,
     val genre: String? = null
 )

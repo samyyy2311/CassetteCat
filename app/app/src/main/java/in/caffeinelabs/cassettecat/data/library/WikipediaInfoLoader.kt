@@ -30,6 +30,7 @@ class WikipediaInfoLoader {
         private val summaryCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     }
 
+    // Disambiguate generic album titles with primary artist.
     suspend fun fetchAlbumSummary(album: String, artist: String): String? {
         val primaryArtist = artist.substringBefore(',').substringBefore('&').trim()
         if (album.isBlank() || primaryArtist.isBlank()) return null

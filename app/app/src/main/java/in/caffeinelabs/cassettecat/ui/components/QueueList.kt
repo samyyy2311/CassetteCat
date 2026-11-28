@@ -79,6 +79,7 @@ import kotlinx.coroutines.delay
 private val SmoothEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
+// Deterministic QueueRow height for scroll offset calculations.
 private val QUEUE_ROW_HEIGHT = 68.dp
 
 @Composable

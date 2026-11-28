@@ -163,12 +163,14 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         .map { it.offlineBlackoutMode }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    // each repository no-ops if its source isn't configured
     private val sources = listOf(
         LabeledSource("Local", LocalLibraryRepository(app)),
         LabeledSource("Subsonic", SubsonicLibraryRepository(serverRepository, credentialStore)),
         LabeledSource("Jellyfin", JellyfinLibraryRepository(serverRepository, credentialStore))
     )
 
+    // unsorted; re-sorting on setSortOrder doesn't need a re-fetch
     private var rawSongs: List<Song> = emptyList()
     private var loadedSongs: List<Song> = emptyList()
     private var loadedWarnings: List<String> = emptyList()
@@ -278,6 +280,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 if (_uiState.value is LibraryUiState.Loaded) publishLoadedSongs()
             }
         }
+        // Restart the lyrics fetch only when the set of songs changes, not the order.
         viewModelScope.launch {
             combine(
                 _uiState.mapNotNull { (it as? LibraryUiState.Loaded)?.songs },

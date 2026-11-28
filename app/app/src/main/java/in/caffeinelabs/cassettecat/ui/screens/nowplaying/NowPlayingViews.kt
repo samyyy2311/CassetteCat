@@ -93,11 +93,13 @@ internal fun NowPlayingPlayerView(
     onShowGoToMenu: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
+    // The computer this phone is controlling, shown in the bottom row like a Spotify Connect device.
     deviceName: String? = null,
     onOpenDevices: (() -> Unit)? = null
 ) {
     val preferences = LocalAppPreferences.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // The click wheel only replaces the player view's controls; lyrics and queue keep the compact classic row.
     val isClickWheel = preferences.playerControlsStyle == PlayerControlsStyle.CLICK_WHEEL
 
     val art: @Composable (Modifier) -> Unit = { modifier ->

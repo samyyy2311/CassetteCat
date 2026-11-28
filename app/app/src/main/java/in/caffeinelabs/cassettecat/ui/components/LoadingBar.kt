@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+// A thin bar sweeping along the top edge while something loads, the same as the desktop app's.
 @Composable
 fun LoadingBar(modifier: Modifier = Modifier) {
     LinearProgressIndicator(

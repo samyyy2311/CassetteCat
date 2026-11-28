@@ -49,6 +49,7 @@ val sharedHttpClient: OkHttpClient = OkHttpClient.Builder()
         checkBlackout(chain.request().url.host)
         chain.proceed(chain.request())
     }
+    // Requests for your server go to whichever of its addresses answers where you are.
     .addInterceptor(ServerAddresses.Rewriter)
     .addInterceptor { chain ->
         val request = chain.request().newBuilder()

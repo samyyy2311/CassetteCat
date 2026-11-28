@@ -238,6 +238,7 @@ private fun resolvePlaylistMatch(q: String, songs: List<Song>, playlists: List<P
     return playlist.songIds.mapNotNull { byId[it] }
 }
 
+// A file opened from another app plays as the library's song when the library has it, or else as it is.
 private suspend fun songForOpenedFile(context: Context, uri: Uri, librarySongs: List<Song>): Song? {
     // A file manager may hand over the file's path rather than the library's content address.
     librarySongs.firstOrNull { it.contentUri == uri || (uri.scheme == "file" && it.filePath == uri.path) }?.let { return it }
@@ -262,6 +263,7 @@ private suspend fun songForOpenedFile(context: Context, uri: Uri, librarySongs: 
                 source = MusicSource.Local
             )
         } catch (e: RuntimeException) {
+            // Not a file the system can read; the player can't play it either.
             null
         } finally {
             retriever.release()
@@ -359,6 +361,7 @@ fun MainShell(
                 DefaultStartScreen.LAST_OPENED -> saved.lastOpenedRoute
                     .takeIf { it in MainRoute.BOTTOM_TABS } ?: MainRoute.LIBRARY
             }
+            // Fall back to Library if the start tab is hidden.
             val visible = saved.navTabOrder.filterNot { it in saved.hiddenNavTabs }.map { it.route() }
             val targetRoute = wantedRoute.takeIf { it in visible } ?: MainRoute.LIBRARY
             startTab = targetRoute

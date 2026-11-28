@@ -23,15 +23,18 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.navigation.MainRoute
 import `in`.caffeinelabs.cassettecat.R as AppR
 
+// Sheets that open over Settings, rather than pages it navigates to.
 internal const val LISTENING_ROOM_SHEET = "sheet/listening_room"
 internal const val WHATS_NEW_SHEET = "sheet/whats_new"
 
+/** A page or setting that search can find: its name, the pages above it, and the page that holds it. */
 private class SettingsEntry(val title: Int, val path: List<Int>, val route: String)
 
 private val customisation = listOf(AppR.string.settings_customisation)
 private val navigation = customisation + AppR.string.customization_startup_library
 private val storage = listOf(AppR.string.customization_storage)
 
+// Every settings page, and the settings people look for by name, each with the page it's on.
 private val settingsEntries = listOf(
     SettingsEntry(AppR.string.customization_theme, customisation, CustomizationRoute.THEME),
     SettingsEntry(AppR.string.customization_accent_palette, customisation + AppR.string.customization_theme, CustomizationRoute.THEME),
@@ -119,6 +122,7 @@ internal fun SettingsSearchField(query: String, onQueryChange: (String) -> Unit)
     )
 }
 
+/** The pages and settings whose name, or a page above them, has every word of [query], each opening its page. */
 @Composable
 internal fun SettingsSearchResults(query: String, onOpen: (String) -> Unit) {
     val resources = LocalResources.current

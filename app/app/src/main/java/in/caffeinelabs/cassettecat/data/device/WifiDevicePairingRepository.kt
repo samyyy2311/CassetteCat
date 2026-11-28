@@ -44,6 +44,7 @@ class WifiDevicePairingRepository(private val context: Context) {
     private var searchJob: Job? = null
     private var boundNetwork: Network? = null
 
+    // Lets sync reuse the SoftAP network binding without re-running discovery.
     val currentNetwork: Network? get() = boundNetwork
 
     private val canAutoAssociateSoftAp: Boolean

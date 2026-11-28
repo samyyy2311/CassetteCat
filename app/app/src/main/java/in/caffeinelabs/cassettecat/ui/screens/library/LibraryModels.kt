@@ -51,6 +51,7 @@ fun List<Song>.filterBySource(filter: LibrarySourceFilter): List<Song> = when (f
     LibrarySourceFilter.JELLYFIN -> filter { it.source == MusicSource.Jellyfin }
 }
 
+// The sort sheet picks each option's icon and direction wording from what it orders by.
 enum class SortKind(@DrawableRes val iconRes: Int) {
     TEXT(R.drawable.lucide_ic_arrow_up_down),
     COUNT(R.drawable.lucide_ic_hash),
