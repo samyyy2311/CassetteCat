@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -733,8 +734,11 @@ private fun ActiveLyricLine(
         words.map { word -> (start until start + word.length).also { start += word.length + 1 } }
     }
     var layout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
+    // Each word dims its own tile of the line: out to halfway to its neighbours and across its whole row. The tiles
+    // cover the line with no gaps, so ink outside a word's box, like a vowel mark below the line or the tail of a J,
+    // dims with its word instead of staying lit.
     val wordBounds = remember(layout, wordRanges) {
-        layout?.let { result -> wordRanges.map { range -> result.getPathForRange(range.first, range.last + 1).getBounds() } }
+        layout?.let { result -> wordTiles(result, wordRanges) }
     }
 
     Box(modifier = modifier) {
@@ -777,6 +781,27 @@ private fun ActiveLyricLine(
                         }
                     }
                 }
+        )
+    }
+}
+
+private fun wordTiles(layout: TextLayoutResult, wordRanges: List<IntRange>): List<Rect> {
+    val boxes = wordRanges.map { layout.getPathForRange(it.first, it.last + 1).getBounds() }
+    val rows = wordRanges.map { layout.getLineForOffset(it.first) }
+    val lastRow = layout.lineCount - 1
+    val width = layout.size.width.toFloat()
+    val height = layout.size.height.toFloat()
+    return boxes.indices.map { index ->
+        val row = rows[index]
+        val box = boxes[index]
+        val sameRow = boxes.indices.filter { rows[it] == row && it != index }.map { boxes[it] }
+        val before = sameRow.filter { it.right <= box.left }.maxOfOrNull { it.right }
+        val after = sameRow.filter { it.left >= box.right }.minOfOrNull { it.left }
+        Rect(
+            left = before?.let { (it + box.left) / 2f } ?: 0f,
+            top = if (row == 0) 0f else layout.getLineTop(row),
+            right = after?.let { (box.right + it) / 2f } ?: width,
+            bottom = if (row == lastRow) height else layout.getLineBottom(row)
         )
     }
 }
