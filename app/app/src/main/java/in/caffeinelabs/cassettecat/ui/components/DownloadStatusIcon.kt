@@ -24,7 +24,6 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
 import `in`.caffeinelabs.cassettecat.data.streaming.StreamingProtocol
 
-// Read-only indicator for remote track download status.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
@@ -56,7 +55,6 @@ fun DownloadStatusIcon(song: Song, modifier: Modifier = Modifier) {
     }
 }
 
-/** Whether [song] can't play now: its server is offline and it isn't downloaded. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun isSongUnavailable(song: Song): Boolean {

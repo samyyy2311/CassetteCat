@@ -22,7 +22,6 @@ object StreamQuality {
     fun currentKbps(context: Context): Int =
         if (context.getSystemService(ConnectivityManager::class.java).isActiveNetworkMetered) mobileKbps else wifiKbps
 
-    /** [url] asking its server for at most [kbps], when it's a server stream; anything else is left as it is. */
     fun limit(url: String, kbps: Int): String {
         if (kbps <= 0) return url
         val parsed = url.toHttpUrlOrNull() ?: return url

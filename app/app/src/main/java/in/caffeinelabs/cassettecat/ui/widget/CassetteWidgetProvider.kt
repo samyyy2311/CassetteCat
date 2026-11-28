@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 
 class CassetteWidgetProvider : AppWidgetProvider() {
 
-    /** What the widget shows, as the player last reported it. */
     data class WidgetState(
         val title: String?,
         val artist: String?,
@@ -67,7 +66,6 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         @Volatile private var current: WidgetState? = null
         private var appliedGeneration = 0L
 
-        // Set by the playback service while it runs.
         @Volatile var onWidgetsAdded: (() -> Unit)? = null
 
         private const val PREFS = "cassette_widget"
@@ -79,7 +77,6 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         private const val KEY_ACCENT = "accent"
         private const val IDLE_ICON_COLOR = 0xFFA8A29A.toInt()
 
-        /** Cover size in pixels, large enough for the tall layout's cover to stay sharp. */
         const val COVER_SIZE = 256
 
         private fun artFile(context: Context) = File(context.noBackupFilesDir, "widget_art.png")
@@ -211,7 +208,6 @@ class CassetteWidgetProvider : AppWidgetProvider() {
             return views
         }
 
-        // Shuffle, repeat and like only fit in the tall layout.
         private fun bindTallControls(context: Context, views: RemoteViews, state: WidgetState, activeColor: Int) {
             views.setImageViewResource(
                 R.id.widget_btn_shuffle,
@@ -273,7 +269,6 @@ class CassetteWidgetProvider : AppWidgetProvider() {
         )
 
         private fun roundedBitmap(source: Bitmap): Bitmap {
-            // Matches the 6dp corner of the cover's frame.
             val cornerRadius = source.width * 0.08f
             val output = createBitmap(source.width, source.height)
             val canvas = android.graphics.Canvas(output)

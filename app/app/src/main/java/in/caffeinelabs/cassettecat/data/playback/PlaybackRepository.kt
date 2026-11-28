@@ -70,7 +70,6 @@ class PlaybackRepository(private val context: Context) {
     private val _state = MutableStateFlow(PlaybackUiState())
     // Counts queues replaced wholesale, so an undo can tell it's still the queue a song came from.
     private var queueGeneration = 0
-    // The song the player's current tracks were reported for.
     private var tracksSongId: String? = null
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
@@ -230,7 +229,6 @@ class PlaybackRepository(private val context: Context) {
         return true
     }
 
-    // Loads and seeks without starting playback, and does nothing when something is already loaded.
     suspend fun restoreQueue(songs: List<Song>, startIndex: Int, positionMs: Long) {
         if (songs.isEmpty() || controller?.currentMediaItem != null) return
         currentQueue = songs
@@ -564,7 +562,6 @@ class PlaybackRepository(private val context: Context) {
         return removal
     }
 
-    // Puts a removed song back where it was, or next if playback has moved past that point.
     fun restoreToUpNext(removal: QueueRemoval) {
         // A queue started since then is a different queue, and the song doesn't belong in it.
         if (removal.queueGeneration != queueGeneration) return
@@ -599,7 +596,6 @@ class PlaybackRepository(private val context: Context) {
         if (index != -1) controller?.seekTo(index, 0L)
     }
 
-    // Accumulate actively-playing time toward HISTORY_MIN_PLAYED_MS, excluding paused duration.
     private fun resetHistoryTracking(song: Song?) {
         historyJob?.cancel()
         historyJob = null
@@ -885,4 +881,3 @@ internal suspend fun ListenableFuture<MediaController>.awaitController(context: 
         }, ContextCompat.getMainExecutor(context))
         cont.invokeOnCancellation { cancel(false) }
     }
-

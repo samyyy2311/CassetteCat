@@ -150,8 +150,6 @@ internal fun PlaybackControlsRow(
     }
 }
 
-// The seek bar for songs, or the live indicator for streams without a length. [centerContent] sits
-// between the seek bar's times.
 @Composable
 internal fun ProgressReadout(
     positionMs: Long,
@@ -245,9 +243,7 @@ internal fun ScrubberControl(
     durationMs: Long,
     onSeek: (Long) -> Unit,
     isPlaying: Boolean,
-    // The song's loudness for the Waveform style; without it that style draws a line.
     waveform: FloatArray?,
-    // Sits between the two times, for layouts with no other room for it.
     centerContent: (@Composable () -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -475,7 +471,6 @@ private fun FaderTrack(sliderState: SliderState, isActive: Boolean) {
     }
 }
 
-// The desktop app's seek bar: a thin line that thickens while dragged.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LineTrack(sliderState: SliderState, isActive: Boolean) {
@@ -494,8 +489,6 @@ private fun LineTrack(sliderState: SliderState, isActive: Boolean) {
     }
 }
 
-// The system media controls' look: the played part ripples while music plays and lies flat when
-// paused or dragged, with a gap either side of the handle.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WavyTrack(sliderState: SliderState, isActive: Boolean, isPlaying: Boolean) {
@@ -540,7 +533,6 @@ private fun WavyThumb() {
     Box(Modifier.size(width = 4.dp, height = 20.dp).background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(50)))
 }
 
-// The song's loudness as bars, filled in up to the playing point.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WaveformTrack(sliderState: SliderState, waveform: FloatArray) {
@@ -569,7 +561,6 @@ private fun sliderFraction(sliderState: SliderState): Float {
     return ((sliderState.value - sliderState.valueRange.start) / range).coerceIn(0f, 1f)
 }
 
-// Loads the playing song's shape when the Waveform seek bar is chosen.
 @Composable
 internal fun rememberWaveform(song: Song?): FloatArray? {
     val context = LocalContext.current

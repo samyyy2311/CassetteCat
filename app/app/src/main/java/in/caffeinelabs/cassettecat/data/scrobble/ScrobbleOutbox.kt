@@ -238,12 +238,10 @@ internal object ScrobbleOutbox {
             }
             val settings = settingsRepository.settings.first()
             val services = connectedServices(settings)
-            // With no account connected, everything waits for one.
             val next = if (services.isEmpty()) null else items.value.firstOrNull { it.nextTryAtMs <= now }
             val online = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
                 ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
             if (next == null || !online || serviceSettings.settings.first().offlineBlackoutMode) {
-                // Sleeps until something changes or the earliest retry is due.
                 val due = items.value.minOfOrNull { it.nextTryAtMs }?.takeIf { next == null && services.isNotEmpty() && it > now }
                 withTimeoutOrNull(due?.minus(now) ?: Long.MAX_VALUE) { wake.receive() }
                 continue
@@ -299,7 +297,6 @@ internal object ScrobbleOutbox {
         if (target == LISTENBRAINZ) {
             val token = settings.listenBrainz.userToken.takeIf { settings.listenBrainz.enabled && it.isNotBlank() } ?: return true
             if (item.kind == OutboxItem.Kind.LOVE) return listenBrainz.sendFeedback(token, song, item.loved)
-            // Empty when saved, the reason when refused, or null when it couldn't be reached.
             val answer = listenBrainz.submitListen(token, song, item.listenedAtSec) ?: return false
             if (answer != settings.listenBrainz.problem) settingsRepository.setListenBrainzProblem(answer)
             return true
@@ -333,7 +330,6 @@ internal object ScrobbleOutbox {
         }.toMap()
     }
 
-    // Each signed-in account's record name: its service and username. Switching an account off keeps its loves.
     private fun accountRecords(settings: ScrobbleSettings): Map<String, String> =
         buildMap {
             if (settings.listenBrainz.userToken.isNotBlank()) put(LISTENBRAINZ, "$LISTENBRAINZ/${settings.listenBrainz.userName}")

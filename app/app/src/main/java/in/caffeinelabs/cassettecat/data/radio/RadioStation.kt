@@ -32,7 +32,6 @@ fun RadioStation.toSong(fallbackArtist: String): Song = Song(
     country = country
 )
 
-// Rebuilds a station from the Song it was saved as in favorites.
 fun Song.toRadioStation(): RadioStation = RadioStation(
     uuid = id.removePrefix("radio:"),
     name = title,

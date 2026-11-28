@@ -46,7 +46,6 @@ import `in`.caffeinelabs.cassettecat.R as AppR
 
 private const val SEARCH_DELAY_MS = 300L
 
-/** Searches the paired computer's library and plays songs on the computer or on this phone. */
 @Composable
 fun ComputerLibraryScreen(
     playbackViewModel: PlaybackViewModel,

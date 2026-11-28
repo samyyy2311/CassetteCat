@@ -35,7 +35,6 @@ tailrec fun Throwable.findUntrustedCertificateCause(): UntrustedCertificateExcep
 /** The paired computer's self-signed certificate, trusted only at the computer's address. */
 data class DesktopCertificate(val host: String, val fingerprint: String)
 
-// TOFU certificate pinning keys on the certificate fingerprint rather than hostname.
 private object CertificatePinStore {
     @Volatile var pinned: Set<String> = emptySet()
     @Volatile var desktop: DesktopCertificate? = null

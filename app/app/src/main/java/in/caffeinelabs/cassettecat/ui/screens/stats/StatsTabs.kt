@@ -47,7 +47,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
-/** The Listening Record's tabs, the same as the computer's. */
 internal enum class StatsTab(val labelRes: Int) {
     OVERVIEW(AppR.string.stats_tab_overview),
     TRACKS(AppR.string.stats_tab_tracks),
@@ -108,14 +107,12 @@ internal fun periodRecord(months: Collection<MonthlyStats>, listens: List<Listen
     return PeriodRecord(stats, MonthComputed(topArtists, topAlbums, topSongs, topGenres, history))
 }
 
-/** The short lists the Overview and Rewind show, before "View all". */
 internal fun MonthComputed.summary() = copy(
     topArtists = topArtists.take(10),
     topAlbums = topAlbums.take(10),
     topGenres = topGenres.take(5)
 )
 
-/** Listening time per month of [year], as bars; [selected] is highlighted and tapping a month picks it. */
 @Composable
 internal fun MonthlyListeningChart(
     year: Int,
@@ -178,7 +175,6 @@ internal fun MonthlyListeningChart(
     }
 }
 
-/** A numbered row with artwork, for the full Top Tracks, Artists and Albums lists. */
 @Composable
 internal fun StatRankRow(
     rank: Int,
@@ -273,7 +269,6 @@ internal fun HistoryTab(listens: List<Listen>, onPlay: (Listen) -> Unit, listBot
     val today = LocalDate.now()
     val todayLabel = stringResource(AppR.string.stats_today)
     val yesterdayLabel = stringResource(AppR.string.stats_yesterday)
-    // Listens are grouped under their day, so each row shows only the time.
     LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = listBottomPadding + 24.dp)) {
         var lastDay: LocalDate? = null
         listens.forEachIndexed { index, listen ->

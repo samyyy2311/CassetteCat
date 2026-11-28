@@ -32,7 +32,6 @@ class FolderCoverRepository private constructor(private val context: Context) {
 
     fun getCoverPath(folderPath: String): String? = folderCovers.value[folderPath]
 
-    /** Stores [sourceUri] as the folder's cover and deletes the one it replaced; a file that couldn't be stored is removed. */
     suspend fun replaceCover(storage: FolderCoverStorage, folderPath: String, sourceUri: Uri) {
         val newPath = storage.save(folderPath, sourceUri) ?: return
         var replaced: String? = null

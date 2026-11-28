@@ -56,7 +56,6 @@ internal enum class ShareTarget { WHATSAPP, INSTAGRAM_STORIES, OTHER }
 
 private val whatsAppPackages = listOf("com.whatsapp", "com.whatsapp.w4b")
 
-/** The frame every share sheet uses: a titled sheet with a close button, scrolling when the preview is tall. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ShareSheet(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
@@ -96,7 +95,6 @@ internal fun ShareSheet(title: String, onDismiss: () -> Unit, content: @Composab
     }
 }
 
-/** The WhatsApp, Instagram Stories and More buttons that end every share sheet. */
 @Composable
 internal fun ShareImageActions(onShare: (ShareTarget) -> Unit) {
     ShareActionPill(

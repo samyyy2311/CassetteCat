@@ -28,7 +28,6 @@ import `in`.caffeinelabs.cassettecat.data.library.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// Byte-bounded cache for 512px playlist covers.
 private const val COVER_CACHE_BYTES = 8 * 1024 * 1024
 private val coverCache = object : LruCache<String, Bitmap>(COVER_CACHE_BYTES) {
     override fun sizeOf(key: String, value: Bitmap) = value.byteCount
