@@ -39,6 +39,7 @@ private val LIBRARY_TAB_ORDER = stringPreferencesKey("library_tab_order")
 private val HIDDEN_LIBRARY_TABS = stringPreferencesKey("hidden_library_tabs")
 private val NAV_TAB_ORDER = stringPreferencesKey("nav_tab_order")
 private val HIDDEN_NAV_TABS = stringPreferencesKey("hidden_nav_tabs")
+private val SHOWN_OPTIONAL_NAV_TABS = stringPreferencesKey("shown_optional_nav_tabs")
 private val LAST_LIBRARY_TAB = stringPreferencesKey("last_library_tab")
 
 private val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
@@ -113,10 +114,13 @@ enum class ThemeAccent(val colorValue: Long, val containerValue: Long) {
 enum class DefaultLibraryTab { SONGS, ARTISTS, ALBUMS, GENRES, PLAYLISTS, FOLDERS }
 
 enum class NavTab {
-    HOME, LIBRARY, RADIO, SEARCH, SETTINGS;
+    HOME, LIBRARY, RADIO, SEARCH, STATS, SETTINGS;
 
     // Back always returns to Library, and Settings is needed to undo this, so neither can be hidden.
     val canHide: Boolean get() = this != LIBRARY && this != SETTINGS
+
+    // Off until it's switched on, as a phone's bar has little room; the page is also in Settings.
+    val optional: Boolean get() = this == STATS
 }
 
 enum class HomeSection { HEAVY_ROTATION, RECENTLY_PLAYED, RECENTLY_ADDED, FORGOTTEN_FAVORITES }
@@ -186,7 +190,7 @@ data class AppPreferences(
     val libraryTabOrder: List<DefaultLibraryTab> = DefaultLibraryTab.entries,
     val hiddenLibraryTabs: Set<DefaultLibraryTab> = emptySet(),
     val navTabOrder: List<NavTab> = NavTab.entries,
-    val hiddenNavTabs: Set<NavTab> = emptySet(),
+    val hiddenNavTabs: Set<NavTab> = NavTab.entries.filterTo(mutableSetOf()) { it.optional },
     val lastLibraryTab: DefaultLibraryTab? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
@@ -289,7 +293,7 @@ class AppPreferencesRepository(private val context: Context) {
             libraryTabOrder = orderedEnumValues(prefs[LIBRARY_TAB_ORDER], DefaultLibraryTab.entries),
             hiddenLibraryTabs = safeHiddenEnumValues(prefs[HIDDEN_LIBRARY_TABS], DefaultLibraryTab.entries),
             navTabOrder = orderedEnumValues(prefs[NAV_TAB_ORDER], NavTab.entries),
-            hiddenNavTabs = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).filterTo(mutableSetOf()) { it.canHide },
+            hiddenNavTabs = hiddenNavTabs(prefs[HIDDEN_NAV_TABS], prefs[SHOWN_OPTIONAL_NAV_TABS]),
             lastLibraryTab = prefs[LAST_LIBRARY_TAB]?.let { runCatching { DefaultLibraryTab.valueOf(it) }.getOrNull() },
             librarySortDirection = prefs[LIBRARY_SORT_DIRECTION] ?: "ASCENDING",
             libraryCollectionLayout = prefs[LIBRARY_COLLECTION_LAYOUT] ?: "GRID",
@@ -458,6 +462,11 @@ class AppPreferencesRepository(private val context: Context) {
             val hidden = enumValueSet(prefs[HIDDEN_NAV_TABS], NavTab.entries).toMutableSet()
             if (visible) hidden -= tab else hidden += tab
             prefs[HIDDEN_NAV_TABS] = hidden.joinToString(",") { it.name }
+            if (tab.optional) {
+                val shown = enumValueSet(prefs[SHOWN_OPTIONAL_NAV_TABS], NavTab.entries).toMutableSet()
+                if (visible) shown += tab else shown -= tab
+                prefs[SHOWN_OPTIONAL_NAV_TABS] = shown.joinToString(",") { it.name }
+            }
         }
     }
 
@@ -881,6 +890,13 @@ class AppPreferencesRepository(private val context: Context) {
 internal fun <T : Enum<T>> orderedEnumValues(raw: String?, entries: List<T>): List<T> {
     val byName = entries.associateBy { it.name }
     return (raw.orEmpty().split(',').mapNotNull(byName::get) + entries).distinct()
+}
+
+// Tabs hidden by choice, and optional ones that were never switched on.
+private fun hiddenNavTabs(hiddenRaw: String?, shownOptionalRaw: String?): Set<NavTab> {
+    val shownOptional = enumValueSet(shownOptionalRaw, NavTab.entries)
+    return enumValueSet(hiddenRaw, NavTab.entries).filterTo(mutableSetOf()) { it.canHide } +
+        NavTab.entries.filter { it.optional && it !in shownOptional }
 }
 
 private fun <T : Enum<T>> enumValueSet(raw: String?, entries: List<T>): Set<T> {

@@ -414,6 +414,7 @@
         <item>Hi friend! 🐾</item>
     </string-array>
     <string name="nav_home">Home</string>
+    <string name="nav_listening_record">Record</string>
     <string name="fast_scroll_none">none</string>
 
     <!-- Settings home -->

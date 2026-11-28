@@ -187,7 +187,7 @@ object MainRoute {
     fun albumDetail(albumId: String) = "main/library/album/${Uri.encode(albumId)}"
     const val GENRE_DETAIL = "main/library/genre/{genre}"
     fun genreDetail(genre: String) = "main/library/genre/${Uri.encode(genre)}"
-    val BOTTOM_TABS = listOf(HOME, LIBRARY, RADIO, SEARCH, SETTINGS)
+    val BOTTOM_TABS = listOf(HOME, LIBRARY, RADIO, SEARCH, STATS, SETTINGS)
     const val FOLDER_DETAIL = "main/library/folder/{folderPath}"
     fun folderDetail(folderPath: String) = "main/library/folder/${Uri.encode(folderPath)}"
     const val PLAYLIST_DETAIL = "main/library/playlist/{playlistId}"

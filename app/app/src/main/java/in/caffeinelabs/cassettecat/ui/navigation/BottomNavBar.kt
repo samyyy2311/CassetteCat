@@ -33,6 +33,7 @@ private fun NavTab.item() = when (this) {
     NavTab.LIBRARY -> NavItem(MainRoute.LIBRARY, R.drawable.lucide_ic_music, AppR.string.library_title)
     NavTab.RADIO -> NavItem(MainRoute.RADIO, R.drawable.lucide_ic_radio, AppR.string.radio_title)
     NavTab.SEARCH -> NavItem(MainRoute.SEARCH, R.drawable.lucide_ic_search, AppR.string.search_title)
+    NavTab.STATS -> NavItem(MainRoute.STATS, R.drawable.lucide_ic_disc_3, AppR.string.nav_listening_record)
     NavTab.SETTINGS -> NavItem(MainRoute.SETTINGS, R.drawable.lucide_ic_settings, AppR.string.settings_title)
 }
 

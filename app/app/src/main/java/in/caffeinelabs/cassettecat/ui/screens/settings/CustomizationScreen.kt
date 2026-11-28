@@ -1516,6 +1516,7 @@ private fun navTabLabel(tab: NavTab): String = stringResource(
         NavTab.LIBRARY -> AppR.string.library_title
         NavTab.RADIO -> AppR.string.radio_title
         NavTab.SEARCH -> AppR.string.search_title
+        NavTab.STATS -> AppR.string.settings_listening_record
         NavTab.SETTINGS -> AppR.string.settings_title
     }
 )
