@@ -645,6 +645,12 @@
     <string name="customization_crossfade_duration">Crossfade Duration</string>
     <string name="customization_crossfade_duration_description">Fade between track transitions</string>
     <string name="customization_seconds_short">%1$ds</string>
+    <string name="customization_stream_quality_wifi">Stream Quality on Wi-Fi</string>
+    <string name="customization_stream_quality_wifi_description">How good songs from your server sound on Wi-Fi</string>
+    <string name="customization_stream_quality_mobile">Stream Quality on Mobile Data</string>
+    <string name="customization_stream_quality_mobile_description">A lower quality uses less data. Downloads keep the original</string>
+    <string name="customization_stream_quality_original">Original</string>
+    <string name="customization_stream_quality_kbps">%1$d kbps</string>
     <string name="customization_skip_silence">Skip Silence</string>
     <string name="customization_skip_silence_description">Skip quiet stretches, such as long pauses in live recordings and podcasts</string>
     <string name="customization_replaygain">Volume Normalisation (ReplayGain)</string>

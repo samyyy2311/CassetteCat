@@ -77,6 +77,8 @@ private val LYRICS_FONT_SIZE = stringPreferencesKey("lyrics_font_size")
 private val LOCAL_LRC_PRIORITY = booleanPreferencesKey("local_lrc_priority")
 private val LYRICS_FOR_SEARCH = booleanPreferencesKey("lyrics_for_search")
 private val LYRICS_FOR_SEARCH_ON_MOBILE_DATA = booleanPreferencesKey("lyrics_for_search_on_mobile_data")
+private val STREAM_QUALITY_WIFI_KBPS = intPreferencesKey("stream_quality_wifi_kbps")
+private val STREAM_QUALITY_MOBILE_KBPS = intPreferencesKey("stream_quality_mobile_kbps")
 private val IGNORE_SHORT_AUDIO_CLIPS = booleanPreferencesKey("ignore_short_audio_clips")
 private val SHOW_HOME_RECENTLY_PLAYED = booleanPreferencesKey("show_home_recently_played")
 private val SHOW_HOME_HEAVY_ROTATION = booleanPreferencesKey("show_home_heavy_rotation")
@@ -219,6 +221,9 @@ data class AppPreferences(
     val localLrcPriority: Boolean = true,
     val lyricsForSearch: Boolean = false,
     val lyricsForSearchOnMobileData: Boolean = false,
+    // The most a server stream may use, in kbps; 0 is the original file.
+    val streamQualityWifiKbps: Int = 0,
+    val streamQualityMobileKbps: Int = 0,
     val ignoreShortAudioClips: Boolean = false,
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,
@@ -336,6 +341,8 @@ class AppPreferencesRepository(private val context: Context) {
             localLrcPriority = prefs[LOCAL_LRC_PRIORITY] ?: true,
             lyricsForSearch = prefs[LYRICS_FOR_SEARCH] ?: false,
             lyricsForSearchOnMobileData = prefs[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] ?: false,
+            streamQualityWifiKbps = prefs[STREAM_QUALITY_WIFI_KBPS] ?: 0,
+            streamQualityMobileKbps = prefs[STREAM_QUALITY_MOBILE_KBPS] ?: 0,
             ignoreShortAudioClips = prefs[IGNORE_SHORT_AUDIO_CLIPS] ?: false,
             showHomeRecentlyPlayed = prefs[SHOW_HOME_RECENTLY_PLAYED] ?: true,
             showHomeHeavyRotation = prefs[SHOW_HOME_HEAVY_ROTATION] ?: true,
@@ -603,6 +610,14 @@ class AppPreferencesRepository(private val context: Context) {
         context.appPreferencesDataStore.edit { it[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] = enabled }
     }
 
+    suspend fun setStreamQualityWifiKbps(kbps: Int) {
+        context.appPreferencesDataStore.edit { it[STREAM_QUALITY_WIFI_KBPS] = kbps }
+    }
+
+    suspend fun setStreamQualityMobileKbps(kbps: Int) {
+        context.appPreferencesDataStore.edit { it[STREAM_QUALITY_MOBILE_KBPS] = kbps }
+    }
+
     suspend fun setIgnoreShortAudioClips(enabled: Boolean) {
         context.appPreferencesDataStore.edit { it[IGNORE_SHORT_AUDIO_CLIPS] = enabled }
     }
@@ -747,6 +762,8 @@ class AppPreferencesRepository(private val context: Context) {
             localLrcPriority = current.localLrcPriority,
             lyricsForSearch = current.lyricsForSearch,
             lyricsForSearchOnMobileData = current.lyricsForSearchOnMobileData,
+            streamQualityWifiKbps = current.streamQualityWifiKbps,
+            streamQualityMobileKbps = current.streamQualityMobileKbps,
             ignoreShortAudioClips = current.ignoreShortAudioClips,
             showHomeRecentlyPlayed = current.showHomeRecentlyPlayed,
             showHomeHeavyRotation = current.showHomeHeavyRotation,
@@ -834,6 +851,8 @@ class AppPreferencesRepository(private val context: Context) {
             prefs[LOCAL_LRC_PRIORITY] = backup.localLrcPriority
             prefs[LYRICS_FOR_SEARCH] = backup.lyricsForSearch
             prefs[LYRICS_FOR_SEARCH_ON_MOBILE_DATA] = backup.lyricsForSearchOnMobileData
+            prefs[STREAM_QUALITY_WIFI_KBPS] = backup.streamQualityWifiKbps
+            prefs[STREAM_QUALITY_MOBILE_KBPS] = backup.streamQualityMobileKbps
             prefs[IGNORE_SHORT_AUDIO_CLIPS] = backup.ignoreShortAudioClips
             prefs[SHOW_HOME_RECENTLY_PLAYED] = backup.showHomeRecentlyPlayed
             prefs[SHOW_HOME_HEAVY_ROTATION] = backup.showHomeHeavyRotation

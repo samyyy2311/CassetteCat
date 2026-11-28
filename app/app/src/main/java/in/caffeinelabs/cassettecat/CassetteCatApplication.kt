@@ -9,6 +9,8 @@ import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.pinnedHostnameVerifier
 import `in`.caffeinelabs.cassettecat.data.streaming.tofuSslSocketFactory
 import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.data.settings.AppPreferencesRepository
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +33,12 @@ class CassetteCatApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { blackout.collect { blackoutActive = it } }
         listDesktopInOutputSwitcher(this)
         ServerAddresses.start(this)
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            AppPreferencesRepository(this@CassetteCatApplication).preferences.collect {
+                StreamQuality.wifiKbps = it.streamQualityWifiKbps
+                StreamQuality.mobileKbps = it.streamQualityMobileKbps
+            }
+        }
     }
 
     @Suppress("DEPRECATION")

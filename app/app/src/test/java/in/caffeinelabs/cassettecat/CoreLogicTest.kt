@@ -5,6 +5,7 @@ import `in`.caffeinelabs.cassettecat.data.playback.lyricsText
 import `in`.caffeinelabs.cassettecat.data.scrobble.AudioscrobblerClient
 import `in`.caffeinelabs.cassettecat.data.scrobble.ListenBrainzClient
 import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import `in`.caffeinelabs.cassettecat.data.streaming.completeServerUrl
 import `in`.caffeinelabs.cassettecat.data.update.ReleaseSection
 import `in`.caffeinelabs.cassettecat.data.update.releaseNotesFrom
@@ -258,6 +259,20 @@ class CoreLogicTest {
         assertEquals(3, stats.songPlayCounts["a"])
         assertEquals(2, stats.songPlayCounts["song:twobo"])
         assertEquals(220_000L, stats.listeningMs)
+    }
+
+    @Test
+    fun streamQualityAsksTheServerForLess() {
+        val subsonic = "http://nas:4533/rest/stream.view?id=7&u=me"
+        assertEquals(subsonic, StreamQuality.limit(subsonic, 0))
+        assertEquals("http://nas:4533/rest/stream.view?id=7&u=me&maxBitRate=192&format=mp3", StreamQuality.limit(subsonic, 192))
+        val jellyfin = "https://jf.example.com/Audio/abc/universal?audioBitRate=320000&maxStreamingBitrate=140000000"
+        assertEquals(
+            "https://jf.example.com/Audio/abc/universal?maxStreamingBitrate=128000&audioBitRate=128000",
+            StreamQuality.limit(jellyfin, 128)
+        )
+        // Anything that isn't a server stream, such as a radio station, is left alone.
+        assertEquals("https://radio.example.com/live.mp3", StreamQuality.limit("https://radio.example.com/live.mp3", 128))
     }
 
     @Test

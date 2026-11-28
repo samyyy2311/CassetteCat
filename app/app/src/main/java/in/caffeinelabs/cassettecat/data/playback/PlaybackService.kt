@@ -85,6 +85,7 @@ import `in`.caffeinelabs.cassettecat.ui.widget.PlaybackTileService
 import `in`.caffeinelabs.cassettecat.data.streaming.blackoutActive
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
 import `in`.caffeinelabs.cassettecat.data.streaming.ServerAddresses
+import `in`.caffeinelabs.cassettecat.data.streaming.StreamQuality
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -167,8 +168,9 @@ class PlaybackService : MediaLibraryService() {
             if (spec.uri.scheme != "http" && spec.uri.scheme != "https") return@Factory spec
             if (blackoutActive) throw IOException("Blackout mode is on")
             // A song from your server streams from whichever of its addresses answers where you are now.
+            // and at the quality chosen for the connection in use.
             val url = spec.uri.toString()
-            val rewritten = ServerAddresses.rewrite(url)
+            val rewritten = StreamQuality.limit(ServerAddresses.rewrite(url), StreamQuality.currentKbps(this))
             if (rewritten == url) spec else spec.withUri(Uri.parse(rewritten))
         }
         // Read-only: DownloadManager is the only intended writer to this cache; a concurrent

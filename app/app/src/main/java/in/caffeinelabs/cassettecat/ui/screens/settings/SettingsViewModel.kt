@@ -245,6 +245,14 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { appPreferencesRepository.setCrossfadeSeconds(seconds) }
     }
 
+    fun setStreamQualityWifiKbps(kbps: Int) {
+        viewModelScope.launch { appPreferencesRepository.setStreamQualityWifiKbps(kbps) }
+    }
+
+    fun setStreamQualityMobileKbps(kbps: Int) {
+        viewModelScope.launch { appPreferencesRepository.setStreamQualityMobileKbps(kbps) }
+    }
+
     fun setSkipSilence(enabled: Boolean) {
         viewModelScope.launch { appPreferencesRepository.setSkipSilence(enabled) }
     }

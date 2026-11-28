@@ -88,6 +88,8 @@ data class BackupAppPreferences(
     val localLrcPriority: Boolean = true,
     val lyricsForSearch: Boolean = false,
     val lyricsForSearchOnMobileData: Boolean = false,
+    val streamQualityWifiKbps: Int = 0,
+    val streamQualityMobileKbps: Int = 0,
     val ignoreShortAudioClips: Boolean = false,
     val showHomeRecentlyPlayed: Boolean = true,
     val showHomeHeavyRotation: Boolean = true,
