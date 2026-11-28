@@ -265,12 +265,12 @@ class CoreLogicTest {
     }
 
     @Test
-    fun savedServerCoversIgnoreSignInAndAddress() {
-        // The same cover from home or away, signed in with a fresh salt, is one file; a different cover isn't.
-        val home = RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=aa&s=11")
-        val away = RemoteAlbumArtLoader.savedName("https://music.example.com/rest/getCoverArt.view?id=al-1&u=me&t=bb&s=22")
-        assertEquals(home, away)
-        assertNotEquals(home, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-2&u=me"))
+    fun savedServerCoversIgnoreSignIn() {
+        // The same cover signed in with a fresh salt is one file; another cover, or one from another server, isn't.
+        val first = RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=aa&s=11")
+        assertEquals(first, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-1&u=me&t=bb&s=22"))
+        assertNotEquals(first, RemoteAlbumArtLoader.savedName("http://192.168.1.5:4533/rest/getCoverArt.view?id=al-2&u=me"))
+        assertNotEquals(first, RemoteAlbumArtLoader.savedName("https://music.example.com/rest/getCoverArt.view?id=al-1&u=me"))
     }
 
     @Test

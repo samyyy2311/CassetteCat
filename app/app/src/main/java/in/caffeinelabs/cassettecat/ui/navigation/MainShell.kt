@@ -1025,9 +1025,9 @@ fun MainShell(
                         PrivacyScreen(onBack = { navController.popBackStack() })
                     }
                     composable(MainRoute.STATS) {
-                        // Opened from the bar it's a tab, straight after the start tab, with nothing to go back to.
-                        val openedAsTab = NavTab.STATS in visibleNavTabs &&
-                            navController.previousBackStackEntry?.destination?.route == startTab
+                        // From the bar it opens just above the start tab, or is the start tab, with nothing to go back to.
+                        val previous = navController.previousBackStackEntry?.destination?.route
+                        val openedAsTab = NavTab.STATS in visibleNavTabs && (previous == null || previous == startTab)
                         StatsScreen(
                             libraryViewModel = libraryViewModel,
                             playlistViewModel = playlistViewModel,

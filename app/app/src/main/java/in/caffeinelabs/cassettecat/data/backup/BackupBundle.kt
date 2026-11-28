@@ -55,6 +55,7 @@ data class BackupAppPreferences(
     val navTabOrder: List<String> = emptyList(),
     // Null in backups made before the bottom bar could be changed; empty means every tab shows.
     val hiddenNavTabs: Set<String>? = null,
+    val shownOptionalNavTabs: Set<String>? = null,
     val librarySortDirection: String = "ASCENDING",
     val libraryCollectionLayout: String = "GRID",
     val librarySongFilter: String = "ALL",

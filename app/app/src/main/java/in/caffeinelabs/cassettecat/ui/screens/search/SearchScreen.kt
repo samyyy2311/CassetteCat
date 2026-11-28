@@ -227,7 +227,7 @@ fun SearchScreen(
         if (trimmed.isBlank()) emptyList()
         else allAlbums.mapNotNull { album ->
             val byName = nameMatchRank(album.album, trimmed)
-            val byArtist = album.artist.splitArtists().mapNotNull { nameMatchRank(it, trimmed) }.minOrNull()
+            val byArtist = (album.artist.splitArtists() + album.artist).mapNotNull { nameMatchRank(it, trimmed) }.minOrNull()
             (byName ?: byArtist?.plus(ALBUM_BY_ARTIST))?.let { album to it }
         }.sortedBy { it.second }.map { it.first }
     }

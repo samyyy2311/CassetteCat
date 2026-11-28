@@ -23,6 +23,10 @@ import `in`.caffeinelabs.cassettecat.ui.components.PressDepthIconButton
 import `in`.caffeinelabs.cassettecat.ui.navigation.MainRoute
 import `in`.caffeinelabs.cassettecat.R as AppR
 
+// Sheets that open over Settings, rather than pages it navigates to.
+internal const val LISTENING_ROOM_SHEET = "sheet/listening_room"
+internal const val WHATS_NEW_SHEET = "sheet/whats_new"
+
 /** A page or setting that search can find: its name, the pages above it, and the page that holds it. */
 private class SettingsEntry(val title: Int, val path: List<Int>, val route: String)
 
@@ -64,6 +68,8 @@ private val settingsEntries = listOf(
     SettingsEntry(AppR.string.settings_sleep_timer, emptyList(), MainRoute.SLEEP_TIMER),
     SettingsEntry(AppR.string.settings_equalizer, emptyList(), MainRoute.EQUALIZER),
     SettingsEntry(AppR.string.settings_listening_record, emptyList(), MainRoute.STATS),
+    SettingsEntry(AppR.string.settings_listening_room, emptyList(), LISTENING_ROOM_SHEET),
+    SettingsEntry(AppR.string.whats_new_title, emptyList(), WHATS_NEW_SHEET),
     SettingsEntry(AppR.string.settings_scan_folders, emptyList(), MainRoute.MANAGE_SCAN_FOLDERS),
     SettingsEntry(AppR.string.downloads_title, emptyList(), MainRoute.DOWNLOADS),
     SettingsEntry(AppR.string.customization_storage, emptyList(), CustomizationRoute.STORAGE),

@@ -363,8 +363,11 @@ fun parseLrc(lrc: String): List<LyricLine> =
 
 /** Lyric lines as LRC when they have start times, or as plain lines when they don't. Null when there are none. */
 fun lyricsText(lines: List<Pair<Long?, String>>, timed: Boolean): String? {
-    val text = lines.filter { it.second.isNotBlank() }.joinToString("\n") { (startMs, line) ->
-        if (!timed || startMs == null) {
+    val shown = lines.filter { it.second.isNotBlank() }
+    // A line without a time would be dropped from LRC, so then they're all kept as plain lines.
+    val allTimed = timed && shown.all { it.first != null }
+    val text = shown.joinToString("\n") { (startMs, line) ->
+        if (!allTimed || startMs == null) {
             line
         } else {
             "[%02d:%02d.%02d]%s".format(java.util.Locale.US, startMs / 60_000, (startMs / 1000) % 60, (startMs % 1000) / 10, line)

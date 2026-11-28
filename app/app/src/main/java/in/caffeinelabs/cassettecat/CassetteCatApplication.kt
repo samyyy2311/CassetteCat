@@ -31,7 +31,12 @@ class CassetteCatApplication : Application() {
         // Read before anything can make a request, then kept in step with the setting.
         val blackout = ServiceSettingsRepository(this).settings.map { it.offlineBlackoutMode }
         blackoutActive = runBlocking { blackout.first() }
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { blackout.collect { blackoutActive = it } }
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            blackout.collect {
+                blackoutActive = it
+                ServerAddresses.checkAgain()
+            }
+        }
         listDesktopInOutputSwitcher(this)
         ServerAddresses.start(this)
         RemoteAlbumArtLoader.diskDir = java.io.File(cacheDir, "server_covers")

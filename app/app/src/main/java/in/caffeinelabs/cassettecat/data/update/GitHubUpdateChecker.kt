@@ -25,7 +25,7 @@ private val SEEN_VERSION = stringPreferencesKey("seen_version")
 private data class GitHubRelease(
     val tag_name: String,
     val html_url: String,
-    val body: String = ""
+    val body: String? = null
 )
 
 sealed interface UpdateCheckResult {
@@ -55,7 +55,7 @@ class GitHubUpdateChecker {
                     version = latestVersion,
                     url = release.html_url,
                     // The release text is the version's changelog section, so it reads like What's New.
-                    notes = releaseNotesFrom(release.body, latestVersion)
+                    notes = releaseNotesFrom(release.body.orEmpty(), latestVersion)
                 )
             } else {
                 UpdateCheckResult.UpToDate
@@ -114,7 +114,7 @@ fun releaseNotesFrom(changelog: String, version: String): List<ReleaseSection> {
 
 // A test build's "-debug" suffix isn't part of the release it's built from.
 fun releaseNotes(context: Context, version: String): List<ReleaseSection> =
-    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version.substringBefore("-"))
+    releaseNotesFrom(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }, version.removeSuffix("-debug"))
 
 /** Release notes to show once after updating to [version]; empty when already seen. */
 suspend fun unseenReleaseNotes(context: Context, version: String): List<ReleaseSection> =

@@ -113,7 +113,13 @@ fun SettingsScreen(
         Spacer(Modifier.height(16.dp))
 
         if (searchQuery.isNotBlank()) {
-            SettingsSearchResults(searchQuery, onOpenSetting)
+            SettingsSearchResults(searchQuery) { route ->
+                when (route) {
+                    LISTENING_ROOM_SHEET -> showListeningRoom = true
+                    WHATS_NEW_SHEET -> whatsNew = releaseNotes(context, BuildConfig.VERSION_NAME)
+                    else -> onOpenSetting(route)
+                }
+            }
         } else {
         SettingsSection(title = stringResource(AppR.string.settings_audio_playback_section)) {
             NavigationRow(

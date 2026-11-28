@@ -27,11 +27,11 @@ class RemoteAlbumArtLoader {
 
     private fun fetch(url: String, maxDimension: Int): Bitmap? = runCatching {
         val saved = diskDir?.let { File(it, savedName(url)) }
-        if (saved != null && saved.exists()) return@runCatching decodeSampledBitmap(saved.readBytes(), maxDimension = maxDimension)
+        saved?.let { decodeSavedBitmap(it, maxDimension) }?.let { return@runCatching it }
         sharedHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
             if (!response.isSuccessful) return@runCatching null
             val bytes = response.body.bytes()
-            saved?.let { file -> runCatching { file.parentFile?.mkdirs(); file.writeBytes(bytes) } }
+            saved?.let { saveWhole(it, bytes) }
             decodeSampledBitmap(bytes, maxDimension = maxDimension)
         }
     }.getOrNull()
@@ -44,13 +44,13 @@ class RemoteAlbumArtLoader {
         @Volatile
         var diskDir: File? = null
 
-        // A cover's file is named after its address without the sign-in parts, which change between sign-ins, or
-        // the server's host, which changes with its away address.
+        // Named after the cover's address without the sign-in parts, which change between sign-ins. Covers are always
+        // asked for at the server's home address, so the same cover keeps its name when you're away.
         internal fun savedName(url: String): String {
             val parsed = url.toHttpUrlOrNull() ?: return sha256(url)
             val kept = parsed.queryParameterNames.filterNot { it in SIGN_IN_PARAMETERS }.sorted()
                 .joinToString("&") { name -> "$name=${parsed.queryParameterValues(name).joinToString(",")}" }
-            return sha256(parsed.encodedPath + "?" + kept) + ".img"
+            return sha256("${parsed.host}:${parsed.port}${parsed.encodedPath}?$kept") + ".img"
         }
 
         private val SIGN_IN_PARAMETERS = setOf("u", "t", "s", "p", "v", "c", "f", "api_key", "apiKey")

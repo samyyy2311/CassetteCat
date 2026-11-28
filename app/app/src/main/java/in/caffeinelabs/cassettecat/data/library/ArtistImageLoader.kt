@@ -3,6 +3,8 @@ package `in`.caffeinelabs.cassettecat.data.library
 import android.graphics.Bitmap
 import `in`.caffeinelabs.cassettecat.data.streaming.ArtworkCache
 import `in`.caffeinelabs.cassettecat.data.streaming.decodeSampledBitmap
+import `in`.caffeinelabs.cassettecat.data.streaming.decodeSavedBitmap
+import `in`.caffeinelabs.cassettecat.data.streaming.saveWhole
 import `in`.caffeinelabs.cassettecat.data.streaming.sharedHttpClient
 import java.net.URLEncoder
 import kotlinx.serialization.Serializable
@@ -54,19 +56,22 @@ class ArtistImageLoader(private val diskDir: File) {
     private fun fetch(artist: String, deezerEnabled: Boolean, audioDbEnabled: Boolean, maxDimension: Int): Bitmap? {
         val saved = File(diskDir, artist.canonicalArtistName().ifEmpty { "_" } + ".img")
         val missing = File(diskDir, saved.nameWithoutExtension + ".none")
-        if (saved.exists()) return decodeSampledBitmap(saved.readBytes(), maxDimension = maxDimension)
+        decodeSavedBitmap(saved, maxDimension)?.let { return it }
         if (missing.exists() && System.currentTimeMillis() - missing.lastModified() < MISS_KEPT_MS) return null
-        var reached = false
+        // It's only a miss when every service answered without the artist; one that couldn't be reached is asked again.
+        var complete = deezerEnabled || audioDbEnabled
         for ((enabled, find) in listOf(deezerEnabled to ::deezerPictureUrl, audioDbEnabled to ::audioDbPictureUrl)) {
             if (!enabled) continue
-            val url = runCatching { find(artist) }.onSuccess { reached = true }.getOrNull() ?: continue
-            val bytes = runCatching { downloadBytes(url) }.getOrNull() ?: continue
-            diskDir.mkdirs()
-            runCatching { saved.writeBytes(bytes) }
+            val url = runCatching { find(artist) }.onFailure { complete = false }.getOrNull() ?: continue
+            val bytes = runCatching { downloadBytes(url) }.getOrNull()
+            if (bytes == null) {
+                complete = false
+                continue
+            }
+            saveWhole(saved, bytes)
             return decodeSampledBitmap(bytes, maxDimension = maxDimension)
         }
-        // A service that answered without the artist is a miss; one that couldn't be reached is asked again.
-        if (reached) runCatching { diskDir.mkdirs(); missing.writeText("") }
+        if (complete) runCatching { diskDir.mkdirs(); missing.writeText("") }
         return null
     }
 

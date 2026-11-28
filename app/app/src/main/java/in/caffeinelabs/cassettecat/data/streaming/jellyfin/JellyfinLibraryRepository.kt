@@ -29,7 +29,8 @@ class JellyfinLibraryRepository(
     }
 
     override suspend fun lyrics(songId: String): String? = session()?.let { session ->
-        runCatching { session.client.getLyrics(songId.removePrefix("jellyfin:"), session.accessToken) }.getOrNull()
+        runCatching { session.client.getLyrics(songId.removePrefix("jellyfin:"), session.accessToken) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrNull()
     }
 
     private suspend fun session(): JellyfinSession? {

@@ -52,6 +52,11 @@ object ServerAddresses {
         return url
     }
 
+    /** Checks the addresses again, as when blackout ends. */
+    fun checkAgain() {
+        recheck.trySend(Unit)
+    }
+
     fun start(context: Context) {
         synchronized(this) {
             if (started) return
@@ -123,11 +128,11 @@ object ServerAddresses {
     internal fun byHomeNetworkFirst(addresses: List<String>): List<String> =
         addresses.sortedByDescending { isHomeNetworkHost(hostOf(it)) }
 
+    // Neither needs a sign-in. The body is checked because a home address on someone else's network can be a router.
     private fun answers(protocol: StreamingProtocol, base: String): Boolean = runCatching {
-        // Any answer means the server is there; these need no sign-in, or turn down the missing one.
-        val path = if (protocol == StreamingProtocol.JELLYFIN) "/System/Info/Public" else "/rest/ping.view"
+        val (path, mark) = if (protocol == StreamingProtocol.JELLYFIN) "/System/Info/Public" to "\"ServerName\"" else "/rest/ping.view" to "subsonic-response"
         val request = Request.Builder().url(base + path).tag(Probe::class.java, Probe).build()
-        probeClient.newCall(request).execute().use { true }
+        probeClient.newCall(request).execute().use { mark in it.body.string() }
     }.getOrDefault(false)
 
     private object Probe

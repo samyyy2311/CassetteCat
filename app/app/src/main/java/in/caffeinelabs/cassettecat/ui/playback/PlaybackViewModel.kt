@@ -411,7 +411,8 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             localState.map { Triple(it.currentSong, it.isPlaying, it.upNext) }
                 .distinctUntilChanged { old, new -> old.first?.id == new.first?.id && old.second == new.second && old.third == new.third }
                 .collectLatest { (current, playing, upNext) ->
-                    if (current?.source != MusicSource.Subsonic) return@collectLatest
+                    playedSinceLaunch = playedSinceLaunch || playing
+                    if (!playedSinceLaunch || current?.source != MusicSource.Subsonic) return@collectLatest
                     do {
                         subsonicLibrary.saveQueue(current, upNext, _positionMs.value)
                         if (playing) delay(QUEUE_SAVE_INTERVAL_MS)
@@ -490,9 +491,13 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
             return false
         }
         if (desktop.handOff(songs.take(HANDOFF_QUEUE_LIMIT), 0, true)) return true
+        stopControllingDesktop()
+        return false
+    }
+
+    private suspend fun stopControllingDesktop() {
         desktop.sendAction("pause")
         desktop.setControlling(false)
-        return false
     }
 
     fun playInstantMix(seed: Song, library: List<Song>) {
@@ -764,6 +769,12 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         if (isFollowingRoomHost()) return
         repository.seekTo(positionMs)
         _positionMs.value = positionMs
+        // While a song plays, the half-minute save picks up the new place.
+        val state = localState.value
+        val current = state.currentSong
+        if (playedSinceLaunch && !state.isPlaying && current?.source == MusicSource.Subsonic) {
+            viewModelScope.launch { subsonicLibrary.saveQueue(current, state.upNext, positionMs) }
+        }
     }
 
     fun startListeningRoom() = listeningRoomRepository.startRoom {
@@ -1014,17 +1025,22 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
     val queueElsewhere: StateFlow<QueueElsewhere?> = _queueElsewhere.asStateFlow()
     // Each offer is made once: dismissing or taking it doesn't bring the same queue back.
     private val answeredQueues = mutableSetOf<String>()
+    // A queue restored at launch isn't saved until it plays, so it can't replace one another device left.
+    private var playedSinceLaunch = false
 
     fun checkQueueElsewhere(library: List<Song>) {
         viewModelScope.launch {
             val saved = subsonicLibrary.queueFromElsewhere() ?: return@launch
             val key = listOf(saved.changedBy, saved.current, saved.position).joinToString("|")
-            if (key in answeredQueues) return@launch
             val byId = library.associateBy { it.id }
             val songs = saved.entry.mapNotNull { byId["subsonic:${it.id}"] }
             val startIndex = songs.indexOfFirst { it.id == "subsonic:${saved.current}" }
             // Already playing that song here: there's nothing to carry on.
-            if (startIndex < 0 || songs[startIndex].id == localState.value.currentSong?.id) return@launch
+            if (startIndex < 0 || songs[startIndex].id == localState.value.currentSong?.id) {
+                _queueElsewhere.value = null
+                return@launch
+            }
+            if (key in answeredQueues) return@launch
             _queueElsewhere.value = QueueElsewhere(saved.changedBy.orEmpty(), songs, startIndex, saved.position)
             answeredQueues += key
         }
@@ -1035,6 +1051,7 @@ class PlaybackViewModel(app: Application) : AndroidViewModel(app) {
         _queueElsewhere.value = null
         viewModelScope.launch {
             connection.join()
+            if (controlledDesktop.value != null) stopControllingDesktop()
             repository.playQueue(offer.songs, offer.startIndex, startPositionMs = offer.positionMs)
         }
     }

@@ -39,6 +39,7 @@ import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -47,6 +48,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -182,8 +184,15 @@ class PlaybackService : MediaLibraryService() {
             .setCacheKeyFactory(StreamCacheKeyFactory)
             .setUpstreamDataSourceFactory(directFactory)
             .setCacheWriteDataSinkFactory(null)
+        val downloads = DownloadCache.get(this)
         val routedFactory = DataSource.Factory {
-            StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource())
+            // A lower quality is a different file, so only a whole download of the original can stand in for it.
+            StreamOnlyCacheDataSource(cacheDataSourceFactory.createDataSource(), directFactory.createDataSource()) { spec ->
+                StreamQuality.currentKbps(this) == 0 || StreamCacheKeyFactory.buildCacheKey(spec).let { key ->
+                    val length = ContentMetadata.getContentLength(downloads.getContentMetadata(key))
+                    length > 0 && downloads.isCached(key, 0, length)
+                }
+            }
         }
 
         val player = ExoPlayer.Builder(this, audioOnlyRenderersFactory(this))
@@ -296,6 +305,10 @@ class PlaybackService : MediaLibraryService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) skipped = 0
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) skipped = 0
             }
         })
 
@@ -852,12 +865,14 @@ class PlaybackService : MediaLibraryService() {
 
 private class StreamOnlyCacheDataSource(
     private val cached: DataSource,
-    private val direct: DataSource
+    private val direct: DataSource,
+    private val canUseCache: (DataSpec) -> Boolean
 ) : DataSource {
     private var active: DataSource = direct
 
     override fun open(dataSpec: DataSpec): Long {
-        active = if (dataSpec.uri.scheme == "http" || dataSpec.uri.scheme == "https") cached else direct
+        val remote = dataSpec.uri.scheme == "http" || dataSpec.uri.scheme == "https"
+        active = if (remote && canUseCache(dataSpec)) cached else direct
         return active.open(dataSpec)
     }
 

@@ -37,7 +37,7 @@ Screens take a ViewModel and callbacks; they don't navigate or reach into reposi
 
 ## Playback (`data/playback/`)
 
-- **`PlaybackService`** is a Media3 `MediaLibraryService` that owns the ExoPlayer instance. It runs the media session and notification, applies the gapless setting, and serves the browsable library in `MediaLibraryTree` to media browsers.
+- **`PlaybackService`** is a Media3 `MediaLibraryService` that owns the ExoPlayer instance. It runs the media session and notification, applies the playback settings, such as Skip Silence, and serves the browsable library in `MediaLibraryTree` to media browsers.
 - **`PlaybackRepository`** connects to the service through a `MediaController` and turns player callbacks into a `StateFlow<PlaybackUiState>`. It also applies crossfade, ReplayGain (with `ReplayGainHelper`) and the volume limit, and works out the current track's format for the quality badge (`extractAudioFormat`).
 - **`EqualizerController`** attaches Android's `Equalizer`, `BassBoost` and virtualizer effects to the player's audio session. Presets and levels are stored by `EqualizerSettingsRepository`.
 - **`AudioWaveformProcessor`** is a Media3 `AudioProcessor` that feeds the waveform animation in the lyrics view.

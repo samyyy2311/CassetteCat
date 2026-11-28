@@ -738,6 +738,7 @@ class AppPreferencesRepository(private val context: Context) {
             hiddenLibraryTabs = current.hiddenLibraryTabs.map { it.name }.toSet(),
             navTabOrder = current.navTabOrder.map { it.name },
             hiddenNavTabs = current.hiddenNavTabs.map { it.name }.toSet(),
+            shownOptionalNavTabs = NavTab.entries.filter { it.optional && it !in current.hiddenNavTabs }.map { it.name }.toSet(),
             librarySortDirection = current.librarySortDirection,
             libraryCollectionLayout = current.libraryCollectionLayout,
             librarySongFilter = current.librarySongFilter,
@@ -827,6 +828,7 @@ class AppPreferencesRepository(private val context: Context) {
                 prefs[NAV_TAB_ORDER] = backup.navTabOrder.joinToString(",")
             }
             backup.hiddenNavTabs?.let { prefs[HIDDEN_NAV_TABS] = it.joinToString(",") }
+            backup.shownOptionalNavTabs?.let { prefs[SHOWN_OPTIONAL_NAV_TABS] = it.joinToString(",") }
             prefs[LIBRARY_SORT_DIRECTION] = backup.librarySortDirection
             prefs[LIBRARY_COLLECTION_LAYOUT] = backup.libraryCollectionLayout
             prefs[LIBRARY_SONG_FILTER] = backup.librarySongFilter

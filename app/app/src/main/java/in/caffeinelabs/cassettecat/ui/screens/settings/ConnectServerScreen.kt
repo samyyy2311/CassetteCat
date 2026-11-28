@@ -81,6 +81,8 @@ fun ConnectServerScreen(
 
     fun normalizedServerUrl(): String = completeServerUrl(serverUrl)
     fun normalizedAwayUrl(): String = if (awayUrl.isBlank()) "" else completeServerUrl(awayUrl)
+    fun usesHttp(): Boolean =
+        listOf(normalizedServerUrl(), normalizedAwayUrl()).any { it.toUri().scheme.equals("http", ignoreCase = true) }
 
     val autofill = LocalAutofillManager.current
     // Lets the password manager offer to save the sign-in once the server accepts it. Quick Connect has no password.
@@ -275,7 +277,7 @@ fun ConnectServerScreen(
 
                 Button(
                     onClick = hapticClick {
-                        if (normalizedServerUrl().toUri().scheme.equals("http", ignoreCase = true)) {
+                        if (usesHttp()) {
                             showHttpWarning = true
                         } else {
                             signedInWithPassword = true
@@ -301,7 +303,7 @@ fun ConnectServerScreen(
                     Spacer(Modifier.height(8.dp))
                     TextButton(
                         onClick = hapticClick {
-                            if (normalizedServerUrl().toUri().scheme.equals("http", ignoreCase = true)) {
+                            if (usesHttp()) {
                                 pendingQuickConnect = true
                                 showHttpWarning = true
                             } else {

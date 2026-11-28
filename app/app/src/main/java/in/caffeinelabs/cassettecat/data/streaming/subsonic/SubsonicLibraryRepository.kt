@@ -45,7 +45,10 @@ class SubsonicLibraryRepository(
 
     // Servers without OpenSubsonic don't know the request, which counts as no lyrics.
     override suspend fun lyrics(songId: String): String? =
-        client()?.let { client -> runCatching { client.getLyrics(songId.removePrefix("subsonic:")) }.getOrNull() }
+        client()?.let { client ->
+            runCatching { client.getLyrics(songId.removePrefix("subsonic:")) }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrNull()
+        }
 
     private suspend fun client(): SubsonicApiClient? {
         val config = serverRepository.config(StreamingProtocol.SUBSONIC).first()

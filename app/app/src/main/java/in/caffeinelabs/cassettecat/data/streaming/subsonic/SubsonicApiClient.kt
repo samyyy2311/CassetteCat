@@ -61,8 +61,8 @@ class SubsonicApiClient(
         val all = get("getLyricsBySongId.view") { addQueryParameter("id", songId) }.lyricsList?.structuredLyrics.orEmpty()
         val lyrics = all.firstOrNull { it.synced && it.line.isNotEmpty() } ?: all.firstOrNull { it.line.isNotEmpty() }
             ?: return null
-        // The offset is how much later the lyrics should show than their times say.
-        return lyricsText(lyrics.line.map { line -> line.start?.let { it + lyrics.offset } to line.value }, lyrics.synced)
+        // A positive offset shows the lyrics sooner than their times say.
+        return lyricsText(lyrics.line.map { line -> line.start?.let { maxOf(0L, it - lyrics.offset) } to line.value }, lyrics.synced)
     }
 
     /** Keeps the queue on the server, so CassetteCat on another device can carry on from it. */
@@ -108,7 +108,8 @@ class SubsonicApiClient(
 
     companion object {
         private const val API_VERSION = "1.16.1"
-        const val CLIENT_NAME = "CassetteCat Android"
+        // The server records this as who saved a queue, so it names the phone too, telling two of them apart.
+        val CLIENT_NAME = "CassetteCat Android (${android.os.Build.MODEL})"
         private const val PAGE_SIZE = 500
     }
 }
